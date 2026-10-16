@@ -1,0 +1,44 @@
+/**
+ * The view tree: what an app's `view` function returns, and the functions
+ * that build it. Plain data: it describes a screen and touches no GTK. Apps
+ * reach it through `ui`, which re-exports it.
+ *
+ * Used by: ui, diff, live
+ */
+
+/**
+ * A description of what's on screen. `Msg` is the app's message type: what a
+ * widget sends to `update` when the user acts on it.
+ */
+public enum View<Msg> {
+    /** A line of text. */
+    Text(string),
+    /** A button with its label and the message one click sends. */
+    Button(string, Msg),
+    /** Children stacked top to bottom. */
+    Column(View<Msg>[]),
+}
+
+/**
+ * Builds a line of text.
+ *
+ * Example:
+ *     text("Clicked {m.count} times")
+ */
+public fun text<Msg>(s: string): View<Msg> = View.Text(s);
+
+/**
+ * Builds a button that sends `msg` each time it's clicked.
+ *
+ * Example:
+ *     button("Add", Msg.Add)
+ */
+public fun button<Msg>(label: string, msg: Msg): View<Msg> = View.Button(label, msg);
+
+/**
+ * Stacks `children` top to bottom.
+ *
+ * Example:
+ *     column([text("Hi"), button("Add", Msg.Add)])
+ */
+public fun column<Msg>(children: View<Msg>[]): View<Msg> = View.Column(children);

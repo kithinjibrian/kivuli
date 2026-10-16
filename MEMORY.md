@@ -111,9 +111,11 @@ Decisions 1–12 were agreed in the design discussion in the lugha repository (a
 
 ---
 
-### 14. Use `gtk.raw`, add missing externs privately
+### 14. Use `gtk.raw`; missing externs go into lugha-gtk
 
-**Decision:** kivuli manages widgets through `gtk.raw` and declares what lugha-gtk 0.1 lacks in its own `src/gtk_extra.la`. The list is in the kickoff brief §3. Moving them into lugha-gtk 0.2 is DECISION-004.
+**Decision:** kivuli manages widgets through `gtk.raw`. A GTK function it needs that `gtk.raw` lacks is added to lugha-gtk (`../lugha-gtk/src/raw.la`), checked against the header, and pushed when the user says so (DECISION-004). Until a lugha-gtk tag carries it, kivuli declares it temporarily in `src/gtk_extra.la`.
+
+**Why:** the user's direction (session 2): one set of bindings.
 
 ---
 

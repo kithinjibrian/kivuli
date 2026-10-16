@@ -50,7 +50,7 @@ One PRP at a time. Never implement more than one feature's scope in a single ses
 
 If mid-implementation the scope turns out larger than the PRP described: stop, document what was discovered, update or create a PRP, and get approval before continuing. The human decides what is "small enough to add", not the model.
 
-**A missing or broken lughac feature is never worked around silently.** Stop, record it in `DECISIONS.md`, and report it. It is fixed in the lugha repository (`../lugha`) with its own PRP or bug-fix PR, under that repo's `CLAUDE.md`. Never edit `../lugha` or `../lugha-gtk` from a kivuli session.
+**A missing or broken lughac feature is never worked around silently.** Stop, record it in `DECISIONS.md`, and report it. It is fixed in the lugha repository (`../lugha`) with its own PRP or bug-fix PR, under that repo's `CLAUDE.md`. Never edit `../lugha` from a kivuli session. `../lugha-gtk` only as PROTECTED FILES allows.
 
 ---
 
@@ -140,7 +140,8 @@ Never read, modify, or delete:
 - `lugha.lock`: written only by `lughac build`/`update`, never hand-edited
 - `LICENSE`: GPL-3.0-only, changed only by the human
 - Built executables (the paths in `.gitignore`)
-- `../lugha/` and `../lugha-gtk/`: other repositories with their own rules (reading them for reference is allowed; writing is not)
+- `../lugha/`: another repository with its own rules (read for reference; never write)
+- `../lugha-gtk/`: write only to add GTK bindings kivuli needs, when the user asks (DECISION-004). Commit only your own change, never the user's uncommitted work there, and push only on the user's go
 
 If a task seems to require touching a protected file, stop and ask. See also `.llmignore`. `.claude/settings.json` denies Claude's Read and Edit tools on the same paths. Keep all three in sync.
 
@@ -168,7 +169,7 @@ A task is done only when `fmt --check` is clean, `lughac test test/ src/` passes
 ## STACK
 
 - **Lugha v16/v17** via `lughac` 0.1.0. v16 is frozen and complete. v17 is in progress in `../lugha` (milestone 91 green threads done, 92 actors being built). Use only what `lughac spec` documents.
-- **lugha-gtk 0.1** (`gtk = { git = "https://github.com/kithinjibrian/lugha-gtk", version = "0.1" }`). kivuli uses **`gtk.raw`** only, because it manages widgets itself. It does not use `gtk.widgets`.
+- **lugha-gtk 0.1** (0.1.1 or later: `gtk_box_remove`, `gtk_box_insert_child_after`; `gtk = { git = "https://github.com/kithinjibrian/lugha-gtk", version = "0.1" }`). kivuli uses **`gtk.raw`** only, because it manages widgets itself. It does not use `gtk.widgets`.
 - **GTK 4.22** + GLib, linked through `[link] pkg-config = ["gtk4"]`.
 - **Boehm GC** (through lughac): closures handed to GTK are pinned with `data`/`release` callbacks.
 - License: **GPL-3.0-only**, like Lugha.
@@ -177,14 +178,15 @@ A task is done only when `fmt --check` is clean, `lughac test test/ src/` passes
 
 ## ARCHITECTURE RULES
 
-1. **Apps see only `ui` and `ui.testing`.** `live`, `diff`, `effects`, and `gtk_extra` are private (package-level). *Why:* the public surface is the Elm contract, and leaking widgets lets apps bypass `update`/`view`.
-2. **`diff` is pure.** It takes two `View` trees and returns patches. It never calls GTK. *Why:* it must be unit-testable with no display, and it is where most bugs will live.
-3. **Only `live.la` and `effects.la` call GTK/GLib.** *Why:* one place to audit every extern call and every pinned closure.
-4. **Connect each GTK signal once per widget, never per render.** The handler reads the message to send from a `Ref` stored with the live widget, and a patch only `set`s that `Ref`. *Why:* messages may hold closures and can't be compared, and reconnecting per render leaks pinned closures (risk R4).
-5. **Disabled means no message.** A button's `on_click` is `Option<Msg>`, and `None` maps to `gtk_widget_set_sensitive(false)`. Do not add a separate `disabled` flag. *Why:* one source of truth, so the two can't disagree.
-6. **The runtime holds state in one `Ref<Runtime<Model, Msg>>`.** `dispatch(msg)` = update → view → diff → patch → store. Nothing else mutates the model. *Why:* that is the Elm guarantee the whole framework sells.
-7. **Never overwrite an entry's text when it already equals the model's, and guard `changed` against echoes from programmatic `set_text`.** *Why:* otherwise the cursor jumps and typing loops (risk R5).
-8. **Every extern kivuli adds goes in `src/gtk_extra.la`**, checked against `/usr/include/gtk-4.0`. *Why:* one file to move into lugha-gtk 0.2 later.
+1. **Apps see only `ui` and `ui.testing`.** `views` is reached through `ui`'s re-export; `live`, `diff` and `effects` are private (package-level). *Why:* the public surface is the Elm contract, and leaking widgets lets apps bypass `update`/`view`.
+2. **No private module imports `ui`.** They import `views`. *Why:* `ui` imports `live`, so a private module importing `ui` makes a cycle back to itself when its own tests run it as the main file (E0319).
+3. **`diff` is pure.** It takes two `View` trees and returns patches. It never calls GTK. *Why:* it must be unit-testable with no display, and it is where most bugs will live.
+4. **Only `live.la` and `effects.la` call GTK/GLib.** *Why:* one place to audit every extern call and every pinned closure.
+5. **Connect each GTK signal once per widget, never per render.** The handler reads the message to send from a `Ref` stored with the live widget, and a patch only `set`s that `Ref`. *Why:* messages may hold closures and can't be compared, and reconnecting per render leaks pinned closures (risk R4).
+6. **Disabled means no message.** A button's `on_click` is `Option<Msg>`, and `None` maps to `gtk_widget_set_sensitive(false)`. Do not add a separate `disabled` flag. *Why:* one source of truth, so the two can't disagree.
+7. **The runtime holds state in one `Ref<Option<State<Model, Msg>>>` inside `Running` (`live.la`).** `dispatch(msg)` = update → view → diff → patch → store. Nothing else mutates the model. *Why:* that is the Elm guarantee the whole framework sells.
+8. **Never overwrite an entry's text when it already equals the model's, and guard `changed` against echoes from programmatic `set_text`.** *Why:* otherwise the cursor jumps and typing loops (risk R5).
+9. **A GTK function `gtk.raw` lacks is added to lugha-gtk**, checked against `/usr/include/gtk-4.0`. Until a tag carries it, kivuli may declare it temporarily in `src/gtk_extra.la`. *Why:* one set of bindings (DECISION-004).
 
 ---
 
@@ -225,9 +227,10 @@ public fun find_button(v: View<Msg>, label: string): ButtonRef<Msg> { … }
 ├── .llmignore         — protected paths
 ├── .claude/           — settings.json: deny rules mirroring .llmignore
 ├── lugha.toml         — package `kivuli`, source `src`
-├── src/               — (empty; planned by PRP-001:) ui.la (public API), testing.la (ui.testing),
-│                        live.la (live widgets), diff.la (pure tree diff), effects.la (Cmd/Sub on GLib),
-│                        gtk_extra.la (externs lugha-gtk 0.1 lacks)
+├── src/               — ui.la (public API: re-exports views, adds sandbox), views.la (View and its builders;
+│                        imports nothing, so private modules' tests have no cycle back to it),
+│                        diff.la (pure tree diff → patches, tests inside), live.la (live widgets, the run loop);
+│                        planned: testing.la, effects.la
 ├── examples/          — hello.la (stale `lughac init` scaffold, see CONTEXT.md); planned: counter, todo, stopwatch
 ├── test/              — @test files mirroring src/, plus smoke.la (windowless)
 ├── PRPs/              — prp-{NNN}-{feature_name}.md (+ TEMPLATE.md, DISCOVERY.md)

@@ -1,49 +1,12 @@
 /**
- * kivuli's public API: the `View` tree an app's `view` function returns, and
- * the functions that build it. A `View` is plain data: it describes a screen
- * and touches no GTK.
+ * kivuli's public API: the view tree (from `views`, re-exported) and
+ * `sandbox`, which runs an app.
  *
- * Depends on: live (to run an app)
+ * Depends on: views, live
  */
 
+public import views { View, text, button, column };
 import live;
-
-/**
- * A description of what's on screen. `Msg` is the app's message type: what a
- * widget sends to `update` when the user acts on it.
- */
-public enum View<Msg> {
-    /** A line of text. */
-    Text(string),
-    /** A button with its label and the message one click sends. */
-    Button(string, Msg),
-    /** Children stacked top to bottom. */
-    Column(View<Msg>[]),
-}
-
-/**
- * Builds a line of text.
- *
- * Example:
- *     text("Clicked {m.count} times")
- */
-public fun text<Msg>(s: string): View<Msg> = View.Text(s);
-
-/**
- * Builds a button that sends `msg` each time it's clicked.
- *
- * Example:
- *     button("Add", Msg.Add)
- */
-public fun button<Msg>(label: string, msg: Msg): View<Msg> = View.Button(label, msg);
-
-/**
- * Stacks `children` top to bottom.
- *
- * Example:
- *     column([text("Hi"), button("Add", Msg.Add)])
- */
-public fun column<Msg>(children: View<Msg>[]): View<Msg> = View.Column(children);
 
 /**
  * Runs an app with no effects: shows `view(init)` in a window, and on each

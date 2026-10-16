@@ -1,20 +1,46 @@
 /**
- * Live widgets: turns a `View` into real GTK widgets and runs the app loop.
- * The only module that calls GTK. Not responsible for deciding what to show
- * (that's the app's `view`) or, yet, for updating widgets in place: every
- * message rebuilds the whole window (step 2; diffing comes next).
+ * Live widgets: builds real GTK widgets for a `View`, keeps a `Live` tree
+ * mirroring them, and on each message applies the diff between the last view
+ * and the next instead of rebuilding. The only module that calls GTK. Not
+ * responsible for deciding what to show (the app's `view`) or what changed
+ * (`diff`).
  *
- * Depends on: ui, gtk.raw
+ * Depends on: views, diff, gtk.raw
  * Used by: ui
  */
 
 import gtk.raw;
-import ui { View };
+import diff;
+import views { View };
+
+/** The widgets on screen, shaped exactly like the `View` they show. */
+enum Live<Msg> {
+    Label(raw.GtkWidget),
+    /** The button and the message it sends: its click handler reads this box. */
+    Button(raw.GtkWidget, Ref<Msg>),
+    Column(raw.GtkWidget, Live<Msg>[]),
+}
+
+/** What changes as the app runs: the model, the view it gave, and the widgets showing it. */
+struct State<Model, Msg> {
+    model: Model,
+    tree: View<Msg>,
+    live: Live<Msg>,
+}
+
+/** A running app: what's fixed at start, plus its changing `State`. */
+struct Running<Model, Msg> {
+    window: raw.GtkWidget,
+    update_fn: fun(Model, Msg): Model,
+    view_fn: fun(Model): View<Msg>,
+    // `None` only while the first view is being built.
+    state: Ref<Option<State<Model, Msg>>>,
+}
 
 /**
  * Starts the GTK application `id` and runs it until its window closes:
  * shows `view(init)`, then on each message replaces the model with
- * `update(model, msg)` and shows the new view.
+ * `update(model, msg)` and patches the widgets to show the new view.
  * @returns GTK's exit status, for `main` to return.
  */
 fun run<Model, Msg>(
@@ -29,9 +55,12 @@ fun run<Model, Msg>(
         "activate",
         fun(a: raw.GtkApplication) {
             let window = raw.gtk_application_window_new(a);
-            // The one place the model lives; only `show`'s handlers change it.
-            let model = Ref.new(init);
-            show(window, model, update, view);
+            let state: Ref<Option<State<Model, Msg>>> = Ref.new(None);
+            let app = Running { window: window, update_fn: update, view_fn: view, state: state };
+            let tree = view(init);
+            let live = create(tree, sender(app));
+            raw.gtk_window_set_child(window, widget(live));
+            state.set(Some(State { model: init, tree: tree, live: live }));
             raw.gtk_window_present(window);
         },
         0,
@@ -41,47 +70,183 @@ fun run<Model, Msg>(
     status
 }
 
-/**
- * Renders the current model into `window`, replacing whatever was there.
- * Each widget it builds sends its messages through a `send` that updates
- * the model and calls `show` again.
- */
-fun show<Model, Msg>(
-    window: raw.GtkWidget,
-    model: Ref<Model>,
-    update: fun(Model, Msg): Model,
-    view: fun(Model): View<Msg>,
-) {
-    let send = fun(msg: Msg) {
-        model.update(fun(m) = update(m, msg));
-        show(window, model, update, view);
+/** The function every widget calls to send a message to `app`. */
+fun sender<Model, Msg>(app: Running<Model, Msg>): fun(Msg) = fun(msg: Msg) {
+    dispatch(app, msg);
+};
+
+/** update → view → diff → patch the widgets → store. */
+fun dispatch<Model, Msg>(app: Running<Model, Msg>, msg: Msg) {
+    let Some(s) = app.state.get() else {
+        panic("kivuli: a message arrived before the first view was shown");
     };
-    // Replacing the child destroys the old widgets, including the button whose
-    // click we may be inside: GTK holds a reference until the signal returns.
-    raw.gtk_window_set_child(window, render(view(model.get()), send));
+    let update = app.update_fn;
+    let view = app.view_fn;
+    let model = update(s.model, msg);
+    let tree = view(model);
+    let mut live = s.live;
+    for patch of diff.diff(s.tree, tree) {
+        live = apply(app.window, live, patch, sender(app));
+    }
+    app.state.set(Some(State { model: model, tree: tree, live: live }));
 }
 
-/** Builds the GTK widgets for `v`; each button calls `send` with its message. */
-fun render<Msg>(v: View<Msg>, send: fun(Msg)): raw.GtkWidget = match v {
-    Text(s) => raw.gtk_label_new(s),
+/** Builds the GTK widgets for `v`; each button sends its message through `send`. */
+fun create<Msg>(v: View<Msg>, send: fun(Msg)): Live<Msg> = match v {
+    Text(s) => Live.Label(raw.gtk_label_new(s)),
     Button(label, msg) => {
         let button = raw.gtk_button_new_with_label(label);
+        let current = Ref.new(msg);
+        // Connected once, for the widget's whole life: a SetMsg patch changes
+        // `current`, never the connection.
         raw.connect_widget(
             button,
             "clicked",
             fun(b: raw.GtkWidget) {
-                send(msg);
+                send(current.get());
             },
             0,
         );
-        button
+        Live.Button(button, current)
     }
     Column(children) => {
         // 1 = vertical (GtkOrientation); spacing comes later as a modifier.
         let column = raw.gtk_box_new(1, 0);
+        let mut kids: Live<Msg>[] = [];
         for child of children {
-            raw.gtk_box_append(column, render(child, send));
+            let kid = create(child, send);
+            raw.gtk_box_append(column, widget(kid));
+            kids.push(kid);
         }
-        column
+        Live.Column(column, kids)
     }
 };
+
+/** Applies one patch to the widgets, and returns the `Live` tree that now mirrors them. */
+fun apply<Msg>(
+    window: raw.GtkWidget,
+    live: Live<Msg>,
+    patch: diff.Patch<Msg>,
+    send: fun(Msg),
+): Live<Msg> = match patch {
+    SetText(path, s) => {
+        raw.gtk_label_set_text(widget(at(live, path)), s);
+        live
+    }
+    SetLabel(path, s) => {
+        raw.gtk_button_set_label(widget(at(live, path)), s);
+        live
+    }
+    SetMsg(path, msg) => {
+        match at(live, path) {
+            Button(_, current) => current.set(msg),
+            _ => panic("kivuli: a SetMsg patch points at something that isn't a button"),
+        }
+        live
+    }
+    Append(path, v) => with_column(live, path, 0, fun(
+        column: raw.GtkWidget,
+        kids: Live<Msg>[],
+    ): Live<Msg>[] {
+        let kid = create(v, send);
+        raw.gtk_box_append(column, widget(kid));
+        let mut next = kids;
+        next.push(kid);
+        next
+    }),
+    Remove(path) => {
+        let i = path[path.len - 1];
+        with_column(live, parent(
+            path,
+        ), 0, fun(column: raw.GtkWidget, kids: Live<Msg>[]): Live<Msg>[] {
+            raw.gtk_box_remove(column, widget(kids[i]));
+            without(kids, i)
+        })
+    }
+    Replace(path, v) => if path.len == 0 {
+        let fresh = create(v, send);
+        raw.gtk_window_set_child(window, widget(fresh));
+        fresh
+    } else {
+        let i = path[path.len - 1];
+        with_column(live, parent(
+            path,
+        ), 0, fun(column: raw.GtkWidget, kids: Live<Msg>[]): Live<Msg>[] {
+            let fresh = create(v, send);
+            // Insert after the previous sibling (or first), then drop the
+            // old widget, so the new one takes exactly its place.
+            let before: Option<raw.GtkWidget> = if i == 0 {
+                None
+            } else {
+                Some(widget(kids[i - 1]))
+            };
+            raw.gtk_box_insert_child_after(column, widget(fresh), before);
+            raw.gtk_box_remove(column, widget(kids[i]));
+            let mut next = kids;
+            next[i] = fresh;
+            next
+        })
+    },
+};
+
+/**
+ * Finds the column at `path` (from `depth` on), lets `f` change its widgets
+ * and children, and rebuilds the `Live` tree around the new children.
+ */
+fun with_column<Msg>(
+    node: Live<Msg>,
+    path: i64[],
+    depth: i64,
+    f: fun(raw.GtkWidget, Live<Msg>[]): Live<Msg>[],
+): Live<Msg> = match node {
+    Column(column, kids) => if depth == path.len {
+        Live.Column(column, f(column, kids))
+    } else {
+        let i = path[depth];
+        let mut next = kids;
+        next[i] = with_column(kids[i], path, depth + 1, f);
+        Live.Column(column, next)
+    },
+    _ => panic("kivuli: a patch's path leads through something that isn't a column"),
+};
+
+/** The node at `path`. */
+fun at<Msg>(node: Live<Msg>, path: i64[]): Live<Msg> {
+    let mut here = node;
+    for i of path {
+        here = match here {
+            Column(_, kids) => kids[i],
+            _ => panic("kivuli: a patch's path leads through something that isn't a column"),
+        };
+    }
+    here
+}
+
+/** The GTK widget showing `node`. */
+fun widget<Msg>(node: Live<Msg>): raw.GtkWidget = match node {
+    Label(w) => w,
+    Button(w, _) => w,
+    Column(w, _) => w,
+};
+
+fun parent(path: i64[]): i64[] {
+    let mut p: i64[] = [];
+    let mut i = 0;
+    while i < path.len - 1 {
+        p.push(path[i]);
+        i = i + 1;
+    }
+    p
+}
+
+fun without<T>(xs: T[], skip: i64): T[] {
+    let mut out: T[] = [];
+    let mut i = 0;
+    while i < xs.len {
+        if i != skip {
+            out.push(xs[i]);
+        }
+        i = i + 1;
+    }
+    out
+}

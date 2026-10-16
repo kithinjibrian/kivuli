@@ -65,21 +65,6 @@ Rules:
 
 ---
 
-### DECISION-004 — Where the extra GTK externs live long-term
-
-**Status:** open
-**Raised:** 2026-10-16 — kickoff brief §3
-**Resolved by:** human
-**Blocks:** nothing in v1 (they start in `src/gtk_extra.la`). It blocks moving them.
-
-**Question:** Keep kivuli's extra externs private, or contribute them to lugha-gtk 0.2?
-
-**Options:**
-- A) Private in `src/gtk_extra.la` for v1, then contribute after v1 ships.
-- B) Contribute to lugha-gtk 0.2 first, and kivuli depends on 0.2.
-
-**Notes:** A keeps kivuli unblocked. Contributing is an outward-facing action in another repo.
-
 ---
 
 ## DEFERRED — Acknowledged, not yet needed
@@ -122,4 +107,16 @@ Rules:
 
 ## RESOLVED
 
-(none yet. Decisions agreed before this repository existed are in MEMORY.md.)
+### DECISION-004 — Where the extra GTK externs live long-term
+
+**Status:** resolved
+**Raised:** 2026-10-16 — kickoff brief §3
+**Resolved:** 2026-10-17 — Session 2
+
+**Question:** Keep kivuli's extra externs private, or contribute them to lugha-gtk?
+
+**Outcome:** contribute them to lugha-gtk's `gtk.raw`. The user directed it. `gtk_box_remove` and `gtk_box_insert_child_after` were pushed to lugha-gtk `main` (1d20cae). Tagged `v0.1.1` (6303b64); kivuli uses them from `gtk.raw` and `src/gtk_extra.la` is gone.
+
+**Rationale:** one set of GTK bindings, not two.
+
+**Copied to MEMORY.md:** yes

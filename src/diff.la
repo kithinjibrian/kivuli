@@ -4,11 +4,11 @@
  * calls GTK, so it is tested with no display. Not responsible for applying
  * the changes (that's `live`).
  *
- * Depends on: ui
+ * Depends on: views
  * Used by: live (from step 3, part 2)
  */
 
-import ui { View, text, button, column };
+import views { View, text, button, column };
 
 /**
  * One change to the live widgets. A path is the list of child indexes from
