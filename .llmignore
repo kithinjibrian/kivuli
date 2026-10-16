@@ -23,3 +23,4 @@ LICENSE
 # Sibling repositories: their own rules apply; read for reference, never write
 ../lugha/
 ../lugha-gtk/
+/examples/raw
