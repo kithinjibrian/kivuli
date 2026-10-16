@@ -9,16 +9,16 @@
  * Used by: lib
  */
 
-import gtk.raw;
+import gtk;
 import diff;
 import views { View };
 
 /** The widgets on screen, shaped exactly like the `View` they show. */
 enum Live<Msg> {
-    Label(raw.GtkWidget),
+    Label(gtk.raw.GtkWidget),
     /** The button and the message it sends: its click handler reads this box. */
-    Button(raw.GtkWidget, Ref<Msg>),
-    Column(raw.GtkWidget, Live<Msg>[]),
+    Button(gtk.raw.GtkWidget, Ref<Msg>),
+    Column(gtk.raw.GtkWidget, Live<Msg>[]),
 }
 
 /** What changes as the app runs: the model, the view it gave, and the widgets showing it. */
@@ -30,7 +30,7 @@ struct State<Model, Msg> {
 
 /** A running app: what's fixed at start, plus its changing `State`. */
 struct Running<Model, Msg> {
-    window: raw.GtkWidget,
+    window: gtk.raw.GtkWidget,
     update_fn: fun(Model, Msg): Model,
     view_fn: fun(Model): View<Msg>,
     // `None` only while the first view is being built.
@@ -49,24 +49,24 @@ fun run<Model, Msg>(
     update: fun(Model, Msg): Model,
     view: fun(Model): View<Msg>,
 ): i32 {
-    let application = raw.gtk_application_new(id, 0);
-    raw.connect_app(
+    let application = gtk.raw.gtk_application_new(id, 0);
+    gtk.raw.connect_app(
         application,
         "activate",
-        fun(a: raw.GtkApplication) {
-            let window = raw.gtk_application_window_new(a);
+        fun(a: gtk.raw.GtkApplication) {
+            let window = gtk.raw.gtk_application_window_new(a);
             let state: Ref<Option<State<Model, Msg>>> = Ref.new(None);
             let app = Running { window: window, update_fn: update, view_fn: view, state: state };
             let tree = view(init);
             let live = create(tree, sender(app));
-            raw.gtk_window_set_child(window, widget(live));
+            gtk.raw.gtk_window_set_child(window, widget(live));
             state.set(Some(State { model: init, tree: tree, live: live }));
-            raw.gtk_window_present(window);
+            gtk.raw.gtk_window_present(window);
         },
         0,
     );
-    let status = raw.g_application_run(application, 0, None);
-    raw.g_object_unref(application);
+    let status = gtk.raw.g_application_run(application, 0, None);
+    gtk.raw.g_object_unref(application);
     status
 }
 
@@ -93,16 +93,16 @@ fun dispatch<Model, Msg>(app: Running<Model, Msg>, msg: Msg) {
 
 /** Builds the GTK widgets for `v`; each button sends its message through `send`. */
 fun create<Msg>(v: View<Msg>, send: fun(Msg)): Live<Msg> = match v {
-    Text(s) => Live.Label(raw.gtk_label_new(s)),
+    Text(s) => Live.Label(gtk.raw.gtk_label_new(s)),
     Button(label, msg) => {
-        let button = raw.gtk_button_new_with_label(label);
+        let button = gtk.raw.gtk_button_new_with_label(label);
         let current = Ref.new(msg);
         // Connected once, for the widget's whole life: a SetMsg patch changes
         // `current`, never the connection.
-        raw.connect_widget(
+        gtk.raw.connect_widget(
             button,
             "clicked",
-            fun(b: raw.GtkWidget) {
+            fun(b: gtk.raw.GtkWidget) {
                 send(current.get());
             },
             0,
@@ -111,11 +111,11 @@ fun create<Msg>(v: View<Msg>, send: fun(Msg)): Live<Msg> = match v {
     }
     Column(children) => {
         // 1 = vertical (GtkOrientation); spacing comes later as a modifier.
-        let column = raw.gtk_box_new(1, 0);
+        let column = gtk.raw.gtk_box_new(1, 0);
         let mut kids: Live<Msg>[] = [];
         for child of children {
             let kid = create(child, send);
-            raw.gtk_box_append(column, widget(kid));
+            gtk.raw.gtk_box_append(column, widget(kid));
             kids.push(kid);
         }
         Live.Column(column, kids)
@@ -124,17 +124,17 @@ fun create<Msg>(v: View<Msg>, send: fun(Msg)): Live<Msg> = match v {
 
 /** Applies one patch to the widgets, and returns the `Live` tree that now mirrors them. */
 fun apply<Msg>(
-    window: raw.GtkWidget,
+    window: gtk.raw.GtkWidget,
     live: Live<Msg>,
     patch: diff.Patch<Msg>,
     send: fun(Msg),
 ): Live<Msg> = match patch {
     SetText(path, s) => {
-        raw.gtk_label_set_text(widget(at(live, path)), s);
+        gtk.raw.gtk_label_set_text(widget(at(live, path)), s);
         live
     }
     SetLabel(path, s) => {
-        raw.gtk_button_set_label(widget(at(live, path)), s);
+        gtk.raw.gtk_button_set_label(widget(at(live, path)), s);
         live
     }
     SetMsg(path, msg) => {
@@ -145,11 +145,11 @@ fun apply<Msg>(
         live
     }
     Append(path, v) => with_column(live, path, 0, fun(
-        column: raw.GtkWidget,
+        column: gtk.raw.GtkWidget,
         kids: Live<Msg>[],
     ): Live<Msg>[] {
         let kid = create(v, send);
-        raw.gtk_box_append(column, widget(kid));
+        gtk.raw.gtk_box_append(column, widget(kid));
         let mut next = kids;
         next.push(kid);
         next
@@ -157,33 +157,33 @@ fun apply<Msg>(
     Remove(path) => {
         let i = path[path.len - 1];
         with_column(live, parent(path), 0, fun(
-            column: raw.GtkWidget,
+            column: gtk.raw.GtkWidget,
             kids: Live<Msg>[],
         ): Live<Msg>[] {
-            raw.gtk_box_remove(column, widget(kids[i]));
+            gtk.raw.gtk_box_remove(column, widget(kids[i]));
             without(kids, i)
         })
     }
     Replace(path, v) => if path.len == 0 {
         let fresh = create(v, send);
-        raw.gtk_window_set_child(window, widget(fresh));
+        gtk.raw.gtk_window_set_child(window, widget(fresh));
         fresh
     } else {
         let i = path[path.len - 1];
         with_column(live, parent(path), 0, fun(
-            column: raw.GtkWidget,
+            column: gtk.raw.GtkWidget,
             kids: Live<Msg>[],
         ): Live<Msg>[] {
             let fresh = create(v, send);
             // Insert after the previous sibling (or first), then drop the
             // old widget, so the new one takes exactly its place.
-            let before: Option<raw.GtkWidget> = if i == 0 {
+            let before: Option<gtk.raw.GtkWidget> = if i == 0 {
                 None
             } else {
                 Some(widget(kids[i - 1]))
             };
-            raw.gtk_box_insert_child_after(column, widget(fresh), before);
-            raw.gtk_box_remove(column, widget(kids[i]));
+            gtk.raw.gtk_box_insert_child_after(column, widget(fresh), before);
+            gtk.raw.gtk_box_remove(column, widget(kids[i]));
             let mut next = kids;
             next[i] = fresh;
             next
@@ -199,7 +199,7 @@ fun with_column<Msg>(
     node: Live<Msg>,
     path: i64[],
     depth: i64,
-    f: fun(raw.GtkWidget, Live<Msg>[]): Live<Msg>[],
+    f: fun(gtk.raw.GtkWidget, Live<Msg>[]): Live<Msg>[],
 ): Live<Msg> = match node {
     Column(column, kids) => if depth == path.len {
         Live.Column(column, f(column, kids))
@@ -225,7 +225,7 @@ fun at<Msg>(node: Live<Msg>, path: i64[]): Live<Msg> {
 }
 
 /** The GTK widget showing `node`. */
-fun widget<Msg>(node: Live<Msg>): raw.GtkWidget = match node {
+fun widget<Msg>(node: Live<Msg>): gtk.raw.GtkWidget = match node {
     Label(w) => w,
     Button(w, _) => w,
     Column(w, _) => w,

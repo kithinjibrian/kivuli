@@ -1,49 +1,49 @@
 // Step 0: a counter written straight on gtk.raw, with no kivuli.
 // This is the layer kivuli will drive for you.
-import gtk.raw;
+import gtk;
 
 fun main(): i32 {
-    let application = raw.gtk_application_new("org.kivuli.raw", 0);
+    let application = gtk.raw.gtk_application_new("org.kivuli.raw", 0);
 
-    raw.connect_app(
+    gtk.raw.connect_app(
         application,
         "activate",
-        fun(a: raw.GtkApplication) {
-            let window = raw.gtk_application_window_new(a);
-            raw.gtk_window_set_title(window, "Raw counter");
-            raw.gtk_window_set_default_size(window, 320, 160);
+        fun(a: gtk.raw.GtkApplication) {
+            let window = gtk.raw.gtk_application_window_new(a);
+            gtk.raw.gtk_window_set_title(window, "Raw counter");
+            gtk.raw.gtk_window_set_default_size(window, 320, 160);
 
-            let label = raw.gtk_label_new("0");
-            let button = raw.gtk_button_new_with_label("add one");
+            let label = gtk.raw.gtk_label_new("0");
+            let button = gtk.raw.gtk_button_new_with_label("add one");
 
             // The "model": the one piece of state, shared with the click handler.
             let count = Ref.new(0);
-            raw.connect_widget(
+            gtk.raw.connect_widget(
                 button,
                 "clicked",
-                fun(b: raw.GtkWidget) {
+                fun(b: gtk.raw.GtkWidget) {
                     count.update(fun(n) = n + 1);
-                    raw.gtk_label_set_text(label, "{count.get()}");
+                    gtk.raw.gtk_label_set_text(label, "{count.get()}");
                 },
                 0,
             );
 
             // 1 = vertical (GtkOrientation), 8 px between children.
-            let column = raw.gtk_box_new(1, 8);
-            raw.gtk_box_append(column, label);
-            raw.gtk_box_append(column, button);
-            raw.gtk_widget_set_margin_top(column, 24);
-            raw.gtk_widget_set_margin_bottom(column, 24);
-            raw.gtk_widget_set_margin_start(column, 24);
-            raw.gtk_widget_set_margin_end(column, 24);
+            let column = gtk.raw.gtk_box_new(1, 8);
+            gtk.raw.gtk_box_append(column, label);
+            gtk.raw.gtk_box_append(column, button);
+            gtk.raw.gtk_widget_set_margin_top(column, 24);
+            gtk.raw.gtk_widget_set_margin_bottom(column, 24);
+            gtk.raw.gtk_widget_set_margin_start(column, 24);
+            gtk.raw.gtk_widget_set_margin_end(column, 24);
 
-            raw.gtk_window_set_child(window, column);
-            raw.gtk_window_present(window);
+            gtk.raw.gtk_window_set_child(window, column);
+            gtk.raw.gtk_window_present(window);
         },
         0,
     );
 
-    let status = raw.g_application_run(application, 0, None);
-    raw.g_object_unref(application);
+    let status = gtk.raw.g_application_run(application, 0, None);
+    gtk.raw.g_object_unref(application);
     status
 }

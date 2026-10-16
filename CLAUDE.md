@@ -169,7 +169,7 @@ A task is done only when `fmt --check` is clean, `lughac test test/` passes (ski
 ## STACK
 
 - **Lugha v16/v17** via `lughac` 0.1.0. v16 is frozen and complete. v17 is in progress in `../lugha` (91 green threads, 92 actors, 93 struct update `S { f: e, ..base }`, 94 variants as function values `Msg.Named`). Reinstall `lughac` from `../lugha` after each milestone kivuli relies on: a stale install rejects new syntax. After reinstalling, tell the user to run **Developer: Reload Window** in VS Code: its running `lughac lsp` keeps the old binary and shows errors the new compiler doesn't. Use only what `lughac spec` documents.
-- **lugha-gtk 0.1** (0.1.1 or later: `gtk_box_remove`, `gtk_box_insert_child_after`; `gtk = { git = "https://github.com/kithinjibrian/lugha-gtk", version = "0.1" }`). kivuli uses **`gtk.raw`** only, because it manages widgets itself. It does not use `gtk.widgets`.
+- **lugha-gtk 0.1** (0.1.4 or later: `gtk_box_remove`, `gtk_box_insert_child_after`, `emit_widget`, and the entry re-exporting `gtk.raw`; `gtk = { git = "https://github.com/kithinjibrian/lugha-gtk", version = "0.1" }`). kivuli uses **`gtk.raw`** only, because it manages widgets itself. It does not use `gtk.widgets`. Import it through the package entry: `import gtk;`, then `gtk.raw.gtk_box_new(…)`, `gtk.raw.GtkWidget`. Never `import gtk.raw;` (the user's choice, session 2).
 - **GTK 4.22** + GLib, linked through `[link] pkg-config = ["gtk4"]`.
 - **Boehm GC** (through lughac): closures handed to GTK are pinned with `data`/`release` callbacks.
 - License: **GPL-3.0-only**, like Lugha.
