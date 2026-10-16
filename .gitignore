@@ -1,0 +1,6 @@
+# Executables from `lughac build`
+/hello
+/examples/counter
+/examples/todo
+/examples/stopwatch
+/test/smoke

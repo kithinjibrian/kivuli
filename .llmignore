@@ -1,0 +1,25 @@
+# .llmignore
+# Files and directories the AI must never touch.
+# Keep this in sync with the PROTECTED FILES section in CLAUDE.md and the
+# permissions.deny list in .claude/settings.json.
+
+# Environment and secrets
+.env
+.env.*
+
+# Lockfile: written only by lughac build/update, never hand-edited
+lugha.lock
+
+# License: changed only by the human
+LICENSE
+
+# Built executables (see .gitignore)
+/hello
+/examples/counter
+/examples/todo
+/examples/stopwatch
+/test/smoke
+
+# Sibling repositories: their own rules apply; read for reference, never write
+../lugha/
+../lugha-gtk/
