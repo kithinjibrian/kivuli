@@ -1,0 +1,87 @@
+/**
+ * Live widgets: turns a `View` into real GTK widgets and runs the app loop.
+ * The only module that calls GTK. Not responsible for deciding what to show
+ * (that's the app's `view`) or, yet, for updating widgets in place: every
+ * message rebuilds the whole window (step 2; diffing comes next).
+ *
+ * Depends on: ui, gtk.raw
+ * Used by: ui
+ */
+
+import gtk.raw;
+import ui { View };
+
+/**
+ * Starts the GTK application `id` and runs it until its window closes:
+ * shows `view(init)`, then on each message replaces the model with
+ * `update(model, msg)` and shows the new view.
+ * @returns GTK's exit status, for `main` to return.
+ */
+fun run<Model, Msg>(
+    id: string,
+    init: Model,
+    update: fun(Model, Msg): Model,
+    view: fun(Model): View<Msg>,
+): i32 {
+    let application = raw.gtk_application_new(id, 0);
+    raw.connect_app(
+        application,
+        "activate",
+        fun(a: raw.GtkApplication) {
+            let window = raw.gtk_application_window_new(a);
+            // The one place the model lives; only `show`'s handlers change it.
+            let model = Ref.new(init);
+            show(window, model, update, view);
+            raw.gtk_window_present(window);
+        },
+        0,
+    );
+    let status = raw.g_application_run(application, 0, None);
+    raw.g_object_unref(application);
+    status
+}
+
+/**
+ * Renders the current model into `window`, replacing whatever was there.
+ * Each widget it builds sends its messages through a `send` that updates
+ * the model and calls `show` again.
+ */
+fun show<Model, Msg>(
+    window: raw.GtkWidget,
+    model: Ref<Model>,
+    update: fun(Model, Msg): Model,
+    view: fun(Model): View<Msg>,
+) {
+    let send = fun(msg: Msg) {
+        model.update(fun(m) = update(m, msg));
+        show(window, model, update, view);
+    };
+    // Replacing the child destroys the old widgets, including the button whose
+    // click we may be inside: GTK holds a reference until the signal returns.
+    raw.gtk_window_set_child(window, render(view(model.get()), send));
+}
+
+/** Builds the GTK widgets for `v`; each button calls `send` with its message. */
+fun render<Msg>(v: View<Msg>, send: fun(Msg)): raw.GtkWidget = match v {
+    Text(s) => raw.gtk_label_new(s),
+    Button(label, msg) => {
+        let button = raw.gtk_button_new_with_label(label);
+        raw.connect_widget(
+            button,
+            "clicked",
+            fun(b: raw.GtkWidget) {
+                send(msg);
+            },
+            0,
+        );
+        button
+    }
+    Column(children) => {
+        // 1 = vertical (GtkOrientation); spacing comes later as a modifier.
+        let column = raw.gtk_box_new(1, 0);
+        for child of children {
+            raw.gtk_box_append(column, render(child, send));
+        }
+        column
+    }
+};
