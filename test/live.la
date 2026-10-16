@@ -87,9 +87,23 @@ fun messages_patch_the_same_widgets() {
                     ys
                 });
             }
+            // A real press of the real Add button: its handler, connected once
+            // when the button was made, sends the message it holds in its Ref.
+            let Some(before) = state.get() else {
+                panic("no state before the press");
+            };
+            match before.live {
+                Column(_, kids) => raw.emit_widget(widget(kids[1]), "clicked"),
+                _ => panic("expected a column"),
+            }
             let Some(s) = state.get() else {
                 panic("no state at the end");
             };
+            seen.update(fun(xs) {
+                let mut ys = xs;
+                ys.push(shown(s.live));
+                ys
+            });
             // Patched, never rebuilt: the column on screen is the one made first.
             same_root.set(widget(s.live) == widget(first));
             raw.g_application_quit(a);
@@ -106,6 +120,7 @@ fun messages_patch_the_same_widgets() {
         "Clicked 2 times | [Add] | row 0 | row 1 | [two!] | ",
         "Clicked 2 times | [Add] | row 0 | [two!] | ",
         "Clicked 3 times | [Add] | row 0 | not two | ",
+        "Clicked 4 times | [Add] | row 0 | not two | ",
     ];
     assert_eq(seen.get(), expected);
     assert(same_root.get());

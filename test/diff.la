@@ -9,11 +9,6 @@ enum Msg {
     Reset,
 }
 
-// `text("hi")` alone doesn't say which message type its tree is for; these do.
-fun t(s: string): View<Msg> = text(s);
-
-fun col(children: View<Msg>[]): View<Msg> = column(children);
-
 fun counter(count: i64): View<Msg> = column([
     text("Clicked {count} times"),
     button("Add", Msg.Add),
@@ -23,13 +18,13 @@ fun counter(count: i64): View<Msg> = column([
 @test
 fun equal_text_needs_nothing() {
     let none: Patch<Msg>[] = [];
-    assert_eq(patches(t("hi"), t("hi")), none);
+    assert_eq(patches(text("hi"), text("hi")), none);
 }
 
 @test
 fun changed_text_is_set_in_place() {
     let expected: Patch<Msg>[] = [Patch.SetText([], "bye")];
-    assert_eq(patches(t("hi"), t("bye")), expected);
+    assert_eq(patches(text("hi"), text("bye")), expected);
 }
 
 @test
@@ -52,27 +47,33 @@ fun a_renamed_button_keeps_its_widget() {
 
 @test
 fun a_different_kind_is_replaced() {
-    let expected: Patch<Msg>[] = [Patch.Replace([1], t("gone"))];
-    assert_eq(patches(col([t("a"), button("b", Msg.Add)]), col([t("a"), t("gone")])), expected);
+    let expected: Patch<Msg>[] = [Patch.Replace([1], text("gone"))];
+    assert_eq(
+        patches(column([text("a"), button("b", Msg.Add)]), column([text("a"), text("gone")])),
+        expected,
+    );
 }
 
 @test
 fun a_longer_column_appends() {
-    let expected: Patch<Msg>[] = [Patch.Append([], t("b")), Patch.Append([], t("c"))];
-    assert_eq(patches(col([t("a")]), col([t("a"), t("b"), t("c")])), expected);
+    let expected: Patch<Msg>[] = [Patch.Append([], text("b")), Patch.Append([], text("c"))];
+    assert_eq(patches(column([text("a")]), column([text("a"), text("b"), text("c")])), expected);
 }
 
 @test
 fun a_shorter_column_removes_from_the_end() {
     let expected: Patch<Msg>[] = [Patch.Remove([2]), Patch.Remove([1])];
-    assert_eq(patches(col([t("a"), t("b"), t("c")]), col([t("a")])), expected);
+    assert_eq(patches(column([text("a"), text("b"), text("c")]), column([text("a")])), expected);
 }
 
 @test
 fun nested_paths_lead_through_columns() {
     let expected: Patch<Msg>[] = [Patch.SetText([1, 0], "new")];
     assert_eq(
-        patches(col([t("top"), col([t("old")])]), col([t("top"), col([t("new")])])),
+        patches(
+            column([text("top"), column([text("old")])]),
+            column([text("top"), column([text("new")])]),
+        ),
         expected,
     );
 }
