@@ -77,3 +77,7 @@ docs/{specs,decisions,incidents,status}/, docs/source/*/, reports/, test/ — em
    7. `ui.testing` (DECISION-003)
    8. examples (counter, to-do, stopwatch) and README
 5. Gotchas: kivuli uses `gtk.raw`, not `gtk.widgets`. Check every new extern against `/usr/include/gtk-4.0`. `lughac spec` before assuming any language feature.
+
+## SESSION 2 — 2026-10-17 — Step 0: a raw GTK window — open
+
+Branch: main
