@@ -18,7 +18,6 @@ LICENSE
 /examples/counter
 /examples/todo
 /examples/stopwatch
-/test/smoke
 
 # Sibling repository: its own rules apply; read for reference, never write
 # (../lugha-gtk may be edited for GTK bindings on the user's word: CLAUDE.md, DECISION-004)

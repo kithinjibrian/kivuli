@@ -16,15 +16,11 @@ fun update(m: Model, msg: Msg): Model = match msg {
     Reset => Model { count: 0 },
 };
 
-fun view(
-    m: Model,
-): View<Msg> = column(
-    [
-        text("Clicked {m.count} times"),
-        button("Add", Msg.Add),
-        button("Reset", Msg.Reset),
-        text("Kithinji brian"),
-    ],
-);
+fun view(m: Model): View<Msg> = column([
+    text("Clicked {m.count} times"),
+    button("Add", Msg.Add),
+    button("Reset", Msg.Reset),
+    text("Kithinji brian"),
+]);
 
 fun main(): i32 = sandbox("org.kivuli.counter", Model { count: 0 }, update, view);

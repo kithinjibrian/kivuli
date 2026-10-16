@@ -1,0 +1,112 @@
+// Patching real GTK widgets: a hidden window goes through a run of messages,
+// and after each one the widgets are read back from GTK. Needs a display, so
+// it is skipped without one.
+import std.env;
+import gtk.raw;
+import kivuli.live { Live, Running, State, create, dispatch, sender, widget };
+import kivuli.ui { View };
+
+enum Msg {
+    Add,
+    More,
+    Fewer,
+}
+
+struct Model {
+    count: i64,
+    rows: i64,
+}
+
+fun update(m: Model, msg: Msg): Model = match msg {
+    Add => Model { count: m.count + 1, ..m },
+    More => Model { rows: m.rows + 1, ..m },
+    Fewer => Model { rows: m.rows - 1, ..m },
+};
+
+// Every patch kind shows up: the label's text changes (SetText), rows come
+// and go (Append, Remove), and the last child turns from text into a button
+// and back (Replace).
+fun view(m: Model): View<Msg> {
+    let mut kids: View<Msg>[] = [View.Text("Clicked {m.count} times"), View.Button("Add", Msg.Add)];
+    let mut i = 0;
+    while i < m.rows {
+        kids.push(View.Text("row {i}"));
+        i = i + 1;
+    }
+    kids.push(if m.count == 2 {
+        View.Button("two!", Msg.Add)
+    } else {
+        View.Text("not two")
+    });
+    View.Column(kids)
+}
+
+// What GTK shows, read back from the widgets themselves; buttons in brackets.
+fun shown(node: Live<Msg>): string = match node {
+    Label(w) => raw.gtk_label_get_text(w),
+    Button(w, _) => "[" + raw.gtk_button_get_label(w).unwrap_or("?") + "]",
+    Column(_, kids) => {
+        let mut out = "";
+        for k of kids {
+            out = out + shown(k) + " | ";
+        }
+        out
+    }
+};
+
+fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
+
+@test
+fun messages_patch_the_same_widgets() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen: Ref<string[]> = Ref.new([]);
+    let same_root = Ref.new(false);
+    let application = raw.gtk_application_new("org.kivuli.test.live", 0);
+    raw.connect_app(
+        application,
+        "activate",
+        fun(a: raw.GtkApplication) {
+            let window = raw.gtk_application_window_new(a);
+            let state: Ref<Option<State<Model, Msg>>> = Ref.new(None);
+            let app = Running { window: window, update_fn: update, view_fn: view, state: state };
+            let init = Model { count: 0, rows: 0 };
+            let tree = view(init);
+            let first = create(tree, sender(app));
+            raw.gtk_window_set_child(window, widget(first));
+            state.set(Some(State { model: init, tree: tree, live: first }));
+            for msg of [Msg.Add, Msg.More, Msg.More, Msg.Add, Msg.Fewer, Msg.Add] {
+                dispatch(app, msg);
+                let Some(s) = state.get() else {
+                    panic("no state after a message");
+                };
+                seen.update(fun(xs) {
+                    let mut ys = xs;
+                    ys.push(shown(s.live));
+                    ys
+                });
+            }
+            let Some(s) = state.get() else {
+                panic("no state at the end");
+            };
+            // Patched, never rebuilt: the column on screen is the one made first.
+            same_root.set(widget(s.live) == widget(first));
+            raw.g_application_quit(a);
+        },
+        0,
+    );
+    raw.g_application_run(application, 0, None);
+    raw.g_object_unref(application);
+
+    let expected = [
+        "Clicked 1 times | [Add] | not two | ",
+        "Clicked 1 times | [Add] | row 0 | not two | ",
+        "Clicked 1 times | [Add] | row 0 | row 1 | not two | ",
+        "Clicked 2 times | [Add] | row 0 | row 1 | [two!] | ",
+        "Clicked 2 times | [Add] | row 0 | [two!] | ",
+        "Clicked 3 times | [Add] | row 0 | not two | ",
+    ];
+    assert_eq(seen.get(), expected);
+    assert(same_root.get());
+}

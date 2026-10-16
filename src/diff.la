@@ -8,7 +8,7 @@
  * Used by: live (from step 3, part 2)
  */
 
-import views { View, text, button, column };
+import views { View };
 
 /**
  * One change to the live widgets. A path is the list of child indexes from
@@ -100,77 +100,4 @@ fun joined<T>(a: T[], b: T[]): T[] {
         out.push(x);
     }
     out
-}
-
-// Tests. They live here, not in test/, because they reach this module's
-// package-level items, which files outside the package can't see.
-
-enum Click {
-    Add,
-    Reset,
-}
-
-// `text("hi")` alone doesn't say which message type its tree is for; these do.
-fun t(s: string): View<Click> = text(s);
-
-fun col(children: View<Click>[]): View<Click> = column(children);
-
-fun counter(
-    count: i64,
-): View<Click> = column(
-    [text("Clicked {count} times"), button("Add", Click.Add), button("Reset", Click.Reset)],
-);
-
-@test
-fun equal_text_needs_nothing() {
-    let none: Patch<Click>[] = [];
-    assert_eq(diff(t("hi"), t("hi")), none);
-}
-
-@test
-fun changed_text_is_set_in_place() {
-    let expected: Patch<Click>[] = [Patch.SetText([], "bye")];
-    assert_eq(diff(t("hi"), t("bye")), expected);
-}
-
-@test
-fun a_counter_click_changes_one_label() {
-    // The counter from examples/counter.la, going from 2 clicks to 3: the label
-    // changes, and both buttons are re-pointed at their (unchanged) messages.
-    let expected: Patch<Click>[] = [
-        Patch.SetText([0], "Clicked 3 times"),
-        Patch.SetMsg([1], Click.Add),
-        Patch.SetMsg([2], Click.Reset),
-    ];
-    assert_eq(diff(counter(2), counter(3)), expected);
-}
-
-@test
-fun a_renamed_button_keeps_its_widget() {
-    let expected: Patch<Click>[] = [Patch.SetLabel([], "Again"), Patch.SetMsg([], Click.Add)];
-    assert_eq(diff(button("Add", Click.Add), button("Again", Click.Add)), expected);
-}
-
-@test
-fun a_different_kind_is_replaced() {
-    let expected: Patch<Click>[] = [Patch.Replace([1], t("gone"))];
-    assert_eq(diff(col([t("a"), button("b", Click.Add)]), col([t("a"), t("gone")])), expected);
-}
-
-@test
-fun a_longer_column_appends() {
-    let expected: Patch<Click>[] = [Patch.Append([], t("b")), Patch.Append([], t("c"))];
-    assert_eq(diff(col([t("a")]), col([t("a"), t("b"), t("c")])), expected);
-}
-
-@test
-fun a_shorter_column_removes_from_the_end() {
-    let expected: Patch<Click>[] = [Patch.Remove([2]), Patch.Remove([1])];
-    assert_eq(diff(col([t("a"), t("b"), t("c")]), col([t("a")])), expected);
-}
-
-@test
-fun nested_paths_lead_through_columns() {
-    let expected: Patch<Click>[] = [Patch.SetText([1, 0], "new")];
-    assert_eq(diff(col([t("top"), col([t("old")])]), col([t("top"), col([t("new")])])), expected);
 }

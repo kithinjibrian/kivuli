@@ -1,0 +1,78 @@
+// Diffing views: the changes listed are the fewest that make the widgets
+// showing the old view show the new one. `diff` is package-level: files in
+// test/ see package-level items (lughac milestone 97).
+import kivuli.diff { Patch, diff as patches };
+import kivuli.ui { View, text, button, column };
+
+enum Msg {
+    Add,
+    Reset,
+}
+
+// `text("hi")` alone doesn't say which message type its tree is for; these do.
+fun t(s: string): View<Msg> = text(s);
+
+fun col(children: View<Msg>[]): View<Msg> = column(children);
+
+fun counter(count: i64): View<Msg> = column([
+    text("Clicked {count} times"),
+    button("Add", Msg.Add),
+    button("Reset", Msg.Reset),
+]);
+
+@test
+fun equal_text_needs_nothing() {
+    let none: Patch<Msg>[] = [];
+    assert_eq(patches(t("hi"), t("hi")), none);
+}
+
+@test
+fun changed_text_is_set_in_place() {
+    let expected: Patch<Msg>[] = [Patch.SetText([], "bye")];
+    assert_eq(patches(t("hi"), t("bye")), expected);
+}
+
+@test
+fun a_counter_click_changes_one_label() {
+    // The counter from examples/counter.la, going from 2 clicks to 3: the label
+    // changes, and both buttons are re-pointed at their (unchanged) messages.
+    let expected: Patch<Msg>[] = [
+        Patch.SetText([0], "Clicked 3 times"),
+        Patch.SetMsg([1], Msg.Add),
+        Patch.SetMsg([2], Msg.Reset),
+    ];
+    assert_eq(patches(counter(2), counter(3)), expected);
+}
+
+@test
+fun a_renamed_button_keeps_its_widget() {
+    let expected: Patch<Msg>[] = [Patch.SetLabel([], "Again"), Patch.SetMsg([], Msg.Add)];
+    assert_eq(patches(button("Add", Msg.Add), button("Again", Msg.Add)), expected);
+}
+
+@test
+fun a_different_kind_is_replaced() {
+    let expected: Patch<Msg>[] = [Patch.Replace([1], t("gone"))];
+    assert_eq(patches(col([t("a"), button("b", Msg.Add)]), col([t("a"), t("gone")])), expected);
+}
+
+@test
+fun a_longer_column_appends() {
+    let expected: Patch<Msg>[] = [Patch.Append([], t("b")), Patch.Append([], t("c"))];
+    assert_eq(patches(col([t("a")]), col([t("a"), t("b"), t("c")])), expected);
+}
+
+@test
+fun a_shorter_column_removes_from_the_end() {
+    let expected: Patch<Msg>[] = [Patch.Remove([2]), Patch.Remove([1])];
+    assert_eq(patches(col([t("a"), t("b"), t("c")]), col([t("a")])), expected);
+}
+
+@test
+fun nested_paths_lead_through_columns() {
+    let expected: Patch<Msg>[] = [Patch.SetText([1, 0], "new")];
+    assert_eq(
+        patches(col([t("top"), col([t("old")])]), col([t("top"), col([t("new")])])),
+        expected,
+    );
+}

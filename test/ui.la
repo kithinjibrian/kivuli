@@ -11,21 +11,19 @@ struct Model {
 }
 
 // A counter's view, as an app would write it.
-fun view(
-    m: Model,
-): View<Msg> = column(
-    [text("Clicked {m.count} times"), button("Add", Msg.Add), button("Reset", Msg.Reset)],
-);
+fun view(m: Model): View<Msg> = column([
+    text("Clicked {m.count} times"),
+    button("Add", Msg.Add),
+    button("Reset", Msg.Reset),
+]);
 
 @test
 fun builds_the_tree_it_describes() {
-    let expected: View<Msg> = View.Column(
-        [
-            View.Text("Clicked 2 times"),
-            View.Button("Add", Msg.Add),
-            View.Button("Reset", Msg.Reset),
-        ],
-    );
+    let expected: View<Msg> = View.Column([
+        View.Text("Clicked 2 times"),
+        View.Button("Add", Msg.Add),
+        View.Button("Reset", Msg.Reset),
+    ]);
     assert_eq(view(Model { count: 2 }), expected);
 }
 

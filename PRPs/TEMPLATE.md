@@ -40,7 +40,7 @@ List the specific test cases before any implementation begins. All must run with
 - [ ] Happy path: [describe]
 - [ ] Error path: [each error variant]
 - [ ] Edge case: [describe]
-- [ ] Smoke (windowless, `test/smoke.la`): [what is built, read back, and quit]
+- [ ] Live GTK (`test/live.la`, skipped without a display): [what is built, patched, and read back]
 
 ## ROLLBACK PLAN
 
@@ -50,7 +50,7 @@ If this feature needs to be abandoned mid-implementation:
 
 ## ACCEPTANCE CRITERIA
 - [ ] [testable criterion]
-- [ ] `lughac test test/ src/` passes
+- [ ] `lughac test test/` passes
 - [ ] Every example passes `lughac check` and `lughac build`
 - [ ] `lughac fmt --check src examples test` is clean
 - [ ] Every `public` item has a `/** … */` doc comment
@@ -60,7 +60,7 @@ If this feature needs to be abandoned mid-implementation:
 ## VALIDATION
 Run these commands to verify completion:
 - `lughac fmt --check src examples test`
-- `lughac test test/ src/`
+- `lughac test test/`
 - `for f in examples/*.la; do lughac build "$f" || exit 1; done`
 - [feature-specific check]
 - For the user: [what to open and click to confirm it visually]

@@ -156,9 +156,10 @@ fun apply<Msg>(
     }),
     Remove(path) => {
         let i = path[path.len - 1];
-        with_column(live, parent(
-            path,
-        ), 0, fun(column: raw.GtkWidget, kids: Live<Msg>[]): Live<Msg>[] {
+        with_column(live, parent(path), 0, fun(
+            column: raw.GtkWidget,
+            kids: Live<Msg>[],
+        ): Live<Msg>[] {
             raw.gtk_box_remove(column, widget(kids[i]));
             without(kids, i)
         })
@@ -169,9 +170,10 @@ fun apply<Msg>(
         fresh
     } else {
         let i = path[path.len - 1];
-        with_column(live, parent(
-            path,
-        ), 0, fun(column: raw.GtkWidget, kids: Live<Msg>[]): Live<Msg>[] {
+        with_column(live, parent(path), 0, fun(
+            column: raw.GtkWidget,
+            kids: Live<Msg>[],
+        ): Live<Msg>[] {
             let fresh = create(v, send);
             // Insert after the previous sibling (or first), then drop the
             // old widget, so the new one takes exactly its place.
