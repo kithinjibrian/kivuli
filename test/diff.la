@@ -2,7 +2,7 @@
 // showing the old view show the new one. `diff` is package-level: files in
 // test/ see package-level items (lughac milestone 97).
 import kivuli.diff { Patch, diff as patches };
-import kivuli { View, text, button, column };
+import kivuli { View, text, button, column, row };
 
 enum Msg {
     Add,
@@ -76,4 +76,19 @@ fun nested_paths_lead_through_columns() {
         ),
         expected,
     );
+}
+
+@test
+fun a_row_diffs_its_children_like_a_column() {
+    let expected: Patch<Msg>[] = [Patch.SetText([1], "b2"), Patch.Append([], text("c"))];
+    assert_eq(
+        patches(row([text("a"), text("b")]), row([text("a"), text("b2"), text("c")])),
+        expected,
+    );
+}
+
+@test
+fun a_row_that_becomes_a_column_is_replaced() {
+    let expected: Patch<Msg>[] = [Patch.Replace([], column([text("a")]))];
+    assert_eq(patches(row([text("a")]), column([text("a")])), expected);
 }

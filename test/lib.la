@@ -1,5 +1,5 @@
 // Building views: what an app's `view` returns is exactly the tree it wrote.
-import kivuli { View, text, button, column };
+import kivuli { View, text, button, column, row };
 
 enum Msg {
     Add,
@@ -41,4 +41,13 @@ fun a_button_carries_its_message() {
         }
         _ => panic("expected a button"),
     }
+}
+
+@test
+fun a_row_holds_its_children_in_order() {
+    let expected: View<Msg> = View.Row([
+        View.Button("Add", Msg.Add),
+        View.Button("Reset", Msg.Reset),
+    ]);
+    assert_eq(row([button("Add", Msg.Add), button("Reset", Msg.Reset)]), expected);
 }

@@ -18,7 +18,8 @@ enum Live<Msg> {
     Label(gtk.raw.GtkWidget),
     /** The button and the message it sends: its click handler reads this box. */
     Button(gtk.raw.GtkWidget, Ref<Msg>),
-    Column(gtk.raw.GtkWidget, Live<Msg>[]),
+    /** A column or a row: both are a `GtkBox`, and patch the same way. */
+    Box(gtk.raw.GtkWidget, Live<Msg>[]),
 }
 
 /** What changes as the app runs: the model, the view it gave, and the widgets showing it. */
@@ -109,18 +110,22 @@ fun create<Msg>(v: View<Msg>, send: fun(Msg)): Live<Msg> = match v {
         );
         Live.Button(button, current)
     }
-    Column(children) => {
-        // 1 = vertical (GtkOrientation); spacing comes later as a modifier.
-        let column = gtk.raw.gtk_box_new(1, 0);
-        let mut kids: Live<Msg>[] = [];
-        for child of children {
-            let kid = create(child, send);
-            gtk.raw.gtk_box_append(column, widget(kid));
-            kids.push(kid);
-        }
-        Live.Column(column, kids)
-    }
+    // GtkOrientation: 1 vertical, 0 horizontal. Spacing comes later as a modifier.
+    Column(children) => create_box(1, children, send),
+    Row(children) => create_box(0, children, send),
 };
+
+/** Builds a `GtkBox` of `orientation` holding the widgets for `children`. */
+fun create_box<Msg>(orientation: i32, children: View<Msg>[], send: fun(Msg)): Live<Msg> {
+    let box = gtk.raw.gtk_box_new(orientation, 0);
+    let mut kids: Live<Msg>[] = [];
+    for child of children {
+        let kid = create(child, send);
+        gtk.raw.gtk_box_append(box, widget(kid));
+        kids.push(kid);
+    }
+    Live.Box(box, kids)
+}
 
 /** Applies one patch to the widgets, and returns the `Live` tree that now mirrors them. */
 fun apply<Msg>(
@@ -144,23 +149,23 @@ fun apply<Msg>(
         }
         live
     }
-    Append(path, v) => with_column(live, path, 0, fun(
-        column: gtk.raw.GtkWidget,
+    Append(path, v) => with_box(live, path, 0, fun(
+        box: gtk.raw.GtkWidget,
         kids: Live<Msg>[],
     ): Live<Msg>[] {
         let kid = create(v, send);
-        gtk.raw.gtk_box_append(column, widget(kid));
+        gtk.raw.gtk_box_append(box, widget(kid));
         let mut next = kids;
         next.push(kid);
         next
     }),
     Remove(path) => {
         let i = path[path.len - 1];
-        with_column(live, parent(path), 0, fun(
-            column: gtk.raw.GtkWidget,
+        with_box(live, parent(path), 0, fun(
+            box: gtk.raw.GtkWidget,
             kids: Live<Msg>[],
         ): Live<Msg>[] {
-            gtk.raw.gtk_box_remove(column, widget(kids[i]));
+            gtk.raw.gtk_box_remove(box, widget(kids[i]));
             without(kids, i)
         })
     }
@@ -170,8 +175,8 @@ fun apply<Msg>(
         fresh
     } else {
         let i = path[path.len - 1];
-        with_column(live, parent(path), 0, fun(
-            column: gtk.raw.GtkWidget,
+        with_box(live, parent(path), 0, fun(
+            box: gtk.raw.GtkWidget,
             kids: Live<Msg>[],
         ): Live<Msg>[] {
             let fresh = create(v, send);
@@ -182,8 +187,8 @@ fun apply<Msg>(
             } else {
                 Some(widget(kids[i - 1]))
             };
-            gtk.raw.gtk_box_insert_child_after(column, widget(fresh), before);
-            gtk.raw.gtk_box_remove(column, widget(kids[i]));
+            gtk.raw.gtk_box_insert_child_after(box, widget(fresh), before);
+            gtk.raw.gtk_box_remove(box, widget(kids[i]));
             let mut next = kids;
             next[i] = fresh;
             next
@@ -192,24 +197,24 @@ fun apply<Msg>(
 };
 
 /**
- * Finds the column at `path` (from `depth` on), lets `f` change its widgets
+ * Finds the box at `path` (from `depth` on), lets `f` change its widgets
  * and children, and rebuilds the `Live` tree around the new children.
  */
-fun with_column<Msg>(
+fun with_box<Msg>(
     node: Live<Msg>,
     path: i64[],
     depth: i64,
     f: fun(gtk.raw.GtkWidget, Live<Msg>[]): Live<Msg>[],
 ): Live<Msg> = match node {
-    Column(column, kids) => if depth == path.len {
-        Live.Column(column, f(column, kids))
+    Box(box, kids) => if depth == path.len {
+        Live.Box(box, f(box, kids))
     } else {
         let i = path[depth];
         let mut next = kids;
-        next[i] = with_column(kids[i], path, depth + 1, f);
-        Live.Column(column, next)
+        next[i] = with_box(kids[i], path, depth + 1, f);
+        Live.Box(box, next)
     },
-    _ => panic("kivuli: a patch's path leads through something that isn't a column"),
+    _ => panic("kivuli: a patch's path leads through something that isn't a column or row"),
 };
 
 /** The node at `path`. */
@@ -217,8 +222,8 @@ fun at<Msg>(node: Live<Msg>, path: i64[]): Live<Msg> {
     let mut here = node;
     for i of path {
         here = match here {
-            Column(_, kids) => kids[i],
-            _ => panic("kivuli: a patch's path leads through something that isn't a column"),
+            Box(_, kids) => kids[i],
+            _ => panic("kivuli: a patch's path leads through something that isn't a column or row"),
         };
     }
     here
@@ -228,7 +233,7 @@ fun at<Msg>(node: Live<Msg>, path: i64[]): Live<Msg> {
 fun widget<Msg>(node: Live<Msg>): gtk.raw.GtkWidget = match node {
     Label(w) => w,
     Button(w, _) => w,
-    Column(w, _) => w,
+    Box(w, _) => w,
 };
 
 fun parent(path: i64[]): i64[] {

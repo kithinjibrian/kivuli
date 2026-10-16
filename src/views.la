@@ -17,6 +17,8 @@ public enum View<Msg> {
     Button(string, Msg),
     /** Children stacked top to bottom. */
     Column(View<Msg>[]),
+    /** Children side by side, left to right. */
+    Row(View<Msg>[]),
 }
 
 /**
@@ -42,3 +44,11 @@ public fun button<Msg>(label: string, msg: Msg): View<Msg> = View.Button(label, 
  *     column([text("Hi"), button("Add", Msg.Add)])
  */
 public fun column<Msg>(children: View<Msg>[]): View<Msg> = View.Column(children);
+
+/**
+ * Lays `children` out side by side, left to right.
+ *
+ * Example:
+ *     row([button("Add", Msg.Add), button("Reset", Msg.Reset)])
+ */
+public fun row<Msg>(children: View<Msg>[]): View<Msg> = View.Row(children);

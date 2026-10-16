@@ -45,7 +45,7 @@ fun view(m: Model): View<Msg> {
 fun shown(node: Live<Msg>): string = match node {
     Label(w) => gtk.raw.gtk_label_get_text(w),
     Button(w, _) => "[" + gtk.raw.gtk_button_get_label(w).unwrap_or("?") + "]",
-    Column(_, kids) => {
+    Box(_, kids) => {
         let mut out = "";
         for k of kids {
             out = out + shown(k) + " | ";
@@ -93,7 +93,7 @@ fun messages_patch_the_same_widgets() {
                 panic("no state before the press");
             };
             match before.live {
-                Column(_, kids) => gtk.raw.emit_widget(widget(kids[1]), "clicked"),
+                Box(_, kids) => gtk.raw.emit_widget(widget(kids[1]), "clicked"),
                 _ => panic("expected a column"),
             }
             let Some(s) = state.get() else {

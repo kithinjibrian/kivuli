@@ -23,9 +23,9 @@ enum Patch<Msg> {
     SetMsg(i64[], Msg),
     /** The widget at the path is a different kind now: build this view in its place. */
     Replace(i64[], View<Msg>),
-    /** The column at the path gains this view as its last child. */
+    /** The column or row at the path gains this view as its last child. */
     Append(i64[], View<Msg>),
-    /** The widget at the path leaves its column. */
+    /** The widget at the path leaves its column or row. */
     Remove(i64[]),
 }
 
@@ -45,6 +45,7 @@ fun diff_at<Msg>(path: i64[], old: View<Msg>, new: View<Msg>): Patch<Msg>[] = ma
     },
     (Button(a, _), Button(b, msg)) => diff_button(path, a, b, msg),
     (Column(xs), Column(ys)) => diff_children(path, xs, ys),
+    (Row(xs), Row(ys)) => diff_children(path, xs, ys),
     _ => [Patch.Replace(path, new)],
 };
 
