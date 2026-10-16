@@ -97,7 +97,7 @@ Decisions 1–12 were agreed in the design discussion in the lugha repository (a
 
 **Decision:** two Lugha compiler features come first, in the lugha repo with their own PRPs: struct update syntax (`S { f: e, ..base }`) and variants as function values (`Msg.Named` as `fun(string): Msg`). No trailing-closure syntax. Then kivuli v1 in eight steps (CONTEXT.md, NEXT SESSION START POINT), then examples: counter, to-do, stopwatch.
 
-**Note:** see DECISION-001. lugha has since used milestones 91–92 for green threads and actors, so the prerequisites are not built yet.
+**Done:** both landed as lugha milestones 93 (struct update, PR #32) and 94 (variants as functions, PR #33). Use them freely: `Model { count: m.count + 1, ..m }`, `input(m.name, Msg.Named)`, `xs.map(Some)`. Needs a `lughac` installed from lugha at m94 or later.
 
 ---
 
@@ -123,13 +123,13 @@ Decisions 1–12 were agreed in the design discussion in the lugha repository (a
 
 ### Fully Working
 - Context system set up (session 1).
-- `lughac` 0.1.0 installed at `~/.cargo/bin/lughac`. GTK 4.22 dev headers installed.
+- `lughac` installed at `~/.cargo/bin/lughac` from lugha `main` at m94 (e7abc33). GTK 4.22 dev headers installed.
+- Lugha prerequisites: struct update (m93), variants as functions (m94).
 
 ### In Progress
 - Nothing.
 
 ### Not Started
-- Lugha prerequisites: struct update syntax, variants as function values (lugha repo).
 - PRP-001: kivuli v1.
 - Examples: counter, to-do, stopwatch. README, LICENSE.
 

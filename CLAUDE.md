@@ -168,7 +168,7 @@ A task is done only when `fmt --check` is clean, `lughac test test/ src/` passes
 
 ## STACK
 
-- **Lugha v16/v17** via `lughac` 0.1.0. v16 is frozen and complete. v17 is in progress in `../lugha` (milestone 91 green threads done, 92 actors being built). Use only what `lughac spec` documents.
+- **Lugha v16/v17** via `lughac` 0.1.0. v16 is frozen and complete. v17 is in progress in `../lugha` (91 green threads, 92 actors, 93 struct update `S { f: e, ..base }`, 94 variants as function values `Msg.Named`). Reinstall `lughac` from `../lugha` after each milestone kivuli relies on: a stale install rejects new syntax. Use only what `lughac spec` documents.
 - **lugha-gtk 0.1** (0.1.1 or later: `gtk_box_remove`, `gtk_box_insert_child_after`; `gtk = { git = "https://github.com/kithinjibrian/lugha-gtk", version = "0.1" }`). kivuli uses **`gtk.raw`** only, because it manages widgets itself. It does not use `gtk.widgets`.
 - **GTK 4.22** + GLib, linked through `[link] pkg-config = ["gtk4"]`.
 - **Boehm GC** (through lughac): closures handed to GTK are pinned with `data`/`release` callbacks.
@@ -249,7 +249,7 @@ Update this tree when modules are added.
 
 ## ANTI-PATTERNS
 
-1. **Never use a Lugha feature without checking `lughac spec`.** The language is young, and inventing syntax (trailing closures, `..base` before it lands, `Msg.Named` as a value before it lands) wastes a session.
+1. **Never use a Lugha feature without checking `lughac spec`.** The language is young, and inventing syntax (trailing closures, for example) wastes a session. If documented syntax is rejected, check the installed `lughac` is current before anything else.
 2. **Never name a function `of`.** It is a keyword.
 3. **Never give a method the same name as a field (E0310).** Name fields `ptr`, methods `handle()`, as lugha-gtk does.
 4. **Never name a parameter after an imported module (E0311).** No `fun f(gtk: …)` in a file that imports `gtk`.

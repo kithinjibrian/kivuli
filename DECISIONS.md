@@ -12,24 +12,6 @@ Rules:
 
 ## OPEN — Requires human input before implementation
 
-### DECISION-001 — Wait for the Lugha prerequisites, or start kivuli v1 now?
-
-**Status:** open
-**Raised:** 2026-10-17 — Session 1
-**Resolved by:** human
-**Blocks:** starting PRP-001's build (not its discovery)
-
-**Question:** The kickoff brief puts struct update syntax and variants-as-functions first, as lugha milestones 91–92. lugha has since used 91 for green threads and 92 for actors (being built in lugha session 214). Neither prerequisite exists. Do we build them in lugha first, or start kivuli now?
-
-**Options:**
-- A) Build both in lugha first, after actors (milestones 93–94), as the brief orders. Examples and README use the nice syntax from day one. Cost: kivuli waits.
-- B) Start kivuli v1 now, writing every struct field and `fun(s) = Msg.Named(s)`, and switch the examples over when the features land. The brief says v1 "can be started without them". Cost: examples are rewritten later.
-- C) Run discovery for PRP-001 now (no code), and decide A or B once actors are done.
-
-**Notes:** Recommended: C, then A. Discovery costs nothing and doesn't depend on syntax. The brief's stated order is A.
-
----
-
 ### DECISION-002 — The shape of `lazy` (risk R1)
 
 **Status:** open
@@ -106,6 +88,20 @@ Rules:
 ---
 
 ## RESOLVED
+
+### DECISION-001 — Wait for the Lugha prerequisites, or start kivuli v1 now?
+
+**Status:** resolved
+**Raised:** 2026-10-17 — Session 1
+**Resolved:** 2026-10-17 — Session 2
+
+**Question:** Build struct update syntax and variants-as-functions in lugha first, or start kivuli without them?
+
+**Outcome:** moot. Both landed in lugha before kivuli needed them: milestone 93 struct update (PR #32, tag m93) and milestone 94 variants as functions (PR #33, tag m94). Verified on a `lughac` reinstalled from lugha `main` at e7abc33.
+
+**Rationale:** the brief's order (prerequisites first) held.
+
+**Copied to MEMORY.md:** yes
 
 ### DECISION-004 — Where the extra GTK externs live long-term
 
