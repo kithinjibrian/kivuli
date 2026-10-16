@@ -50,7 +50,7 @@ If this feature needs to be abandoned mid-implementation:
 
 ## ACCEPTANCE CRITERIA
 - [ ] [testable criterion]
-- [ ] `lughac test test/` passes
+- [ ] `lughac test test/ src/` passes
 - [ ] Every example passes `lughac check` and `lughac build`
 - [ ] `lughac fmt --check src examples test` is clean
 - [ ] Every `public` item has a `/** … */` doc comment
@@ -60,7 +60,7 @@ If this feature needs to be abandoned mid-implementation:
 ## VALIDATION
 Run these commands to verify completion:
 - `lughac fmt --check src examples test`
-- `lughac test test/`
+- `lughac test test/ src/`
 - `for f in examples/*.la; do lughac build "$f" || exit 1; done`
 - [feature-specific check]
 - For the user: [what to open and click to confirm it visually]

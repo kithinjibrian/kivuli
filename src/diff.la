@@ -1,0 +1,176 @@
+/**
+ * Tree diff: compares the last view with the next and lists the changes that
+ * turn the widgets showing one into widgets showing the other. Pure: never
+ * calls GTK, so it is tested with no display. Not responsible for applying
+ * the changes (that's `live`).
+ *
+ * Depends on: ui
+ * Used by: live (from step 3, part 2)
+ */
+
+import ui { View, text, button, column };
+
+/**
+ * One change to the live widgets. A path is the list of child indexes from
+ * the root: `[]` is the root, `[2, 0]` the first child of the root's third.
+ */
+enum Patch<Msg> {
+    /** The label at the path shows new text. */
+    SetText(i64[], string),
+    /** The button at the path shows a new label. */
+    SetLabel(i64[], string),
+    /** The button at the path sends a new message from now on. */
+    SetMsg(i64[], Msg),
+    /** The widget at the path is a different kind now: build this view in its place. */
+    Replace(i64[], View<Msg>),
+    /** The column at the path gains this view as its last child. */
+    Append(i64[], View<Msg>),
+    /** The widget at the path leaves its column. */
+    Remove(i64[]),
+}
+
+/**
+ * Lists the changes that turn widgets showing `old` into widgets showing
+ * `new`, in the order they must be applied. Two equal trees of text and
+ * columns give no changes. Every button gives a `SetMsg`, because messages
+ * can't be compared (they may hold closures).
+ */
+fun diff<Msg>(old: View<Msg>, new: View<Msg>): Patch<Msg>[] = diff_at([], old, new);
+
+fun diff_at<Msg>(path: i64[], old: View<Msg>, new: View<Msg>): Patch<Msg>[] = match (old, new) {
+    (Text(a), Text(b)) => if a == b {
+        []
+    } else {
+        [Patch.SetText(path, b)]
+    },
+    (Button(a, _), Button(b, msg)) => diff_button(path, a, b, msg),
+    (Column(xs), Column(ys)) => diff_children(path, xs, ys),
+    _ => [Patch.Replace(path, new)],
+};
+
+fun diff_button<Msg>(path: i64[], old_label: string, label: string, msg: Msg): Patch<Msg>[] {
+    let mut out: Patch<Msg>[] = [];
+    if old_label != label {
+        out.push(Patch.SetLabel(path, label));
+    }
+    // Always re-point: we can't tell whether the message changed.
+    out.push(Patch.SetMsg(path, msg));
+    out
+}
+
+/**
+ * Children are matched by position: the shared prefix is diffed, extra new
+ * children are appended, and missing ones removed.
+ */
+fun diff_children<Msg>(path: i64[], xs: View<Msg>[], ys: View<Msg>[]): Patch<Msg>[] {
+    let mut out: Patch<Msg>[] = [];
+    let shared = if xs.len < ys.len {
+        xs.len
+    } else {
+        ys.len
+    };
+    let mut i = 0;
+    while i < shared {
+        out = joined(out, diff_at(child(path, i), xs[i], ys[i]));
+        i = i + 1;
+    }
+    while i < ys.len {
+        out.push(Patch.Append(path, ys[i]));
+        i = i + 1;
+    }
+    // Remove from the end backwards, so each path still points at the
+    // widget it names when its patch is applied.
+    let mut j = xs.len - 1;
+    while j >= ys.len {
+        out.push(Patch.Remove(child(path, j)));
+        j = j - 1;
+    }
+    out
+}
+
+fun child(path: i64[], i: i64): i64[] {
+    let mut p = path;
+    p.push(i);
+    p
+}
+
+fun joined<T>(a: T[], b: T[]): T[] {
+    let mut out = a;
+    for x of b {
+        out.push(x);
+    }
+    out
+}
+
+// Tests. They live here, not in test/, because they reach this module's
+// package-level items, which files outside the package can't see.
+
+enum Click {
+    Add,
+    Reset,
+}
+
+// `text("hi")` alone doesn't say which message type its tree is for; these do.
+fun t(s: string): View<Click> = text(s);
+
+fun col(children: View<Click>[]): View<Click> = column(children);
+
+fun counter(
+    count: i64,
+): View<Click> = column(
+    [text("Clicked {count} times"), button("Add", Click.Add), button("Reset", Click.Reset)],
+);
+
+@test
+fun equal_text_needs_nothing() {
+    let none: Patch<Click>[] = [];
+    assert_eq(diff(t("hi"), t("hi")), none);
+}
+
+@test
+fun changed_text_is_set_in_place() {
+    let expected: Patch<Click>[] = [Patch.SetText([], "bye")];
+    assert_eq(diff(t("hi"), t("bye")), expected);
+}
+
+@test
+fun a_counter_click_changes_one_label() {
+    // The counter from examples/counter.la, going from 2 clicks to 3: the label
+    // changes, and both buttons are re-pointed at their (unchanged) messages.
+    let expected: Patch<Click>[] = [
+        Patch.SetText([0], "Clicked 3 times"),
+        Patch.SetMsg([1], Click.Add),
+        Patch.SetMsg([2], Click.Reset),
+    ];
+    assert_eq(diff(counter(2), counter(3)), expected);
+}
+
+@test
+fun a_renamed_button_keeps_its_widget() {
+    let expected: Patch<Click>[] = [Patch.SetLabel([], "Again"), Patch.SetMsg([], Click.Add)];
+    assert_eq(diff(button("Add", Click.Add), button("Again", Click.Add)), expected);
+}
+
+@test
+fun a_different_kind_is_replaced() {
+    let expected: Patch<Click>[] = [Patch.Replace([1], t("gone"))];
+    assert_eq(diff(col([t("a"), button("b", Click.Add)]), col([t("a"), t("gone")])), expected);
+}
+
+@test
+fun a_longer_column_appends() {
+    let expected: Patch<Click>[] = [Patch.Append([], t("b")), Patch.Append([], t("c"))];
+    assert_eq(diff(col([t("a")]), col([t("a"), t("b"), t("c")])), expected);
+}
+
+@test
+fun a_shorter_column_removes_from_the_end() {
+    let expected: Patch<Click>[] = [Patch.Remove([2]), Patch.Remove([1])];
+    assert_eq(diff(col([t("a"), t("b"), t("c")]), col([t("a")])), expected);
+}
+
+@test
+fun nested_paths_lead_through_columns() {
+    let expected: Patch<Click>[] = [Patch.SetText([1, 0], "new")];
+    assert_eq(diff(col([t("top"), col([t("old")])]), col([t("top"), col([t("new")])])), expected);
+}

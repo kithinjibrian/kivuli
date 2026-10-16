@@ -59,7 +59,9 @@ If mid-implementation the scope turns out larger than the PRP described: stop, d
 Write the test before writing the implementation. No exceptions.
 
 - For every new function, write a failing `@test` first, then the minimum code to make it pass.
-- Tests live in `test/`, mirroring `src/`: `src/diff.la` → `test/diff.la`. Run them with `lughac test test/`.
+- Tests of the public API (`ui`, `ui.testing`) live in `test/`, mirroring `src/`: `src/ui.la` → `test/ui.la`. Files in `test/` are outside the `kivuli` package and see only `public` items.
+- Tests of private modules (`diff`, `live`, `effects`) go at the bottom of the module itself, after a `// Tests.` comment, because only there can they reach package-level items. Their test message enum must not be named `Msg` (it clashes with the `Msg` type parameter, E0316).
+- Run everything with `lughac test test/ src/`.
 - Tests must run with **no display and no GTK window**. Test the pure parts: view construction, modifiers, `map`, diff (tree → patches), `ui.testing`, subscription bookkeeping. The live GTK layer is covered by a windowless smoke program (`test/smoke.la`, like lugha-gtk's) that builds widgets, reads them back and quits.
 - Test behavior visible to callers: inputs, outputs, and every error variant. Do not test private internals or GTK's own behavior.
 - Every new `public` function gets at least one happy-path test and one test per error variant it can return.
@@ -150,14 +152,14 @@ If a task seems to require touching a protected file, stop and ask. See also `.l
 lughac check examples/counter.la      # lex, parse, type-check (one entry point at a time)
 lughac build examples/counter.la      # compile and link (needs gtk4 via pkg-config)
 lughac run examples/counter.la        # build and run (opens a window, so it's the user's)
-lughac test test/                     # every @test under test/, each in its own process, no display
+lughac test test/ src/                 # every @test (public-API tests in test/, private ones in src/), no display
 lughac fmt --check src examples test  # formatting; drop --check to rewrite
 lughac update examples/counter.la     # re-resolve git packages, rewrite lugha.lock
 lughac explain E0312                  # what an error code means
 lughac spec                           # the full Lugha language reference: check it before assuming a feature exists
 ```
 
-A task is done only when `fmt --check` is clean, `lughac test test/` passes, and every file in `examples/` passes `lughac check` and `lughac build`.
+A task is done only when `fmt --check` is clean, `lughac test test/ src/` passes, and every file in `examples/` passes `lughac check` and `lughac build`.
 
 > Needs: `lughac` (installed from `../lugha` with `cargo install --path .`), `libgtk-4-dev` (GTK 4.22), `pkgconf`, `libgc-dev`, `cc`.
 
