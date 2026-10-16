@@ -1,9 +1,9 @@
 /**
  * The view tree: what an app's `view` function returns, and the functions
  * that build it. Plain data: it describes a screen and touches no GTK. Apps
- * reach it through `ui`, which re-exports it.
+ * reach it through the package entry, `lib.la`, which re-exports it.
  *
- * Used by: ui, diff, live
+ * Used by: lib, diff, live
  */
 
 /**

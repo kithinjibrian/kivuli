@@ -1,6 +1,7 @@
 /**
- * kivuli's public API: the view tree (from `views`, re-exported) and
- * `sandbox`, which runs an app.
+ * kivuli's public API and the package's entry: `import kivuli;` loads this
+ * module. It holds the view tree (from `views`, re-exported) and `sandbox`,
+ * which runs an app.
  *
  * Depends on: views, live
  */
@@ -19,7 +20,7 @@ import live;
  * @returns GTK's exit status, for `main` to return
  *
  * Example:
- *     fun main(): i32 = ui.sandbox("org.kivuli.counter", Model { count: 0 }, update, view);
+ *     fun main(): i32 = kivuli.sandbox("org.kivuli.counter", Model { count: 0 }, update, view);
  */
 public fun sandbox<Model, Msg>(
     id: string,

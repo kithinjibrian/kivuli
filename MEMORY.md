@@ -21,7 +21,7 @@ Decisions 1–12 were agreed in the design discussion in the lugha repository (a
 
 ### 2. Two entry points: `sandbox` and `application`
 
-**Decision:** `ui.sandbox(id, init, update, view): i32` is pure. `ui.application(App { id, init: (Model, Cmd<Msg>), update: fun(Model, Msg): (Model, Cmd<Msg>), view, subscriptions: fun(Model): Sub<Msg> }): i32` adds effects.
+**Decision:** `kivuli.sandbox(id, init, update, view): i32` is pure. `kivuli.application(App { id, init: (Model, Cmd<Msg>), update: fun(Model, Msg): (Model, Cmd<Msg>), view, subscriptions: fun(Model): Sub<Msg> }): i32` adds effects.
 
 **Why:** most apps need no effects, and Elm's `Browser.sandbox` / `Browser.element` split keeps them simple.
 
@@ -81,7 +81,7 @@ Decisions 1–12 were agreed in the design discussion in the lugha repository (a
 
 ---
 
-### 10. `ui.testing` with no GTK
+### 10. `kivuli.testing` with no GTK
 
 **Decision:** inspect a `View` tree headlessly: `testing.find_button(v, "Reset").is_disabled()`, `testing.click(v, "Add") == Some(Msg.Add)`, `testing.type_into(v, placeholder, "text")`. Apps test with `lughac test`. The module path is DECISION-003.
 
@@ -89,7 +89,7 @@ Decisions 1–12 were agreed in the design discussion in the lugha repository (a
 
 ### 11. Packaging
 
-**Decision:** its own repository (GitHub `kithinjibrian/kivuli`, created and pushed only on the user's go), package `kivuli`, main module `ui` (`import kivuli.ui;`), depends on `gtk` (lugha-gtk) as a git package. Rendering and diffing are private. License GPL-3.0-only.
+**Decision:** its own repository (GitHub `kithinjibrian/kivuli`, created and pushed only on the user's go), package `kivuli`, entry module `src/lib.la` (`import kivuli;`; originally a `ui` module, moved to the entry when lughac milestone 99 added `lib.la`, at the user's direction in session 2), depends on `gtk` (lugha-gtk) as a git package. Rendering and diffing are private. License GPL-3.0-only.
 
 ---
 

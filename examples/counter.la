@@ -1,6 +1,6 @@
 // A counter written with kivuli: a model, the messages that change it, and a
 // view of it. No widget is touched by hand.
-import kivuli.ui { View, text, button, column, sandbox };
+import kivuli { View, text, button, column, sandbox };
 
 struct Model {
     count: i64,

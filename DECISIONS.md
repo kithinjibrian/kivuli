@@ -35,13 +35,13 @@ Rules:
 **Status:** open
 **Raised:** 2026-10-16 — kickoff brief §7
 **Resolved by:** human
-**Blocks:** step 7 of kivuli v1 (`ui.testing`)
+**Blocks:** step 7 of kivuli v1 (the testing helpers)
 
-**Question:** Decision 10 says `ui.testing`, but `src/testing.la` gives `import kivuli.testing;`.
+**Question:** Decision 10 said `ui.testing`; there is no `ui` module any more (the entry is `src/lib.la`, `import kivuli;`). `src/testing.la` is `import kivuli.testing;`. Should the entry also re-export it, so `import kivuli;` gives `kivuli.testing.click(…)`?
 
 **Options:**
-- A) Re-export from `ui.la` (`public import testing;`), so apps write `ui.testing.click(…)`. Check that the spec allows this re-export form.
-- B) Name it `kivuli.testing` and amend decision 10.
+- A) Re-export from `lib.la` (`public import testing;`), so `import kivuli;` alone gives `kivuli.testing.click(…)`. Check that the spec allows this re-export form.
+- B) No re-export: apps that test write `import kivuli.testing;` beside `import kivuli;`.
 
 **Notes:** A matches the agreed API. B is simpler if re-export of a whole module doesn't behave as needed.
 

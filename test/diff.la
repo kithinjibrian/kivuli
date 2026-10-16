@@ -2,7 +2,7 @@
 // showing the old view show the new one. `diff` is package-level: files in
 // test/ see package-level items (lughac milestone 97).
 import kivuli.diff { Patch, diff as patches };
-import kivuli.ui { View, text, button, column };
+import kivuli { View, text, button, column };
 
 enum Msg {
     Add,

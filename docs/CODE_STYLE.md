@@ -29,7 +29,7 @@ Every `public` function, method, struct, enum, interface and variant gets a `/**
 Rules:
 - The first line is one sentence starting with the verb: "Builds", "Returns", "Starts". Never "This function…".
 - `@param` for every parameter whose meaning isn't plain from its name and type. `@returns` on every public function that returns something.
-- One example on every public API function and modifier (`ui` and `ui.testing`). App authors learn the API from hover.
+- One example on every public API function and modifier (`kivuli` and `kivuli.testing`). App authors learn the API from hover.
 - Short items take a one-line doc comment: `/** Ends the application once the current event is handled. */`
 - Mention units every time: intervals are in **milliseconds**, sizes and spacing in **pixels**.
 
@@ -67,7 +67,7 @@ Every file starts with a doc comment:
      * Tree diff: compares the last view with the next and lists the patches that
      * turn one into the other. Pure: never calls GTK, so it is tested headlessly.
      *
-     * Depends on: ui
+     * Depends on: views
      * Used by: live
      */
 

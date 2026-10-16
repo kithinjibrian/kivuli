@@ -1,5 +1,5 @@
 // Building views: what an app's `view` returns is exactly the tree it wrote.
-import kivuli.ui { View, text, button, column };
+import kivuli { View, text, button, column };
 
 enum Msg {
     Add,

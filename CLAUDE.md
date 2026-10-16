@@ -62,7 +62,7 @@ Write the test before writing the implementation. No exceptions.
 - All tests live in `test/`, mirroring `src/`: `src/diff.la` → `test/diff.la`. Files in `test/` see the package's package-level items (lughac milestone 97), so private modules are tested from there too. Keep test code out of `src/`.
 - A named import binds the module's name as well (`import kivuli.live { … }` binds `live`), so don't name a local after the module you import from (E0311). Import a function under another name when it clashes: `import kivuli.diff { diff as patches };`.
 - Run everything with `lughac test test/`.
-- Pure tests must need **no display and no GTK window**: view construction, modifiers, `map`, diff (tree → patches), `ui.testing`, subscription bookkeeping. Tests of the live GTK layer (`test/live.la`) drive a hidden window and read the widgets back, and must start with `if !has_display() { skip("no display"); }` so they are skipped, not failed, without one.
+- Pure tests must need **no display and no GTK window**: view construction, modifiers, `map`, diff (tree → patches), `kivuli.testing`, subscription bookkeeping. Tests of the live GTK layer (`test/live.la`) drive a hidden window and read the widgets back, and must start with `if !has_display() { skip("no display"); }` so they are skipped, not failed, without one.
 - Test behavior visible to callers: inputs, outputs, and every error variant. Do not test private internals or GTK's own behavior.
 - Every new `public` function gets at least one happy-path test and one test per error variant it can return.
 - After any non-trivial change, run the full suite and check every example before calling the task done.
@@ -178,8 +178,10 @@ A task is done only when `fmt --check` is clean, `lughac test test/` passes (ski
 
 ## ARCHITECTURE RULES
 
-1. **Apps see only `ui` and `ui.testing`.** `views` is reached through `ui`'s re-export; `live`, `diff` and `effects` are private (package-level). *Why:* the public surface is the Elm contract, and leaking widgets lets apps bypass `update`/`view`.
-2. **Private modules import `views`, not `ui`.** *Why:* `ui` is the app-facing surface over `live`; private modules need only the view types, which keeps dependencies pointing one way.
+The package entry is `src/lib.la` (lughac milestone 99): apps write `import kivuli { View, text, sandbox };` or `import kivuli;` then `kivuli.sandbox(…)`. There is no `ui` module.
+
+1. **Apps see only the package entry (`src/lib.la`, `import kivuli;`) and `kivuli.testing`.** `views` is reached through the entry's re-export; `live`, `diff` and `effects` are private (package-level). *Why:* the public surface is the Elm contract, and leaking widgets lets apps bypass `update`/`view`.
+2. **Private modules import `views`, not the entry `lib`.** *Why:* the entry is the app-facing surface over `live`; private modules need only the view types, which keeps dependencies pointing one way.
 3. **`diff` is pure.** It takes two `View` trees and returns patches. It never calls GTK. *Why:* it must be unit-testable with no display, and it is where most bugs will live.
 4. **Only `live.la` and `effects.la` call GTK/GLib.** *Why:* one place to audit every extern call and every pinned closure.
 5. **Connect each GTK signal once per widget, never per render.** The handler reads the message to send from a `Ref` stored with the live widget, and a patch only `set`s that `Ref`. *Why:* messages may hold closures and can't be compared, and reconnecting per render leaks pinned closures (risk R4).
@@ -227,12 +229,12 @@ public fun find_button(v: View<Msg>, label: string): ButtonRef<Msg> { … }
 ├── .llmignore         — protected paths
 ├── .claude/           — settings.json: deny rules mirroring .llmignore
 ├── lugha.toml         — package `kivuli`, source `src`
-├── src/               — ui.la (public API: re-exports views, adds sandbox), views.la (View and its builders;
+├── src/               — lib.la (the entry, `import kivuli;`: re-exports views, adds sandbox), views.la (View and its builders;
 │                        imports nothing, so private modules' tests have no cycle back to it),
 │                        diff.la (pure tree diff → patches), live.la (live widgets, the run loop);
 │                        planned: testing.la, effects.la
 ├── examples/          — hello.la (stale `lughac init` scaffold, see CONTEXT.md); planned: counter, todo, stopwatch
-├── test/              — @test files mirroring src/: ui.la, diff.la, live.la (GTK, skipped without a display)
+├── test/              — @test files mirroring src/: lib.la, diff.la, live.la (GTK, skipped without a display)
 ├── PRPs/              — prp-{NNN}-{feature_name}.md (+ TEMPLATE.md, DISCOVERY.md)
 ├── docs/
 │   ├── CODE_STYLE.md  — documentation rules for .la code

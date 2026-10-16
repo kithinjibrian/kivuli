@@ -4,7 +4,7 @@
 import std.env;
 import gtk.raw;
 import kivuli.live { Live, Running, State, create, dispatch, sender, widget };
-import kivuli.ui { View };
+import kivuli { View };
 
 enum Msg {
     Add,

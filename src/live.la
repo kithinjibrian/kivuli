@@ -6,7 +6,7 @@
  * (`diff`).
  *
  * Depends on: views, diff, gtk.raw
- * Used by: ui
+ * Used by: lib
  */
 
 import gtk.raw;
