@@ -73,7 +73,9 @@ public fun press<Msg>(v: View<Msg>, shortcut: string): Result<Msg, Lookup> {
     let mut disabled = 0;
     for (node, style) of nodes(v) {
         match node {
-            Button(_, msg) => if style.shortcut != "" && keys.parse(style.shortcut) == Ok(wanted) {
+            Button(_, msg, _) => if style.shortcut != "" && keys.parse(style.shortcut) == Ok(
+                wanted,
+            ) {
                 match msg {
                     Some(m) => enabled.push(m),
                     None => {
@@ -101,7 +103,7 @@ public fun tooltip<Msg>(v: View<Msg>, label: string): Result<string, Lookup> {
     let mut found: string[] = [];
     for (node, style) of nodes(v) {
         match node {
-            Button(l, _) => if l == label {
+            Button(l, _, _) => if l == label {
                 found.push(style.tooltip);
             },
             _ => {}
@@ -254,7 +256,7 @@ fun buttons<Msg>(v: View<Msg>, s: string): Option<Msg>[] {
     for (node, style) of nodes(v) {
         match node {
             // One button whose label and tooltip both match is still one match.
-            Button(l, msg) => if l == s || style.tooltip == s {
+            Button(l, msg, _) => if l == s || style.tooltip == s {
                 out.push(msg);
             },
             _ => {}

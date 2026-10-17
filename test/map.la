@@ -18,6 +18,7 @@ import kivuli {
     slider,
     icon,
     image,
+    Image,
     Fit,
 };
 
@@ -101,9 +102,15 @@ fun mapped_choices_and_sliders_send_mapped_messages() {
 @test
 fun icons_and_images_pass_through_map() {
     // Icons send nothing: the part's message type comes from the annotation.
-    let part: View<Part> = column([icon("list-add-symbolic"), image("a.png").fit(Fit.Cover)]);
+    let part: View<Part> = column([
+        icon("list-add-symbolic"),
+        image(Image.File("a.png")).fit(Fit.Cover),
+    ]);
     let mapped = part.map(App.Left);
-    let expected: View<App> = column([icon("list-add-symbolic"), image("a.png").fit(Fit.Cover)]);
+    let expected: View<App> = column([
+        icon("list-add-symbolic"),
+        image(Image.File("a.png")).fit(Fit.Cover),
+    ]);
     assert_same(mapped, expected);
 }
 
@@ -120,4 +127,15 @@ fun mapped_fields_send_mapped_messages_and_disabled_ones_stay_silent() {
 fun a_mapped_header_sends_mapped_messages() {
     let part: View<Part> = text("body").header([button("Go", Part.Go)], text("T"), []);
     assert_eq(click(part.map(App.Left), "Go"), Ok(App.Left(Part.Go)));
+}
+
+@test
+fun images_pass_through_map_and_their_buttons_send_mapped_messages() {
+    let part = button("", Part.Go).image(Image.Bytes("k", [1])).tooltip("Go");
+    assert_eq(click(part.map(App.Left), "Go"), Ok(App.Left(Part.Go)));
+    let mapped: View<App> = part.map(App.Left);
+    let expected: View<App> = button("", App.Left(Part.Go)).image(Image.Bytes("k", [1])).tooltip(
+        "Go",
+    );
+    assert_same(mapped, expected);
 }

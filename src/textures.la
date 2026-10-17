@@ -1,0 +1,88 @@
+/**
+ * Showing images from files and bytes: the one place an `Image` becomes a
+ * GTK texture. Every image is checked from its header first
+ * (`pictures.size_of`: PNG or JPEG, at most 4096 × 4096 px and 16 MB), so
+ * hostile bytes never reach GTK's decoder; a decode error is freed and shows
+ * nothing, never a panic. kivuli drops its own references at once: a texture
+ * lives as long as the widget showing it.
+ *
+ * Depends on: pictures, gtk.raw
+ * Used by: build, patch
+ */
+
+import gtk {
+    GError,
+    GdkTexture,
+    GtkWidget,
+    g_bytes_new,
+    g_bytes_unref,
+    g_error_free,
+    gdk_texture_new_from_bytes,
+    gdk_texture_unref,
+    gtk_image_set_from_icon_name,
+    gtk_image_set_from_paintable,
+    gtk_picture_set_paintable,
+};
+import pictures { Image, size_of };
+
+/** The texture for a file or bytes image; `None` for a theme icon, or one that can't be shown. */
+fun texture_of(img: Image): Option<GdkTexture> = match img {
+    Icon(_) => None,
+    // std.fs can't tell a file's size, so it's read whole, then checked.
+    File(path) => match read_bytes(path) {
+        Ok(bytes) => decoded(bytes),
+        Err(_) => None,
+    },
+    Bytes(_, bytes) => decoded(bytes),
+};
+
+/** `bytes` decoded, if their header passes the checks and GTK can decode them. */
+fun decoded(bytes: u8[]): Option<GdkTexture> {
+    if size_of(bytes).is_err() {
+        return None;
+    }
+    // GLib copies the bytes: GTK never holds Lugha memory.
+    let block = g_bytes_new(bytes, bytes.len as u64);
+    let mut error: Option<GError> = None;
+    let texture = gdk_texture_new_from_bytes(block, out error);
+    g_bytes_unref(block);
+    match error {
+        Some(e) => g_error_free(e),
+        None => {}
+    }
+    texture
+}
+
+/** Shows a file or bytes image in a picture (nothing when it can't be shown). */
+fun show_picture(picture: GtkWidget, img: Image) {
+    let texture = texture_of(img);
+    gtk_picture_set_paintable(picture, texture);
+    // The picture keeps its own reference.
+    match texture {
+        Some(t) => gdk_texture_unref(t),
+        None => {}
+    }
+}
+
+/**
+ * Shows `img` in a button's image (a theme icon by name, a file or bytes as a
+ * texture); whether it shows anything, so the button can hide it.
+ */
+fun show_in_image(image: GtkWidget, img: Option<Image>): bool = match img {
+    None => false,
+    Some(Icon(name)) => {
+        gtk_image_set_from_icon_name(image, name);
+        true
+    }
+    Some(other) => match texture_of(other) {
+        Some(t) => {
+            gtk_image_set_from_paintable(image, Some(t));
+            gdk_texture_unref(t);
+            true
+        }
+        None => {
+            gtk_image_set_from_paintable(image, None);
+            false
+        }
+    },
+};

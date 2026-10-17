@@ -14,6 +14,7 @@ import kivuli {
     slider,
     icon,
     image,
+    Image,
     Surface,
     theme,
 };
@@ -208,7 +209,7 @@ fun slide_clamps_and_rounds_like_the_widget() {
 fun an_icon_only_button_is_clicked_by_its_tooltip_and_pictures_are_not_texts() {
     let v: View<Msg> = column([
         icon("emblem-ok-symbolic"),
-        image("a.png"),
+        image(Image.File("a.png")),
         text("Tasks"),
         button("", Msg.Clear).icon("user-trash-symbolic").tooltip("Clear all"),
     ]);
@@ -258,4 +259,12 @@ fun framed_app(): View<Msg> = column([text("body")]).header(
 fun header_buttons_and_fields_are_found_like_any_others() {
     assert_eq(click(framed_app(), "Clear"), Ok(Msg.Clear));
     assert_eq(type_into(framed_app(), "Address", "x"), Ok(Msg.Draft("x")));
+}
+
+@test
+fun a_button_with_an_image_is_found_by_its_tooltip() {
+    let v: View<Msg> = column([
+        button("", Msg.Add).image(Image.Bytes("app:icon", [1, 2, 3])).tooltip("Open the app"),
+    ]);
+    assert_eq(click(v, "Open the app"), Ok(Msg.Add));
 }

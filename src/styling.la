@@ -140,12 +140,8 @@ fun apply_style<Msg>(node: Live<Msg>, style: Style, axis: i32) {
         Button(button, _, controller, shortcut, label, image) => {
             style_button(button, style.button);
             style_shortcut(controller, shortcut, style.shortcut);
-            if style.icon == "" {
-                gtk_widget_set_visible(image, 0);
-            } else {
-                gtk_image_set_from_icon_name(image, style.icon);
-                gtk_widget_set_visible(image, 1);
-            }
+            // The image itself is the node's (build, SetButtonImage); its size is a style.
+            gtk_image_set_pixel_size(image, if style.size > 0 { style.size as i32 } else { -1 });
             show_content(button, label, image);
         }
         // Pixels on an icon; -1 is the theme's size.
@@ -153,7 +149,17 @@ fun apply_style<Msg>(node: Live<Msg>, style: Style, axis: i32) {
             image,
             if style.size > 0 { style.size as i32 } else { -1 },
         ),
-        Image(picture) => gtk_picture_set_content_fit(picture, content_fit(style.fit)),
+        Image(picture) => {
+            gtk_picture_set_content_fit(picture, content_fit(style.fit));
+            // `.size(n)`: an n × n box, unless `.width` or `.height` says otherwise.
+            if style.size > 0 {
+                gtk_widget_set_size_request(
+                    picture,
+                    if style.width < 0 { style.size as i32 } else { style.width as i32 },
+                    if style.height < 0 { style.size as i32 } else { style.height as i32 },
+                );
+            }
+        }
         Slider(scale, range, last, _) => {
             let (min, max, _) = range.get();
             range.set((min, max, style.step));

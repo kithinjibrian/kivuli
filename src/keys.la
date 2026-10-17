@@ -105,7 +105,7 @@ fun duplicate<Msg>(v: View<Msg>): Option<string> {
     let mut seen: Set<string> = #{};
     for (node, style) of nodes(v) {
         match node {
-            Button(_, Some(_)) => if style.shortcut != "" {
+            Button(_, Some(_), _) => if style.shortcut != "" {
                 match parse(style.shortcut) {
                     Ok(gtk) => if !seen.insert(gtk) {
                         return Some(first_written(v, gtk));
@@ -123,7 +123,7 @@ fun duplicate<Msg>(v: View<Msg>): Option<string> {
 fun first_written<Msg>(v: View<Msg>, gtk: string): string {
     for (node, style) of nodes(v) {
         match node {
-            Button(_, Some(_)) => if parse(style.shortcut) == Ok(gtk) {
+            Button(_, Some(_), _) => if parse(style.shortcut) == Ok(gtk) {
                 return style.shortcut;
             },
             _ => {}

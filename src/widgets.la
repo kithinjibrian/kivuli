@@ -8,6 +8,7 @@
  */
 
 import views { View };
+import pictures { Image };
 
 /**
  * Builds a line of text.
@@ -23,7 +24,7 @@ public fun text<Msg>(s: string): View<Msg> = View.Text(s);
  * Example:
  *     button("Add", Msg.Add)
  */
-public fun button<Msg>(label: string, msg: Msg): View<Msg> = View.Button(label, Some(msg));
+public fun button<Msg>(label: string, msg: Msg): View<Msg> = View.Button(label, Some(msg), None);
 
 /**
  * Stacks `children` top to bottom.
@@ -169,18 +170,21 @@ public fun slider<Msg>(
  * Example:
  *     icon("emblem-ok-symbolic").size(64)
  */
-public fun icon<Msg>(name: string): View<Msg> = View.Icon(name);
+public fun icon<Msg>(name: string): View<Msg> = View.Image(Image.Icon(name));
 
 /**
- * Builds a picture of the file at `path` (PNG, JPEG, SVG …), scaled to the
- * room it's given as `.fit` says; `.width`/`.height` give it room. A relative
- * path is relative to the directory the app was started from. A missing or
- * unreadable file shows nothing, and the app keeps running.
+ * Builds an image: a theme icon (as `icon`), or a PNG or JPEG from a file or
+ * from bytes, scaled to the room it's given as `.fit` says (`.width`,
+ * `.height`, or `.size(n)` for an n × n box). A relative path is relative to
+ * the directory the app was started from. An image that can't be shown (not
+ * PNG or JPEG, corrupt, over 4096 × 4096 px or 16 MB, a missing file) shows
+ * nothing, and the app keeps running. Bytes are known by their key: give new
+ * bytes a new key.
  *
  * Example:
- *     image("assets/logo.png").width(64).height(64)
+ *     image(Image.Bytes("counter:banner", banner)).width(320).height(120).fit(Fit.Cover)
  */
-public fun image<Msg>(path: string): View<Msg> = View.Image(path);
+public fun image<Msg>(img: Image): View<Msg> = View.Image(img);
 
 /**
  * Where a slider from `min` to `max` moving in `step`s stops for `value`:

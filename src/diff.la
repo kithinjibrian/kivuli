@@ -10,6 +10,7 @@
 
 import views { View };
 import looks { Style, plain };
+import pictures { Image, identity };
 
 /**
  * One change to the live widgets. A path is the list of child indexes from
@@ -44,10 +45,10 @@ enum Patch<Msg> {
     SetNumber(i64[], i64),
     /** The slider at the path turns moves into messages with this function from now on. */
     SetOnSlide(i64[], fun(i64): Msg),
-    /** The icon at the path shows the theme icon of this name. */
-    SetIcon(i64[], string),
-    /** The picture at the path shows the file at this path. */
-    SetFile(i64[], string),
+    /** The image at the path shows this one (an icon another icon, a picture another file or bytes). */
+    SetImage(i64[], Image),
+    /** The button at the path shows this image before its label, or none. */
+    SetButtonImage(i64[], Option<Image>),
     /** The widget at the path takes this whole style (every modifier, defaults included). */
     SetStyle(i64[], Style),
     /** The widget at the path is a different kind now: build this view in its place. */
@@ -193,7 +194,7 @@ fun diff_inside<Msg>(
     styled: View<Msg>,
 ): Patch<Msg>[] = match (old, new) {
     (Text(a), Text(b)) => if a == b { [] } else { [Patch.SetText(path, b)] },
-    (Button(a, _), Button(b, msg)) => diff_button(path, a, b, msg),
+    (Button(a, _, img_a), Button(b, msg, img_b)) => diff_button(path, (a, img_a), (b, img_b), msg),
     (Column(xs), Column(ys)) => diff_children(path, xs, ys),
     (Row(xs), Row(ys)) => diff_children(path, xs, ys),
     (Input(a, _), Input(b, messages)) => diff_input(path, a, b, match messages {
@@ -218,8 +219,14 @@ fun diff_inside<Msg>(
         (min_b, max_b, b),
         on_change,
     ),
-    (Icon(a), Icon(b)) => if a == b { [] } else { [Patch.SetIcon(path, b)] },
-    (Image(a), Image(b)) => if a == b { [] } else { [Patch.SetFile(path, b)] },
+    // By identity, never by bytes; a theme icon and a picture are different widgets.
+    (Image(a), Image(b)) => if identity(a) == identity(b) {
+        []
+    } else if is_icon(a) == is_icon(b) {
+        [Patch.SetImage(path, b)]
+    } else {
+        [Patch.Replace(path, styled)]
+    },
     (Spacer, Spacer) => [],
     (Separator, Separator) => [],
     // A scroll has one child, at index 0 of its path.
@@ -243,15 +250,19 @@ fun diff_inside<Msg>(
     _ => [Patch.Replace(path, styled)],
 };
 
+/** A button's label and image, old and new. */
 fun diff_button<Msg>(
     path: i64[],
-    old_label: string,
-    label: string,
+    old: (string, Option<Image>),
+    new: (string, Option<Image>),
     msg: Option<Msg>,
 ): Patch<Msg>[] {
     let mut out: Patch<Msg>[] = [];
-    if old_label != label {
-        out.push(Patch.SetLabel(path, label));
+    if old.0 != new.0 {
+        out.push(Patch.SetLabel(path, new.0));
+    }
+    if old.1.map(identity) != new.1.map(identity) {
+        out.push(Patch.SetButtonImage(path, new.1));
     }
     // Always re-point: we can't tell whether the message changed.
     out.push(Patch.SetMsg(path, msg));
@@ -475,3 +486,9 @@ fun joined<T>(a: T[], b: T[]): T[] {
     }
     out
 }
+
+/** Whether an image is a theme icon (a `GtkImage`) rather than a picture (a `GtkPicture`). */
+fun is_icon(img: Image): bool = match img {
+    Icon(_) => true,
+    _ => false,
+};
