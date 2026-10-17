@@ -248,7 +248,11 @@ fun diff_children<Msg>(path: i64[], xs: View<Msg>[], ys: View<Msg>[]): Patch<Msg
     let shared = if xs.len < ys.len { xs.len } else { ys.len };
     let mut i = 0;
     while i < shared {
-        out = joined(out, diff_at(child(path, i), xs[i], ys[i]));
+        // Pushed in place: `out = joined(out, …)` copied the list every row.
+
+        for p of diff_at(child(path, i), xs[i], ys[i]) {
+            out.push(p);
+        }
         i = i + 1;
     }
     while i < ys.len {
@@ -320,7 +324,9 @@ fun diff_keyed<Msg>(
                 keys = moved(keys, j, at);
                 kept = moved(kept, j, at);
             }
-            out = joined(out, diff_at(child(path, at), kept[at], v));
+            for p of diff_at(child(path, at), kept[at], v) {
+                out.push(p);
+            }
         }
         at = at + 1;
     }

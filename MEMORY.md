@@ -136,18 +136,17 @@ Decisions 1–12 were agreed in the design discussion in the lugha repository (a
 ## CURRENT PROJECT STATE
 
 ### Fully Working
-- Context system (session 1).
-- `sandbox(id, init, update, view)` with diff-and-patch rendering (session 2).
-- Widgets: `text`, `button`, `column`, `row`, `input`, `checkbox`, `spacer`, `separator`, `scroll`, `keyed_column` (session 2).
-- 41 tests (5 GTK, skipped without a display); `examples/counter.la`, `examples/raw.la`.
-- Toolchain: lughac from lugha main (user-installed; m93–m100 in use), lugha-gtk 0.1.8, GTK 4.22.
+- `sandbox` and `application` (Cmd/Sub), diff-and-patch rendering, per-place `lazy`, `map` for components, `kivuli.testing`.
+- Widgets: text, button, input (placeholder, on_submit), checkbox, column, row, keyed_column, scroll, spacer, separator; modifiers for layout, text, buttons and the window.
+- Examples: counter, counters, todo (with tests), stopwatch, raw; README. 93 tests (12 GTK, skipped without a display), plus the to-do app's.
+- Toolchain: lughac from lugha main (user-installed, milestone 101), lugha-gtk 0.1.14, GTK 4.22.
 
-### In Progress
-- Nothing (session 2 closed after step 4).
+### Known limits
+- Speed: 100-row keyed lists update in 3–4 ms; 1,000 rows take ~200 ms because Lugha's `Map`/`Set` inserts are quadratic (milestone 101; reported to the lugha session in session 3). Reversing a list is O(n²) in kivuli's keyed diff by design.
 
 ### Not Started
-- Step 5 modifiers and styles; step 6 `application` with Cmd/Sub; `lazy` (DECISION-002); testing helpers (DECISION-003); to-do and stopwatch examples; README; LICENSE (the user's).
-- PRP-001: not written; steps 0–4 were built hands-on at the user's request. Whether to write it is the first question of session 3.
+- Widgets for real apps (v2): text area, dropdown, slider, image/icons, label wrapping and tooltips, keyboard shortcuts, focus, big-list virtualisation; dialogs and multiple windows (DECISION-005); non-blocking I/O commands (DECISION-007).
+- Publishing (GitHub repo, v0.1.0 tag) and LICENSE: the user's go.
 
 ---
 

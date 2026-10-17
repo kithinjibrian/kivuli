@@ -12,6 +12,7 @@ Never deleted. Older entries are never modified.
 - `View.map(f)`, `Cmd.map(f)`, `Sub.map(f)`: components with their own messages inside a bigger app; `examples/counters.la`.
 
 ### Changed
+- The diff collects patches in place: updates of long lists are about twice as fast (100 rows: 3–4 ms).
 - `lazy` reuses a subtree only from the lazy at the same place (as in Elm), so two copies of a component with equal keys can't share one.
 - `kivuli.testing`: `click`, `is_disabled`, `type_into`, `submit`, `toggle` and `texts` work out what a user's action would send, from the view alone, with no GTK.
 - Text fields: `.placeholder(hint)` and `.on_submit(msg)` (Enter).

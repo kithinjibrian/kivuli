@@ -23,3 +23,4 @@ LICENSE
 ../lugha/
 /examples/raw
 /examples/counters
+/examples/bench

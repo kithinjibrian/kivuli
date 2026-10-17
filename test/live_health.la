@@ -1,0 +1,125 @@
+// Health checks on real GTK widgets: an update leaves a text field's cursor
+// where the user put it, and widgets a patch removes or replaces are really
+// freed (finalized, their signal handlers and pinned closures released).
+// Needs a display, so it is skipped without one.
+import std.env;
+import gtk {
+    GtkApplication,
+    GtkWidget,
+    connect_app,
+    g_application_quit,
+    g_application_run,
+    g_object_unref,
+    gtk_application_new,
+    gtk_application_window_new,
+    gtk_box_new,
+    gtk_editable_get_position,
+    gtk_editable_set_position,
+    on_finalized,
+};
+import kivuli.live { dispatch, live_of, mount };
+import kivuli.live_tree { Live, widget };
+import kivuli.build { create };
+import kivuli.patch { apply };
+import kivuli.diff { Patch };
+import kivuli.effects { sandbox_app };
+import kivuli { View, button, input, keyed_column, text };
+
+fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
+
+enum Msg {
+    Named(string),
+    Rows(i64),
+    Swap,
+}
+
+@test
+fun an_update_keeps_the_cursor_where_it_was() {
+    if !has_display() {
+        skip("no display");
+    }
+    let cursor = Ref.new(-1);
+    let application = gtk_application_new("org.kivuli.test.cursor", 0);
+    connect_app(
+        application,
+        "activate",
+        fun(a: GtkApplication) {
+            let field: View<Msg> = input("Axd", Msg.Named);
+            let made = create(field, fun(m: Msg) {});
+            let entry = widget(made);
+            // The user typed "x" after the "A": the cursor sits at 2.
+            gtk_editable_set_position(entry, 2);
+            // The update that follows the keystroke asks for the text the field shows.
+            apply(gtk_box_new(1, 0), made, Patch.SetValue([], "Axd"), fun(m: Msg) {});
+            cursor.set(gtk_editable_get_position(entry) as i64);
+            g_application_quit(a);
+        },
+        0,
+    );
+    g_application_run(application, 0, None);
+    g_object_unref(application);
+    assert_eq(cursor.get(), 2);
+}
+
+struct Model {
+    rows: i64,
+    swapped: bool,
+}
+
+fun update(m: Model, msg: Msg): Model = match msg {
+    Named(_) => m,
+    Rows(n) => Model { rows: n, ..m },
+    Swap => Model { swapped: !m.swapped, ..m },
+};
+
+fun view(m: Model): View<Msg> {
+    let mut rows: (string, View<Msg>)[] = [];
+    let mut i = 0;
+    while i < m.rows {
+        rows.push(("{i}", text("row {i}")));
+        i = i + 1;
+    }
+    // The first row turns from text into a button and back: a Replace.
+    rows.push(("last", if m.swapped { button("swapped", Msg.Swap) } else { text("plain") }));
+    keyed_column(rows)
+}
+
+@test
+fun removed_and_replaced_widgets_are_freed() {
+    if !has_display() {
+        skip("no display");
+    }
+    let finalized = Ref.new(0);
+    let watched = Ref.new(0);
+    let application = gtk_application_new("org.kivuli.test.freed", 0);
+    connect_app(
+        application,
+        "activate",
+        fun(a: GtkApplication) {
+            let window = gtk_application_window_new(a);
+            let app = mount(
+                a,
+                window,
+                sandbox_app("org.kivuli.test", Model { rows: 100, swapped: false }, update, view),
+            );
+            let Box(_, _, kids) = live_of(app) else {
+                panic("expected a box");
+            };
+            for k of kids {
+                watched.update(fun(n) = n + 1);
+                on_finalized(widget(k), fun(gone: GtkWidget) {
+                    finalized.update(fun(n) = n + 1);
+                });
+            }
+            // Removes the 100 rows, then replaces the last one with a button.
+            dispatch(app, Msg.Rows(0));
+            dispatch(app, Msg.Swap);
+            g_application_quit(a);
+        },
+        0,
+    );
+    g_application_run(application, 0, None);
+    g_object_unref(application);
+    assert_eq(watched.get(), 101);
+    assert_eq(finalized.get(), 101);
+}

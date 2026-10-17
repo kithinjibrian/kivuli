@@ -1,0 +1,77 @@
+// A benchmark, not an app: how long resolving and diffing an update of a
+// keyed list takes, split into building the view, `resolve` and the diff.
+// Build it optimised and run it: lughac build examples/bench.la -O2 -o
+// examples/bench && examples/bench
+import gtk { g_get_monotonic_time };
+import kivuli.diff { diff as patches_of, resolve };
+import kivuli { View, checkbox, keyed_column, lazy, row, text, button };
+
+enum Msg {
+    Done(i64, bool),
+    Del(i64),
+}
+
+fun rows(ids: i64[], edited: i64, lazily: bool): View<Msg> = keyed_column(
+    ids.map(
+        fun(i) = (
+            "{i}",
+            if lazily {
+                lazy(
+                    "{i}:{i == edited}",
+                    fun(): View<Msg> = row([
+                        checkbox("task {i}", i == edited, fun(b: bool) = Msg.Done(i, b)),
+                        button("x", Msg.Del(i)),
+                    ]),
+                )
+            } else {
+                row([
+                    checkbox("task {i}", i == edited, fun(b: bool) = Msg.Done(i, b)),
+                    button("x", Msg.Del(i)),
+                ])
+            },
+        ),
+    ),
+);
+
+fun ids(n: i64): i64[] {
+    let mut out: i64[] = [];
+    let mut i = 0;
+    while i < n {
+        out.push(i);
+        i = i + 1;
+    }
+    out
+}
+
+// Milliseconds for: resolve the new view against the old, then diff them.
+fun time(old_ids: i64[], new_ids: i64[], edited: i64, lazily: bool): string {
+    let old = resolve(rows(old_ids, -1, lazily), None);
+    let t0 = g_get_monotonic_time();
+    let fresh = rows(new_ids, edited, lazily);
+    let t1 = g_get_monotonic_time();
+    let new = resolve(fresh, Some(old));
+    let t2 = g_get_monotonic_time();
+    let patches = patches_of(old, new);
+    let t3 = g_get_monotonic_time();
+    "view {(t1 - t0) / 1000} ms, resolve {(t2 - t1) / 1000} ms, diff {(t3 - t2) / 1000} ms ({patches.len} patches)"
+}
+
+fun main() {
+    for n of [100, 1000] {
+        let all = ids(n);
+        let mut front = [-1];
+        for i of all {
+            front.push(i);
+        }
+        let middle = all.filter(fun(i) = i != n / 2);
+        let reversed = all.map(fun(i) = n - 1 - i);
+        for lazily of [false, true] {
+            let kind = if lazily { "lazy rows " } else { "plain rows" };
+            println("{n} {kind}: unchanged {time(all, all, -1, lazily)}");
+            println("{n} {kind}: one edit  {time(all, all, n / 2, lazily)}");
+            println("{n} {kind}: insert    {time(all, front, -1, lazily)}");
+            println("{n} {kind}: delete    {time(all, middle, -1, lazily)}");
+            println("{n} {kind}: reverse   {time(all, reversed, -1, lazily)}");
+        }
+    }
+}
