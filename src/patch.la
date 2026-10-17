@@ -1,0 +1,225 @@
+/**
+ * Applying patches: carries out one `diff.Patch` on the live widgets and
+ * returns the `Live` tree that now mirrors them. Not responsible for deciding
+ * what changed (`diff`) or for making widgets (`build`).
+ *
+ * Depends on: diff, live_tree, build, gtk.raw
+ * Used by: live
+ */
+
+import gtk {
+    GtkWidget,
+    gtk_box_append,
+    gtk_box_insert_child_after,
+    gtk_box_remove,
+    gtk_box_reorder_child_after,
+    gtk_button_set_label,
+    gtk_check_button_set_active,
+    gtk_check_button_set_label,
+    gtk_editable_get_text,
+    gtk_editable_set_text,
+    gtk_label_set_text,
+    gtk_scrolled_window_set_child,
+    gtk_widget_set_sensitive,
+    gtk_window_set_child,
+};
+import diff;
+import build { create, create_in, apply_style, flag };
+import live_tree { Live, widget };
+
+/** Applies one patch to the widgets, and returns the `Live` tree that now mirrors them. */
+fun apply<Msg>(
+    window: GtkWidget,
+    live: Live<Msg>,
+    patch: diff.Patch<Msg>,
+    send: fun(Msg),
+): Live<Msg> = match patch {
+    SetText(path, s) => {
+        gtk_label_set_text(widget(at(live, path)), s);
+        live
+    }
+    SetLabel(path, s) => {
+        match at(live, path) {
+            Button(w, _) => gtk_button_set_label(w, s),
+            Checkbox(w, _) => gtk_check_button_set_label(w, s),
+            _ => panic("kivuli: a SetLabel patch points at something without a label"),
+        }
+        live
+    }
+    SetMsg(path, msg) => {
+        match at(live, path) {
+            Button(button, current) => {
+                current.set(msg);
+                gtk_widget_set_sensitive(button, flag(msg.is_some()));
+            }
+            _ => panic("kivuli: a SetMsg patch points at something that isn't a button"),
+        }
+        live
+    }
+    SetValue(path, value) => {
+        let entry = widget(at(live, path));
+        // Only when the field shows something else: rewriting the same text
+        // would move the cursor to the end while the user types.
+        if gtk_editable_get_text(entry) != value {
+            gtk_editable_set_text(entry, value);
+        }
+        live
+    }
+    SetOnChange(path, on_change) => {
+        match at(live, path) {
+            Input(_, current, _) => current.set(on_change),
+            _ => panic("kivuli: a SetOnChange patch points at something that isn't a text field"),
+        }
+        live
+    }
+    SetOnSubmit(path, on_submit) => {
+        match at(live, path) {
+            Input(_, _, submit) => submit.set(on_submit),
+            _ => panic("kivuli: a SetOnSubmit patch points at something that isn't a text field"),
+        }
+        live
+    }
+    SetChecked(path, checked) => {
+        // GTK fires `toggled` only on a real change, and while patching the
+        // echo is dropped, so this needs no same-state check of its own.
+        gtk_check_button_set_active(widget(at(live, path)), flag(checked));
+        live
+    }
+    SetOnToggle(path, on_toggle) => {
+        match at(live, path) {
+            Checkbox(_, current) => current.set(on_toggle),
+            _ => panic("kivuli: a SetOnToggle patch points at something that isn't a check box"),
+        }
+        live
+    }
+    SetStyle(path, style) => {
+        apply_style(at(live, path), style, axis_at(live, parent_or_root(path)));
+        live
+    }
+    Append(path, v) => update_at(live, path, 0, fun(node: Live<Msg>): Live<Msg> = match node {
+        Box(box, orientation, kids) => {
+            let kid = create_in(v, orientation, send);
+            gtk_box_append(box, widget(kid));
+            let mut next = kids;
+            next.push(kid);
+            Live.Box(box, orientation, next)
+        }
+        _ => panic("kivuli: an Append patch points at something that isn't a column or row"),
+    }),
+    Remove(path) => {
+        let i = path[path.len - 1];
+        update_at(live, parent(path), 0, fun(node: Live<Msg>): Live<Msg> = match node {
+            Box(box, orientation, kids) => {
+                gtk_box_remove(box, widget(kids[i]));
+                Live.Box(box, orientation, diff.without(kids, i))
+            }
+            _ => panic("kivuli: a Remove patch points into something that isn't a column or row"),
+        })
+    }
+    Insert(path, at, v) => update_at(live, path, 0, fun(node: Live<Msg>): Live<Msg> = match node {
+        Box(box, orientation, kids) => {
+            let kid = create_in(v, orientation, send);
+            gtk_box_insert_child_after(box, widget(kid), sibling_before(kids, at));
+            Live.Box(box, orientation, diff.inserted(kids, at, kid))
+        }
+        _ => panic("kivuli: an Insert patch points at something that isn't a keyed column"),
+    }),
+    Move(path, from, to) => update_at(live, path, 0, fun(node: Live<Msg>): Live<Msg> = match node {
+        Box(box, orientation, kids) => {
+            let next = diff.moved(kids, from, to);
+            gtk_box_reorder_child_after(box, widget(kids[from]), sibling_before(next, to));
+            Live.Box(box, orientation, next)
+        }
+        _ => panic("kivuli: a Move patch points at something that isn't a keyed column"),
+    }),
+    Replace(path, v) => if path.len == 0 {
+        let fresh = create(v, send);
+        gtk_window_set_child(window, widget(fresh));
+        fresh
+    } else {
+        let i = path[path.len - 1];
+        update_at(live, parent(path), 0, fun(node: Live<Msg>): Live<Msg> = match node {
+            Box(box, orientation, kids) => {
+                let fresh = create_in(v, orientation, send);
+                // Insert after the previous sibling (or first), then drop the
+                // old widget, so the new one takes exactly its place.
+                gtk_box_insert_child_after(box, widget(fresh), sibling_before(kids, i));
+                gtk_box_remove(box, widget(kids[i]));
+                let mut next = kids;
+                next[i] = fresh;
+                Live.Box(box, orientation, next)
+            }
+            Scroll(scrolled, _) => {
+                // Setting a new child drops the old one (and the viewport GTK
+                // may have wrapped it in).
+                let fresh = create_in(v, 1, send);
+                gtk_scrolled_window_set_child(scrolled, Some(widget(fresh)));
+                Live.Scroll(scrolled, fresh)
+            }
+            _ => panic("kivuli: a Replace patch points into something with no children"),
+        })
+    },
+};
+
+/**
+ * Rebuilds the `Live` tree with the node at `path` (from `depth` on) replaced
+ * by `f(node)`. `f` also makes the matching change to the widgets.
+ */
+fun update_at<Msg>(
+    node: Live<Msg>,
+    path: i64[],
+    depth: i64,
+    f: fun(Live<Msg>): Live<Msg>,
+): Live<Msg> = if depth == path.len {
+    f(node)
+} else {
+    match node {
+        Box(box, orientation, kids) => {
+            let i = path[depth];
+            let mut next = kids;
+            next[i] = update_at(kids[i], path, depth + 1, f);
+            Live.Box(box, orientation, next)
+        }
+        Scroll(scrolled, kid) => Live.Scroll(scrolled, update_at(kid, path, depth + 1, f)),
+        _ => panic("kivuli: a patch's path leads through something with no children"),
+    }
+};
+
+/** The axis children of the node at `path` are laid out along: a box's orientation, else vertical. */
+fun axis_at<Msg>(live: Live<Msg>, path: i64[]): i32 = match at(live, path) {
+    Box(_, orientation, _) => orientation,
+    _ => 1,
+};
+
+/** The parent's path, or the root's own for the root (whose children are laid out vertically). */
+fun parent_or_root(path: i64[]): i64[] = if path.len == 0 { path } else { parent(path) };
+
+/** The node at `path`. */
+fun at<Msg>(node: Live<Msg>, path: i64[]): Live<Msg> {
+    let mut here = node;
+    for i of path {
+        here = match here {
+            Box(_, _, kids) => kids[i],
+            Scroll(_, kid) => kid,
+            _ => panic("kivuli: a patch's path leads through something with no children"),
+        };
+    }
+    here
+}
+
+fun parent(path: i64[]): i64[] {
+    let mut p: i64[] = [];
+    let mut i = 0;
+    while i < path.len - 1 {
+        p.push(path[i]);
+        i = i + 1;
+    }
+    p
+}
+
+/** The widget to place a child after so it lands at index `at`: the one before it, or `None` (first). */
+fun sibling_before<Msg>(kids: Live<Msg>[], at: i64): Option<GtkWidget> = if at == 0 {
+    None
+} else {
+    Some(widget(kids[at - 1]))
+};

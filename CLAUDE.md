@@ -183,7 +183,7 @@ The package entry is `src/lib.la` (lughac milestone 99): apps write `import kivu
 1. **Apps see only the package entry (`src/lib.la`, `import kivuli;`) and `kivuli.testing`.** `views` is reached through the entry's re-export; `live`, `diff` and `effects` are private (package-level). *Why:* the public surface is the Elm contract, and leaking widgets lets apps bypass `update`/`view`.
 2. **Private modules import `views`, not the entry `lib`; `build` never imports `live`.** Shared types go in their own module (`views` for `View`, `live_tree` for `Live`) so imports run one way. *Why:* the entry is the app-facing surface over `live`; private modules need only the view types, which keeps dependencies pointing one way.
 3. **`diff` is pure.** It takes two `View` trees and returns patches. It never calls GTK. *Why:* it must be unit-testable with no display, and it is where most bugs will live.
-4. **Only `live.la` and `build.la` call GTK/GLib.** `build.la` makes and styles widgets; `live.la` runs the app, applies patches, and carries out commands and subscriptions (GLib timers). `effects.la` is pure data. *Why:* few places to audit every extern call and every pinned closure.
+4. **Only `live.la`, `build.la` and `patch.la` call GTK/GLib.** `build.la` makes and styles widgets; `patch.la` applies patches; `live.la` runs the app and carries out commands and subscriptions (GLib timers). `effects.la` is pure data. *Why:* few places to audit every extern call and every pinned closure.
 5. **Connect each GTK signal once per widget, never per render.** The handler reads the message to send from a `Ref` stored with the live widget, and a patch only `set`s that `Ref`. *Why:* messages may hold closures and can't be compared, and reconnecting per render leaks pinned closures (risk R4).
 6. **Disabled means no message.** A button's `on_click` is `Option<Msg>`, and `None` maps to `gtk_widget_set_sensitive(false)`. Do not add a separate `disabled` flag. *Why:* one source of truth, so the two can't disagree.
 7. **The runtime holds state in one `Ref<Option<State<Model, Msg>>>` inside `Running` (`live.la`).** `dispatch(msg)` = update → view → diff → patch → store. Nothing else mutates the model. *Why:* that is the Elm guarantee the whole framework sells.
@@ -232,9 +232,9 @@ public fun find_button(v: View<Msg>, label: string): ButtonRef<Msg> { … }
 ├── lugha.toml         — package `kivuli`, source `src`
 ├── src/               — lib.la (the entry, `import kivuli;`: re-exports views, adds sandbox), views.la (View and its builders;
 │                        imports nothing, so private modules' tests have no cycle back to it),
-│                        diff.la (pure tree diff → patches), live_tree.la (the Live tree type and widget(): data only), build.la (creating and styling widgets), live.la (run loop, patches, timers), effects.la (Cmd, Sub, App: pure), testing.la (kivuli.testing: pure helpers for app tests, re-exported by lib.la). Imports run one way: live_tree ← build ← live; effects ← live;
+│                        diff.la (pure tree diff → patches), live_tree.la (the Live tree type and widget(): data only), build.la (creating and styling widgets), live.la (run loop, commands, timers), patch.la (applying one patch to the widgets), effects.la (Cmd, Sub, App: pure), testing.la (kivuli.testing: pure helpers for app tests, re-exported by lib.la). Imports run one way: live_tree ← build ← patch ← live; effects ← live;
 │                        
-├── examples/          — counter.la, counters.la (components with map), todo.la (with its own tests), stopwatch.la (effects), raw.la (the counter on raw GTK); hello.la is an empty leftover
+├── examples/          — counter.la, counters.la (components with map), todo.la (with its own tests), stopwatch.la (effects), raw.la (the counter on raw GTK)
 ├── test/              — @test files mirroring src/: lib.la, entry.la (the API through `import kivuli;`), diff.la, effects.la, lazy.la, map.la, testing.la, and the GTK ones (skipped without a display) live.la, live_forms.la, live_style.la, live_effects.la, live_lazy.la, live_map.la. A test file imports another test file by its bare name (`import support;` for `test/support.la`), not `test.support` or `kivuli.test.support` (those are E0312)
 ├── PRPs/              — prp-{NNN}-{feature_name}.md (+ TEMPLATE.md, DISCOVERY.md)
 ├── docs/
@@ -269,4 +269,3 @@ Update this tree when modules are added.
 
 - **`update` may block** (direct `std.fs` / `std.process` calls) and freeze the window. File, process and network I/O are not commands in v1, by decision.
 - **Messages with closures can't be compared**, so handlers are never reconnected. This is the design, not a gap.
-- **`examples/hello.la` fails `lughac check` (E0312)**: it imports `kivuli.kivuli`, which doesn't exist. Leave it until PRP-001 replaces it.
