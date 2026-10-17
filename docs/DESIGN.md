@@ -88,6 +88,8 @@ kivuli ships no colours. An app that paints its own frame gives its colours as t
 
 **The header bar's look** (`.header_style([…])`, PRP-008): kivuli's classes go on the `headerbar` node only, so its window controls stay GTK's. GTK's Default theme and Yaru-dark both draw the line under a header bar as a 1 px bottom border (`border-width: 0 0 1px`), not a shadow, over a gradient background. A look with a `background` clears the gradient; `flat: Some(true)` sets `box-shadow: none; border-width: 0` (only `box-shadow: none` when the look has its own `border`), so a header bar and a rail with one flat look read as one frame, focused or not (kivuli's rules outrank the theme's in every state).
 
+**Corner radius** (PRP-009): `radius` rounds all four corners, `radius_top_left` and the others one each. Four equal corners give `border-radius`, otherwise one `border-…-radius` per set corner; for every radius a theme uses, kivuli generates all five rules, so any merge of looks finds its classes. GTK 4.22 rounds a box's own background but does **not** clip its children to the curve (probed: the child is drawn outside any rounded clip unless the box's overflow is hidden). So kivuli sets `gtk_widget_set_overflow(HIDDEN)` on a node whose looks round a corner, marked with a `kv-clip` class so it can undo it; a widget GTK itself clips is left alone.
+
 Dark mode: apps follow the desktop's preference. Forcing dark from an app is deferred (DECISION-017).
 
 ---
