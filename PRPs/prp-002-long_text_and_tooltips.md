@@ -1,6 +1,6 @@
 # PRP-002 — Long text and tooltips
 
-Status: draft, for the user's approval
+Status: approved by the user (session 3); building on branch prp-002-long_text_and_tooltips
 Discovery: session 3, 2026-10-17. Answers marked *(you)* were chosen in the interview; *(proposed)* are recommendations for you to confirm or change with this PRP.
 
 ## FEATURE: Modifiers for text that doesn't fit (`.wrap()`, `.wrap_at(chars)`, `.ellipsize()`), selectable text (`.selectable()`), and hover text on any node (`.tooltip(s)`).
@@ -98,3 +98,7 @@ Live GTK (skipped without a display):
 - While building: only the tests covering each step (the user's rule).
 - Before the merge: `lughac fmt --check src examples test`, `lughac test test/`, `lughac test examples/todo.la examples/notes.la`, every example built; in lugha-gtk `lughac test test/`.
 - For the user: `lughac run examples/todo.la`, add a task with a very long title: it's cut with "…", its full title shows on hover, and hovering ✕ says "Delete …".
+
+## NOTES FROM THE BUILD
+
+- **The split went the other way.** Lugha attaches an `impl` block only to a type declared in the same file (spec, "Methods"), so the modifiers can't leave `views.la`. Instead the widget builders (`text` … `text_area`, plain functions) moved to `src/widgets.la`; `lib.la` re-exports both, so apps see no change. `views.la` 460 → 337 lines.

@@ -230,7 +230,7 @@ public fun find_button(v: View<Msg>, label: string): ButtonRef<Msg> { … }
 ├── .claude/           — settings.json: deny rules mirroring .llmignore
 ├── README.md          — what kivuli is, an example, requirements, the API at a glance, testing
 ├── lugha.toml         — package `kivuli`, source `src`
-├── src/               — lib.la (the entry, `import kivuli;`: re-exports views, adds sandbox), views.la (View and its builders;
+├── src/               — lib.la (the entry, `import kivuli;`: re-exports views, adds sandbox), views.la (View, Style and the modifiers; widgets.la has the builders;
 │                        imports nothing, so private modules' tests have no cycle back to it),
 │                        diff.la (pure tree diff → patches), live_tree.la (the Live tree type and widget(): data only), build.la (creating and styling widgets), live.la (run loop, commands, timers), patch.la (applying one patch to the widgets), effects.la (Cmd, Sub, App: pure), testing.la (kivuli.testing: pure helpers for app tests, re-exported by lib.la). Imports run one way: live_tree ← build ← patch ← live; effects ← live;
 │                        
