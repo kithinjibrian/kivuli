@@ -1,6 +1,6 @@
 # PRP-001 — Multi-line text area
 
-Status: draft, for the user's approval
+Status: approved by the user (session 3); building on branch prp-001-text_area
 Discovery: session 3, 2026-10-17. Answers marked *(you)* were chosen in the interview; *(proposed)* are recommendations not yet asked, for you to confirm or change with this PRP.
 
 ## FEATURE: A scrolling, word-wrapping multi-line text field, `text_area(value, on_change)`.
@@ -103,4 +103,4 @@ All pure ones run with no display:
 - `lughac test test/` and `lughac test examples/todo.la`
 - `for f in examples/*.la; do lughac build "$f" -o /tmp/x || exit 1; done`
 - In lugha-gtk: `lughac test test/`
-- For the user: add `text_area(m.notes, Msg.Notes)` to an example (proposed: task notes in the to-do app, or a small `examples/notes.la`), run it, type several lines, check wrapping, scrolling and that the cursor never jumps.
+- For the user: `examples/notes.la` (a small notes app), run it, type several lines, check wrapping, scrolling and that the cursor never jumps.
