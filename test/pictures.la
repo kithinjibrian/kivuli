@@ -21,6 +21,8 @@ fun hostile_bytes_are_refused_before_decoding() {
         size_of(fixtures.huge_png()),
         Err("the image is 5000 x 5000: larger than 4096 x 4096"),
     );
+    // A genuine PNG one pixel over: GTK would decode it.
+    assert_eq(size_of(fixtures.wide_png()), Err("the image is 4097 x 1: larger than 4096 x 4096"));
     let mut big: u8[] = [0; MAX_BYTES + 1];
     let head = fixtures.png();
     let mut i = 0;

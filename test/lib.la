@@ -367,4 +367,7 @@ fun images_on_their_own_and_on_buttons_are_plain_data() {
         ..plain(),
     });
     assert_same(button("", Msg.Add).size(48).icon("x").disabled(true), sized);
+    // `.icon("")` takes the image away, as before.
+    let bare: View<Msg> = View.Button("Add", Some(Msg.Add), None);
+    assert_same(button("Add", Msg.Add).icon("x").icon(""), bare);
 }

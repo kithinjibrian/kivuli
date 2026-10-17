@@ -342,11 +342,20 @@ impl View<Msg> {
 
     /**
      * Shows a theme icon on a button, before its label: `.image(Image.Icon(name))`.
+     * `""` takes the button's image away, as it always has.
      *
      * Example:
      *     button("", Msg.Delete(t.id)).icon("user-trash-symbolic").tooltip("Delete {t.title}")
      */
-    public fun icon(self, name: string): View<Msg> = self.image(Image.Icon(name));
+    public fun icon(self, name: string): View<Msg> = if name == "" {
+        match self {
+            Button(label, msg, _) => View.Button(label, msg, None),
+            Styled(inside, s) => View.Styled(inside.icon(""), s),
+            _ => self,
+        }
+    } else {
+        self.image(Image.Icon(name))
+    };
 
     /**
      * Shows an image on a button, before its label; with the label `""`, an
