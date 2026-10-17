@@ -270,9 +270,19 @@ Branch: main (PRP-008 on prp-008-header_look, merged)
 
 ---
 
-## SESSION 9 — 2026-10-17 — PRP-009: corner radius — open
+## SESSION 9 — 2026-10-17 — PRP-009: corner radius, kivuli 0.4.0 — closed
 
-Branch: main
+Branch: main (PRP-009 on prp-009-corner_radius, merged)
+
+### WHAT WAS DONE
+- Probed GTK 4.22 (C, on a private gtk4-broadwayd display): a box's radius rounds its own background but doesn't clip its children; `gtk_widget_set_overflow(HIDDEN)` clips them to the same per-corner curve.
+- PRP-009 approved and built: per-corner radius fields in `Surface`, merged per corner; every corner rule for a used radius generated; rounded nodes clip their content (overflow hidden, undone only where kivuli set it). lugha-gtk 0.1.24 pushed (set/get_overflow). examples/frame.la: rail on the right, page curved only top right. kivuli 0.4.0, tagged locally.
+
+### STILL OPEN AT CLOSE
+- Not pushed, waiting for the user's go: main and tag v0.4.0.
+- For the user to check by hand: `lughac run examples/frame.la`: the page's top-right corner curves into the frame; the other three are square.
+- DECISION-018 (views.la at 499 lines) still blocks the next modifier; test/live_forms.la split awaiting the user.
+- `reports/.gitkeep` deleted in the working tree, not by Claude; left alone.
 
 ---
 
