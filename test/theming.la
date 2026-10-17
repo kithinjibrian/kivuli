@@ -1,0 +1,104 @@
+// Typed styles, without GTK: colours read from hex, themes built from an
+// app's looks, the atomic CSS kivuli generates, and the classes a node's
+// merged looks give it.
+import kivuli.theming { Border, Color, Surface, build_theme, classes, css, merged, read_hex };
+import kivuli { hex, rgb, theme };
+
+enum Look {
+    Bar,
+    Rail,
+    Home,
+    Selected,
+}
+
+enum Bad {
+    Tile(i64),
+}
+
+fun surface(l: Look): Surface = match l {
+    Bar => Surface { background: Some(hex("#242424")), ..Surface.theme() },
+    Rail => Surface { background: Some(hex("#242424")), ..Surface.theme() },
+    Home => Surface {
+        background: Some(hex("#161616")),
+        text: Some(hex("#eeeeee")),
+        ..Surface.theme(),
+    },
+    Selected => Surface {
+        background: Some(hex("#3a3a3a")),
+        border: Some(Border { width: 1, color: hex("#555555") }),
+        radius: Some(6),
+        ..Surface.theme(),
+    },
+};
+
+@test
+fun hex_reads_three_six_and_eight_digits() {
+    assert_eq(read_hex("#242424"), Ok(Color { red: 36, green: 36, blue: 36, alpha: 255 }));
+    assert_eq(read_hex("#fff"), Ok(Color { red: 255, green: 255, blue: 255, alpha: 255 }));
+    assert_eq(read_hex("#FF000080"), Ok(Color { red: 255, green: 0, blue: 0, alpha: 128 }));
+    assert_eq(rgb(1, 2, 3), Color { red: 1, green: 2, blue: 3, alpha: 255 });
+}
+
+@test
+fun bad_hex_strings_say_why() {
+    assert_eq(read_hex("242424"), Err("a colour starts with #: \"242424\""));
+    assert_eq(read_hex("#24242"), Err("a colour has 3, 6 or 8 hex digits: \"#24242\""));
+    assert_eq(read_hex("#zz0000"), Err("not a hex digit in \"#zz0000\""));
+}
+
+@test
+fun a_theme_names_its_looks_by_variant() {
+    let t = theme([Look.Bar, Look.Home], surface);
+    assert_eq(t.looks.map(fun(pair) = pair.0), ["Bar", "Home"]);
+}
+
+@test
+fun looks_with_payloads_or_listed_twice_are_refused() {
+    assert_eq(
+        build_theme(["Tile(3)"], [Surface.theme()]).map(fun(t) = t.looks.len),
+        Err("a look can't carry a value: \"Tile(3)\""),
+    );
+    assert_eq(
+        build_theme(["Bar", "Bar"], [Surface.theme(), Surface.theme()]).map(fun(t) = t.looks.len),
+        Err("the look \"Bar\" is listed twice"),
+    );
+    let bad = Surface { radius: Some(-1), ..Surface.theme() };
+    assert_eq(
+        build_theme(["Bar"], [bad]).map(fun(t) = t.looks.len),
+        Err("the look \"Bar\" has a negative size"),
+    );
+    // The payload name, as `theme` gets it from an app's enum.
+    assert_eq("{Bad.Tile(3)}", "Tile(3)");
+}
+
+@test
+fun the_css_has_one_rule_per_property_and_value() {
+    // Bar and Rail share a colour: one rule serves both.
+    let t = theme([Look.Bar, Look.Rail, Look.Home, Look.Selected], surface);
+    assert_eq(
+        css(t),
+        [
+            ".kv-bg-242424ff {{ background-color: #242424ff; background-image: none; }}",
+            ".kv-bg-161616ff {{ background-color: #161616ff; background-image: none; }}",
+            ".kv-fg-eeeeeeff {{ color: #eeeeeeff; }}",
+            ".kv-bg-3a3a3aff {{ background-color: #3a3a3aff; background-image: none; }}",
+            ".kv-border-1-555555ff {{ border: 1px solid #555555ff; }}",
+            ".kv-radius-6 {{ border-radius: 6px; }}",
+        ].join("\n"),
+    );
+}
+
+@test
+fun later_looks_win_field_by_field() {
+    let t = theme([Look.Bar, Look.Home, Look.Selected], surface);
+    let both = merged(t, ["Home", "Selected"]);
+    assert_eq(
+        both.map(fun(s) = classes(s)),
+        Ok(["kv-bg-3a3a3aff", "kv-fg-eeeeeeff", "kv-border-1-555555ff", "kv-radius-6"]),
+    );
+    assert_eq(merged(t, []).map(fun(s) = classes(s)), Ok([]));
+    assert_eq(
+        merged(t, ["Nope"]).map(fun(s) = classes(s)),
+        Err("the look \"Nope\" isn't in the theme"),
+    );
+}

@@ -10,6 +10,7 @@
 
 public import views { View };
 public import looks { Align, ButtonStyle, Fit };
+public import theming { Border, Color, Surface, Theme, hex, rgb, theme };
 public import widgets {
     text,
     button,
