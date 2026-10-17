@@ -168,6 +168,7 @@ Notes so far (handoff to be written at close):
 - map (decision 8): View.map/Cmd.map/Sub.map; examples/counters.la. Found while planning it: lazy's global key cache would let two mapped copies of a component share a subtree (wrong handlers, silently). The user chose per-place reuse (Elm's rule): diff.resolve(new, old) walks beside the last view, matching places as the diff does; the cache is gone. DECISION-002 amended. test/live_map.la shows the right copy rebuilt alone with equal keys on both sides.
 - Cleanups and health checks (the user's request): examples/hello.la removed; patch application split from live.la into src/patch.la (live 239, patch 225). lugha-gtk 0.1.14 pushed (editable cursor position, on_finalized via g_object_weak_ref). test/live_health.la: SetValue keeps the cursor (without the same-text guard GTK puts it at 0 — checked); 101 removed or replaced widgets all finalized.
 - Benchmark (examples/bench.la): the diff was O(n²) from `out = joined(out, …)` copying per row — fixed (push in place). Still slow at 1,000 rows: lughac's Map/Set inserts are quadratic (1000: 31 ms, 2000: 198, 4000: 441, 8000: 2491; arrays 0 ms), which dominates resolve (~150 ms) and the keyed diff's sets (~40 ms). Prompt for the lugha session given to the user. 100 rows: 3–4 ms per update.
+- From here on, every feature goes through a PRP (the user's decision): discovery one question at a time with a recommended answer, PRPs/prp-NNN-*.md, approval, then code. Steps 0–8 and the work since were built hands-on without one.
 
 ---
 
