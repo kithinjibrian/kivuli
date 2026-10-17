@@ -92,7 +92,7 @@ If unsure whether something has a security implication, stop and ask.
 
 ## OUTWARD-FACING ACTIONS — NON-NEGOTIABLE
 
-Ask before anything that leaves this machine: creating the GitHub repository, `git push`, tagging a release, opening PRs or issues in other repositories. The plan (`gh repo create kithinjibrian/kivuli --public`, push `main`, tag `v0.1.0`) runs only on the user's go.
+Ask before anything that leaves this machine: creating the GitHub repository, `git push`, tagging a release, opening PRs or issues in other repositories. Exception: lugha-gtk releases are pushed and tagged without asking (the user's standing go, session 3). The plan (`gh repo create kithinjibrian/kivuli --public`, push `main`, tag `v0.1.0`) runs only on the user's go.
 
 ---
 
@@ -141,7 +141,7 @@ Never read, modify, or delete:
 - `LICENSE`: GPL-3.0-only, changed only by the human
 - Built executables (the paths in `.gitignore`)
 - `../lugha/`: another repository with its own rules (read for reference; never write)
-- `../lugha-gtk/`: write only to add GTK bindings kivuli needs, when the user asks (DECISION-004). Commit only your own change, never the user's uncommitted work there, and push only on the user's go
+- `../lugha-gtk/`: write only to add GTK bindings kivuli needs, when the user asks (DECISION-004). Commit only your own change, never the user's uncommitted work there. Push it and tag the release once its checks pass, without asking: a standing go from the user (session 3)
 
 If a task seems to require touching a protected file, stop and ask. See also `.llmignore`. `.claude/settings.json` denies Claude's Read and Edit tools on the same paths. Keep all three in sync.
 
@@ -183,7 +183,7 @@ The package entry is `src/lib.la` (lughac milestone 99): apps write `import kivu
 1. **Apps see only the package entry (`src/lib.la`, `import kivuli;`) and `kivuli.testing`.** `views` is reached through the entry's re-export; `live`, `diff` and `effects` are private (package-level). *Why:* the public surface is the Elm contract, and leaking widgets lets apps bypass `update`/`view`.
 2. **Private modules import `views`, not the entry `lib`.** *Why:* the entry is the app-facing surface over `live`; private modules need only the view types, which keeps dependencies pointing one way.
 3. **`diff` is pure.** It takes two `View` trees and returns patches. It never calls GTK. *Why:* it must be unit-testable with no display, and it is where most bugs will live.
-4. **Only `live.la` and `effects.la` call GTK/GLib.** *Why:* one place to audit every extern call and every pinned closure.
+4. **Only `live.la`, `build.la` and `effects.la` call GTK/GLib.** `build.la` makes and styles widgets; `live.la` runs the app and applies patches. *Why:* few places to audit every extern call and every pinned closure.
 5. **Connect each GTK signal once per widget, never per render.** The handler reads the message to send from a `Ref` stored with the live widget, and a patch only `set`s that `Ref`. *Why:* messages may hold closures and can't be compared, and reconnecting per render leaks pinned closures (risk R4).
 6. **Disabled means no message.** A button's `on_click` is `Option<Msg>`, and `None` maps to `gtk_widget_set_sensitive(false)`. Do not add a separate `disabled` flag. *Why:* one source of truth, so the two can't disagree.
 7. **The runtime holds state in one `Ref<Option<State<Model, Msg>>>` inside `Running` (`live.la`).** `dispatch(msg)` = update → view → diff → patch → store. Nothing else mutates the model. *Why:* that is the Elm guarantee the whole framework sells.
@@ -231,7 +231,7 @@ public fun find_button(v: View<Msg>, label: string): ButtonRef<Msg> { … }
 ├── lugha.toml         — package `kivuli`, source `src`
 ├── src/               — lib.la (the entry, `import kivuli;`: re-exports views, adds sandbox), views.la (View and its builders;
 │                        imports nothing, so private modules' tests have no cycle back to it),
-│                        diff.la (pure tree diff → patches), live.la (live widgets, the run loop);
+│                        diff.la (pure tree diff → patches), live.la (Live tree, run loop, patches), build.la (creating and styling widgets);
 │                        planned: testing.la, effects.la
 ├── examples/          — hello.la (stale `lughac init` scaffold, see CONTEXT.md); planned: counter, todo, stopwatch
 ├── test/              — @test files mirroring src/: lib.la, diff.la, live.la and live_forms.la (GTK, skipped without a display). A test file imports another test file by its bare name (`import support;` for `test/support.la`), not `test.support` or `kivuli.test.support` (those are E0312)
@@ -257,9 +257,10 @@ Update this tree when modules are added.
 4. **Never name a parameter after an imported module (E0311).** No `fun f(gtk: …)` in a file that imports `gtk`.
 5. **Never call an interface's default method on the concrete type.** It is callable only through an interface value or a bound.
 6. **Never compare messages or views with `==`.** Functions have no `==`, so a `View` holding closures isn't `Eq`. Diff by node kind and fields, and re-point handler `Ref`s.
-7. **Never reassign a captured variable in a closure (E0511).** Capture a `Ref` and `set`/`update` it.
-8. **Never add framework-owned local widget state, multiple windows, or a virtualised list in v1.** They are deferred by decision, not by oversight.
-9. **Never write an extern from memory.** Open the header. GTK 4 removed or renamed many GTK 3 functions.
+7. **Every modifier returns `View<Msg>`, exactly the receiver's type.** lughac infers `Msg` for `text("x").padding(8)` only through methods returning the receiver's own type (lugha PR #48); a modifier returning anything else breaks chaining in apps.
+8. **Never reassign a captured variable in a closure (E0511).** Capture a `Ref` and `set`/`update` it.
+9. **Never add framework-owned local widget state, multiple windows, or a virtualised list in v1.** They are deferred by decision, not by oversight.
+10. **Never write an extern from memory.** Open the header. GTK 4 removed or renamed many GTK 3 functions.
 
 ---
 

@@ -8,7 +8,7 @@
  * Used by: live (from step 3, part 2)
  */
 
-import views { View };
+import views { View, Style, plain };
 
 /**
  * One change to the live widgets. A path is the list of child indexes from
@@ -30,6 +30,8 @@ enum Patch<Msg> {
     SetChecked(i64[], bool),
     /** The check box at the path turns toggles into messages with this function from now on. */
     SetOnToggle(i64[], fun(bool): Msg),
+    /** The widget at the path takes this whole style (every modifier, defaults included). */
+    SetStyle(i64[], Style),
     /** The widget at the path is a different kind now: build this view in its place. */
     Replace(i64[], View<Msg>),
     /** The column or row at the path gains this view as its last child. */
@@ -51,12 +53,39 @@ enum Patch<Msg> {
  */
 fun diff<Msg>(old: View<Msg>, new: View<Msg>): Patch<Msg>[] = diff_at([], old, new);
 
-fun diff_at<Msg>(path: i64[], old: View<Msg>, new: View<Msg>): Patch<Msg>[] = match (old, new) {
-    (Text(a), Text(b)) => if a == b {
-        []
-    } else {
-        [Patch.SetText(path, b)]
-    },
+fun diff_at<Msg>(path: i64[], old: View<Msg>, new: View<Msg>): Patch<Msg>[] {
+    let (old_inside, old_style) = split(old);
+    let (new_inside, new_style) = split(new);
+    let inside = diff_inside(path, old_inside, new_inside, new);
+    // A different kind is rebuilt whole, its style with it: nothing to restyle.
+    if inside.len > 0 && replaces(inside[0], path) {
+        return inside;
+    }
+    if old_style == new_style { inside } else { joined([Patch.SetStyle(path, new_style)], inside) }
+}
+
+/** A node without its `Styled` wrapper, and its style (`plain()` when it has none). */
+fun split<Msg>(v: View<Msg>): (View<Msg>, Style) = match v {
+    Styled(inside, s) => (inside, s),
+    _ => (v, plain()),
+};
+
+fun replaces<Msg>(p: Patch<Msg>, path: i64[]): bool = match p {
+    Replace(at, _) => at == path,
+    _ => false,
+};
+
+/**
+ * Compares two nodes' insides (no `Styled` wrappers). `styled` is the new node
+ * as written, style and all, for a `Replace`.
+ */
+fun diff_inside<Msg>(
+    path: i64[],
+    old: View<Msg>,
+    new: View<Msg>,
+    styled: View<Msg>,
+): Patch<Msg>[] = match (old, new) {
+    (Text(a), Text(b)) => if a == b { [] } else { [Patch.SetText(path, b)] },
     (Button(a, _), Button(b, msg)) => diff_button(path, a, b, msg),
     (Column(xs), Column(ys)) => diff_children(path, xs, ys),
     (Row(xs), Row(ys)) => diff_children(path, xs, ys),
@@ -74,7 +103,7 @@ fun diff_at<Msg>(path: i64[], old: View<Msg>, new: View<Msg>): Patch<Msg>[] = ma
     // A scroll has one child, at index 0 of its path.
     (Scroll(a), Scroll(b)) => diff_at(child(path, 0), a, b),
     (Keyed(xs), Keyed(ys)) => diff_keyed(path, xs, ys),
-    _ => [Patch.Replace(path, new)],
+    _ => [Patch.Replace(path, styled)],
 };
 
 fun diff_button<Msg>(path: i64[], old_label: string, label: string, msg: Msg): Patch<Msg>[] {
@@ -127,11 +156,7 @@ fun diff_checkbox<Msg>(
  */
 fun diff_children<Msg>(path: i64[], xs: View<Msg>[], ys: View<Msg>[]): Patch<Msg>[] {
     let mut out: Patch<Msg>[] = [];
-    let shared = if xs.len < ys.len {
-        xs.len
-    } else {
-        ys.len
-    };
+    let shared = if xs.len < ys.len { xs.len } else { ys.len };
     let mut i = 0;
     while i < shared {
         out = joined(out, diff_at(child(path, i), xs[i], ys[i]));

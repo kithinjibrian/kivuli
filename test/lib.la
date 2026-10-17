@@ -1,4 +1,5 @@
 // Building views: what an app's `view` returns is exactly the tree it wrote.
+import kivuli.views { Style, plain };
 import kivuli {
     View,
     text,
@@ -11,6 +12,7 @@ import kivuli {
     separator,
     scroll,
     keyed_column,
+    Align,
 };
 
 // Views and patches can hold functions, which have no `==`: compare what they
@@ -110,4 +112,30 @@ fun spacers_separators_and_scrolls_are_plain_nodes() {
 fun a_keyed_column_keeps_its_keys_with_its_children() {
     let expected: View<Msg> = View.Keyed([("a", View.Text("A")), ("b", View.Text("B"))]);
     assert_same(keyed_column([("a", text("A")), ("b", text("B"))]), expected);
+}
+
+@test
+fun modifiers_merge_into_one_style() {
+    let expected: View<Msg> = View.Styled(View.Text("x"), Style {
+        padding: 4,
+        align: Align.Center,
+        ..plain(),
+    });
+    assert_same(text("x").padding(8).align(Align.Center).padding(4), expected);
+}
+
+@test
+fun every_layout_modifier_lands_in_the_style() {
+    let expected: View<Msg> = View.Styled(View.Column([]), Style {
+        padding: 1,
+        spacing: 2,
+        expand: true,
+        align: Align.End,
+        width: 30,
+        height: 40,
+    });
+    assert_same(
+        column([]).padding(1).spacing(2).expand().align(Align.End).width(30).height(40),
+        expected,
+    );
 }

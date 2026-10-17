@@ -20,18 +20,15 @@ import gtk {
     gtk_label_get_text,
     gtk_window_set_child,
 };
-import kivuli.live { Running, State, create, sender, widget };
+import kivuli.live { Running, State, sender, widget };
+import kivuli.build { create };
 import kivuli { View, button, checkbox, column, input, text };
 
 fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
 
 // A check box as `[x] label` or `[ ] label`, read back from GTK.
 fun ticked(w: GtkWidget): string {
-    let tick = if gtk_check_button_get_active(w) != 0 {
-        "x"
-    } else {
-        " "
-    };
+    let tick = if gtk_check_button_get_active(w) != 0 { "x" } else { " " };
     "[{tick}] " + gtk_check_button_get_label(w).unwrap_or("?")
 }
 
@@ -129,15 +126,7 @@ fun update_task(t: Task, msg: Chore): Task = match msg {
 
 // The label follows the state, so ticking also relabels the box (SetLabel).
 fun view_task(t: Task): View<Chore> = column([
-    checkbox(
-        if t.done {
-            "Done!"
-        } else {
-            "Done"
-        },
-        t.done,
-        Chore.Done,
-    ),
+    checkbox(if t.done { "Done!" } else { "Done" }, t.done, Chore.Done),
     button("Reset", Chore.Reset),
 ]);
 

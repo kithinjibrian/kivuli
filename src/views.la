@@ -31,6 +31,8 @@ public enum View<Msg> {
     Scroll(View<Msg>),
     /** Children stacked top to bottom, each with a key naming it across views. */
     Keyed((string, View<Msg>)[]),
+    /** A node and its modifiers: built by the modifier methods, never by hand. */
+    Styled(View<Msg>, Style),
 }
 
 /**
@@ -128,3 +130,111 @@ public fun scroll<Msg>(child: View<Msg>): View<Msg> = View.Scroll(child);
  *     keyed_column(todos.map(fun(t: Todo) = (t.id, checkbox(t.title, t.done, Msg.Done))))
  */
 public fun keyed_column<Msg>(children: (string, View<Msg>)[]): View<Msg> = View.Keyed(children);
+
+/** Where a node sits across its column (left to right) or row (top to bottom). */
+public enum Align {
+    /** Stretched across the whole width (in a column) or height (in a row): the default. */
+    Fill,
+    Start,
+    Center,
+    End,
+}
+
+/**
+ * Every modifier a node can carry. Built by the modifier methods; a field
+ * that doesn't fit a node is kept and ignored when it's shown.
+ */
+public struct Style {
+    /** Pixels of empty room on all four sides. */
+    padding: i64,
+    /** Pixels between a column's or row's children. */
+    spacing: i64,
+    /** Whether the node takes spare room along its column (down) or row (across). */
+    expand: bool,
+    align: Align,
+    /** The smallest width and height in pixels; -1 leaves it to the widget. */
+    width: i64,
+    height: i64,
+}
+
+/** The style of a node with no modifiers: what GTK does by default. */
+fun plain(): Style = Style {
+    padding: 0,
+    spacing: 0,
+    expand: false,
+    align: Align.Fill,
+    width: -1,
+    height: -1,
+};
+
+/** `v` with its style changed by `f`: one `Styled` wrapper, however many modifiers. */
+fun restyle<Msg>(v: View<Msg>, f: fun(Style): Style): View<Msg> = match v {
+    Styled(inner, s) => View.Styled(inner, f(s)),
+    _ => View.Styled(v, f(plain())),
+};
+
+impl View<Msg> {
+    /**
+     * Leaves `n` pixels of empty room on all four sides.
+     *
+     * Example:
+     *     column(rows).padding(24)
+     */
+    public fun padding(self, n: i64): View<Msg> = restyle(
+        self,
+        fun(s: Style) = Style { padding: n, ..s },
+    );
+
+    /**
+     * Puts `n` pixels between a column's or row's children; ignored on other nodes.
+     *
+     * Example:
+     *     row([button("Add", Msg.Add), button("Reset", Msg.Reset)]).spacing(8)
+     */
+    public fun spacing(self, n: i64): View<Msg> = restyle(
+        self,
+        fun(s: Style) = Style { spacing: n, ..s },
+    );
+
+    /**
+     * Lets the node take the spare room along its column (down) or row (across).
+     *
+     * Example:
+     *     row([input(m.draft, Msg.Draft).expand(), button("Add", Msg.Add)])
+     */
+    public fun expand(self): View<Msg> = restyle(self, fun(s: Style) = Style { expand: true, ..s });
+
+    /**
+     * Places the node across its column (left to right) or row (top to bottom)
+     * instead of stretching it.
+     *
+     * Example:
+     *     text("Done").align(Align.Center)
+     */
+    public fun align(self, a: Align): View<Msg> = restyle(
+        self,
+        fun(s: Style) = Style { align: a, ..s },
+    );
+
+    /**
+     * Makes the node at least `n` pixels wide.
+     *
+     * Example:
+     *     input(m.name, Msg.Named).width(240)
+     */
+    public fun width(self, n: i64): View<Msg> = restyle(
+        self,
+        fun(s: Style) = Style { width: n, ..s },
+    );
+
+    /**
+     * Makes the node at least `n` pixels tall.
+     *
+     * Example:
+     *     scroll(column(rows)).height(200)
+     */
+    public fun height(self, n: i64): View<Msg> = restyle(
+        self,
+        fun(s: Style) = Style { height: n, ..s },
+    );
+}

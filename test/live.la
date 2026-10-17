@@ -23,7 +23,8 @@ import gtk {
     gtk_widget_get_vexpand,
     gtk_window_set_child,
 };
-import kivuli.live { Live, Running, State, create, dispatch, sender, widget };
+import kivuli.live { Live, Running, State, dispatch, sender, widget };
+import kivuli.build { create };
 import kivuli { View, button, column, keyed_column, row, scroll, separator, spacer, text };
 
 enum Msg {
@@ -53,11 +54,7 @@ fun view(m: Model): View<Msg> {
         kids.push(View.Text("row {i}"));
         i = i + 1;
     }
-    kids.push(if m.count == 2 {
-        View.Button("two!", Msg.Add)
-    } else {
-        View.Text("not two")
-    });
+    kids.push(if m.count == 2 { View.Button("two!", Msg.Add) } else { View.Text("not two") });
     View.Column(kids)
 }
 
@@ -67,26 +64,14 @@ fun shown<M>(node: Live<M>): string = match node {
     Button(w, _) => "[" + gtk_button_get_label(w).unwrap_or("?") + "]",
     Input(w, _) => "<" + gtk_editable_get_text(w) + ">",
     Checkbox(w, _) => {
-        let tick = if gtk_check_button_get_active(w) != 0 {
-            "x"
-        } else {
-            " "
-        };
+        let tick = if gtk_check_button_get_active(w) != 0 { "x" } else { " " };
         "[{tick}] " + gtk_check_button_get_label(w).unwrap_or("?")
     }
     Spacer(w) => {
-        let grows = if gtk_widget_get_vexpand(w) != 0 {
-            "v"
-        } else {
-            "h"
-        };
+        let grows = if gtk_widget_get_vexpand(w) != 0 { "v" } else { "h" };
         "~{grows}"
     }
-    Separator(w) => if gtk_orientable_get_orientation(w) == 0 {
-        "-"
-    } else {
-        "|"
-    },
+    Separator(w) => if gtk_orientable_get_orientation(w) == 0 { "-" } else { "|" },
     Scroll(_, kid) => "scroll(" + shown(kid) + ")",
     Box(_, _, kids) => {
         let mut out = "";
@@ -199,11 +184,7 @@ fun view_panel(p: Panel): View<Pane> {
         rows.push(text("row {i}"));
         i = i + 1;
     }
-    let inside = if p.swapped {
-        button("back", Pane.Swap)
-    } else {
-        column(rows)
-    };
+    let inside = if p.swapped { button("back", Pane.Swap) } else { column(rows) };
     column([
         text("top"),
         separator(),

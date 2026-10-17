@@ -51,6 +51,8 @@ Decisions 1–12 were agreed in the design discussion in the lugha repository (a
 
 **Rules out:** modifier-argument structs, errors for inapplicable modifiers.
 
+**How (session 3, DECISION-009):** modifiers don't change a node's own variant. They wrap it once in `Styled(inner, Style)`, and further modifiers update that `Style`. Inapplicable fields are stored and ignored when `live` applies them.
+
 ---
 
 ### 6. Disabled = no message

@@ -2,6 +2,7 @@
 // showing the old view show the new one. `diff` is package-level: files in
 // test/ see package-level items (lughac milestone 97).
 import kivuli.diff { Patch, diff as patches };
+import kivuli.views { Style, plain };
 import kivuli {
     View,
     text,
@@ -14,6 +15,7 @@ import kivuli {
     separator,
     scroll,
     keyed_column,
+    Align,
 };
 
 // Views and patches can hold functions, which have no `==`: compare what they
@@ -261,4 +263,37 @@ fun removals_inserts_and_moves_together() {
 fun a_keyed_column_is_not_a_column() {
     let expected: Patch<Msg>[] = [Patch.Replace([], column([text("a")]))];
     assert_same(patches(list(["a"]), column([text("a")])), expected);
+}
+
+@test
+fun adding_a_modifier_restyles_the_same_widget() {
+    let expected: Patch<Msg>[] = [Patch.SetStyle([0], Style { padding: 8, ..plain() })];
+    assert_same(patches(column([text("a")]), column([text("a").padding(8)])), expected);
+}
+
+@test
+fun dropping_a_modifier_restyles_back_to_plain() {
+    let expected: Patch<Msg>[] = [Patch.SetStyle([], plain())];
+    assert_same(patches(text("a").padding(8), text("a")), expected);
+}
+
+@test
+fun style_and_content_are_diffed_separately() {
+    let expected: Patch<Msg>[] = [
+        Patch.SetStyle([], Style { padding: 2, ..plain() }),
+        Patch.SetText([], "b"),
+    ];
+    assert_same(patches(text("a").padding(1), text("b").padding(2)), expected);
+}
+
+@test
+fun an_unchanged_style_needs_nothing() {
+    let none: Patch<Msg>[] = [];
+    assert_same(patches(text("a").align(Align.Center), text("a").align(Align.Center)), none);
+}
+
+@test
+fun a_new_kind_is_replaced_with_its_style() {
+    let expected: Patch<Msg>[] = [Patch.Replace([], button("b", Msg.Add).padding(3))];
+    assert_same(patches(text("a").padding(3), button("b", Msg.Add).padding(3)), expected);
 }

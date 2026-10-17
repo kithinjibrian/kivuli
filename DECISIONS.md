@@ -89,6 +89,34 @@ Rules:
 
 ## RESOLVED
 
+### DECISION-010 — Modifiers wait for lughac: the expected type doesn't reach a method's receiver
+
+**Status:** resolved
+**Raised:** 2026-10-17 — Session 3 (step 5, part 1)
+**Resolved:** 2026-10-17 — Session 3
+
+**Question:** `fun v(): View<Msg> = text("x").padding(8);` was E0412: a generic call whose parameter appears only in its result couldn't be a method's receiver.
+
+**Outcome:** fixed in lughac (lugha PR #48, 4e0b028): a method returning its receiver's own type passes the expected type down to the receiver, also inside lists, tuples, generic calls and `==`. Every kivuli modifier returns `View<Msg>`, so chains like `text("Total").padding(8).align(Align.Center)` check inside `column([...])`.
+
+**Rationale:** the API stays as designed (decision 5). Limit to remember: only methods returning exactly the receiver's type (same parameters, same order) pass it down. A modifier returning anything else (say `Option<View<Msg>>`) wouldn't.
+
+**Copied to MEMORY.md:** no (a lughac fix, not a kivuli decision). The limit is noted in CLAUDE.md.
+
+### DECISION-009 — How a node carries its modifiers
+
+**Status:** resolved
+**Raised:** 2026-10-17 — Session 3 (step 5)
+**Resolved:** 2026-10-17 — Session 3
+
+**Question:** Does every variant get its own node struct with a layout field (the brief's sketch), or do modifiers live in one wrapper?
+
+**Outcome:** one wrapper, `View.Styled(View<Msg>, Style)`, holding every modifier in one `Style` record. Chained modifiers merge into one `Style` (struct update from the current one, or from `plain()`), never nest. The diff splits each side into its inside and its style: same kind of inside gives `SetStyle(path, style)` when the styles differ, plus the inside's own patches, at the same path. A different kind gives `Replace` with the styled node. `live` applies the whole style on create and on `SetStyle`, using only the fields that fit the widget. `disabled` still goes through `Button`'s `Option<Msg>` (decision 6).
+
+**Rationale:** no existing variant, diff arm or test changes, and new widgets get every modifier for free. Rejected: a record per node (type-precise, but every variant, arm and test changes, and every widget repeats the layout field).
+
+**Copied to MEMORY.md:** yes
+
 ### DECISION-008 — How tests compare views once they hold functions
 
 **Status:** resolved
