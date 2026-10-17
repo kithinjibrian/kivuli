@@ -1,6 +1,6 @@
 # PRP-005 — Icons and images
 
-Status: approved by the user (session 3); building on branch prp-005-icons_and_images
+Status: built (session 3) on branch prp-005-icons_and_images; merged into main
 Discovery: session 3, 2026-10-17, talked through in chat first. *(you)*: chosen in the interview; *(proposed)*: for you to confirm or change with this PRP.
 
 ## FEATURE: `icon(name)`, a theme icon; `.icon(name)` on buttons; `image(path)`, a picture from a file, with `.fit(Fit.…)`.
@@ -77,30 +77,40 @@ fun deleting_by_tooltip() {
 ## TESTS TO WRITE
 
 Pure:
-- [ ] `test/lib.la`: `icon` and `image` make their nodes; `.icon`, `.fit` and `.size` land in the style; `.fit` defaults to `Contain`.
-- [ ] `test/diff.la`: a changed icon name is `SetIcon`, a changed path `SetFile`, unchanged ones nothing; adding `.icon` to a button or changing `.fit` is a `SetStyle`; an icon becoming an image is `Replace`.
-- [ ] `test/testing.la`: an icon-only button is clicked by its tooltip; `texts` skips icons and images.
-- [ ] `test/map.la`: icons and images pass through `map`.
+- [x] `test/lib.la`: `icon` and `image` make their nodes; `.icon`, `.fit` and `.size` land in the style; `.fit` defaults to `Contain`.
+- [x] `test/diff.la`: a changed icon name is `SetIcon`, a changed path `SetFile`, unchanged ones nothing; adding `.icon` to a button or changing `.fit` is a `SetStyle`; an icon becoming an image is `Replace`.
+- [x] `test/testing.la`: an icon-only button is clicked by its tooltip; `texts` skips icons and images.
+- [x] `test/map.la`: icons and images pass through `map`.
 
 Live GTK (skipped without a display), `test/live_images.la`:
-- [ ] an icon's name and pixel size read back; `.size(48)` → 48, dropped → the theme's (-1); a renamed icon shows the new name.
-- [ ] an image's path and fit read back; a new path and a new fit change them in place (same widget); a missing file still builds (no panic).
-- [ ] buttons: label only, icon only, both: which parts are visible and which theme class is set; adding, changing and dropping the icon; `SetLabel` still relabels; a click still sends its message.
-- [ ] `test/live.la`'s printer reads a button's label from kivuli's label child.
-- [ ] lugha-gtk `test/images.la`: each new extern set and read back.
-- [ ] `examples/gallery.la`'s own tests.
+- [x] an icon's name and pixel size read back; `.size(48)` → 48, dropped → the theme's (-1); a renamed icon shows the new name.
+- [x] an image's path and fit read back; a new path and a new fit change them in place (same widget); a missing file still builds (no panic).
+- [x] buttons: label only, icon only, both: which parts are visible and which theme class is set; adding, changing and dropping the icon; `SetLabel` still relabels; a click still sends its message.
+- [x] `test/live.la`'s printer reads a button's label from kivuli's label child.
+- [x] lugha-gtk `test/images.la`: each new extern set and read back.
+- [x] `examples/gallery.la`'s own tests.
 
 ## ROLLBACK PLAN
 - Branch `prp-005-icons_and_images` from `main`; abandon by leaving it unmerged. lugha-gtk 0.1.22 is additions only.
 
 ## ACCEPTANCE CRITERIA
-- [ ] Theme icons on their own and on buttons; pictures from files with `.fit`; missing ones show a placeholder.
-- [ ] Existing buttons look and behave as before (label-only buttons keep the `text-button` class).
-- [ ] Tests above written first; narrow runs while building; the full suite and the examples' tests pass before the merge.
-- [ ] Every example builds; fmt clean; public items documented; no file over 500 lines.
-- [ ] CHANGELOG.md, README.md and docs/DESIGN.md updated. Merged into `main`.
+- [x] Theme icons on their own and on buttons; pictures from files with `.fit`; missing ones show a placeholder.
+- [x] Existing buttons look and behave as before (label-only buttons keep the `text-button` class).
+- [x] Tests above written first; narrow runs while building; the full suite and the examples' tests pass before the merge.
+- [x] Every example builds; fmt clean; public items documented; no file over 500 lines.
+- [x] CHANGELOG.md, README.md and docs/DESIGN.md updated. Merged into `main`.
 
 ## VALIDATION
 - While building: only the tests covering each step.
 - Before the merge: `lughac fmt --check src examples test`, `lughac test test/`, the examples' own tests, every example built; lugha-gtk `lughac test test/`.
 - For the user: `lughac run examples/gallery.la` from the repo root: icons follow your light or dark theme; the four pictures show each fit; the buttons look like GTK's own.
+
+## NOTES FROM THE BUILD
+
+- **GTK's theme has no `image-text-button`.** The PRP guessed three classes; GTK's Default theme (read from the stylesheet in libgtk-4) styles a button with an icon and a label as `button.text-button.image-button`. kivuli sets `text-button` for a label, `image-button` for an icon, both for both, as GTK does itself; the theme's label padding gives the gap, so kivuli adds no spacing. `docs/DESIGN.md` records it.
+- **Every button's content is kivuli's**: a `GtkBox` with a `GtkImage` (hidden until `.icon` names one) and a `GtkLabel`; `styling.show_content` sets visibility and classes, after `SetStyle` and after `SetLabel` (mutation-checked: without the call after `SetLabel`, an icon-only button keeps an empty label and the `text-button` class). Buttons are made with `gtk_button_new_with_label("")`, whose label `set_child` replaces: lugha-gtk binds no plain `gtk_button_new`.
+- **The style types moved to `src/looks.la`** (views 470 → 372 lines). Tests imported `Style` and `plain` through `kivuli.views` and kept compiling after the move: lughac lets a module's private imports be imported through it (DECISION-011, deferred, reported). The tests now import from `kivuli.looks`.
+- **A component made only of icons and pictures** has no message for lughac to infer `Msg` from before `.map`: annotate it (`let part: View<Part> = …`). Expected, not a bug.
+- **GTK's default fit is already `contain`**, matching `Fit.Contain`; kivuli sets it anyway, so a dropped `.fit` is undone.
+- **The sample picture** is 128×64 (697 bytes), generated with a short Python script (not kept in the repo); smaller than the gallery's 160-pixel boxes, so `ScaleDown` stays small while `Contain` grows, `Cover` crops and `Fill` squashes the sun into an oval.
+- **Not covered by a test:** that a real file's picture loads (tests use missing paths, which GTK accepts silently); the gallery's look, for the user to judge.

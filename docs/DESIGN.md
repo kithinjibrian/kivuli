@@ -37,6 +37,16 @@ kivuli draws nothing. Every visual comes from the user's GTK theme (Adwaita by d
 
 Units are pixels. All numbers come from the app. kivuli has **no default spacing or padding of its own**: a fresh `column` looks exactly like a fresh `GtkBox`.
 
+### Icons and pictures (`icon`, `.icon`, `image`, `.fit`)
+
+| kivuli | GTK |
+| --- | --- |
+| `icon(name)` | a `GtkImage` showing the theme's icon of that name; `.size(n)` sets its pixel size, else the theme's (`-1`) |
+| `.icon(name)` on a button | kivuli's own content: an icon before a label, each hidden when empty; classes `text-button` (label), `image-button` (icon), both for both, as GTK sets them itself (its theme has no `image-text-button`) |
+| `image(path)` | a `GtkPicture` of the file; `.fit` → `content-fit`: `Contain` (default), `Cover`, `ScaleDown`, `Fill` |
+
+Icons are the theme's only. Prefer symbolic names (`…-symbolic`): they take the theme's text colour, so they follow light, dark and high-contrast themes. kivuli never recolours an icon or a picture, and ships no icon set: an app that wants another one (Font Awesome, Lucide …) brings it itself. A missing icon or file shows GTK's placeholder.
+
 ### Disabled
 
 `on_click == None` maps to `gtk_widget_set_sensitive(false)`. The theme greys it out.

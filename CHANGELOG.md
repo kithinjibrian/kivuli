@@ -9,6 +9,7 @@ Never deleted. Older entries are never modified.
 ## [Unreleased]
 
 ### Added
+- Icons and images (PRP-005): `icon(name)` (theme icons, `.size(px)`), `.icon(name)` on buttons (with or without a label), `image(path)` with `.fit(Fit.Contain | Cover | ScaleDown | Fill)`; `examples/gallery.la`. Needs lugha-gtk 0.1.22.
 - Choices (PRP-004): `dropdown(choices, selected)` and `slider(min, max, value, on_change)` with `.step(n)`; `kivuli.testing.choose` and `slide`; `examples/settings.la`. Needs lugha-gtk 0.1.21.
 - Keyboard (PRP-003): `.shortcut("Ctrl+N")` on buttons, `.autofocus()`, `Cmd.focus(name)`, and `kivuli.testing.press(view, keys)`. The to-do app starts in its new-task field; Ctrl+N adds, Ctrl+Shift+Delete clears done tasks.
 - Long text (PRP-002): `.wrap()`, `.wrap_at(chars)`, `.ellipsize()` on text and check box labels; `.selectable()` text; `.tooltip(hint)` on any node, which `kivuli.testing.click` also finds buttons by; `kivuli.testing.tooltip`. The to-do app cuts long titles and shows them on hover.
@@ -17,6 +18,8 @@ Never deleted. Older entries are never modified.
 - `View.map(f)`, `Cmd.map(f)`, `Sub.map(f)`: components with their own messages inside a bigger app; `examples/counters.la`.
 
 ### Changed
+- Every button shows kivuli's own content (an icon and a label) instead of GTK's label, with the same theme classes GTK would set: label-only buttons look as before.
+- The style types (`Style`, `Align`, `ButtonStyle`, `Window`, `Fit`) live in `src/looks.la`; apps still get them from `import kivuli`.
 - The diff collects patches in place: updates of long lists are about twice as fast (100 rows: 3–4 ms).
 - `lazy` reuses a subtree only from the lazy at the same place (as in Elm), so two copies of a component with equal keys can't share one.
 - `kivuli.testing`: `click`, `is_disabled`, `type_into`, `submit`, `toggle` and `texts` work out what a user's action would send, from the view alone, with no GTK.

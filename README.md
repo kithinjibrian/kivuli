@@ -70,6 +70,7 @@ lughac run examples/stopwatch.la
 lughac run examples/counters.la
 lughac run examples/notes.la
 lughac run examples/settings.la
+lughac run examples/gallery.la
 ```
 
 ## What's there
@@ -91,6 +92,8 @@ lughac run examples/settings.la
 | `text_area(value, on_change)` | A multi-line text field that wraps and scrolls inside itself; each edit sends `on_change(text)`, Enter starts a new line. |
 | `checkbox(label, checked, on_toggle)` | Each toggle sends `on_toggle(ticked)`. |
 | `dropdown(choices, selected)` | A drop-down of `(label, msg)` choices; picking one sends its message. `selected` is the label shown picked; one matching no label shows a blank item. |
+| `icon(name)` | A theme icon by name (`"user-trash-symbolic"`); symbolic icons follow the light or dark theme. An unknown name shows GTK's placeholder. |
+| `image(path)` | A picture from a file (PNG, JPEG, SVG …), scaled to its room. A relative path is relative to where the app was started; a missing file shows nothing. |
 | `slider(min, max, value, on_change)` | A whole-number slider showing its number; each move to a new step sends `on_change(value)`. `.step(n)` moves it in steps of `n` from `min`. |
 | `column(children)`, `row(children)` | Children top to bottom, or left to right. |
 | `keyed_column(children)` | Like `column`, with `(key, view)` children matched by key: reordering, inserting or deleting moves, adds or removes just those widgets. |
@@ -105,7 +108,7 @@ lughac run examples/settings.la
 | `.padding(n)`, `.spacing(n)` | Room around a node; between a column's or row's children (pixels). |
 | `.expand()`, `.align(Align.Start \| Center \| End)` | Take spare room along the parent; place across it. |
 | `.width(n)`, `.height(n)` | A minimum size in pixels. |
-| `.size(points)`, `.bold()`, `.dim()` | Text. |
+| `.size(points)`, `.bold()`, `.dim()` | Text. On an icon, `.size(n)` is its size in pixels. |
 | `.wrap()`, `.wrap_at(chars)`, `.ellipsize()` | Long text on text and check box labels: onto more lines (at most `chars` wide), or cut with "…"; both: up to three lines, the last cut. |
 | `.selectable()` | Text the user can select and copy. |
 | `.tooltip(hint)` | Hover text on any node; tests can click a button by it. |
@@ -113,6 +116,8 @@ lughac run examples/settings.la
 | `.autofocus()` | Keyboard focus goes to the node when it's first shown. |
 | `.style(ButtonStyle.Primary \| Danger \| Subtle \| Normal)`, `.disabled(bool)` | Buttons. |
 | `.step(n)` | Sliders: move in steps of `n`, counted from the least value. |
+| `.icon(name)` | Buttons: a theme icon before the label; with the label `""`, an icon-only button (give it a `.tooltip`, which tests find it by). |
+| `.fit(Fit.Contain \| Cover \| ScaleDown \| Fill)` | Pictures: the whole picture (default), filled and cropped, never enlarged, or stretched. |
 | `.placeholder(hint)`, `.on_submit(msg)` | Text fields: a hint while empty; the message Enter sends. |
 | `.name(id)` | A name tests find a text field, text area, drop-down or slider by (not shown). |
 | `.window(title, width, height)` | On the root of `view`: the window's title (it may follow the model) and size. |
