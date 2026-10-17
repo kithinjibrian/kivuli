@@ -5,7 +5,7 @@
  * responsible for deciding what to show (the app's `view`) or what changed
  * (`diff`).
  *
- * Depends on: views, diff, live_tree, build, gtk.raw
+ * Depends on: views, effects, diff, live_tree, build, gtk.raw
  * Used by: lib
  */
 
@@ -13,8 +13,12 @@ import gtk {
     GtkApplication,
     GtkWidget,
     connect_app,
+    g_application_quit,
     g_application_run,
+    g_get_real_time,
     g_object_unref,
+    g_source_remove,
+    g_timeout_add_full,
     gtk_application_new,
     gtk_application_window_new,
     gtk_box_append,
@@ -31,9 +35,12 @@ import gtk {
     gtk_widget_set_sensitive,
     gtk_window_present,
     gtk_window_set_child,
+    gtk_window_set_default_size,
+    gtk_window_set_title,
 };
 import diff;
-import views { View };
+import views { View, Window };
+import effects { App, Cmd, Timer, commands, timers };
 import build { create, create_in, apply_style, flag };
 import live_tree { Live, widget };
 
@@ -44,48 +51,40 @@ struct State<Model, Msg> {
     live: Live<Msg>,
 }
 
-/** A running app: what's fixed at start, plus its changing `State`. */
+/** A `Sub.every` timer that's running: its key, its GLib source, and the function its ticks call. */
+struct Ticking<Msg> {
+    key: string,
+    source: u32,
+    // Re-pointed when the subscription asks again, as buttons' handlers are.
+    tick: Ref<fun(i64): Msg>,
+}
+
+/** A running app: what's fixed at start, plus what changes. */
 struct Running<Model, Msg> {
+    application: GtkApplication,
     window: GtkWidget,
-    update_fn: fun(Model, Msg): Model,
-    view_fn: fun(Model): View<Msg>,
+    program: App<Model, Msg>,
     // `None` only while the first view is being built.
     state: Ref<Option<State<Model, Msg>>>,
     // True while patches are applied: a widget changed by a patch (an entry's
     // text) emits its signal, and that echo must not dispatch again.
     patching: Ref<bool>,
+    timers: Ref<Ticking<Msg>[]>,
 }
 
 /**
- * Starts the GTK application `id` and runs it until its window closes:
- * shows `view(init)`, then on each message replaces the model with
- * `update(model, msg)` and patches the widgets to show the new view.
+ * Starts the GTK application `program.id` and runs it until its window closes
+ * or a command quits it.
  * @returns GTK's exit status, for `main` to return.
  */
-fun run<Model, Msg>(
-    id: string,
-    init: Model,
-    update: fun(Model, Msg): Model,
-    view: fun(Model): View<Msg>,
-): i32 {
-    let application = gtk_application_new(id, 0);
+fun run<Model, Msg>(program: App<Model, Msg>): i32 {
+    let application = gtk_application_new(program.id, 0);
     connect_app(
         application,
         "activate",
         fun(a: GtkApplication) {
             let window = gtk_application_window_new(a);
-            let state: Ref<Option<State<Model, Msg>>> = Ref.new(None);
-            let app = Running {
-                window: window,
-                update_fn: update,
-                view_fn: view,
-                state: state,
-                patching: Ref.new(false),
-            };
-            let tree = view(init);
-            let live = create(tree, sender(app));
-            gtk_window_set_child(window, widget(live));
-            state.set(Some(State { model: init, tree: tree, live: live }));
+            mount(a, window, program);
             gtk_window_present(window);
         },
         0,
@@ -95,7 +94,45 @@ fun run<Model, Msg>(
     status
 }
 
-/** The function every widget calls to send a message to `app`. */
+/**
+ * Shows `program`'s first view in `window` and sets the app going: its
+ * window title and size, `init`'s command, and its subscriptions.
+ */
+fun mount<Model, Msg>(
+    application: GtkApplication,
+    window: GtkWidget,
+    program: App<Model, Msg>,
+): Running<Model, Msg> {
+    let none_yet: Ticking<Msg>[] = [];
+    let app = Running {
+        application: application,
+        window: window,
+        program: program,
+        state: Ref.new(None),
+        patching: Ref.new(false),
+        timers: Ref.new(none_yet),
+    };
+    let (model, cmd) = program.init;
+    let view = program.view;
+    let tree = view(model);
+    let live = create(tree, sender(app));
+    gtk_window_set_child(window, widget(live));
+    app.state.set(Some(State { model: model, tree: tree, live: live }));
+    show_window(window, None, window_of(tree));
+    perform(app, cmd);
+    resubscribe(app, model);
+    app
+}
+
+/** The widgets `app` shows now. */
+fun live_of<Model, Msg>(app: Running<Model, Msg>): Live<Msg> {
+    let Some(s) = app.state.get() else {
+        panic("kivuli: the app has no view yet");
+    };
+    s.live
+}
+
+/** The function every widget and timer calls to send a message to `app`. */
 fun sender<Model, Msg>(app: Running<Model, Msg>): fun(Msg) = fun(msg: Msg) {
     // An echo of our own patch, not the user: the model already has it.
     if !app.patching.get() {
@@ -103,14 +140,17 @@ fun sender<Model, Msg>(app: Running<Model, Msg>): fun(Msg) = fun(msg: Msg) {
     }
 };
 
-/** update → view → diff → patch the widgets → store. */
+/**
+ * update → view → diff → patch the widgets → store → retitle the window →
+ * carry out the command → start and stop timers to match the subscriptions.
+ */
 fun dispatch<Model, Msg>(app: Running<Model, Msg>, msg: Msg) {
     let Some(s) = app.state.get() else {
         panic("kivuli: a message arrived before the first view was shown");
     };
-    let update = app.update_fn;
-    let view = app.view_fn;
-    let model = update(s.model, msg);
+    let update = app.program.update;
+    let view = app.program.view;
+    let (model, cmd) = update(s.model, msg);
     let tree = view(model);
     let mut live = s.live;
     app.patching.set(true);
@@ -119,6 +159,104 @@ fun dispatch<Model, Msg>(app: Running<Model, Msg>, msg: Msg) {
     }
     app.patching.set(false);
     app.state.set(Some(State { model: model, tree: tree, live: live }));
+    show_window(app.window, window_of(s.tree), window_of(tree));
+    perform(app, cmd);
+    resubscribe(app, model);
+}
+
+/** The window a view's root asks for with `.window(…)`, if any. */
+fun window_of<Msg>(tree: View<Msg>): Option<Window> = match tree {
+    Styled(_, style) => style.window,
+    _ => None,
+};
+
+/** Retitles and resizes `window` when the root's `.window(…)` changed; a dropped one leaves it as it is. */
+fun show_window(window: GtkWidget, old: Option<Window>, new: Option<Window>) {
+    if new == old {
+        return;
+    }
+    match new {
+        Some(w) => {
+            gtk_window_set_title(window, w.title);
+            gtk_window_set_default_size(window, w.width as i32, w.height as i32);
+        }
+        None => {}
+    }
+}
+
+/** Carries out `cmd`: timers for `Cmd.after`, quitting for `Cmd.quit`. */
+fun perform<Model, Msg>(app: Running<Model, Msg>, cmd: Cmd<Msg>) {
+    for c of commands(cmd) {
+        match c {
+            After(ms, msg) => {
+                let send = sender(app);
+                g_timeout_add_full(0, ms as u32, fun(): i32 {
+                    send(msg);
+                    // G_SOURCE_REMOVE: once only.
+                    0
+                });
+            }
+            Quit => g_application_quit(app.application),
+            _ => {}
+        }
+    }
+}
+
+/**
+ * Starts and stops `Sub.every` timers so they match what `subscriptions`
+ * asks for now. A timer asked for again (same key) keeps running, with its
+ * tick re-pointed; one no longer asked for is removed.
+ */
+fun resubscribe<Model, Msg>(app: Running<Model, Msg>, model: Model) {
+    let subscriptions = app.program.subscriptions;
+    let wanted = timers(subscriptions(model));
+    let mut now: Ticking<Msg>[] = [];
+    for t of app.timers.get() {
+        if index_of_key(wanted, t.key) < 0 {
+            g_source_remove(t.source);
+        } else {
+            now.push(t);
+        }
+    }
+    let mut next: Ticking<Msg>[] = [];
+    for w of wanted {
+        let mut found = false;
+        for t of now {
+            if t.key == w.key {
+                t.tick.set(w.tick);
+                next.push(t);
+                found = true;
+            }
+        }
+        if !found {
+            next.push(start_timer(app, w));
+        }
+    }
+    app.timers.set(next);
+}
+
+fun start_timer<Model, Msg>(app: Running<Model, Msg>, timer: Timer<Msg>): Ticking<Msg> {
+    let tick = Ref.new(timer.tick);
+    let send = sender(app);
+    let source = g_timeout_add_full(0, timer.ms as u32, fun(): i32 {
+        let f = tick.get();
+        // Milliseconds since 1970.
+        send(f(g_get_real_time() / 1000));
+        // G_SOURCE_CONTINUE: until `resubscribe` removes it.
+        1
+    });
+    Ticking { key: timer.key, source: source, tick: tick }
+}
+
+fun index_of_key<Msg>(wanted: Timer<Msg>[], key: string): i64 {
+    let mut i = 0;
+    while i < wanted.len {
+        if wanted[i].key == key {
+            return i;
+        }
+        i = i + 1;
+    }
+    -1
 }
 
 /** Applies one patch to the widgets, and returns the `Live` tree that now mirrors them. */

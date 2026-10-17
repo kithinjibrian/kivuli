@@ -131,6 +131,14 @@ public fun scroll<Msg>(child: View<Msg>): View<Msg> = View.Scroll(child);
  */
 public fun keyed_column<Msg>(children: (string, View<Msg>)[]): View<Msg> = View.Keyed(children);
 
+/** The app's window, as `.window(title, width, height)` sets it. */
+public struct Window {
+    title: string,
+    /** The size it opens at, in pixels. */
+    width: i64,
+    height: i64,
+}
+
 /** How a button looks, from the theme (docs/DESIGN.md). */
 public enum ButtonStyle {
     Normal,
@@ -174,6 +182,8 @@ public struct Style {
     dim: bool,
     /** How a button looks in the theme. Buttons only. */
     look: ButtonStyle,
+    /** The window's title and size, from the root of `view`. Root only. */
+    window: Option<Window>,
 }
 
 /** The style of a node with no modifiers: what GTK does by default. */
@@ -188,6 +198,7 @@ fun plain(): Style = Style {
     bold: false,
     dim: false,
     look: ButtonStyle.Normal,
+    window: None,
 };
 
 /** `v` with its style changed by `f`: one `Styled` wrapper, however many modifiers. */
@@ -315,4 +326,20 @@ impl View<Msg> {
             _ => self,
         }
     };
+
+    /**
+     * Titles the app's window and sets the size it opens at, in pixels. On
+     * the root of `view` only (elsewhere ignored), so the title may follow the
+     * model.
+     *
+     * Example:
+     *     column(rows).window("To-do ({m.left} left)", 360, 480)
+     */
+    public fun window(self, title: string, width: i64, height: i64): View<Msg> = restyle(
+        self,
+        fun(s: Style) = Style {
+            window: Some(Window { title: title, width: width, height: height }),
+            ..s,
+        },
+    );
 }

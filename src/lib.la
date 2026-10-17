@@ -1,9 +1,9 @@
 /**
  * kivuli's public API and the package's entry: `import kivuli;` loads this
- * module. It holds the view tree (from `views`, re-exported) and `sandbox`,
- * which runs an app.
+ * module. It holds the view tree (from `views`) and effects (from `effects`),
+ * re-exported, and the two ways to run an app: `sandbox` and `application`.
  *
- * Depends on: views, live
+ * Depends on: views, effects, live
  */
 
 public import views {
@@ -21,6 +21,7 @@ public import views {
     Align,
     ButtonStyle,
 };
+public import effects { Cmd, Sub, App };
 import live;
 
 /**
@@ -41,4 +42,24 @@ public fun sandbox<Model, Msg>(
     init: Model,
     update: fun(Model, Msg): Model,
     view: fun(Model): View<Msg>,
-): i32 = live.run(id, init, update, view);
+): i32 = live.run(effects.sandbox_app(id, init, update, view));
+
+/**
+ * Runs an app with effects: like `sandbox`, but `init` and `update` also
+ * return a `Cmd` (wait and send, quit), and `subscriptions` says what to keep
+ * listening to (`Sub.every`) for the current model.
+ *
+ * @param app the app: its id, `init`, `update`, `view` and `subscriptions`
+ * @returns GTK's exit status, for `main` to return
+ *
+ * Example:
+ *     fun main(): i32 = kivuli.application(App {
+ *         id: "org.kivuli.stopwatch",
+ *         update: update,
+ *         view: view,
+ *         subscriptions: subscriptions,
+ *         // After `update`: lughac infers a field's type only from earlier fields.
+ *         init: (Model { ms: 0, running: false }, Cmd.none()),
+ *     });
+ */
+public fun application<Model, Msg>(app: App<Model, Msg>): i32 = live.run(app);

@@ -1,0 +1,99 @@
+// Commands and subscriptions on a running main loop: `init`'s command, a
+// `Sub.every` that ticks and then stops, a `Cmd.after`, `Cmd.quit` ending
+// the app, and the window title following the model. Needs a display.
+import std.env;
+import gtk {
+    GtkApplication,
+    GtkWidget,
+    connect_app,
+    g_application_run,
+    g_object_unref,
+    gtk_application_new,
+    gtk_application_window_new,
+    gtk_window_get_title,
+};
+import kivuli.live { mount };
+import kivuli { App, Cmd, Sub, View, column, text };
+
+fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
+
+enum Msg {
+    Started,
+    Tick(i64),
+    Done,
+}
+
+struct Model {
+    started: bool,
+    ticks: i64,
+}
+
+fun update(m: Model, msg: Msg): (Model, Cmd<Msg>) = match msg {
+    Started => (Model { started: true, ..m }, Cmd.none()),
+    // The third tick stops the subscription; quitting comes 60ms later, time
+    // in which a timer that wasn't stopped would tick again.
+    Tick(_) => (
+        Model { ticks: m.ticks + 1, ..m },
+        if m.ticks + 1 == 3 { Cmd.after(60, Msg.Done) } else { Cmd.none() },
+    ),
+    Done => (m, Cmd.quit()),
+};
+
+fun subscriptions(m: Model): Sub<Msg> = if m.started && m.ticks < 3 {
+    Sub.every(10, Msg.Tick)
+} else {
+    Sub.none()
+};
+
+fun view(m: Model): View<Msg> = column([text("{m.ticks}")]).window("Ticks {m.ticks}", 200, 100);
+
+// A message's name, without a tick's time.
+fun name(msg: Msg): string = match msg {
+    Started => "Started",
+    Tick(_) => "Tick",
+    Done => "Done",
+};
+
+@test
+fun commands_and_subscriptions_run_on_the_main_loop() {
+    if !has_display() {
+        skip("no display");
+    }
+    let received: Ref<string[]> = Ref.new([]);
+    let window: Ref<Option<GtkWidget>> = Ref.new(None);
+    let application = gtk_application_new("org.kivuli.test.effects", 0);
+    connect_app(
+        application,
+        "activate",
+        fun(a: GtkApplication) {
+            let w = gtk_application_window_new(a);
+            window.set(Some(w));
+            // Not presented: the window keeps the loop running, unseen.
+            mount(a, w, App {
+                id: "org.kivuli.test.effects",
+                init: (Model { started: false, ticks: 0 }, Cmd.after(20, Msg.Started)),
+                update: fun(m: Model, msg: Msg): (Model, Cmd<Msg>) {
+                    received.update(fun(xs) {
+                        let mut ys = xs;
+                        ys.push(name(msg));
+                        ys
+                    });
+                    update(m, msg)
+                },
+                view: view,
+                subscriptions: subscriptions,
+            });
+        },
+        0,
+    );
+    // Returns when `Cmd.quit()` ends the app.
+    g_application_run(application, 0, None);
+    let title = match window.get() {
+        Some(w) => gtk_window_get_title(w).unwrap_or("?"),
+        None => "no window",
+    };
+    g_object_unref(application);
+
+    assert_eq(received.get(), ["Started", "Tick", "Tick", "Tick", "Done"]);
+    assert_eq(title, "Ticks 3");
+}

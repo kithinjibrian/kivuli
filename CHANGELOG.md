@@ -9,6 +9,9 @@ Never deleted. Older entries are never modified.
 ## [Unreleased]
 
 ### Added
+- `application(App { id, init, update, view, subscriptions })`: apps with effects. `Cmd.none()`, `Cmd.after(ms, msg)`, `Cmd.quit()`, `Cmd.batch(cmds)`; `Sub.none()`, `Sub.every(ms, f)`, `Sub.batch(subs)`. Timers start and stop to match the subscriptions after every update.
+- `.window(title, width, height)` on the root of `view`: the window's title follows the model.
+- `examples/stopwatch.la`.
 - Buttons: `.style(ButtonStyle.Primary | Danger | Subtle | Normal)` and `.disabled(bool)`, which greys the button out and stops its clicks sending anything.
 - Text modifiers: `.size(points)`, `.bold()`, `.dim()`.
 - Layout modifiers on any node: `.padding(n)`, `.spacing(n)`, `.expand()`, `.align(Align.Start | Center | End)`, `.width(n)`, `.height(n)`; adding, changing or dropping one restyles the same widget.

@@ -1,0 +1,164 @@
+/**
+ * Effects as data: the commands `update` returns, the subscriptions an app
+ * asks for, and the `App` record `application` runs. Pure: nothing here runs
+ * a timer or quits anything (that's `live`), so it's tested headlessly.
+ *
+ * Depends on: views
+ * Used by: lib, live
+ */
+
+import views { View };
+
+/**
+ * Something for kivuli to do after an update: wait and send a message, quit,
+ * or several of those. Build one with `Cmd.none()`, `Cmd.after(ms, msg)`,
+ * `Cmd.quit()` or `Cmd.batch(cmds)`.
+ */
+public enum Cmd<Msg> {
+    Nothing,
+    Batch(Cmd<Msg>[]),
+    /** Send the message after this many milliseconds. */
+    After(i64, Msg),
+    Quit,
+}
+
+impl Cmd<Msg> {
+    /** Does nothing: what most updates return. */
+    public fun none(): Cmd<Msg> = Cmd.Nothing;
+
+    /**
+     * Runs every command in `cmds`.
+     *
+     * Example:
+     *     Cmd.batch([Cmd.after(1000, Msg.Tick), Cmd.after(5000, Msg.Timeout)])
+     */
+    public fun batch(cmds: Cmd<Msg>[]): Cmd<Msg> = Cmd.Batch(cmds);
+
+    /**
+     * Sends `msg` to `update` once, `ms` milliseconds from now.
+     *
+     * Example:
+     *     (Model { saving: true, ..m }, Cmd.after(2000, Msg.Saved))
+     */
+    public fun after(ms: i64, msg: Msg): Cmd<Msg> = Cmd.After(ms, msg);
+
+    /** Closes the window and ends the app; `main` returns. */
+    public fun quit(): Cmd<Msg> = Cmd.Quit;
+}
+
+/**
+ * What an app keeps listening to while its model is as it is: asked for again
+ * after every update, and kivuli starts and stops timers to match. Build one
+ * with `Sub.none()`, `Sub.every(ms, f)` or `Sub.batch(subs)`.
+ */
+public enum Sub<Msg> {
+    Quiet,
+    Batch(Sub<Msg>[]),
+    /** Every this many milliseconds, send `f(now)`, now in milliseconds since 1970. */
+    Every(i64, fun(i64): Msg),
+}
+
+impl Sub<Msg> {
+    /** Listens to nothing. */
+    public fun none(): Sub<Msg> = Sub.Quiet;
+
+    /**
+     * Listens to every subscription in `subs`.
+     *
+     * Example:
+     *     Sub.batch([Sub.every(1000, Msg.Tick), Sub.every(60000, Msg.Save)])
+     */
+    public fun batch(subs: Sub<Msg>[]): Sub<Msg> = Sub.Batch(subs);
+
+    /**
+     * Sends `f(now)` every `ms` milliseconds, `now` being milliseconds since
+     * 1970, for as long as `subscriptions` keeps returning it.
+     *
+     * Example:
+     *     if m.running { Sub.every(10, Msg.Tick) } else { Sub.none() }
+     */
+    public fun every(ms: i64, f: fun(i64): Msg): Sub<Msg> = Sub.Every(ms, f);
+}
+
+/**
+ * An app with effects, for `application`: like `sandbox`'s arguments, but
+ * `init` and `update` also return a command, and `subscriptions` says what to
+ * listen to for a given model.
+ */
+public struct App<Model, Msg> {
+    /** The application ID, reverse-DNS, such as `"org.kivuli.stopwatch"`. */
+    public id: string,
+    public init: (Model, Cmd<Msg>),
+    public update: fun(Model, Msg): (Model, Cmd<Msg>),
+    public view: fun(Model): View<Msg>,
+    public subscriptions: fun(Model): Sub<Msg>,
+}
+
+/** The `App` a `sandbox` runs: no commands, no subscriptions. */
+fun sandbox_app<Model, Msg>(
+    id: string,
+    init: Model,
+    update: fun(Model, Msg): Model,
+    view: fun(Model): View<Msg>,
+): App<Model, Msg> = App {
+    id: id,
+    init: (init, Cmd.none()),
+    update: fun(m: Model, msg: Msg): (Model, Cmd<Msg>) = (update(m, msg), Cmd.none()),
+    view: view,
+    subscriptions: fun(m: Model): Sub<Msg> = Sub.none(),
+};
+
+/** The commands in `c` to carry out, in order: batches flattened, `none`s dropped. */
+fun commands<Msg>(c: Cmd<Msg>): Cmd<Msg>[] = match c {
+    Nothing => [],
+    Batch(cs) => {
+        let mut out: Cmd<Msg>[] = [];
+        for each of cs {
+            for leaf of commands(each) {
+                out.push(leaf);
+            }
+        }
+        out
+    }
+    _ => [c],
+};
+
+/** One timer a subscription asks for, and the key that names it across updates. */
+struct Timer<Msg> {
+    /**
+     * The interval and its count among timers of that interval: `"1000#0"`,
+     * `"1000#1"`. A timer whose key is asked for again keeps running.
+     */
+    key: string,
+    ms: i64,
+    tick: fun(i64): Msg,
+}
+
+/** The timers `s` asks for, in order, each with its key. */
+fun timers<Msg>(s: Sub<Msg>): Timer<Msg>[] {
+    let mut out: Timer<Msg>[] = [];
+    for (ms, f) of every_of(s) {
+        let mut n = 0;
+        for t of out {
+            if t.ms == ms {
+                n = n + 1;
+            }
+        }
+        out.push(Timer { key: "{ms}#{n}", ms: ms, tick: f });
+    }
+    out
+}
+
+fun every_of<Msg>(s: Sub<Msg>): (i64, fun(i64): Msg)[] = match s {
+    Quiet => [],
+    Batch(subs) => {
+        let mut out: (i64, fun(i64): Msg)[] = [];
+        for each of subs {
+            for pair of every_of(each) {
+                out.push(pair);
+            }
+        }
+        out
+    }
+    Every(ms, f) => [(ms, f)],
+};

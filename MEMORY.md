@@ -65,9 +65,11 @@ Decisions 1–12 were agreed in the design discussion in the lugha repository (a
 
 ### 7. Effects as data, minimal
 
-**Decision:** `Cmd.none()`, `Cmd.batch`, `Cmd.after(ms, msg)`, `Cmd.quit()`. `Sub.none()`, `Sub.every(ms, fun(i64): Msg)`. File, process and network I/O are not commands: `update` may call `std.fs`/`std.process` directly, and blocking is accepted for now.
+**Decision:** `Cmd.none()`, `Cmd.batch`, `Cmd.after(ms, msg)`, `Cmd.quit()`. `Sub.none()`, `Sub.every(ms, fun(i64): Msg)`, and `Sub.batch(subs)` (added in session 3, so an app can listen to more than one timer). File, process and network I/O are not commands: `update` may call `std.fs`/`std.process` directly, and blocking is accepted for now.
 
 **Rules out (v1):** HTTP/file commands, async I/O.
+
+**How (session 3):** `src/effects.la` holds the types as data (pure); `live.la` runs them. Subscription timers are keyed by interval and their count among equal intervals (`"1000#0"`): a key asked for again keeps its GLib timer, with its function re-pointed through a `Ref`; others are removed. `sandbox` is `application` with no effects (`sandbox_app`), so there is one runtime.
 
 ---
 

@@ -1,0 +1,88 @@
+// Effects as data: what commands and subscriptions flatten to, the app a
+// sandbox runs, and the window a view's root asks for. No GTK.
+import kivuli.effects { commands, sandbox_app, timers };
+import kivuli.diff { Patch, diff as patches };
+import kivuli.views { Style, Window, plain };
+import kivuli { App, Cmd, Sub, View, column, text };
+
+// Views and commands can hold functions, which have no `==`: compare what
+// they print instead (DECISION-008).
+fun assert_same<T>(actual: T, expected: T) {
+    assert_eq("{actual}", "{expected}");
+}
+
+enum Msg {
+    Ping,
+    Tick(i64),
+}
+
+@test
+fun commands_flatten_in_order_without_nones() {
+    let cmd: Cmd<Msg> = Cmd.batch([
+        Cmd.none(),
+        Cmd.after(5, Msg.Ping),
+        Cmd.batch([Cmd.quit(), Cmd.none()]),
+    ]);
+    let expected: Cmd<Msg>[] = [Cmd.After(5, Msg.Ping), Cmd.Quit];
+    assert_same(commands(cmd), expected);
+}
+
+@test
+fun timers_get_keys_that_tell_equal_intervals_apart() {
+    let sub: Sub<Msg> = Sub.batch([
+        Sub.every(1000, Msg.Tick),
+        Sub.none(),
+        Sub.every(1000, Msg.Tick),
+        Sub.every(50, Msg.Tick),
+    ]);
+    let mut keys: string[] = [];
+    for t of timers(sub) {
+        keys.push(t.key);
+    }
+    assert_eq(keys, ["1000#0", "1000#1", "50#0"]);
+    // A timer's function makes the message from the time.
+    let f = timers(sub)[2].tick;
+    assert_eq(f(7), Msg.Tick(7));
+}
+
+@test
+fun a_sandbox_app_has_no_effects() {
+    let app: App<i64, Msg> = sandbox_app(
+        "org.kivuli.test",
+        1,
+        fun(n: i64, m: Msg): i64 = n + 1,
+        fun(n: i64): View<Msg> = text("{n}"),
+    );
+    let (start, first) = app.init;
+    assert_eq(start, 1);
+    assert_same(first, Cmd.none());
+    let update = app.update;
+    let (next, cmd) = update(1, Msg.Ping);
+    assert_eq(next, 2);
+    assert_same(cmd, Cmd.none());
+    let subscriptions = app.subscriptions;
+    assert_same(subscriptions(2), Sub.none());
+}
+
+@test
+fun the_window_lands_in_the_roots_style() {
+    let expected: View<Msg> = View.Styled(View.Column([]), Style {
+        window: Some(Window { title: "Ticks", width: 300, height: 200 }),
+        ..plain(),
+    });
+    assert_same(column([]).window("Ticks", 300, 200), expected);
+}
+
+@test
+fun a_new_title_restyles_the_root() {
+    let expected: Patch<Msg>[] = [
+        Patch.SetStyle([], Style {
+            window: Some(Window { title: "Ticks 2", width: 300, height: 200 }),
+            ..plain(),
+        }),
+    ];
+    assert_same(
+        patches(column([]).window("Ticks 1", 300, 200), column([]).window("Ticks 2", 300, 200)),
+        expected,
+    );
+}

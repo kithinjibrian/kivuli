@@ -1,0 +1,60 @@
+// A stopwatch: an app with effects. While it runs, a subscription ticks every
+// 10 ms with the time; stopped, it subscribes to nothing and no timer runs.
+import kivuli { App, Align, ButtonStyle, Cmd, Sub, View, application, button, column, row, text };
+
+struct Model {
+    /** Milliseconds counted so far. */
+    elapsed: i64,
+    running: bool,
+    /** The time of the last tick (ms since 1970), or 0 before the first one since starting. */
+    last: i64,
+}
+
+enum Msg {
+    Toggle,
+    Reset,
+    Tick(i64),
+}
+
+fun update(m: Model, msg: Msg): (Model, Cmd<Msg>) = match msg {
+    Toggle => (Model { running: !m.running, last: 0, ..m }, Cmd.none()),
+    Reset => (Model { elapsed: 0, last: 0, ..m }, Cmd.none()),
+    // The first tick after starting only notes the time: counting from the
+    // tick, not the click, keeps a slow first tick from adding time.
+    Tick(now) => if m.last == 0 {
+        (Model { last: now, ..m }, Cmd.none())
+    } else {
+        (Model { elapsed: m.elapsed + now - m.last, last: now, ..m }, Cmd.none())
+    },
+};
+
+fun subscriptions(m: Model): Sub<Msg> = if m.running {
+    Sub.every(10, Msg.Tick)
+} else {
+    Sub.none()
+};
+
+/** `elapsed` as seconds and hundredths: `12.07`. */
+fun shown(elapsed: i64): string {
+    let hundredths = elapsed / 10 % 100;
+    let pad = if hundredths < 10 { "0" } else { "" };
+    "{elapsed / 1000}.{pad}{hundredths}"
+}
+
+fun view(m: Model): View<Msg> = column([
+    text(shown(m.elapsed)).size(32).bold().align(Align.Center),
+    row([
+        button(if m.running { "Stop" } else { "Start" }, Msg.Toggle).style(ButtonStyle.Primary),
+        button("Reset", Msg.Reset).disabled(m.elapsed == 0),
+    ]).spacing(8).align(Align.Center),
+]).padding(24).spacing(12).window("Stopwatch", 280, 160);
+
+fun main(): i32 = application(App {
+    id: "org.kivuli.stopwatch",
+    update: update,
+    view: view,
+    subscriptions: subscriptions,
+    // lughac: `init` after `update`, since a field's type is inferred only
+    // from the fields before it (`Cmd.none()` names no `Msg`).
+    init: (Model { elapsed: 0, running: false, last: 0 }, Cmd.none()),
+});
