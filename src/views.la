@@ -29,6 +29,8 @@ public enum View<Msg> {
     Separator,
     /** One child, scrolled when it's bigger than the room it's given. */
     Scroll(View<Msg>),
+    /** Children stacked top to bottom, each with a key naming it across views. */
+    Keyed((string, View<Msg>)[]),
 }
 
 /**
@@ -115,3 +117,14 @@ public fun separator<Msg>(): View<Msg> = View.Separator;
  *     scroll(column(rows))
  */
 public fun scroll<Msg>(child: View<Msg>): View<Msg> = View.Scroll(child);
+
+/**
+ * Stacks `children` top to bottom, like `column`, but matches them across
+ * views by their keys rather than their positions: reordering, inserting or
+ * deleting rows moves, adds or removes just those widgets. Keys must be
+ * unique within one keyed column.
+ *
+ * Example:
+ *     keyed_column(todos.map(fun(t: Todo) = (t.id, checkbox(t.title, t.done, Msg.Done))))
+ */
+public fun keyed_column<Msg>(children: (string, View<Msg>)[]): View<Msg> = View.Keyed(children);

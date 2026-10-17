@@ -234,7 +234,7 @@ public fun find_button(v: View<Msg>, label: string): ButtonRef<Msg> { … }
 │                        diff.la (pure tree diff → patches), live.la (live widgets, the run loop);
 │                        planned: testing.la, effects.la
 ├── examples/          — hello.la (stale `lughac init` scaffold, see CONTEXT.md); planned: counter, todo, stopwatch
-├── test/              — @test files mirroring src/: lib.la, diff.la, live.la (GTK, skipped without a display)
+├── test/              — @test files mirroring src/: lib.la, diff.la, live.la and live_forms.la (GTK, skipped without a display). Test files can't import each other (E0312): a helper two GTK test files need is repeated in each
 ├── PRPs/              — prp-{NNN}-{feature_name}.md (+ TEMPLATE.md, DISCOVERY.md)
 ├── docs/
 │   ├── CODE_STYLE.md  — documentation rules for .la code

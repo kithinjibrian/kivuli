@@ -1,5 +1,17 @@
 // Building views: what an app's `view` returns is exactly the tree it wrote.
-import kivuli { View, text, button, column, row, input, checkbox, spacer, separator, scroll };
+import kivuli {
+    View,
+    text,
+    button,
+    column,
+    row,
+    input,
+    checkbox,
+    spacer,
+    separator,
+    scroll,
+    keyed_column,
+};
 
 // Views and patches can hold functions, which have no `==`: compare what they
 // print instead (functions print as `<fun>`; DECISION-008).
@@ -92,4 +104,12 @@ fun spacers_separators_and_scrolls_are_plain_nodes() {
         View.Scroll(View.Text("long")),
     ]);
     assert_same(column([spacer(), separator(), scroll(text("long"))]), expected);
+}
+
+@test
+fun a_keyed_column_keeps_its_keys_with_its_children() {
+    let expected: View<Msg> = View.Keyed([("a", View.Text("A")), ("b", View.Text("B"))]);
+    // Annotated: lughac doesn't yet infer `Msg` for a call inside a tuple.
+    let built: View<Msg> = keyed_column([("a", text("A")), ("b", text("B"))]);
+    assert_same(built, expected);
 }

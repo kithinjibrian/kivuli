@@ -36,6 +36,10 @@ enum Patch<Msg> {
     Append(i64[], View<Msg>),
     /** The widget at the path leaves its column or row. */
     Remove(i64[]),
+    /** The keyed column at the path gains this view at this index. */
+    Insert(i64[], i64, View<Msg>),
+    /** In the keyed column at the path, the child at the first index moves to the second. */
+    Move(i64[], i64, i64),
 }
 
 /**
@@ -69,6 +73,7 @@ fun diff_at<Msg>(path: i64[], old: View<Msg>, new: View<Msg>): Patch<Msg>[] = ma
     (Separator, Separator) => [],
     // A scroll has one child, at index 0 of its path.
     (Scroll(a), Scroll(b)) => diff_at(child(path, 0), a, b),
+    (Keyed(xs), Keyed(ys)) => diff_keyed(path, xs, ys),
     _ => [Patch.Replace(path, new)],
 };
 
@@ -145,6 +150,118 @@ fun diff_children<Msg>(path: i64[], xs: View<Msg>[], ys: View<Msg>[]): Patch<Msg
     }
     out
 }
+
+/**
+ * Keyed children are matched by key. Each patch counts indexes in the list as
+ * the patches before it left it: first the rows whose key is gone are removed
+ * (from the end, so earlier indexes hold), then the new list is walked from the
+ * front, inserting new keys and moving existing ones into place, and diffing
+ * each kept row where it now stands. Keys are found by searching, so this is
+ * quadratic in the number of rows: fine for the lists a window shows.
+ */
+fun diff_keyed<Msg>(
+    path: i64[],
+    xs: (string, View<Msg>)[],
+    ys: (string, View<Msg>)[],
+): Patch<Msg>[] {
+    let wanted = keys_of(ys);
+    let mut seen: string[] = [];
+    for k of wanted {
+        if index_of(seen, k) >= 0 {
+            panic("kivuli: a keyed_column has two children keyed \"{k}\"");
+        }
+        seen.push(k);
+    }
+    let mut out: Patch<Msg>[] = [];
+    let mut i = xs.len - 1;
+    while i >= 0 {
+        if index_of(wanted, xs[i].0) < 0 {
+            out.push(Patch.Remove(child(path, i)));
+        }
+        i = i - 1;
+    }
+    // What the keyed column holds now: the kept rows, in their old order.
+    let mut keys: string[] = [];
+    let mut kept: View<Msg>[] = [];
+    for (k, v) of xs {
+        if index_of(wanted, k) >= 0 {
+            keys.push(k);
+            kept.push(v);
+        }
+    }
+    let mut at = 0;
+    while at < ys.len {
+        let (k, v) = ys[at];
+        let j = index_of(keys, k);
+        if j < 0 {
+            out.push(Patch.Insert(path, at, v));
+            keys = inserted(keys, at, k);
+            kept = inserted(kept, at, v);
+        } else {
+            if j != at {
+                out.push(Patch.Move(path, j, at));
+                keys = moved(keys, j, at);
+                kept = moved(kept, j, at);
+            }
+            out = joined(out, diff_at(child(path, at), kept[at], v));
+        }
+        at = at + 1;
+    }
+    out
+}
+
+fun keys_of<Msg>(children: (string, View<Msg>)[]): string[] {
+    let mut out: string[] = [];
+    for (k, _) of children {
+        out.push(k);
+    }
+    out
+}
+
+/** Where `key` is in `keys`, or -1. */
+fun index_of(keys: string[], key: string): i64 {
+    let mut i = 0;
+    while i < keys.len {
+        if keys[i] == key {
+            return i;
+        }
+        i = i + 1;
+    }
+    -1
+}
+
+/** `xs` with `x` placed at index `at`, the elements from there on shifted down one. */
+fun inserted<T>(xs: T[], at: i64, x: T): T[] {
+    let mut out: T[] = [];
+    let mut i = 0;
+    while i < xs.len {
+        if i == at {
+            out.push(x);
+        }
+        out.push(xs[i]);
+        i = i + 1;
+    }
+    if at == xs.len {
+        out.push(x);
+    }
+    out
+}
+
+/** `xs` without the element at index `skip`. */
+fun without<T>(xs: T[], skip: i64): T[] {
+    let mut out: T[] = [];
+    let mut i = 0;
+    while i < xs.len {
+        if i != skip {
+            out.push(xs[i]);
+        }
+        i = i + 1;
+    }
+    out
+}
+
+/** `xs` with the element at `from` taken out and put back at index `to`. */
+fun moved<T>(xs: T[], from: i64, to: i64): T[] = inserted(without(xs, from), to, xs[from]);
 
 fun child(path: i64[], i: i64): i64[] {
     let mut p = path;

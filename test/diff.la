@@ -2,7 +2,19 @@
 // showing the old view show the new one. `diff` is package-level: files in
 // test/ see package-level items (lughac milestone 97).
 import kivuli.diff { Patch, diff as patches };
-import kivuli { View, text, button, column, row, input, checkbox, spacer, separator, scroll };
+import kivuli {
+    View,
+    text,
+    button,
+    column,
+    row,
+    input,
+    checkbox,
+    spacer,
+    separator,
+    scroll,
+    keyed_column,
+};
 
 // Views and patches can hold functions, which have no `==`: compare what they
 // print instead (functions print as `<fun>`; DECISION-008).
@@ -174,4 +186,76 @@ fun a_scroll_leads_to_its_one_child_at_index_0() {
 fun a_scroll_whose_child_changes_kind_replaces_the_child() {
     let expected: Patch<Msg>[] = [Patch.Replace([0], button("b", Msg.Add))];
     assert_same(patches(scroll(text("a")), scroll(button("b", Msg.Add))), expected);
+}
+
+// Keyed lists: rows are matched by key, so each test also says what matching
+// by position would have done instead.
+
+fun list(keys: string[]): View<Msg> {
+    let mut rows: (string, View<Msg>)[] = [];
+    for k of keys {
+        rows.push((k, text(k)));
+    }
+    keyed_column(rows)
+}
+
+@test
+fun an_unchanged_keyed_list_needs_nothing() {
+    let none: Patch<Msg>[] = [];
+    assert_same(patches(list(["a", "b", "c"]), list(["a", "b", "c"])), none);
+}
+
+@test
+fun deleting_from_the_middle_removes_only_that_row() {
+    // By position: SetText([1], "c") and Remove([2]).
+    let expected: Patch<Msg>[] = [Patch.Remove([1])];
+    assert_same(patches(list(["a", "b", "c"]), list(["a", "c"])), expected);
+}
+
+@test
+fun adding_at_the_front_inserts_only_that_row() {
+    // By position: every row rewritten, then one appended.
+    let expected: Patch<Msg>[] = [Patch.Insert([], 0, text("a"))];
+    assert_same(patches(list(["b", "c"]), list(["a", "b", "c"])), expected);
+}
+
+@test
+fun rotating_moves_one_row() {
+    let expected: Patch<Msg>[] = [Patch.Move([], 2, 0)];
+    assert_same(patches(list(["a", "b", "c"]), list(["c", "a", "b"])), expected);
+}
+
+@test
+fun reversing_moves_rows_one_place_at_a_time() {
+    // Each move counts positions in the list as the previous moves left it.
+    let expected: Patch<Msg>[] = [Patch.Move([], 2, 0), Patch.Move([], 2, 1)];
+    assert_same(patches(list(["a", "b", "c"]), list(["c", "b", "a"])), expected);
+}
+
+@test
+fun a_moved_row_is_also_diffed_at_its_new_place() {
+    // Annotated: lughac doesn't yet infer `Msg` for a call inside a tuple.
+    let before: View<Msg> = keyed_column([("a", text("a")), ("b", text("b"))]);
+    let after: View<Msg> = keyed_column([("b", text("B!")), ("a", text("a"))]);
+    let expected: Patch<Msg>[] = [Patch.Move([], 1, 0), Patch.SetText([0], "B!")];
+    assert_same(patches(before, after), expected);
+}
+
+@test
+fun removals_inserts_and_moves_together() {
+    // [a, b, c, d] → [d, x, b]: drop c and a (from the end), then d to the
+    // front, then x inserted after it; b is already in place.
+    let expected: Patch<Msg>[] = [
+        Patch.Remove([2]),
+        Patch.Remove([0]),
+        Patch.Move([], 1, 0),
+        Patch.Insert([], 1, text("x")),
+    ];
+    assert_same(patches(list(["a", "b", "c", "d"]), list(["d", "x", "b"])), expected);
+}
+
+@test
+fun a_keyed_column_is_not_a_column() {
+    let expected: Patch<Msg>[] = [Patch.Replace([], column([text("a")]))];
+    assert_same(patches(list(["a"]), column([text("a")])), expected);
 }

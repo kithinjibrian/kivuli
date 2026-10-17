@@ -200,6 +200,14 @@ fun create_in<Msg>(v: View<Msg>, axis: i32, send: fun(Msg)): Live<Msg> = match v
         gtk.raw.gtk_scrolled_window_set_child(scrolled, Some(widget(kid)));
         Live.Scroll(scrolled, kid)
     }
+    // On screen a keyed column is a column: the keys matter only to the diff.
+    Keyed(children) => {
+        let mut views_of: View<Msg>[] = [];
+        for (_, v) of children {
+            views_of.push(v);
+        }
+        create_box(1, views_of, send)
+    }
 };
 
 /** Builds a `GtkBox` of `orientation` holding the widgets for `children`. */
@@ -284,11 +292,27 @@ fun apply<Msg>(
         update_at(live, parent(path), 0, fun(node: Live<Msg>): Live<Msg> = match node {
             Box(box, orientation, kids) => {
                 gtk.raw.gtk_box_remove(box, widget(kids[i]));
-                Live.Box(box, orientation, without(kids, i))
+                Live.Box(box, orientation, diff.without(kids, i))
             }
             _ => panic("kivuli: a Remove patch points into something that isn't a column or row"),
         })
     }
+    Insert(path, at, v) => update_at(live, path, 0, fun(node: Live<Msg>): Live<Msg> = match node {
+        Box(box, orientation, kids) => {
+            let kid = create_in(v, orientation, send);
+            gtk.raw.gtk_box_insert_child_after(box, widget(kid), sibling_before(kids, at));
+            Live.Box(box, orientation, diff.inserted(kids, at, kid))
+        }
+        _ => panic("kivuli: an Insert patch points at something that isn't a keyed column"),
+    }),
+    Move(path, from, to) => update_at(live, path, 0, fun(node: Live<Msg>): Live<Msg> = match node {
+        Box(box, orientation, kids) => {
+            let next = diff.moved(kids, from, to);
+            gtk.raw.gtk_box_reorder_child_after(box, widget(kids[from]), sibling_before(next, to));
+            Live.Box(box, orientation, next)
+        }
+        _ => panic("kivuli: a Move patch points at something that isn't a keyed column"),
+    }),
     Replace(path, v) => if path.len == 0 {
         let fresh = create(v, send);
         gtk.raw.gtk_window_set_child(window, widget(fresh));
@@ -300,12 +324,7 @@ fun apply<Msg>(
                 let fresh = create_in(v, orientation, send);
                 // Insert after the previous sibling (or first), then drop the
                 // old widget, so the new one takes exactly its place.
-                let before: Option<gtk.raw.GtkWidget> = if i == 0 {
-                    None
-                } else {
-                    Some(widget(kids[i - 1]))
-                };
-                gtk.raw.gtk_box_insert_child_after(box, widget(fresh), before);
+                gtk.raw.gtk_box_insert_child_after(box, widget(fresh), sibling_before(kids, i));
                 gtk.raw.gtk_box_remove(box, widget(kids[i]));
                 let mut next = kids;
                 next[i] = fresh;
@@ -389,14 +408,9 @@ fun parent(path: i64[]): i64[] {
     p
 }
 
-fun without<T>(xs: T[], skip: i64): T[] {
-    let mut out: T[] = [];
-    let mut i = 0;
-    while i < xs.len {
-        if i != skip {
-            out.push(xs[i]);
-        }
-        i = i + 1;
-    }
-    out
-}
+/** The widget to place a child after so it lands at index `at`: the one before it, or `None` (first). */
+fun sibling_before<Msg>(kids: Live<Msg>[], at: i64): Option<gtk.raw.GtkWidget> = if at == 0 {
+    None
+} else {
+    Some(widget(kids[at - 1]))
+};
