@@ -335,3 +335,12 @@ fun a_header_frames_the_node_and_its_styles_stay_outside() {
         framed,
     );
 }
+
+@test
+fun header_looks_land_in_the_root_style_outside_the_frame() {
+    let expected: View<Msg> = View.Styled(View.Framed(View.Text("body"), [], text("T"), []), Style {
+        header_looks: ["Bar"],
+        ..plain(),
+    });
+    assert_same(text("body").header([], text("T"), []).header_style([Shade.Bar]), expected);
+}

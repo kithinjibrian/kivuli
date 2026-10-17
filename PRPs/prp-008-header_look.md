@@ -1,6 +1,6 @@
 # PRP-008 — Header look
 
-Status: draft, for the user's approval
+Status: built (session 8) on branch prp-008-header_look; merged into main
 Discovery: session 8, 2026-10-17, from the user's brief, Rapidkoi's screenshot (`screenshot-3-after-amendment-2.png`) and its inspiration (`inspiration-opera-frame.png`). *(you)*: from the brief; *(proposed)*: for you to confirm or change with this PRP.
 
 ## FEATURE: The root's header bar takes the app's looks (`.header_style([…])`), and a `Surface` can turn a node's theme edges off (`flat`), so a header bar and a rail read as one frame.
@@ -65,23 +65,23 @@ row([rail(m).style([Look.Frame]), home(m)])
 ## TESTS TO WRITE
 
 Pure:
-- [ ] `test/theming.la`: a flat surface's CSS (`kv-flat`) and classes; flat with a border (the border wins: `kv-flat-shadow`); a theme using both; `flat: Some(false)` is unset.
-- [ ] `test/theming.la` (paint): `.header_style` fills `header_classes` from the theme; a missing header look and `.header_style` without `.theme` are errors.
-- [ ] `test/lib.la`: `.header_style` lands in the root style (and stays outside the frame, as `.header` keeps modifiers).
-- [ ] `test/diff.la`: a change of header looks is a `SetStyle` on the root.
+- [x] `test/theming.la`: a flat surface's CSS (`kv-flat`) and classes; flat with a border (the border wins: `kv-flat-shadow`); a theme using both; `flat: Some(false)` is unset.
+- [x] `test/theming.la` (paint): `.header_style` fills `header_classes` from the theme; a missing header look and `.header_style` without `.theme` are errors.
+- [x] `test/lib.la`: `.header_style` lands in the root style (and stays outside the frame, as `.header` keeps modifiers).
+- [x] `test/diff.la`: a change of header looks is a `SetStyle` on the root.
 
 Live GTK (skipped without a display), `test/live_look.la`:
-- [ ] the header bar gets the look's classes; changing the header looks between views swaps them in place; GTK's own classes on the bar (`titlebar`) stay.
-- [ ] the app's CSS wins over the theme's on the bar: a header look's `text` colour is the bar's colour (`gtk_widget_get_color` through `lgtk_widget_rgba`). Its background and border can't be read back through GTK's API; they come from the same rule and priority, and are checked by hand in `examples/frame.la`.
+- [x] the header bar gets the look's classes; changing the header looks between views swaps them in place; GTK's own classes on the bar (`titlebar`) stay.
+- [x] the app's CSS wins over the theme's on the bar: a header look's `text` colour is the bar's colour (`gtk_widget_get_color` through `lgtk_widget_rgba`). Its background and border can't be read back through GTK's API; they come from the same rule and priority, and are checked by hand in `examples/frame.la`.
 
 ## ROLLBACK PLAN
 - Branch `prp-008-header_look` from `main`; abandon by leaving it unmerged. No lugha-gtk change.
 
 ## ACCEPTANCE CRITERIA
-- [ ] A header bar can take the app's looks; `flat` turns a node's theme edges off; apps without them look as before.
-- [ ] Tests above written first; narrow runs while building; the full suite and the examples' tests pass before the merge.
-- [ ] fmt clean; public items documented; no file over 500 lines.
-- [ ] README, docs/DESIGN.md, CHANGELOG updated; 0.3.0 tagged; merged into `main`. Pushed only on your go.
+- [x] A header bar can take the app's looks; `flat` turns a node's theme edges off; apps without them look as before.
+- [x] Tests above written first; narrow runs while building; the full suite and the examples' tests pass before the merge.
+- [x] fmt clean; public items documented; no file over 500 lines.
+- [x] README, docs/DESIGN.md, CHANGELOG updated; 0.3.0 tagged; merged into `main`. Pushed only on your go.
 
 ## VALIDATION
 - While building: only the tests covering each step.
@@ -91,3 +91,12 @@ Live GTK (skipped without a display), `test/live_look.la`:
 ## NOTE: views.la is at the limit
 
 `src/views.la` is 487 lines and this adds about 12 (≈499). Its modifiers can't move out (an `impl` must sit with its type, PRP-002), and the one large body that could, `map`, would need `views` and a new module to import each other, against CLAUDE.md's rule that imports run one way. Recorded as an open decision (DECISION-018) for the *next* modifier; it doesn't block this PRP.
+
+## NOTES FROM THE BUILD
+
+- **As proposed.** `flat` merges like the other fields (a later look's `Some(false)` undoes an earlier `Some(true)`); the border-or-not choice is made in `theming.rules`, so the generated rules never compete in the cascade.
+- **The diff test lives in `test/diff_header.la`**: `test/diff.la` is at 498 lines.
+- **GTK keeps its own `titlebar` class on the bar** (checked in the live test); kivuli replaces only its `kv-` classes there.
+- **Mutation-checked:** without the bar's classes in `apply_style`, the header never takes its looks.
+- **By hand:** the bar's background and the missing line can't be read back through GTK's API; `examples/frame.la` shows them.
+- `src/views.la` is now 499 lines: DECISION-018 must be settled before the next modifier.

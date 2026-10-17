@@ -157,3 +157,66 @@ fun painting_refuses_what_the_app_got_wrong() {
     let unchanged: Result<View<i64>, string> = Ok(plain_view);
     assert_eq("{painted(plain_view)}", "{unchanged}");
 }
+
+@test
+fun a_flat_surface_turns_the_theme_edges_off() {
+    let flat = Surface { background: Some(hex("#242424")), flat: Some(true), ..Surface.theme() };
+    assert_eq(classes(flat), ["kv-bg-242424ff", "kv-flat"]);
+    let t = build_theme(["Frame"], [flat]);
+    assert_eq(
+        t.map(fun(x) = css(x)),
+        Ok(
+            [
+                ".kv-bg-242424ff {{ background-color: #242424ff; background-image: none; }}",
+                ".kv-flat {{ box-shadow: none; border-width: 0; }}",
+            ].join("\n"),
+        ),
+    );
+    // Its own border wins: only the shadow goes.
+    let edged = Surface {
+        border: Some(Border { width: 1, color: hex("#555555") }),
+        flat: Some(true),
+        ..Surface.theme(),
+    };
+    assert_eq(classes(edged), ["kv-border-1-555555ff", "kv-flat-shadow"]);
+    assert_eq(
+        build_theme(["Edged"], [edged]).map(fun(x) = css(x)),
+        Ok(
+            [
+                ".kv-border-1-555555ff {{ border: 1px solid #555555ff; }}",
+                ".kv-flat-shadow {{ box-shadow: none; }}",
+            ].join("\n"),
+        ),
+    );
+    // false is unset, and a later look can unset an earlier one's.
+    assert_eq(classes(Surface { flat: Some(false), ..Surface.theme() }), []);
+    let both = build_theme(["Flat", "Edgy"], [
+        flat,
+        Surface { flat: Some(false), ..Surface.theme() },
+    ]);
+    assert_eq(
+        both.map(fun(x) = merged(x, ["Flat", "Edgy"]).map(fun(s) = classes(s))),
+        Ok(Ok(["kv-bg-242424ff"])),
+    );
+}
+
+fun headed(): View<i64> = text("body").header([], text("T"), []).header_style([Look.Bar]);
+
+@test
+fun painting_gives_the_header_bar_its_looks() {
+    let t = theme([Look.Bar], surface);
+    let got = painted(headed().theme(t));
+    let classes_of = got.map(fun(v) = match v {
+        Styled(_, s) => s.header_classes,
+        _ => [],
+    });
+    assert_eq(classes_of, Ok(["kv-bg-242424ff"]));
+    assert_eq(
+        painted(headed().theme(theme([Look.Home], surface))).map(fun(v) = 0),
+        Err("the look \"Bar\" isn't in the theme"),
+    );
+    assert_eq(
+        painted(headed()).map(fun(v) = 0),
+        Err("a node has .style([…]) but the root has no .theme(…)"),
+    );
+}

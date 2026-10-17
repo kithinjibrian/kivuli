@@ -418,6 +418,18 @@ impl View<Msg> {
         _ => View.Framed(self, start, title, end),
     };
 
+    /**
+     * On the root, with `.header(…)`: the header bar takes these looks, as
+     * `.style` gives a node (its window controls stay GTK's).
+     *
+     * Example:
+     *     column([...]).header([back], address, [menu]).header_style([Look.Frame])
+     */
+    public fun header_style<L>(self, chosen: L[]): View<Msg> = restyle(
+        self,
+        fun(s: Style) = Style { header_looks: chosen.map(fun(l) = "{l}"), ..s },
+    );
+
     public fun on_submit(self, msg: Msg): View<Msg> = match self {
         Input(value, Some((on_change, _))) => View.Input(value, Some((on_change, Some(msg)))),
         // Disabled: there are no messages to add Enter's to.

@@ -127,6 +127,7 @@ lughac run examples/frame.la
 | `.header(start, title, end)` | On the root: a header bar as the window's title bar, with `start` views, a `title` view (`.expand()` fills the bar) and `end` views; GTK draws the window's controls. Its widgets send messages like any others. |
 | `.theme(theme(looks, surface))` | On the root: the app's colours, as typed looks (below). |
 | `.style([Look.Bar, …])` | The app's looks on any node, merged left to right: a later look wins, field by field. |
+| `.header_style([Look.Frame, …])` | On the root, with `.header`: the header bar's looks (its window controls stay GTK's). |
 
 Everything visual comes from the GTK theme (button styles are the theme's `suggested-action`, `destructive-action` and `flat`), and apps follow the user's light or dark theme. kivuli ships no colours.
 
@@ -144,7 +145,7 @@ column(tabs).style([Look.Rail])          // a tab: tab.style([Look.Rail, Look.Se
     .theme(theme([Look.Rail, Look.Selected], surface))
 ```
 
-A `Surface` sets any of `background`, `text` (text and icon colour), `border` (`Border { width, color }`) and `radius`; unset fields stay the GTK theme's. Colours come from `hex("#rgb" | "#rrggbb" | "#rrggbbaa")` or `rgb(r, g, b)`. A bad colour, a look with a value or listed twice, a look missing from the theme, or `.style` without `.theme` stops the app with a message. The theme is read when the window opens. `examples/frame.la` shows it all.
+A `Surface` sets any of `background`, `text` (text and icon colour), `border` (`Border { width, color }`), `radius` and `flat` (`Some(true)` turns the theme's shadow and border line off, as under a header bar; a look's own `border` stays); unset fields stay the GTK theme's. Colours come from `hex("#rgb" | "#rrggbb" | "#rrggbbaa")` or `rgb(r, g, b)`. A bad colour, a look with a value or listed twice, a look missing from the theme, or `.style` without `.theme` stops the app with a message. The theme is read when the window opens. `examples/frame.la` shows it all.
 
 **Components.** A part of an app can have its own model, messages, `update` and `view`, and sit in a bigger app through `map`, which sends `f(msg)` wherever the part would send `msg`:
 
