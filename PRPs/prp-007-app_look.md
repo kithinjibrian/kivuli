@@ -1,6 +1,6 @@
 # PRP-007 — App look: typed styles, dark, maximized, header bar
 
-Status: draft, for the user's approval
+Status: approved by the user (session 6); building on branch prp-007-app_look
 Discovery: sessions 5–6, 2026-10-17, from the user's brief and a talk-through of styling options. *(you)*: chosen by you; *(proposed)*: for you to confirm or change with this PRP.
 
 ## FEATURE: An app gives its own frame colours as typed styles (`.style([…])`, a `Theme`), asks for GTK's dark variant, opens maximized, and puts its own widgets in the title bar (`.header(…)`).
