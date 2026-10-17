@@ -301,6 +301,15 @@ Branch: main (the fix on fix-button-content-center, merged)
 
 ---
 
+## SESSION 11 — 2026-10-18 — PRP-010: images from any source (Icon, File, Bytes) — open
+
+Branch: main
+
+Notes so far:
+- Talked through the brief ("images from bytes") first. The user wants one image model that can grow to web images. Chosen: model (B): images show bytes they already have; the app fetches over the network with a non-blocking command (a later PRP, DECISION-007), never kivuli behind a view's back.
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
