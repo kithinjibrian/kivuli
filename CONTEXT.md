@@ -240,9 +240,16 @@ Branch: main (PRP-007 on prp-007-app_look, merged)
 
 ---
 
-## SESSION 7 — 2026-10-17 — Drop the empty-list workaround (lughac PR #68) — open
+## SESSION 7 — 2026-10-17 — Drop the empty-list workaround (lughac PR #68) — closed
 
 Branch: main
+
+### WHAT WAS DONE
+- lughac PR #68 (user-installed): an empty `[]` takes its type from a sibling branch. test/live_look.la's typed `only_if` helper removed; the conditional looks are inline again; its tests pass.
+- Checked the other annotated lets (test/map.la, examples/gallery.la, examples/settings.la): each is a `let` whose type shows only in later uses, which still needs its annotation by design. Left as they are.
+
+### STILL OPEN AT CLOSE
+- This session's two commits are not pushed: waiting for the user's go.
 
 ---
 
