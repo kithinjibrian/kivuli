@@ -6,7 +6,7 @@
  * Used by: lib, diff, live
  */
 
-import looks { Style, Window, ButtonStyle, Align, plain };
+import looks { Style, Window, ButtonStyle, Align, Fit, plain };
 
 /**
  * A description of what's on screen. `Msg` is the app's message type: what a
@@ -31,6 +31,10 @@ public enum View<Msg> {
     Dropdown((string, Msg)[], string),
     /** A whole-number slider: its least and greatest value, its value, and the message each move sends. */
     Slider(i64, i64, i64, fun(i64): Msg),
+    /** A theme icon, by name. */
+    Icon(string),
+    /** A picture from the file at this path. */
+    Image(string),
     /** Empty room that grows along its column or row, pushing what follows to the end. */
     Spacer,
     /** A thin line across its column or row. */
@@ -317,6 +321,31 @@ impl View<Msg> {
         fun(s: Style) = Style { step: if n <= 0 { 1 } else { n }, ..s },
     );
 
+    /**
+     * Shows a theme icon on a button, before its label; with the label `""`,
+     * an icon-only button (give it a `.tooltip`: it's what tests find it by,
+     * and what screen readers and hovering users get). Ignored on other nodes.
+     *
+     * Example:
+     *     button("", Msg.Delete(t.id)).icon("user-trash-symbolic").tooltip("Delete {t.title}")
+     */
+    public fun icon(self, name: string): View<Msg> = restyle(
+        self,
+        fun(s: Style) = Style { icon: name, ..s },
+    );
+
+    /**
+     * How a picture fills the room it's given (`Fit.Contain` by default).
+     * Ignored on other nodes.
+     *
+     * Example:
+     *     image(m.avatar).width(48).height(48).fit(Fit.Cover)
+     */
+    public fun fit(self, how: Fit): View<Msg> = restyle(
+        self,
+        fun(s: Style) = Style { fit: how, ..s },
+    );
+
     public fun on_submit(self, msg: Msg): View<Msg> = match self {
         Input(value, on_change, _) => View.Input(value, on_change, Some(msg)),
         Styled(inside, s) => View.Styled(inside.on_submit(msg), s),
@@ -357,6 +386,8 @@ impl View<Msg> {
             value,
             fun(n: i64): B = f(on_change(n)),
         ),
+        Icon(name) => View.Icon(name),
+        Image(path) => View.Image(path),
         Spacer => View.Spacer,
         Separator => View.Separator,
         Scroll(x) => View.Scroll(x.map(f)),

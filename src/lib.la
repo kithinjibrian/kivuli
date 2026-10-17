@@ -9,7 +9,7 @@
  */
 
 public import views { View };
-public import looks { Align, ButtonStyle };
+public import looks { Align, ButtonStyle, Fit };
 public import widgets {
     text,
     button,
@@ -25,6 +25,8 @@ public import widgets {
     text_area,
     dropdown,
     slider,
+    icon,
+    image,
 };
 public import effects { Cmd, Sub, App };
 public import testing;

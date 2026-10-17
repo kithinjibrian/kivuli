@@ -25,6 +25,18 @@ public enum ButtonStyle {
     Subtle,
 }
 
+/** How a picture fills the room it's given, as `.fit(…)` sets it. */
+public enum Fit {
+    /** The whole picture, scaled to fit, keeping its shape: the default. */
+    Contain,
+    /** Fills the room, keeping its shape, cropping what doesn't fit. */
+    Cover,
+    /** As `Contain`, but never larger than the picture itself. */
+    ScaleDown,
+    /** Stretched to fill the room exactly. */
+    Fill,
+}
+
 /** Where a node sits across its column (left to right) or row (top to bottom). */
 public enum Align {
     /** Stretched across the whole width (in a column) or height (in a row): the default. */
@@ -49,7 +61,7 @@ public struct Style {
     /** The smallest width and height in pixels; -1 leaves it to the widget. */
     width: i64,
     height: i64,
-    /** Text size in points; 0 keeps the theme's. Text only. */
+    /** Text size in points, or an icon's size in pixels; 0 keeps the theme's. Text and icons. */
     size: i64,
     /** Bold text. Text only. */
     bold: bool,
@@ -79,6 +91,10 @@ public struct Style {
     autofocus: bool,
     /** How far a slider's handle moves at a time, counted from its least value; 1 by default. Sliders only. */
     step: i64,
+    /** A theme icon shown on a button, before its label; "" for none. Buttons only. */
+    icon: string,
+    /** How a picture fills the room it's given. Images only. */
+    fit: Fit,
 }
 
 /** The style of a node with no modifiers: what GTK does by default. */
@@ -104,4 +120,6 @@ fun plain(): Style = Style {
     shortcut: "",
     autofocus: false,
     step: 1,
+    icon: "",
+    fit: Fit.Contain,
 };

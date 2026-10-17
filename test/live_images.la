@@ -1,0 +1,256 @@
+// Icons, pictures and buttons' icons on real GTK widgets: what the view says
+// reaches the widgets, and changes are made in place. Needs a display, so it is
+// skipped without one. No image file is needed: a missing one shows nothing.
+import std.env;
+import gtk {
+    GtkApplication,
+    GtkWidget,
+    connect_app,
+    emit_widget,
+    g_application_quit,
+    g_application_run,
+    g_file_get_path,
+    g_free,
+    g_object_unref,
+    gtk_application_new,
+    gtk_application_window_new,
+    gtk_image_get_icon_name,
+    gtk_image_get_pixel_size,
+    gtk_label_get_text,
+    gtk_picture_get_content_fit,
+    gtk_picture_get_file,
+    gtk_widget_get_visible,
+    gtk_widget_has_css_class,
+    lgtk_cstring_text,
+};
+import kivuli.live { mount, live_of };
+import kivuli.effects { sandbox_app };
+import kivuli.live_tree { Live, widget };
+import kivuli { View, Fit, button, column, icon, image };
+
+fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
+
+/** Runs `steps` on the mounted app's top column, noting every message `update` receives. */
+fun with_app<Model, Msg>(
+    id: string,
+    model: Model,
+    update: fun(Model, Msg): Model,
+    view: fun(Model): View<Msg>,
+    received: Ref<string[]>,
+    steps: fun(Live<Msg>[]),
+) {
+    let application = gtk_application_new(id, 0);
+    connect_app(
+        application,
+        "activate",
+        fun(a: GtkApplication) {
+            let window = gtk_application_window_new(a);
+            let app = mount(a, window, sandbox_app(
+                "org.kivuli.test",
+                model,
+                fun(m: Model, msg: Msg): Model {
+                    received.update(fun(xs) {
+                        let mut ys = xs;
+                        ys.push("{msg}");
+                        ys
+                    });
+                    update(m, msg)
+                },
+                view,
+            ));
+            let Box(_, _, kids) = live_of(app) else {
+                panic("expected a column");
+            };
+            steps(kids);
+            g_application_quit(a);
+        },
+        0,
+    );
+    g_application_run(application, 0, None);
+    g_object_unref(application);
+}
+
+fun note(seen: Ref<string[]>, s: string) {
+    seen.update(fun(xs) {
+        let mut ys = xs;
+        ys.push(s);
+        ys
+    });
+}
+
+enum Change {
+    Rename,
+    Grow,
+    Shrink,
+    Refile,
+    Cover,
+}
+
+struct Pictures {
+    name: string,
+    size: i64,
+    file: string,
+    fit: Fit,
+}
+
+fun update_pictures(p: Pictures, msg: Change): Pictures = match msg {
+    Rename => Pictures { name: "user-trash-symbolic", ..p },
+    Grow => Pictures { size: 48, ..p },
+    Shrink => Pictures { size: 0, ..p },
+    Refile => Pictures { file: "/nowhere/b.png", ..p },
+    Cover => Pictures { fit: Fit.Cover, ..p },
+};
+
+fun view_pictures(p: Pictures): View<Change> {
+    let shown: View<Change> = icon(p.name);
+    column([
+        if p.size > 0 { shown.size(p.size) } else { shown },
+        image(p.file).fit(p.fit),
+        button("Rename", Change.Rename),
+        button("Grow", Change.Grow),
+        button("Shrink", Change.Shrink),
+        button("Refile", Change.Refile),
+        button("Cover", Change.Cover),
+    ])
+}
+
+/** An icon as GTK shows it: its name and pixel size (-1: the theme's). */
+fun icon_of(node: Live<Change>): string {
+    let w = widget(node);
+    "{gtk_image_get_icon_name(w).unwrap_or("?")} {gtk_image_get_pixel_size(w)}"
+}
+
+/** A picture as GTK shows it: its file's path and its `GtkContentFit`. */
+fun picture_of(node: Live<Change>): string {
+    let w = widget(node);
+    let path = match gtk_picture_get_file(w) {
+        Some(file) => match g_file_get_path(file) {
+            Some(owned) => {
+                let text = lgtk_cstring_text(owned);
+                g_free(owned);
+                text
+            }
+            None => "no path",
+        },
+        None => "no file",
+    };
+    "{path} {gtk_picture_get_content_fit(w)}"
+}
+
+@test
+fun icons_and_pictures_show_what_the_view_says_and_change_in_place() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen: Ref<string[]> = Ref.new([]);
+    let received: Ref<string[]> = Ref.new([]);
+    with_app("org.kivuli.test.pictures", Pictures {
+        name: "list-add-symbolic",
+        size: 0,
+        file: "/nowhere/a.png",
+        fit: Fit.Contain,
+    }, update_pictures, view_pictures, received, fun(kids: Live<Change>[]) {
+        let first_icon = widget(kids[0]);
+        let first_picture = widget(kids[1]);
+        note(seen, "{icon_of(kids[0])} | {picture_of(kids[1])}");
+        // Each button is a message whose update changes one thing.
+        let mut i = 2;
+        while i < kids.len {
+            emit_widget(widget(kids[i]), "clicked");
+            note(seen, "{icon_of(kids[0])} | {picture_of(kids[1])}");
+            i = i + 1;
+        }
+        // Changed in place: the same widgets throughout.
+        note(seen, "same: {widget(kids[0]) == first_icon && widget(kids[1]) == first_picture}");
+    });
+    assert_eq(seen.get(), [
+        "list-add-symbolic -1 | /nowhere/a.png 1",
+        "user-trash-symbolic -1 | /nowhere/a.png 1",
+        "user-trash-symbolic 48 | /nowhere/a.png 1",
+        "user-trash-symbolic -1 | /nowhere/a.png 1",
+        "user-trash-symbolic -1 | /nowhere/b.png 1",
+        "user-trash-symbolic -1 | /nowhere/b.png 2",
+        "same: true",
+    ]);
+    assert_eq(received.get(), ["Rename", "Grow", "Shrink", "Refile", "Cover"]);
+}
+
+enum Press {
+    Pressed,
+    Next,
+}
+
+// The button's label and icon at each step: label only, icon only, both, label only.
+fun stage(n: i64): (string, string) = match n {
+    0 => ("Add", ""),
+    1 => ("", "list-add-symbolic"),
+    2 => ("Add", "list-add-symbolic"),
+    _ => ("Add", ""),
+};
+
+fun view_press(n: i64): View<Press> {
+    let (label, name) = stage(n);
+    column([button(label, Press.Pressed).icon(name), button("Next", Press.Next)])
+}
+
+fun update_press(n: i64, msg: Press): i64 = match msg {
+    Pressed => n,
+    Next => n + 1,
+};
+
+/** A button as GTK shows it: its visible label and icon, and its theme classes. */
+fun content(node: Live<Press>): string {
+    let Button(w, _, _, _, label, image) = node else {
+        panic("expected a button");
+    };
+    let text = if gtk_widget_get_visible(label) != 0 {
+        "\"{gtk_label_get_text(label)}\""
+    } else {
+        "-"
+    };
+    let shown = if gtk_widget_get_visible(image) != 0 {
+        gtk_image_get_icon_name(image).unwrap_or("?")
+    } else {
+        "-"
+    };
+    let mut classes: string[] = [];
+    if gtk_widget_has_css_class(w, "text-button") != 0 {
+        classes.push("text-button");
+    }
+    if gtk_widget_has_css_class(w, "image-button") != 0 {
+        classes.push("image-button");
+    }
+    "{shown} {text} [{classes.join(" ")}]"
+}
+
+@test
+fun a_buttons_icon_and_label_come_and_go_with_the_theme_classes() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen: Ref<string[]> = Ref.new([]);
+    let received: Ref<string[]> = Ref.new([]);
+    with_app("org.kivuli.test.icons", 0, update_press, view_press, received, fun(
+        kids: Live<Press>[],
+    ) {
+        let press: GtkWidget = widget(kids[0]);
+        note(seen, content(kids[0]));
+        let mut i = 0;
+        while i < 3 {
+            emit_widget(widget(kids[1]), "clicked");
+            note(seen, content(kids[0]));
+            i = i + 1;
+        }
+        // Still the same button, still sending its message.
+        emit_widget(press, "clicked");
+        note(seen, "same: {widget(kids[0]) == press}");
+    });
+    assert_eq(seen.get(), [
+        "- \"Add\" [text-button]",
+        "list-add-symbolic - [image-button]",
+        "list-add-symbolic \"Add\" [text-button image-button]",
+        "- \"Add\" [text-button]",
+        "same: true",
+    ]);
+    assert_eq(received.get(), ["Next", "Next", "Next", "Pressed"]);
+}

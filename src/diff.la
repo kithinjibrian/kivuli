@@ -41,6 +41,10 @@ enum Patch<Msg> {
     SetNumber(i64[], i64),
     /** The slider at the path turns moves into messages with this function from now on. */
     SetOnSlide(i64[], fun(i64): Msg),
+    /** The icon at the path shows the theme icon of this name. */
+    SetIcon(i64[], string),
+    /** The picture at the path shows the file at this path. */
+    SetFile(i64[], string),
     /** The widget at the path takes this whole style (every modifier, defaults included). */
     SetStyle(i64[], Style),
     /** The widget at the path is a different kind now: build this view in its place. */
@@ -199,6 +203,8 @@ fun diff_inside<Msg>(
         (min_b, max_b, b),
         on_change,
     ),
+    (Icon(a), Icon(b)) => if a == b { [] } else { [Patch.SetIcon(path, b)] },
+    (Image(a), Image(b)) => if a == b { [] } else { [Patch.SetFile(path, b)] },
     (Spacer, Spacer) => [],
     (Separator, Separator) => [],
     // A scroll has one child, at index 0 of its path.

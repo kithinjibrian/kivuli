@@ -403,7 +403,7 @@ fun view_count(c: Count): View<Keys> = column([
 
 // The trigger in a button's shortcut, as GTK writes it; "none" without one.
 fun trigger_of(node: Live<Keys>): string {
-    let Button(_, _, _, current) = node else {
+    let Button(_, _, _, current, _, _) = node else {
         panic("expected a button");
     };
     match current.get() {
@@ -419,7 +419,7 @@ fun trigger_of(node: Live<Keys>): string {
 
 // What GTK does when the button's keys are pressed.
 fun press_keys(node: Live<Keys>) {
-    let Button(w, _, _, current) = node else {
+    let Button(w, _, _, current, _, _) = node else {
         panic("expected a button");
     };
     match current.get() {

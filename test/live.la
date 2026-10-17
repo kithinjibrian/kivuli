@@ -12,7 +12,6 @@ import gtk {
     g_object_unref,
     gtk_application_new,
     gtk_application_window_new,
-    gtk_button_get_label,
     gtk_check_button_get_active,
     gtk_editable_get_text,
     gtk_label_get_text,
@@ -63,7 +62,8 @@ fun view(m: Model): View<Msg> {
 // What GTK shows, read back from the widgets themselves; buttons in brackets.
 fun shown<M>(node: Live<M>): string = match node {
     Label(w) => gtk_label_get_text(w),
-    Button(w, _, _, _) => "[" + gtk_button_get_label(w).unwrap_or("?") + "]",
+    // The label is kivuli's own child of the button.
+    Button(_, _, _, _, label, _) => "[" + gtk_label_get_text(label) + "]",
     Input(w, _, _) => "<" + gtk_editable_get_text(w) + ">",
     TextArea(_, _, _) => "<area>",
     Checkbox(w, label, _) => {
@@ -77,6 +77,8 @@ fun shown<M>(node: Live<M>): string = match node {
     Separator(w) => if gtk_orientable_get_orientation(w) == 0 { "-" } else { "|" },
     // Shown in full by test/live_choices.la.
     Dropdown(_, _) => "<choices>",
+    Icon(_) => "<icon>",
+    Image(_) => "<image>",
     Slider(_, _, _, _) => "<slider>",
     Scroll(_, kid) => "scroll(" + shown(kid) + ")",
     Box(_, _, kids) => {
