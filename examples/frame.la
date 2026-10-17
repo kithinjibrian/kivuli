@@ -1,7 +1,8 @@
 // A browser-like frame: the app's own colours as typed looks, a header bar
-// with back, forward, an address field filling the bar and a new-tab button,
-// a tab rail whose selected tab has a look of its own, and a window that
-// opens maximized. Its tests are at the bottom: `lughac test examples/frame.la`.
+// with back, an address field filling the bar and a new-tab button, a tab
+// rail whose selected tab has a look of its own, and a window that opens
+// maximized. The header bar and the rail share one flat look, so they read as
+// one L-shaped frame. Its tests are at the bottom: `lughac test examples/frame.la`.
 import kivuli {
     Align,
     Border,
@@ -21,14 +22,15 @@ import kivuli.testing { click, is_disabled, submit, texts, type_into };
 
 /** The parts of the frame the app colours. */
 enum Look {
-    Rail,
+    /** The frame: the header bar and the tab rail, one surface with no line between. */
+    Frame,
     Tab,
     Selected,
     Home,
 }
 
 fun surface(l: Look): Surface = match l {
-    Rail => Surface { background: Some(hex("#242424")), ..Surface.theme() },
+    Frame => Surface { background: Some(hex("#242424")), flat: Some(true), ..Surface.theme() },
     Tab => Surface { text: Some(hex("#c0c0c0")), radius: Some(6), ..Surface.theme() },
     Selected => Surface {
         background: Some(hex("#3a3a3a")),
@@ -109,13 +111,13 @@ fun view(b: Browser): View<Msg> {
         i = i + 1;
     }
     row([
-        column(tabs).spacing(4).padding(8).width(160).style([Look.Rail]),
+        column(tabs).spacing(4).padding(8).width(160).style([Look.Frame]),
         column([
             text("You're at {shown(b)}").size(18),
             text("{b.tabs[b.current].len} page(s) in this tab").dim(),
         ]).spacing(8).padding(24).expand().align(Align.Start).style([Look.Home]),
     ]).window("{shown(b)} — Frame", 1000, 640).maximized().theme(
-        theme([Look.Rail, Look.Tab, Look.Selected, Look.Home], surface),
+        theme([Look.Frame, Look.Tab, Look.Selected, Look.Home], surface),
     ).header(
         [
             button("", Msg.Back).icon("go-previous-symbolic").tooltip("Back").disabled(
@@ -124,7 +126,7 @@ fun view(b: Browser): View<Msg> {
         ],
         input(b.draft, Msg.Draft).placeholder("Address").on_submit(Msg.Go).expand(),
         [button("", Msg.NewTab).icon("tab-new-symbolic").tooltip("New tab")],
-    )
+    ).header_style([Look.Frame])
 }
 
 fun main(): i32 = sandbox("org.kivuli.frame", start(), update, view);

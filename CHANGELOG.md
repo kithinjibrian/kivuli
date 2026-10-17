@@ -8,6 +8,14 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-10-17
+
+### Added
+- Header look (PRP-008): `.header_style([…])` on the root gives the header bar the app's looks; `Surface.flat` turns a node's theme edges off (shadow and border line). `examples/frame.la`'s header bar and rail share one flat look.
+
+### Changed
+- `Surface` has a new field, `flat`: a `Surface { … }` literal listing every field adds it (with `..Surface.theme()`, nothing changes).
+
 ## [0.2.0] — 2026-10-17
 
 ### Added

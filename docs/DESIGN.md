@@ -86,6 +86,8 @@ kivuli ships no colours. An app that paints its own frame gives its colours as t
 | each `start` / `end` view | packed into the bar itself (`pack_start` / `pack_end`), so the theme's spacing between them applies |
 | `title` | the bar's title widget; `.expand()` lets it take the bar's spare width |
 
+**The header bar's look** (`.header_style([…])`, PRP-008): kivuli's classes go on the `headerbar` node only, so its window controls stay GTK's. GTK's Default theme and Yaru-dark both draw the line under a header bar as a 1 px bottom border (`border-width: 0 0 1px`), not a shadow, over a gradient background. A look with a `background` clears the gradient; `flat: Some(true)` sets `box-shadow: none; border-width: 0` (only `box-shadow: none` when the look has its own `border`), so a header bar and a rail with one flat look read as one frame, focused or not (kivuli's rules outrank the theme's in every state).
+
 Dark mode: apps follow the desktop's preference. Forcing dark from an app is deferred (DECISION-017).
 
 ---
