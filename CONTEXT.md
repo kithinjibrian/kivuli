@@ -301,12 +301,19 @@ Branch: main (the fix on fix-button-content-center, merged)
 
 ---
 
-## SESSION 11 — 2026-10-18 — PRP-010: images from any source (Icon, File, Bytes) — open
+## SESSION 11 — 2026-10-18 — PRP-010: images from any source, kivuli 0.5.0 — closed
 
-Branch: main
+Branch: main (PRP-010 on prp-010-images, merged)
 
-Notes so far:
+### WHAT WAS DONE
 - Talked through the brief ("images from bytes") first. The user wants one image model that can grow to web images. Chosen: model (B): images show bytes they already have; the app fetches over the network with a non-blocking command (a later PRP, DECISION-007), never kivuli behind a view's back.
+- PRP-010 written after an interview (DECISION-018 → map's body in mapping.la; `image(Image.…)` one widget, breaking `image(path)`; PNG+JPEG header-checked for every source; `.size(n)` on buttons) and approved. Built: src/pictures.la (pure checks), src/textures.la (GTK), View.Image(Image), images on the Button node, SetImage/SetButtonImage. lugha-gtk 0.1.25 pushed (GBytes, GdkTexture, paintables). test/live_pictures.la with a genuine 4097-px PNG fixture; mutation-checked. Gallery shows bytes. kivuli 0.5.0, tagged locally.
+
+### STILL OPEN AT CLOSE
+- Not pushed, waiting for the user's go: main and tag v0.5.0.
+- Next by plan: non-blocking commands (Cmd.fetch, file read/write; DECISION-007), so apps fetch web images (model B).
+- DECISION-020 (lughac: std.fs file size) reported for the lugha session. test/live_forms.la split still awaiting the user.
+- `reports/.gitkeep` deleted in the working tree, not by Claude; left alone.
 
 ---
 
