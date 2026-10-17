@@ -3,7 +3,7 @@
 Status: approved by the user (session 6); building on branch prp-007-app_look
 Discovery: sessions 5–6, 2026-10-17, from the user's brief and a talk-through of styling options. *(you)*: chosen by you; *(proposed)*: for you to confirm or change with this PRP.
 
-## FEATURE: An app gives its own frame colours as typed styles (`.style([…])`, a `Theme`), asks for GTK's dark variant, opens maximized, and puts its own widgets in the title bar (`.header(…)`).
+## FEATURE: An app gives its own frame colours as typed styles (`.style([…])`, a `Theme`), opens maximized, and puts its own widgets in the title bar (`.header(…)`). (`.dark()` was deferred during the build: DECISION-017.)
 
 ## OBJECTIVE
 
@@ -64,7 +64,8 @@ tab.style([Look.Rail, Look.Selected])
 - On a widget, kivuli removes only the classes it added (prefix `kv-`); the theme's and its own button classes stay. *(proposed)*
 
 ### Dark, maximized
-- **`.dark()`** on the theme: GTK's dark variant for the whole app, set when the window opens, through `gtk-interface-color-scheme` (above). To confirm on real widgets that it switches GTK's own theme (a label's text turns light); if it doesn't, the build falls back to the deprecated `gtk-application-prefer-dark-theme`, and the notes say why. *(proposed)*
+- **Deferred during the build (DECISION-017, the user's choice):** neither GTK setting switched GTK's own theme to dark in tests here (see the notes). The text below is kept for the record.
+- ~~**`.dark()`** on the theme:~~ GTK's dark variant for the whole app, set when the window opens, through `gtk-interface-color-scheme` (above). To confirm on real widgets that it switches GTK's own theme (a label's text turns light); if it doesn't, the build falls back to the deprecated `gtk-application-prefer-dark-theme`, and the notes say why. *(proposed)*
 - **`.maximized()`** on the root: the window opens maximized (`gtk_window_maximize` before it's shown); `.window`'s width and height stay its size when unmaximized. Read when the window opens. *(you)*
 
 ### Header bar
