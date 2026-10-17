@@ -8,6 +8,8 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.1.0] — 2026-10-17
+
 ### Added
 - Icons and images (PRP-005): `icon(name)` (theme icons, `.size(px)`), `.icon(name)` on buttons (with or without a label), `image(path)` with `.fit(Fit.Contain | Cover | ScaleDown | Fill)`; `examples/gallery.la`. Needs lugha-gtk 0.1.22.
 - Choices (PRP-004): `dropdown(choices, selected)` and `slider(min, max, value, on_change)` with `.step(n)`; `kivuli.testing.choose` and `slide`; `examples/settings.la`. Needs lugha-gtk 0.1.21.

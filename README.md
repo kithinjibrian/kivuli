@@ -52,7 +52,7 @@ lugha-gtk (0.1.13 or later) is fetched by `lughac` itself, as a git package.
 
 ## Using it
 
-kivuli isn't published yet. Once it is, list it in your program's `lugha.toml`:
+List it in your program's `lugha.toml`:
 
 ```toml
 [packages]
