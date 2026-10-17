@@ -1,6 +1,6 @@
 # PRP-010 — Images from any source: theme icons, files and bytes
 
-Status: draft, for the user's approval
+Status: approved by the user (session 11); building on branch prp-010-images
 Discovery: session 11, 2026-10-18. The brief asked for images from bytes; talked through first, the user wanted one image model that grows to web images. *(you)*: chosen in the talk and the interview; *(proposed)*: for you to confirm or change with this PRP.
 
 ## FEATURE: One image type, `Image.Icon(name) | Image.File(path) | Image.Bytes(key, bytes)`, shown by `image(…)` and put on buttons by `.image(…)`; PNG and JPEG decoded safely from bytes, every source size-checked before GTK decodes.
