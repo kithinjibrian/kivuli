@@ -1,0 +1,91 @@
+/**
+ * Walking a view: every node in order, with the style it carries and lazy
+ * nodes built and looked through. Pure. Used to find things in a view: the
+ * testing helpers, the shortcut duplicate check, and `Cmd.focus` (finding a
+ * named node's path).
+ *
+ * Depends on: views
+ * Used by: testing, keys, live
+ */
+
+import views { View, Style, plain };
+
+/**
+ * Every node of `v` in order, without its `Styled` wrapper but with the style
+ * it carries; lazy nodes are built and looked through.
+ */
+fun nodes<Msg>(v: View<Msg>): (View<Msg>, Style)[] = walk(v, plain());
+
+fun walk<Msg>(v: View<Msg>, style: Style): (View<Msg>, Style)[] = match v {
+    Styled(inside, s) => walk(inside, s),
+    // Modifiers on a lazy node are ignored; what it builds carries its own.
+    Lazy(_, build, built) => walk(
+        match built {
+            Some(b) => b,
+            None => build(),
+        },
+        plain(),
+    ),
+    Column(xs) => with_children(v, style, xs),
+    Row(xs) => with_children(v, style, xs),
+    Keyed(pairs) => {
+        let mut xs: View<Msg>[] = [];
+        for (_, x) of pairs {
+            xs.push(x);
+        }
+        with_children(v, style, xs)
+    }
+    Scroll(x) => with_children(v, style, [x]),
+    _ => [(v, style)],
+};
+
+fun with_children<Msg>(v: View<Msg>, style: Style, xs: View<Msg>[]): (View<Msg>, Style)[] {
+    let mut out: (View<Msg>, Style)[] = [(v, style)];
+    for x of xs {
+        for pair of walk(x, plain()) {
+            out.push(pair);
+        }
+    }
+    out
+}
+
+/**
+ * The path (as patches count it) of the first node named `name` with
+ * `.name(…)`, if any: through styles and lazy nodes, by position in columns,
+ * rows and keyed columns, index 0 in a scroll.
+ */
+fun path_of_name<Msg>(v: View<Msg>, name: string): Option<i64[]> = find_name(v, name, []);
+
+fun find_name<Msg>(v: View<Msg>, name: string, path: i64[]): Option<i64[]> = match v {
+    Styled(inside, style) => if style.name == name {
+        Some(path)
+    } else {
+        find_name(inside, name, path)
+    },
+    Lazy(_, _, Some(built)) => find_name(built, name, path),
+    Column(xs) => find_in(xs, name, path),
+    Row(xs) => find_in(xs, name, path),
+    Keyed(pairs) => find_in(pairs.map(fun(pair) = pair.1), name, path),
+    Scroll(x) => find_name(x, name, with_index(path, 0)),
+    _ => None,
+};
+
+fun find_in<Msg>(xs: View<Msg>[], name: string, path: i64[]): Option<i64[]> {
+    let mut i = 0;
+    while i < xs.len {
+        match find_name(xs[i], name, with_index(path, i)) {
+            Some(found) => {
+                return Some(found);
+            }
+            None => {}
+        }
+        i = i + 1;
+    }
+    None
+}
+
+fun with_index(path: i64[], i: i64): i64[] {
+    let mut out = path;
+    out.push(i);
+    out
+}

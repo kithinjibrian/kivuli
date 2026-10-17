@@ -9,15 +9,21 @@
  */
 
 import gtk {
+    GVariant,
+    GtkEventController,
+    GtkShortcut,
     GtkTextBuffer,
     GtkWidget,
     connect_buffer,
     connect_widget,
+    emit_widget,
     g_free,
+    g_timeout_add_full,
     gtk_box_append,
     gtk_box_new,
     gtk_box_set_spacing,
     gtk_button_new_with_label,
+    gtk_callback_action_new,
     gtk_check_button_get_active,
     gtk_check_button_new,
     gtk_check_button_set_active,
@@ -34,14 +40,23 @@ import gtk {
     gtk_label_set_selectable,
     gtk_label_set_wrap,
     gtk_label_set_wrap_mode,
+    gtk_scrolled_window_get_child,
     gtk_scrolled_window_new,
     gtk_scrolled_window_set_child,
     gtk_separator_new,
+    gtk_shortcut_controller_add_shortcut,
+    gtk_shortcut_controller_new,
+    gtk_shortcut_controller_remove_shortcut,
+    gtk_shortcut_controller_set_scope,
+    gtk_shortcut_new,
+    gtk_shortcut_trigger_parse_string,
     gtk_text_buffer_set_text,
     gtk_text_view_get_buffer,
     gtk_text_view_new,
     gtk_text_view_set_wrap_mode,
+    gtk_widget_add_controller,
     gtk_widget_add_css_class,
+    gtk_widget_grab_focus,
     gtk_widget_remove_css_class,
     gtk_widget_set_halign,
     gtk_widget_set_hexpand,
@@ -64,6 +79,7 @@ import gtk {
 };
 import live_tree { Live, widget };
 import views { View, Style, Align, ButtonStyle };
+import keys { parse };
 
 /** Builds the GTK widgets for `v` at the top of a window; each widget sends its messages through `send`. */
 fun create<Msg>(v: View<Msg>, send: fun(Msg)): Live<Msg> = create_in(v, 1, send);
@@ -94,7 +110,12 @@ fun create_in<Msg>(v: View<Msg>, axis: i32, send: fun(Msg)): Live<Msg> = match v
             },
             0,
         );
-        Live.Button(button, current)
+        // One shortcut controller per button, global: its keys work anywhere in
+        // the window. `apply_style` puts the button's shortcut in it.
+        let controller = gtk_shortcut_controller_new();
+        gtk_shortcut_controller_set_scope(controller, 2);
+        gtk_widget_add_controller(button, controller);
+        Live.Button(button, current, controller, Ref.new(None))
     }
     // Spacing comes later as a modifier.
     Column(children) => create_box(1, children, send),
@@ -211,6 +232,16 @@ fun create_in<Msg>(v: View<Msg>, axis: i32, send: fun(Msg)): Live<Msg> = match v
     Styled(inside, style) => {
         let node = create_in(inside, axis, send);
         apply_style(node, style, axis);
+        if style.autofocus {
+            // On the main loop's next turn: the widget is in its window by then
+            // (GTK ignores a focus grab outside one).
+            let target = focus_target(node);
+            g_timeout_add_full(0, 0, fun(): i32 {
+                gtk_widget_grab_focus(target);
+                // G_SOURCE_REMOVE: once.
+                0
+            });
+        }
         node
     }
 };
@@ -271,7 +302,10 @@ fun apply_style<Msg>(node: Live<Msg>, style: Style, axis: i32) {
             entry,
             if style.placeholder == "" { None } else { Some(style.placeholder) },
         ),
-        Button(button, _) => style_button(button, style.look),
+        Button(button, _, controller, shortcut) => {
+            style_button(button, style.look);
+            style_shortcut(controller, shortcut, style.shortcut);
+        }
         _ => {}
     }
 }
@@ -293,6 +327,49 @@ fun style_long_text(label: GtkWidget, style: Style) {
         if style.wrap && style.wrap_at > 0 { style.wrap_at as i32 } else { -1 },
     );
 }
+
+/**
+ * Puts `combo` (keys as the app wrote them) in the button's shortcut controller in
+ * place of the shortcut there now; `""` leaves it without one. Keys kivuli
+ * can't read stop the app with a message naming them.
+ */
+fun style_shortcut(
+    controller: GtkEventController,
+    current: Ref<Option<GtkShortcut>>,
+    combo: string,
+) {
+    match current.get() {
+        Some(old) => gtk_shortcut_controller_remove_shortcut(controller, old),
+        None => {}
+    }
+    current.set(None);
+    if combo == "" {
+        return;
+    }
+    let accel = match parse(combo) {
+        Ok(g) => g,
+        Err(problem) => panic("kivuli: can't read the shortcut \"{combo}\": {problem}"),
+    };
+    let Some(trigger) = gtk_shortcut_trigger_parse_string(accel) else {
+        panic("kivuli: GTK can't read the shortcut \"{combo}\" (as \"{accel}\")");
+    };
+    // Pressing the keys clicks the button, so a disabled one (no message) sends
+    // nothing. A callback action, not GTK's activate action: that one does
+    // nothing until the window is on screen.
+    let action = gtk_callback_action_new(fun(w: GtkWidget, args: Option<GVariant>): i32 {
+        emit_widget(w, "clicked");
+        1
+    });
+    let shortcut = gtk_shortcut_new(trigger, action);
+    gtk_shortcut_controller_add_shortcut(controller, shortcut);
+    current.set(Some(shortcut));
+}
+
+/** The widget that takes keyboard focus for `node`: a text area's editor, else the node's widget. */
+fun focus_target<Msg>(node: Live<Msg>): GtkWidget = match node {
+    TextArea(scrolled, _, _) => gtk_scrolled_window_get_child(scrolled).unwrap_or(scrolled),
+    _ => widget(node),
+};
 
 /** Gives a button the theme's CSS class for `look`, and only that one. */
 fun style_button(button: GtkWidget, look: ButtonStyle) {

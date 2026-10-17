@@ -4,11 +4,13 @@
  * test builds a view, "clicks" or "types" through these, and checks the
  * message that comes back. Re-exported by the entry: `kivuli.testing.click`.
  *
- * Depends on: views
+ * Depends on: views, walk, keys
  * Used by: lib (re-exported), apps' tests
  */
 
-import views { View, Style, plain };
+import views { View, Style };
+import walk { nodes };
+import keys;
 
 /** Why a helper couldn't do what was asked, naming what it looked for. */
 public enum Lookup {
@@ -47,6 +49,43 @@ public fun click<Msg>(v: View<Msg>, label: string): Result<Msg, Lookup> {
 public fun is_disabled<Msg>(v: View<Msg>, label: string): Result<bool, Lookup> {
     let found = only(buttons(v, label), "button \"{label}\"")?;
     Ok(found.is_none())
+}
+
+/**
+ * The message pressing `shortcut` sends: that of the enabled button with that
+ * shortcut. Keys are compared as GTK reads them (`"ctrl+n"` is `"Ctrl+N"`).
+ * @returns `Ok(msg)`; `Err(NotFound)`, `Err(Silent)` when only a disabled
+ * button has it, or `Err(Ambiguous)` when two enabled ones do. Panics on keys
+ * kivuli can't read, as the app would.
+ *
+ * Example:
+ *     assert_eq(kivuli.testing.press(view(m), "Ctrl+N"), Ok(Msg.Add));
+ */
+public fun press<Msg>(v: View<Msg>, shortcut: string): Result<Msg, Lookup> {
+    let what = "shortcut \"{shortcut}\"";
+    let wanted = match keys.parse(shortcut) {
+        Ok(gtk) => gtk,
+        Err(problem) => panic("kivuli: can't read the shortcut \"{shortcut}\": {problem}"),
+    };
+    let mut enabled: Msg[] = [];
+    let mut disabled = 0;
+    for (node, style) of nodes(v) {
+        match node {
+            Button(_, msg) => if style.shortcut != "" && keys.parse(style.shortcut) == Ok(wanted) {
+                match msg {
+                    Some(m) => enabled.push(m),
+                    None => {
+                        disabled = disabled + 1;
+                    }
+                }
+            },
+            _ => {}
+        }
+    }
+    if enabled.len == 0 && disabled > 0 {
+        return Err(Lookup.Silent(what));
+    }
+    only(enabled, what)
 }
 
 /**
@@ -180,45 +219,6 @@ fun checkboxes<Msg>(v: View<Msg>, label: string): (bool, fun(bool): Msg)[] {
                 out.push((checked, on_toggle));
             },
             _ => {}
-        }
-    }
-    out
-}
-
-/**
- * Every node of `v` in order, without its `Styled` wrapper but with the style
- * it carries; lazy nodes are built and looked through.
- */
-fun nodes<Msg>(v: View<Msg>): (View<Msg>, Style)[] = walk(v, plain());
-
-fun walk<Msg>(v: View<Msg>, style: Style): (View<Msg>, Style)[] = match v {
-    Styled(inside, s) => walk(inside, s),
-    // Modifiers on a lazy node are ignored; what it builds carries its own.
-    Lazy(_, build, built) => walk(
-        match built {
-            Some(b) => b,
-            None => build(),
-        },
-        plain(),
-    ),
-    Column(xs) => with_children(v, style, xs),
-    Row(xs) => with_children(v, style, xs),
-    Keyed(pairs) => {
-        let mut xs: View<Msg>[] = [];
-        for (_, x) of pairs {
-            xs.push(x);
-        }
-        with_children(v, style, xs)
-    }
-    Scroll(x) => with_children(v, style, [x]),
-    _ => [(v, style)],
-};
-
-fun with_children<Msg>(v: View<Msg>, style: Style, xs: View<Msg>[]): (View<Msg>, Style)[] {
-    let mut out: (View<Msg>, Style)[] = [(v, style)];
-    for x of xs {
-        for pair of walk(x, plain()) {
-            out.push(pair);
         }
     }
     out

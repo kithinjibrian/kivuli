@@ -20,6 +20,8 @@ public enum Cmd<Msg> {
     /** Send the message after this many milliseconds. */
     After(i64, Msg),
     Quit,
+    /** Give keyboard focus to the node with this `.name`. */
+    Focus(string),
 }
 
 impl Cmd<Msg> {
@@ -46,6 +48,15 @@ impl Cmd<Msg> {
     public fun quit(): Cmd<Msg> = Cmd.Quit;
 
     /**
+     * Moves keyboard focus to the node named `name` (`.name(name)`) once the
+     * update is shown; nothing happens if no node has that name.
+     *
+     * Example:
+     *     Add => (Model { draft: "", ..m }, Cmd.focus("task"))
+     */
+    public fun focus(name: string): Cmd<Msg> = Cmd.Focus(name);
+
+    /**
      * The same command, sending `f(msg)` wherever it would send `msg`: for a
      * component's commands inside a bigger app.
      *
@@ -58,6 +69,7 @@ impl Cmd<Msg> {
         Batch(cmds) => Cmd.Batch(cmds.map(fun(c) = c.map(f))),
         After(ms, msg) => Cmd.After(ms, f(msg)),
         Quit => Cmd.Quit,
+        Focus(name) => Cmd.Focus(name),
     };
 }
 

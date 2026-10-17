@@ -1,0 +1,72 @@
+// Shortcut keys: written "Ctrl+N", turned into GTK's form, and checked for
+// two enabled buttons sharing one. No GTK.
+import kivuli.keys { duplicate, parse };
+import kivuli { View, button, column, lazy, row };
+
+enum Msg {
+    Add,
+    Clear,
+}
+
+@test
+fun keys_turn_into_gtks_form() {
+    assert_eq(parse("Ctrl+N"), Ok("<Control>n"));
+    assert_eq(parse("Ctrl+Shift+Delete"), Ok("<Control><Shift>Delete"));
+    assert_eq(parse("Escape"), Ok("Escape"));
+    assert_eq(parse("F5"), Ok("F5"));
+    assert_eq(parse("Alt+Up"), Ok("<Alt>Up"));
+    assert_eq(parse("Super+Space"), Ok("<Super>space"));
+    assert_eq(parse("Ctrl+Enter"), Ok("<Control>Return"));
+    assert_eq(parse("Ctrl+PageDown"), Ok("<Control>Page_Down"));
+    assert_eq(parse("Ctrl+7"), Ok("<Control>7"));
+    assert_eq(parse("Ctrl+Plus"), Ok("<Control>plus"));
+}
+
+@test
+fun names_are_case_insensitive() {
+    assert_eq(parse("ctrl+n"), parse("Ctrl+N"));
+    assert_eq(parse("CTRL+SHIFT+delete"), parse("Ctrl+Shift+Delete"));
+    assert_eq(parse("f12"), Ok("F12"));
+}
+
+@test
+fun bad_keys_say_what_is_wrong() {
+    assert_eq(parse(""), Err("no key"));
+    assert_eq(parse("Ctrl+"), Err("no key after \"Ctrl+\""));
+    assert_eq(parse("Ctrl+Nope"), Err("unknown key \"Nope\""));
+    assert_eq(parse("Ctrl+N+M"), Err("unknown modifier \"N\""));
+    assert_eq(parse("Hyper+N"), Err("unknown modifier \"Hyper\""));
+    assert_eq(parse("F13"), Err("unknown key \"F13\""));
+}
+
+@test
+fun two_enabled_buttons_sharing_keys_are_found() {
+    let shared: View<Msg> = column([
+        button("Add", Msg.Add).shortcut("Ctrl+N"),
+        row([button("New", Msg.Add).shortcut("ctrl+n")]),
+    ]);
+    assert_eq(duplicate(shared), Some("Ctrl+N"));
+}
+
+@test
+fun a_disabled_button_or_other_keys_are_no_clash() {
+    let one_off: View<Msg> = column([
+        button("Add", Msg.Add).shortcut("Ctrl+N"),
+        button("New", Msg.Add).shortcut("Ctrl+N").disabled(true),
+    ]);
+    assert_eq(duplicate(one_off), None);
+    let different: View<Msg> = column([
+        button("Add", Msg.Add).shortcut("Ctrl+N"),
+        button("Clear", Msg.Clear).shortcut("Ctrl+L"),
+    ]);
+    assert_eq(duplicate(different), None);
+}
+
+@test
+fun buttons_inside_lazy_nodes_count() {
+    let inside: View<Msg> = column([
+        button("Add", Msg.Add).shortcut("Ctrl+N"),
+        lazy("k", fun(): View<Msg> = button("New", Msg.Add).shortcut("Ctrl+N")),
+    ]);
+    assert_eq(duplicate(inside), Some("Ctrl+N"));
+}

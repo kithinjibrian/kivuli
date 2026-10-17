@@ -106,6 +106,8 @@ lughac run examples/notes.la
 | `.wrap()`, `.wrap_at(chars)`, `.ellipsize()` | Long text on text and check box labels: onto more lines (at most `chars` wide), or cut with "…"; both: up to three lines, the last cut. |
 | `.selectable()` | Text the user can select and copy. |
 | `.tooltip(hint)` | Hover text on any node; tests can click a button by it. |
+| `.shortcut(keys)` | Keys that press a button from anywhere in the window: `"Ctrl+N"`, `"Ctrl+Shift+Delete"`, `"Escape"`. A disabled button's shortcut does nothing; unreadable keys, or two enabled buttons with the same ones, stop the app with a message. |
+| `.autofocus()` | Keyboard focus goes to the node when it's first shown. |
 | `.style(ButtonStyle.Primary \| Danger \| Subtle \| Normal)`, `.disabled(bool)` | Buttons. |
 | `.placeholder(hint)`, `.on_submit(msg)` | Text fields: a hint while empty; the message Enter sends. |
 | `.name(id)` | A name tests find a text field or text area by (not shown). |
@@ -128,6 +130,7 @@ row([counter(m.left).map(Msg.Left), counter(m.right).map(Msg.Right)])
 | `Cmd.none()`, `Cmd.batch(cmds)` | Nothing; several commands. |
 | `Cmd.after(ms, msg)` | Send `msg` once, `ms` milliseconds from now. |
 | `Cmd.quit()` | End the app. |
+| `Cmd.focus(name)` | Move keyboard focus to the node named `name` (`.name(name)`). |
 | `Sub.none()`, `Sub.batch(subs)` | Nothing; several subscriptions. |
 | `Sub.every(ms, f)` | Send `f(now)` every `ms` milliseconds (`now` in milliseconds since 1970) while `subscriptions` keeps returning it. |
 
@@ -146,7 +149,7 @@ fun adding_a_task() {
 }
 ```
 
-`click` and `is_disabled` (by a button's label or tooltip), `tooltip`, `type_into` and `submit` (finding a text field by its placeholder or `.name`, a text area by its `.name`), `toggle` and `texts` each return a `Lookup` error when what's asked for isn't there (`NotFound`), isn't unique (`Ambiguous`) or sends nothing (`Silent`). `examples/todo.la` ends with its own tests: `lughac test examples/todo.la`.
+`click` and `is_disabled` (by a button's label or tooltip), `press` (by shortcut), `tooltip`, `type_into` and `submit` (finding a text field by its placeholder or `.name`, a text area by its `.name`), `toggle` and `texts` each return a `Lookup` error when what's asked for isn't there (`NotFound`), isn't unique (`Ambiguous`) or sends nothing (`Silent`). `examples/todo.la` ends with its own tests: `lughac test examples/todo.la`.
 
 ## Tests
 
