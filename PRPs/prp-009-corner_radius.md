@@ -1,6 +1,6 @@
 # PRP-009 — Corner radius
 
-Status: draft, for the user's approval
+Status: approved by the user (session 9); building on branch prp-009-corner_radius
 Discovery: session 9, 2026-10-17, from the user's brief and Rapidkoi's `screenshot-4-after-header-look.png`. *(you)*: from the brief; *(proposed)*: for you to confirm or change with this PRP.
 
 ## FEATURE: A `Surface` can round each corner alone (`radius_top_left` … `radius_bottom_left`), and a rounded node's content is clipped to its curve.
