@@ -61,11 +61,11 @@ Write the test before writing the implementation. No exceptions.
 - For every new function, write a failing `@test` first, then the minimum code to make it pass.
 - All tests live in `test/`, mirroring `src/`: `src/diff.la` → `test/diff.la`. Files in `test/` see the package's package-level items (lughac milestone 97), so private modules are tested from there too. Keep test code out of `src/`.
 - A named import binds the module's name as well (`import kivuli.live { … }` binds `live`), so don't name a local after the module you import from (E0311). Import a function under another name when it clashes: `import kivuli.diff { diff as patches };`.
-- Run everything with `lughac test test/`.
+- The full run is `lughac test test/` plus the examples' own tests (`lughac test examples/todo.la examples/notes.la`): before a merge, not after every step.
 - Pure tests must need **no display and no GTK window**: view construction, modifiers, `map`, diff (tree → patches), `kivuli.testing`, subscription bookkeeping. Tests of the live GTK layer (`test/live.la`) drive a hidden window and read the widgets back, and must start with `if !has_display() { skip("no display"); }` so they are skipped, not failed, without one.
 - Test behavior visible to callers: inputs, outputs, and every error variant. Do not test private internals or GTK's own behavior.
 - Every new `public` function gets at least one happy-path test and one test per error variant it can return.
-- After any non-trivial change, run the full suite and check every example before calling the task done.
+- While working, run only the test files that cover the change (`lughac test test/diff.la test/live_forms.la`), not the whole suite after every edit (the user's request, session 3). Run the full suite and build every example once, just before a PRP's branch is merged.
 - Opening real windows is the user's job. Never claim a visual behavior works because it compiled.
 
 If the PRP does not describe what to test, add the test cases to the PRP before writing code.
