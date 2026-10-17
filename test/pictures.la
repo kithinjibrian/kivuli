@@ -1,0 +1,48 @@
+// Images, without GTK: the PNG and JPEG headers read before anything is
+// decoded, the limits, and what makes two images the same.
+import fixtures;
+import kivuli.pictures { MAX_BYTES, identity, size_of };
+import kivuli { Image };
+
+@test
+fun png_and_jpeg_sizes_come_from_their_headers() {
+    assert_eq(size_of(fixtures.png()), Ok((3, 2)));
+    assert_eq(size_of(fixtures.jpeg()), Ok((3, 2)));
+}
+
+@test
+fun hostile_bytes_are_refused_before_decoding() {
+    let empty: u8[] = [];
+    assert_eq(size_of(empty), Err("not a PNG or JPEG image"));
+    assert_eq(size_of([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]), Err("not a PNG or JPEG image"));
+    assert_eq(size_of(fixtures.cut(fixtures.png(), 20)), Err("the image's header is cut short"));
+    assert_eq(size_of(fixtures.cut(fixtures.jpeg(), 30)), Err("the image's header is cut short"));
+    assert_eq(
+        size_of(fixtures.huge_png()),
+        Err("the image is 5000 x 5000: larger than 4096 x 4096"),
+    );
+    let mut big: u8[] = [0; MAX_BYTES + 1];
+    let head = fixtures.png();
+    let mut i = 0;
+    while i < head.len {
+        big[i] = head[i];
+        i = i + 1;
+    }
+    assert_eq(size_of(big), Err("the image is over 16 MB"));
+    // A sound header with broken pixels passes here: GTK's decoder refuses it.
+    assert_eq(size_of(fixtures.corrupt_png()), Ok((3, 2)));
+}
+
+@test
+fun images_are_the_same_by_kind_and_name_path_or_key() {
+    assert_eq(
+        identity(Image.Bytes("k", fixtures.png())),
+        identity(Image.Bytes("k", fixtures.jpeg())),
+    );
+    assert(
+        identity(Image.Bytes("k", fixtures.png())) != identity(Image.Bytes("j", fixtures.png())),
+    );
+    assert(identity(Image.Icon("x")) != identity(Image.File("x")));
+    assert(identity(Image.File("x")) != identity(Image.Bytes("x", [])));
+    assert_eq(identity(Image.File("a.png")), identity(Image.File("a.png")));
+}
