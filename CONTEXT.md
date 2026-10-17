@@ -140,11 +140,24 @@ CLAUDE.md, MEMORY.md, DECISIONS.md, CHANGELOG.md, PRPs/TEMPLATE.md — kept in s
 - lugha-gtk 0.1.7 pushed and tagged (reorder_child_after, get_first_child/get_next_sibling); kivuli requires it. keyed_column done; test/live.la split (527 lines) into live.la + live_forms.la, the user's choice.
 - lughac m100 (glob re-exports, PR #45) verified on the user's install. lugha-gtk 0.1.8 (v0.1.8, 9af15ad, pushed): `public import raw { * };` in lib.la. kivuli requires 0.1.8 and imports `gtk { GtkWidget, gtk_box_new, … }` by name, no `gtk.raw.` prefix.
 
-## SESSION 3 — 2026-10-17 — Step 5: modifiers and styles — open
+## SESSION 3 — 2026-10-17 — v1 steps 5–8, PRPs 001–005, kivuli 0.1.0 published — closed
 
-Branch: main
+Branch: main (each PRP on its own branch, merged with --no-ff)
 
-Notes so far (handoff to be written at close):
+### WHAT WAS DONE
+- v1 steps 5–8 hands-on: modifiers and styles, `application` with Cmd/Sub, `lazy`, `kivuli.testing`, examples (todo, stopwatch, counters), README; `map`; cleanups and health checks.
+- From then on every feature through a PRP: 001 text area, 002 long text and tooltips, 003 shortcuts and focus, 004 drop-down and slider, 005 icons and images. All merged into main.
+- lugha-gtk 0.1.9 … 0.1.22 released (standing go).
+- kivuli 0.1.0 published on the user's go: github.com/kithinjibrian/kivuli (public), `main` and tag `v0.1.0` at 8fe0362; LICENSE (GPL-3.0-only) added by the user. A fresh package built the README counter from GitHub.
+
+### STILL OPEN AT CLOSE
+- `test/live_forms.la` is 562 lines (over 500): proposed split, its focus and shortcut tests into `test/live_keys.la`, awaiting the user.
+- DECISION-011 (lughac: private imports reachable through a module) deferred, reported for the lugha session.
+- `reports/.gitkeep` deleted in the working tree, not by Claude; left alone.
+- Reversing 1,000 keyed rows ~1 s (kivuli's keyed diff).
+- This close is committed but not pushed: kivuli pushes need the user's go.
+
+### NOTES KEPT DURING THE SESSION
 - lughac PR #46 (lugha 9af1d4b, user-installed): inference reaches calls inside tuple literals; test/diff.la and test/lib.la compare keyed columns directly again.
 - Correction: "test files can't import each other (E0312)" was my mistake, not a lughac bug. `import support;` (bare name) works from test/; `import test.support;` and `import kivuli.test.support;` are simply wrong forms. Reported back to the lugha session.
 - Step 5 planning: the user rejected the PRP question and said to continue hands-on. DECISION-009: modifiers live in one `Styled(View, Style)` wrapper (the user's choice).
@@ -179,11 +192,15 @@ Notes so far (handoff to be written at close):
 
 ---
 
+## SESSION 4 — 2026-10-17 — PRP-006: disabled text fields — open
+
+Branch: main
+
+---
+
 ## NEXT SESSION START POINT
 
-1. Open session 3 in this file (step 1, before anything else) and commit it.
-2. Read CLAUDE.md, MEMORY.md, DECISIONS.md, then this file's session 2. The user works hands-on: small steps, show and explain the code, ask before large changes. Never build lughac; ask the user to.
-3. First question for the user: write PRP-001 for the rest of v1 (steps 5–8), or keep building hands-on without one and relax the PRP rule? Attach a recommendation.
-4. Step 5 — modifiers and styles: `.padding(n)`, `.spacing(n)`, `.expand()`, `.align(Start|Center|End)`, `.width/height(n)`, `.size(n)`, `.bold()`, `.dim()`, `.style(Normal|Primary|Danger|Subtle)`, `.disabled(bool)` (button `Option<Msg>`, MEMORY decision 6). Read docs/DESIGN.md first (style vocabulary → GTK CSS classes). Each node needs a layout record; modifiers return changed copies with struct update (`..b`). GTK calls they need (margins exist; CSS classes, `gtk_widget_set_sensitive`, halign/valign, size_request, box spacing) go into lugha-gtk first, pushed only on the user's go.
-5. Then steps 6–8: `application` with Cmd/Sub, `lazy` (DECISION-002), testing helpers (DECISION-003), examples (to-do, stopwatch) and README.
-6. Gotchas: a named import binds the module name too (E0311 for a local named `live`, `views`, …); `lughac fmt` reflows multi-line text other edits expect — re-read before scripted edits; files may not exceed 500 lines.
+1. Open a new session in this file (step 1, before anything else) and commit it.
+2. Read CLAUDE.md, MEMORY.md, DECISIONS.md, then this file's last session; go by `git log` for what's merged.
+3. kivuli 0.1.0 is published (github.com/kithinjibrian/kivuli); PRPs 001–005 are merged. Pushing kivuli needs the user's go each time; lugha-gtk has a standing go.
+4. Gotchas: a named import binds the module name too (E0311); `lughac fmt` reflows text scripted edits expect: re-read first; files may not exceed 500 lines; gate any push on the test run's real exit status.
