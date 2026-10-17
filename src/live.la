@@ -18,12 +18,20 @@ enum Live<Msg> {
     Label(gtk.raw.GtkWidget),
     /** The button and the message it sends: its click handler reads this box. */
     Button(gtk.raw.GtkWidget, Ref<Msg>),
-    /** A column or a row: both are a `GtkBox`, and patch the same way. */
-    Box(gtk.raw.GtkWidget, Live<Msg>[]),
+    /**
+     * A column or a row: both are a `GtkBox`, and patch the same way. The
+     * orientation (`GtkOrientation`: 1 vertical, 0 horizontal) lays out
+     * children added later.
+     */
+    Box(gtk.raw.GtkWidget, i32, Live<Msg>[]),
     /** A text field and the function turning its text into a message: its `changed` handler reads this box. */
     Input(gtk.raw.GtkWidget, Ref<fun(string): Msg>),
     /** A check box and the function turning its state into a message: its `toggled` handler reads this box. */
     Checkbox(gtk.raw.GtkWidget, Ref<fun(bool): Msg>),
+    Spacer(gtk.raw.GtkWidget),
+    Separator(gtk.raw.GtkWidget),
+    /** A scrolled window and the one child it shows. */
+    Scroll(gtk.raw.GtkWidget, Live<Msg>),
 }
 
 /** What changes as the app runs: the model, the view it gave, and the widgets showing it. */
@@ -110,8 +118,15 @@ fun dispatch<Model, Msg>(app: Running<Model, Msg>, msg: Msg) {
     app.state.set(Some(State { model: model, tree: tree, live: live }));
 }
 
-/** Builds the GTK widgets for `v`; each button sends its message through `send`. */
-fun create<Msg>(v: View<Msg>, send: fun(Msg)): Live<Msg> = match v {
+/** Builds the GTK widgets for `v` at the top of a window; each widget sends its messages through `send`. */
+fun create<Msg>(v: View<Msg>, send: fun(Msg)): Live<Msg> = create_in(v, 1, send);
+
+/**
+ * Builds the GTK widgets for `v` inside a parent laid out along `axis`
+ * (`GtkOrientation`: 1 vertical, a column; 0 horizontal, a row). Spacers grow
+ * along it and separators cross it.
+ */
+fun create_in<Msg>(v: View<Msg>, axis: i32, send: fun(Msg)): Live<Msg> = match v {
     Text(s) => Live.Label(gtk.raw.gtk_label_new(s)),
     Button(label, msg) => {
         let button = gtk.raw.gtk_button_new_with_label(label);
@@ -128,7 +143,7 @@ fun create<Msg>(v: View<Msg>, send: fun(Msg)): Live<Msg> = match v {
         );
         Live.Button(button, current)
     }
-    // GtkOrientation: 1 vertical, 0 horizontal. Spacing comes later as a modifier.
+    // Spacing comes later as a modifier.
     Column(children) => create_box(1, children, send),
     Row(children) => create_box(0, children, send),
     Input(value, on_change) => {
@@ -150,11 +165,7 @@ fun create<Msg>(v: View<Msg>, send: fun(Msg)): Live<Msg> = match v {
     Checkbox(label, checked, on_toggle) => {
         let check = gtk.raw.gtk_check_button_new_with_label(label);
         // Set before connecting, so the first state isn't sent as a toggle.
-        gtk.raw.gtk_check_button_set_active(check, if checked {
-            1
-        } else {
-            0
-        });
+        gtk.raw.gtk_check_button_set_active(check, flag(checked));
         let current = Ref.new(on_toggle);
         gtk.raw.connect_widget(
             check,
@@ -167,6 +178,28 @@ fun create<Msg>(v: View<Msg>, send: fun(Msg)): Live<Msg> = match v {
         );
         Live.Checkbox(check, current)
     }
+    Spacer => {
+        // An empty box given all the spare room along its parent's axis.
+        let room = gtk.raw.gtk_box_new(0, 0);
+        if axis == 1 {
+            gtk.raw.gtk_widget_set_vexpand(room, 1);
+        } else {
+            gtk.raw.gtk_widget_set_hexpand(room, 1);
+        }
+        Live.Spacer(room)
+    }
+    // Across the axis: a horizontal line in a column, a vertical one in a row.
+    Separator => Live.Separator(gtk.raw.gtk_separator_new(1 - axis)),
+    Scroll(child) => {
+        let scrolled = gtk.raw.gtk_scrolled_window_new();
+        // A scrolled window asks for almost no room of its own: let it take
+        // the spare room both ways, or it shows a sliver.
+        gtk.raw.gtk_widget_set_hexpand(scrolled, 1);
+        gtk.raw.gtk_widget_set_vexpand(scrolled, 1);
+        let kid = create_in(child, 1, send);
+        gtk.raw.gtk_scrolled_window_set_child(scrolled, Some(widget(kid)));
+        Live.Scroll(scrolled, kid)
+    }
 };
 
 /** Builds a `GtkBox` of `orientation` holding the widgets for `children`. */
@@ -174,11 +207,11 @@ fun create_box<Msg>(orientation: i32, children: View<Msg>[], send: fun(Msg)): Li
     let box = gtk.raw.gtk_box_new(orientation, 0);
     let mut kids: Live<Msg>[] = [];
     for child of children {
-        let kid = create(child, send);
+        let kid = create_in(child, orientation, send);
         gtk.raw.gtk_box_append(box, widget(kid));
         kids.push(kid);
     }
-    Live.Box(box, kids)
+    Live.Box(box, orientation, kids)
 }
 
 /** Applies one patch to the widgets, and returns the `Live` tree that now mirrors them. */
@@ -226,11 +259,7 @@ fun apply<Msg>(
     SetChecked(path, checked) => {
         // GTK fires `toggled` only on a real change, and while patching the
         // echo is dropped, so this needs no same-state check of its own.
-        gtk.raw.gtk_check_button_set_active(widget(at(live, path)), if checked {
-            1
-        } else {
-            0
-        });
+        gtk.raw.gtk_check_button_set_active(widget(at(live, path)), flag(checked));
         live
     }
     SetOnToggle(path, on_toggle) => {
@@ -240,24 +269,24 @@ fun apply<Msg>(
         }
         live
     }
-    Append(path, v) => with_box(live, path, 0, fun(
-        box: gtk.raw.GtkWidget,
-        kids: Live<Msg>[],
-    ): Live<Msg>[] {
-        let kid = create(v, send);
-        gtk.raw.gtk_box_append(box, widget(kid));
-        let mut next = kids;
-        next.push(kid);
-        next
+    Append(path, v) => update_at(live, path, 0, fun(node: Live<Msg>): Live<Msg> = match node {
+        Box(box, orientation, kids) => {
+            let kid = create_in(v, orientation, send);
+            gtk.raw.gtk_box_append(box, widget(kid));
+            let mut next = kids;
+            next.push(kid);
+            Live.Box(box, orientation, next)
+        }
+        _ => panic("kivuli: an Append patch points at something that isn't a column or row"),
     }),
     Remove(path) => {
         let i = path[path.len - 1];
-        with_box(live, parent(path), 0, fun(
-            box: gtk.raw.GtkWidget,
-            kids: Live<Msg>[],
-        ): Live<Msg>[] {
-            gtk.raw.gtk_box_remove(box, widget(kids[i]));
-            without(kids, i)
+        update_at(live, parent(path), 0, fun(node: Live<Msg>): Live<Msg> = match node {
+            Box(box, orientation, kids) => {
+                gtk.raw.gtk_box_remove(box, widget(kids[i]));
+                Live.Box(box, orientation, without(kids, i))
+            }
+            _ => panic("kivuli: a Remove patch points into something that isn't a column or row"),
         })
     }
     Replace(path, v) => if path.len == 0 {
@@ -266,46 +295,56 @@ fun apply<Msg>(
         fresh
     } else {
         let i = path[path.len - 1];
-        with_box(live, parent(path), 0, fun(
-            box: gtk.raw.GtkWidget,
-            kids: Live<Msg>[],
-        ): Live<Msg>[] {
-            let fresh = create(v, send);
-            // Insert after the previous sibling (or first), then drop the
-            // old widget, so the new one takes exactly its place.
-            let before: Option<gtk.raw.GtkWidget> = if i == 0 {
-                None
-            } else {
-                Some(widget(kids[i - 1]))
-            };
-            gtk.raw.gtk_box_insert_child_after(box, widget(fresh), before);
-            gtk.raw.gtk_box_remove(box, widget(kids[i]));
-            let mut next = kids;
-            next[i] = fresh;
-            next
+        update_at(live, parent(path), 0, fun(node: Live<Msg>): Live<Msg> = match node {
+            Box(box, orientation, kids) => {
+                let fresh = create_in(v, orientation, send);
+                // Insert after the previous sibling (or first), then drop the
+                // old widget, so the new one takes exactly its place.
+                let before: Option<gtk.raw.GtkWidget> = if i == 0 {
+                    None
+                } else {
+                    Some(widget(kids[i - 1]))
+                };
+                gtk.raw.gtk_box_insert_child_after(box, widget(fresh), before);
+                gtk.raw.gtk_box_remove(box, widget(kids[i]));
+                let mut next = kids;
+                next[i] = fresh;
+                Live.Box(box, orientation, next)
+            }
+            Scroll(scrolled, _) => {
+                // Setting a new child drops the old one (and the viewport GTK
+                // may have wrapped it in).
+                let fresh = create_in(v, 1, send);
+                gtk.raw.gtk_scrolled_window_set_child(scrolled, Some(widget(fresh)));
+                Live.Scroll(scrolled, fresh)
+            }
+            _ => panic("kivuli: a Replace patch points into something with no children"),
         })
     },
 };
 
 /**
- * Finds the box at `path` (from `depth` on), lets `f` change its widgets
- * and children, and rebuilds the `Live` tree around the new children.
+ * Rebuilds the `Live` tree with the node at `path` (from `depth` on) replaced
+ * by `f(node)`. `f` also makes the matching change to the widgets.
  */
-fun with_box<Msg>(
+fun update_at<Msg>(
     node: Live<Msg>,
     path: i64[],
     depth: i64,
-    f: fun(gtk.raw.GtkWidget, Live<Msg>[]): Live<Msg>[],
-): Live<Msg> = match node {
-    Box(box, kids) => if depth == path.len {
-        Live.Box(box, f(box, kids))
-    } else {
-        let i = path[depth];
-        let mut next = kids;
-        next[i] = with_box(kids[i], path, depth + 1, f);
-        Live.Box(box, next)
-    },
-    _ => panic("kivuli: a patch's path leads through something that isn't a column or row"),
+    f: fun(Live<Msg>): Live<Msg>,
+): Live<Msg> = if depth == path.len {
+    f(node)
+} else {
+    match node {
+        Box(box, orientation, kids) => {
+            let i = path[depth];
+            let mut next = kids;
+            next[i] = update_at(kids[i], path, depth + 1, f);
+            Live.Box(box, orientation, next)
+        }
+        Scroll(scrolled, kid) => Live.Scroll(scrolled, update_at(kid, path, depth + 1, f)),
+        _ => panic("kivuli: a patch's path leads through something with no children"),
+    }
 };
 
 /** The node at `path`. */
@@ -313,8 +352,9 @@ fun at<Msg>(node: Live<Msg>, path: i64[]): Live<Msg> {
     let mut here = node;
     for i of path {
         here = match here {
-            Box(_, kids) => kids[i],
-            _ => panic("kivuli: a patch's path leads through something that isn't a column or row"),
+            Box(_, _, kids) => kids[i],
+            Scroll(_, kid) => kid,
+            _ => panic("kivuli: a patch's path leads through something with no children"),
         };
     }
     here
@@ -324,9 +364,19 @@ fun at<Msg>(node: Live<Msg>, path: i64[]): Live<Msg> {
 fun widget<Msg>(node: Live<Msg>): gtk.raw.GtkWidget = match node {
     Label(w) => w,
     Button(w, _) => w,
-    Box(w, _) => w,
+    Box(w, _, _) => w,
     Input(w, _) => w,
     Checkbox(w, _) => w,
+    Spacer(w) => w,
+    Separator(w) => w,
+    Scroll(w, _) => w,
+};
+
+/** A Lugha `bool` as a C `gboolean`. */
+fun flag(b: bool): i32 = if b {
+    1
+} else {
+    0
 };
 
 fun parent(path: i64[]): i64[] {

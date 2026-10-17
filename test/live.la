@@ -4,7 +4,7 @@
 import std.env;
 import gtk;
 import kivuli.live { Live, Running, State, create, dispatch, sender, widget };
-import kivuli { View, button, checkbox, column, input, text };
+import kivuli { View, button, checkbox, column, input, row, scroll, separator, spacer, text };
 
 enum Msg {
     Add,
@@ -54,7 +54,21 @@ fun shown<M>(node: Live<M>): string = match node {
         };
         "[{tick}] " + gtk.raw.gtk_check_button_get_label(w).unwrap_or("?")
     }
-    Box(_, kids) => {
+    Spacer(w) => {
+        let grows = if gtk.raw.gtk_widget_get_vexpand(w) != 0 {
+            "v"
+        } else {
+            "h"
+        };
+        "~{grows}"
+    }
+    Separator(w) => if gtk.raw.gtk_orientable_get_orientation(w) == 0 {
+        "-"
+    } else {
+        "|"
+    },
+    Scroll(_, kid) => "scroll(" + shown(kid) + ")",
+    Box(_, _, kids) => {
         let mut out = "";
         for k of kids {
             out = out + shown(k) + " | ";
@@ -108,7 +122,7 @@ fun messages_patch_the_same_widgets() {
                 panic("no state before the press");
             };
             match before.live {
-                Box(_, kids) => gtk.raw.emit_widget(widget(kids[1]), "clicked"),
+                Box(_, _, kids) => gtk.raw.emit_widget(widget(kids[1]), "clicked"),
                 _ => panic("expected a column"),
             }
             let Some(s) = state.get() else {
@@ -198,7 +212,7 @@ fun typing_reaches_the_model_and_a_patch_does_not_echo() {
             let first = create(tree, sender(app));
             gtk.raw.gtk_window_set_child(window, widget(first));
             state.set(Some(State { model: init, tree: tree, live: first }));
-            let Box(_, kids) = first else {
+            let Box(_, _, kids) = first else {
                 panic("expected a column");
             };
             // What a user typing "Ada" ends with: the entry's text changes, outside any dispatch.
@@ -282,7 +296,7 @@ fun ticking_reaches_the_model_and_a_patch_does_not_echo() {
             let first = create(tree, sender(app));
             gtk.raw.gtk_window_set_child(window, widget(first));
             state.set(Some(State { model: init, tree: tree, live: first }));
-            let Box(_, kids) = first else {
+            let Box(_, _, kids) = first else {
                 panic("expected a column");
             };
             // What a user's click ends with: the box becomes ticked, outside any dispatch.
@@ -301,4 +315,99 @@ fun ticking_reaches_the_model_and_a_patch_does_not_echo() {
     assert_eq(after_tick.get(), "[x] Done!");
     assert_eq(after_reset.get(), "[ ] Done");
     assert_eq(received.get(), ["Done(true)", "Reset"]);
+}
+
+enum Pane {
+    More,
+    Swap,
+}
+
+struct Panel {
+    rows: i64,
+    swapped: bool,
+}
+
+fun update_panel(p: Panel, msg: Pane): Panel = match msg {
+    More => Panel { rows: p.rows + 1, ..p },
+    Swap => Panel { swapped: !p.swapped, ..p },
+};
+
+// Separators and spacers in both directions, and a scroll whose child grows
+// (Append inside it) and then changes kind (Replace of its one child).
+fun view_panel(p: Panel): View<Pane> {
+    let mut rows: View<Pane>[] = [];
+    let mut i = 0;
+    while i < p.rows {
+        rows.push(text("row {i}"));
+        i = i + 1;
+    }
+    let inside = if p.swapped {
+        button("back", Pane.Swap)
+    } else {
+        column(rows)
+    };
+    column([
+        text("top"),
+        separator(),
+        row([text("L"), spacer(), separator(), text("R")]),
+        scroll(inside),
+        spacer(),
+    ])
+}
+
+@test
+fun separators_spacers_and_scrolls_follow_their_parent_and_patch() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen: Ref<string[]> = Ref.new([]);
+    let application = gtk.raw.gtk_application_new("org.kivuli.test.layout", 0);
+    gtk.raw.connect_app(
+        application,
+        "activate",
+        fun(a: gtk.raw.GtkApplication) {
+            let window = gtk.raw.gtk_application_window_new(a);
+            let state: Ref<Option<State<Panel, Pane>>> = Ref.new(None);
+            let app = Running {
+                window: window,
+                update_fn: update_panel,
+                view_fn: view_panel,
+                state: state,
+                patching: Ref.new(false),
+            };
+            let init = Panel { rows: 1, swapped: false };
+            let tree = view_panel(init);
+            let first = create(tree, sender(app));
+            gtk.raw.gtk_window_set_child(window, widget(first));
+            state.set(Some(State { model: init, tree: tree, live: first }));
+            seen.update(fun(xs) {
+                let mut ys = xs;
+                ys.push(shown(first));
+                ys
+            });
+            for msg of [Pane.More, Pane.Swap] {
+                dispatch(app, msg);
+                let Some(s) = state.get() else {
+                    panic("no state after a message");
+                };
+                seen.update(fun(xs) {
+                    let mut ys = xs;
+                    ys.push(shown(s.live));
+                    ys
+                });
+            }
+            gtk.raw.g_application_quit(a);
+        },
+        0,
+    );
+    gtk.raw.g_application_run(application, 0, None);
+    gtk.raw.g_object_unref(application);
+
+    // `-` a horizontal separator, `|` a vertical one; `~v` a spacer growing
+    // down, `~h` one growing across.
+    assert_eq(seen.get(), [
+        "top | - | L | ~h | | | R |  | scroll(row 0 | ) | ~v | ",
+        "top | - | L | ~h | | | R |  | scroll(row 0 | row 1 | ) | ~v | ",
+        "top | - | L | ~h | | | R |  | scroll([back]) | ~v | ",
+    ]);
 }

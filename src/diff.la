@@ -12,7 +12,8 @@ import views { View };
 
 /**
  * One change to the live widgets. A path is the list of child indexes from
- * the root: `[]` is the root, `[2, 0]` the first child of the root's third.
+ * the root: `[]` is the root, `[2, 0]` the first child of the root's third. A
+ * scroll's one child is index 0.
  */
 enum Patch<Msg> {
     /** The label at the path shows new text. */
@@ -64,6 +65,10 @@ fun diff_at<Msg>(path: i64[], old: View<Msg>, new: View<Msg>): Patch<Msg>[] = ma
         cb,
         on_toggle,
     ),
+    (Spacer, Spacer) => [],
+    (Separator, Separator) => [],
+    // A scroll has one child, at index 0 of its path.
+    (Scroll(a), Scroll(b)) => diff_at(child(path, 0), a, b),
     _ => [Patch.Replace(path, new)],
 };
 

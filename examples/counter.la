@@ -1,6 +1,6 @@
 // A counter written with kivuli: a model, the messages that change it, and a
 // view of it. No widget is touched by hand.
-import kivuli { View, text, button, column, row, input, checkbox, sandbox };
+import kivuli { View, text, button, column, row, input, checkbox, separator, sandbox };
 
 struct Model {
     count: i64,
@@ -35,6 +35,7 @@ fun view(m: Model): View<Msg> = column([
     text("Clicked {m.count} times"),
     row([button("Add", Msg.Add), button("Reset", Msg.Reset)]),
     checkbox("Count by two", m.by_two, Msg.ByTwo),
+    separator(),
     text("Kithinji brian"),
 ]);
 

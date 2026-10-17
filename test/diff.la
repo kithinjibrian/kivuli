@@ -2,7 +2,7 @@
 // showing the old view show the new one. `diff` is package-level: files in
 // test/ see package-level items (lughac milestone 97).
 import kivuli.diff { Patch, diff as patches };
-import kivuli { View, text, button, column, row, input, checkbox };
+import kivuli { View, text, button, column, row, input, checkbox, spacer, separator, scroll };
 
 // Views and patches can hold functions, which have no `==`: compare what they
 // print instead (functions print as `<fun>`; DECISION-008).
@@ -144,4 +144,34 @@ fun a_relabelled_checkbox_keeps_its_widget() {
 fun a_checkbox_is_not_a_button() {
     let expected: Patch<Msg>[] = [Patch.Replace([], button("Done", Msg.Add))];
     assert_same(patches(checkbox("Done", false, Msg.Done), button("Done", Msg.Add)), expected);
+}
+
+@test
+fun spacers_and_separators_never_change() {
+    let none: Patch<Msg>[] = [];
+    assert_same(patches(column([spacer(), separator()]), column([spacer(), separator()])), none);
+}
+
+@test
+fun a_spacer_that_becomes_a_separator_is_replaced() {
+    let expected: Patch<Msg>[] = [Patch.Replace([0], separator())];
+    assert_same(patches(column([spacer()]), column([separator()])), expected);
+}
+
+@test
+fun a_scroll_leads_to_its_one_child_at_index_0() {
+    let expected: Patch<Msg>[] = [Patch.SetText([1, 0, 2], "c2"), Patch.Append([1, 0], text("d"))];
+    assert_same(
+        patches(
+            column([text("top"), scroll(column([text("a"), text("b"), text("c")]))]),
+            column([text("top"), scroll(column([text("a"), text("b"), text("c2"), text("d")]))]),
+        ),
+        expected,
+    );
+}
+
+@test
+fun a_scroll_whose_child_changes_kind_replaces_the_child() {
+    let expected: Patch<Msg>[] = [Patch.Replace([0], button("b", Msg.Add))];
+    assert_same(patches(scroll(text("a")), scroll(button("b", Msg.Add))), expected);
 }

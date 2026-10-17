@@ -23,6 +23,12 @@ public enum View<Msg> {
     Input(string, fun(string): Msg),
     /** A check box: its label, whether it's ticked, and the message each toggle sends. */
     Checkbox(string, bool, fun(bool): Msg),
+    /** Empty room that grows along its column or row, pushing what follows to the end. */
+    Spacer,
+    /** A thin line across its column or row. */
+    Separator,
+    /** One child, scrolled when it's bigger than the room it's given. */
+    Scroll(View<Msg>),
 }
 
 /**
@@ -83,3 +89,29 @@ public fun checkbox<Msg>(
     checked: bool,
     on_toggle: fun(bool): Msg,
 ): View<Msg> = View.Checkbox(label, checked, on_toggle);
+
+/**
+ * Builds empty room that grows along its column (down) or row (across), so
+ * what follows is pushed to the far end.
+ *
+ * Example:
+ *     row([text("Total"), spacer(), text("42")])
+ */
+public fun spacer<Msg>(): View<Msg> = View.Spacer;
+
+/**
+ * Builds a thin line across its column (horizontal) or row (vertical).
+ *
+ * Example:
+ *     column([text("Header"), separator(), text("Body")])
+ */
+public fun separator<Msg>(): View<Msg> = View.Separator;
+
+/**
+ * Shows `child` in a scrolled area that takes the room it's given and scrolls
+ * when the child is bigger.
+ *
+ * Example:
+ *     scroll(column(rows))
+ */
+public fun scroll<Msg>(child: View<Msg>): View<Msg> = View.Scroll(child);
