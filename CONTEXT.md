@@ -240,6 +240,12 @@ Branch: main (PRP-007 on prp-007-app_look, merged)
 
 ---
 
+## SESSION 7 — 2026-10-17 — Drop the empty-list workaround (lughac PR #68) — open
+
+Branch: main
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
