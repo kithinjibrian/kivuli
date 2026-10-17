@@ -71,6 +71,7 @@ lughac run examples/counters.la
 lughac run examples/notes.la
 lughac run examples/settings.la
 lughac run examples/gallery.la
+lughac run examples/frame.la
 ```
 
 ## What's there
@@ -122,8 +123,28 @@ lughac run examples/gallery.la
 | `.placeholder(hint)`, `.on_submit(msg)` | Text fields: a hint while empty; the message Enter sends. |
 | `.name(id)` | A name tests find a text field, text area, drop-down or slider by (not shown). |
 | `.window(title, width, height)` | On the root of `view`: the window's title (it may follow the model) and size. |
+| `.maximized()` | On the root: the window opens maximized; `.window`'s size is its size when unmaximized. |
+| `.header(start, title, end)` | On the root: a header bar as the window's title bar, with `start` views, a `title` view (`.expand()` fills the bar) and `end` views; GTK draws the window's controls. Its widgets send messages like any others. |
+| `.theme(theme(looks, surface))` | On the root: the app's colours, as typed looks (below). |
+| `.style([Look.Bar, …])` | The app's looks on any node, merged left to right: a later look wins, field by field. |
 
-Everything visual comes from the GTK theme (button styles are the theme's `suggested-action`, `destructive-action` and `flat`): there are no colours to set, and apps follow the user's light or dark theme.
+Everything visual comes from the GTK theme (button styles are the theme's `suggested-action`, `destructive-action` and `flat`), and apps follow the user's light or dark theme. kivuli ships no colours.
+
+**An app's own colours.** An app that paints its own frame names its looks in its own enum, says what each looks like as a typed `Surface`, and puts them on nodes with `.style([…])`. kivuli checks every value, generates the CSS itself (apps write none), and loads it when the window opens:
+
+```
+enum Look { Rail, Selected }
+
+fun surface(l: Look): Surface = match l {
+    Rail => Surface { background: Some(hex("#242424")), ..Surface.theme() },
+    Selected => Surface { background: Some(hex("#3a3a3a")), radius: Some(6), ..Surface.theme() },
+};
+
+column(tabs).style([Look.Rail])          // a tab: tab.style([Look.Rail, Look.Selected])
+    .theme(theme([Look.Rail, Look.Selected], surface))
+```
+
+A `Surface` sets any of `background`, `text` (text and icon colour), `border` (`Border { width, color }`) and `radius`; unset fields stay the GTK theme's. Colours come from `hex("#rgb" | "#rrggbb" | "#rrggbbaa")` or `rgb(r, g, b)`. A bad colour, a look with a value or listed twice, a look missing from the theme, or `.style` without `.theme` stops the app with a message. The theme is read when the window opens. `examples/frame.la` shows it all.
 
 **Components.** A part of an app can have its own model, messages, `update` and `view`, and sit in a bigger app through `map`, which sends `f(msg)` wherever the part would send `msg`:
 

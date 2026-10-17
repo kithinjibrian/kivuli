@@ -226,6 +226,9 @@ Branch: main (PRP-006 on prp-006-disabled_text_fields, merged)
 
 Branch: main
 
+Notes so far:
+- PRP-007 written after a talk-through (typed looks via `.style`, `.button_style` rename, window settings on the root) and approved; built on prp-007-app_look. lugha-gtk 0.1.23 pushed (CSS providers, maximize, header bars, C helpers in src/c/look.c). `.dark()` deferred: neither GTK setting switched the theme in tests (DECISION-017, the user's choice). DECISIONS 012 (resolved) and 013–016 (queued features) recorded. kivuli 0.2.0.
+
 ---
 
 ## NEXT SESSION START POINT
