@@ -22,6 +22,8 @@ public import widgets {
     keyed_column,
     lazy,
     text_area,
+    dropdown,
+    slider,
 };
 public import effects { Cmd, Sub, App };
 public import testing;

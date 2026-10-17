@@ -4,13 +4,14 @@
  * test builds a view, "clicks" or "types" through these, and checks the
  * message that comes back. Re-exported by the entry: `kivuli.testing.click`.
  *
- * Depends on: views, walk, keys
+ * Depends on: views, widgets, walk, keys
  * Used by: lib (re-exported), apps' tests
  */
 
 import views { View, Style };
 import walk { nodes };
 import keys;
+import widgets { snap };
 
 /** Why a helper couldn't do what was asked, naming what it looked for. */
 public enum Lookup {
@@ -149,6 +150,57 @@ public fun submit<Msg>(v: View<Msg>, hint: string): Result<Msg, Lookup> {
 public fun toggle<Msg>(v: View<Msg>, label: string): Result<Msg, Lookup> {
     let (checked, on_toggle) = only(checkboxes(v, label), "check box \"{label}\"")?;
     Ok(on_toggle(!checked))
+}
+
+/**
+ * The message picking the choice labelled `label` in the drop-down named
+ * `name` sends. With two equal labels, the first counts.
+ * @returns `Ok(msg)`; `Err(NotFound)` for no such drop-down or choice, or
+ * `Err(Ambiguous)` when two drop-downs have that name
+ *
+ * Example:
+ *     assert_eq(kivuli.testing.choose(view(m), "size", "Large"), Ok(Msg.Size(Size.Large)));
+ */
+public fun choose<Msg>(v: View<Msg>, name: string, label: string): Result<Msg, Lookup> {
+    let mut found: (string, Msg)[][] = [];
+    for (node, style) of nodes(v) {
+        match node {
+            Dropdown(choices, _) => if style.name == name {
+                found.push(choices);
+            },
+            _ => {}
+        }
+    }
+    let choices = only(found, "drop-down \"{name}\"")?;
+    for (l, msg) of choices {
+        if l == label {
+            return Ok(msg);
+        }
+    }
+    Err(Lookup.NotFound("choice \"{label}\" in \"{name}\""))
+}
+
+/**
+ * The message moving the slider named `name` to `value` sends: the value is
+ * clamped to the slider's range and put on its nearest step, as the widget
+ * does. Panics when the slider's least value is greater than its greatest.
+ * @returns `Ok(msg)`; `Err(NotFound)` or `Err(Ambiguous)`
+ *
+ * Example:
+ *     assert_eq(kivuli.testing.slide(view(m), "volume", 42), Ok(Msg.Volume(42)));
+ */
+public fun slide<Msg>(v: View<Msg>, name: string, value: i64): Result<Msg, Lookup> {
+    let mut found: (i64, i64, i64, fun(i64): Msg)[] = [];
+    for (node, style) of nodes(v) {
+        match node {
+            Slider(min, max, _, on_change) => if style.name == name {
+                found.push((min, max, style.step, on_change));
+            },
+            _ => {}
+        }
+    }
+    let (min, max, step, on_change) = only(found, "slider \"{name}\"")?;
+    Ok(on_change(snap(value, min, max, step)))
 }
 
 /**

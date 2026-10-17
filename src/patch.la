@@ -15,10 +15,15 @@ import gtk {
     gtk_box_reorder_child_after,
     gtk_button_set_label,
     gtk_check_button_set_active,
+    gtk_drop_down_get_selected,
+    gtk_drop_down_set_model,
+    gtk_drop_down_set_selected,
     gtk_editable_get_text,
     gtk_editable_set_text,
     gtk_label_set_text,
+    gtk_range_set_range,
     gtk_scrolled_window_set_child,
+    gtk_string_list_unref,
     gtk_text_buffer_set_text,
     gtk_widget_set_sensitive,
     gtk_window_set_child,
@@ -26,8 +31,8 @@ import gtk {
     lgtk_text_place_cursor,
 };
 import diff;
-import build { create, create_in, text_of };
-import styling { apply_style, flag };
+import build { create, create_in, picked, position, string_list, text_of };
+import styling { apply_style, flag, show_number };
 import live_tree { Live, widget };
 
 /** Applies one patch to the widgets, and returns the `Live` tree that now mirrors them. */
@@ -106,6 +111,57 @@ fun apply<Msg>(
         match at(live, path) {
             Checkbox(_, _, current) => current.set(on_toggle),
             _ => panic("kivuli: a SetOnToggle patch points at something that isn't a check box"),
+        }
+        live
+    }
+    SetChoices(path, choices, selected) => {
+        match at(live, path) {
+            Dropdown(drop, blank, current) => {
+                let pick = picked(choices, selected);
+                // The handler reads these: set before GTK's list changes.
+                let relist = pick.is_none() != blank.get() || labels(current.get()) != labels(
+                    choices,
+                );
+                blank.set(pick.is_none());
+                current.set(choices);
+                // Rebuilt only when what it lists changes: an open drop-down stays open.
+                if relist {
+                    let list = string_list(choices, pick.is_none());
+                    gtk_drop_down_set_model(drop, Some(list));
+                    gtk_string_list_unref(list);
+                }
+                if gtk_drop_down_get_selected(drop) != position(pick) {
+                    gtk_drop_down_set_selected(drop, position(pick));
+                }
+            }
+            _ => panic("kivuli: a SetChoices patch points at something that isn't a drop-down"),
+        }
+        live
+    }
+    SetRange(path, min, max) => {
+        match at(live, path) {
+            Slider(scale, range, last, _) => {
+                let (_, _, step) = range.get();
+                range.set((min, max, step));
+                gtk_range_set_range(scale, min as f64, max as f64);
+                // GTK clamps the handle; this also puts it on a step of the new range.
+                show_number(scale, range, last, last.get());
+            }
+            _ => panic("kivuli: a SetRange patch points at something that isn't a slider"),
+        }
+        live
+    }
+    SetNumber(path, n) => {
+        match at(live, path) {
+            Slider(scale, range, last, _) => show_number(scale, range, last, n),
+            _ => panic("kivuli: a SetNumber patch points at something that isn't a slider"),
+        }
+        live
+    }
+    SetOnSlide(path, on_change) => {
+        match at(live, path) {
+            Slider(_, _, _, current) => current.set(on_change),
+            _ => panic("kivuli: a SetOnSlide patch points at something that isn't a slider"),
         }
         live
     }
@@ -223,6 +279,9 @@ fun at<Msg>(node: Live<Msg>, path: i64[]): Live<Msg> {
     }
     here
 }
+
+/** The choices' labels, in order. */
+fun labels<Msg>(choices: (string, Msg)[]): string[] = choices.map(fun(choice) = choice.0);
 
 fun parent(path: i64[]): i64[] {
     let mut p: i64[] = [];

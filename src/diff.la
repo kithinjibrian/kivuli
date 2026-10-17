@@ -32,6 +32,14 @@ enum Patch<Msg> {
     SetChecked(i64[], bool),
     /** The check box at the path turns toggles into messages with this function from now on. */
     SetOnToggle(i64[], fun(bool): Msg),
+    /** The drop-down at the path offers these choices, the one labelled so shown picked. */
+    SetChoices(i64[], (string, Msg)[], string),
+    /** The slider at the path runs from the first number to the second. */
+    SetRange(i64[], i64, i64),
+    /** The slider at the path shows this number. */
+    SetNumber(i64[], i64),
+    /** The slider at the path turns moves into messages with this function from now on. */
+    SetOnSlide(i64[], fun(i64): Msg),
     /** The widget at the path takes this whole style (every modifier, defaults included). */
     SetStyle(i64[], Style),
     /** The widget at the path is a different kind now: build this view in its place. */
@@ -50,8 +58,9 @@ enum Patch<Msg> {
  * Lists the changes that turn widgets showing `old` into widgets showing
  * `new`, in the order they must be applied. Two equal trees of text and
  * columns give no changes. Every button gives a `SetMsg`, every text field a
- * `SetOnChange` and every check box a `SetOnToggle`, because messages and
- * functions can't be compared.
+ * `SetOnChange`, every check box a `SetOnToggle`, every drop-down a
+ * `SetChoices` and every slider a `SetOnSlide`, because messages and functions
+ * can't be compared.
  */
 fun diff<Msg>(old: View<Msg>, new: View<Msg>): Patch<Msg>[] = diff_at([], old, new);
 
@@ -181,6 +190,14 @@ fun diff_inside<Msg>(
         cb,
         on_toggle,
     ),
+    // Always: the choices' messages can't be compared (`patch` touches GTK only on a real change).
+    (Dropdown(_, _), Dropdown(choices, selected)) => [Patch.SetChoices(path, choices, selected)],
+    (Slider(min_a, max_a, a, _), Slider(min_b, max_b, b, on_change)) => diff_slider(
+        path,
+        (min_a, max_a, a),
+        (min_b, max_b, b),
+        on_change,
+    ),
     (Spacer, Spacer) => [],
     (Separator, Separator) => [],
     // A scroll has one child, at index 0 of its path.
@@ -237,6 +254,24 @@ fun diff_checkbox<Msg>(
         out.push(Patch.SetChecked(path, checked));
     }
     out.push(Patch.SetOnToggle(path, on_toggle));
+    out
+}
+
+/** A slider's range and number, as `(min, max, value)`, old and new. */
+fun diff_slider<Msg>(
+    path: i64[],
+    old: (i64, i64, i64),
+    new: (i64, i64, i64),
+    on_change: fun(i64): Msg,
+): Patch<Msg>[] {
+    let mut out: Patch<Msg>[] = [];
+    if old.0 != new.0 || old.1 != new.1 {
+        out.push(Patch.SetRange(path, new.0, new.1));
+    }
+    if old.2 != new.2 {
+        out.push(Patch.SetNumber(path, new.2));
+    }
+    out.push(Patch.SetOnSlide(path, on_change));
     out
 }
 

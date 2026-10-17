@@ -4,14 +4,17 @@
  * nodes; not responsible for running the app or deciding what changed
  * (`live`, `diff`).
  *
- * Depends on: views, live_tree, styling, gtk.raw
+ * Depends on: views, widgets, live_tree, styling, gtk.raw
  * Used by: live
  */
 
 import gtk {
+    GParamSpec,
+    GtkStringList,
     GtkTextBuffer,
     GtkWidget,
     connect_buffer,
+    connect_notify,
     connect_widget,
     g_free,
     g_timeout_add_full,
@@ -22,14 +25,25 @@ import gtk {
     gtk_check_button_new,
     gtk_check_button_set_active,
     gtk_check_button_set_child,
+    gtk_drop_down_get_selected,
+    gtk_drop_down_new,
+    gtk_drop_down_set_selected,
     gtk_editable_get_text,
     gtk_editable_set_text,
     gtk_entry_new,
     gtk_label_new,
+    gtk_range_get_value,
+    gtk_range_set_range,
+    gtk_range_set_value,
+    gtk_scale_new_with_range,
+    gtk_scale_set_digits,
+    gtk_scale_set_draw_value,
     gtk_scrolled_window_get_child,
     gtk_scrolled_window_new,
     gtk_scrolled_window_set_child,
     gtk_separator_new,
+    gtk_string_list_append,
+    gtk_string_list_new,
     gtk_shortcut_controller_new,
     gtk_shortcut_controller_set_scope,
     gtk_text_buffer_set_text,
@@ -47,7 +61,8 @@ import gtk {
 };
 import live_tree { Live, widget };
 import views { View, Style };
-import styling { apply_style, flag };
+import styling { apply_style, flag, show_number };
+import widgets { snap };
 
 /** Builds the GTK widgets for `v` at the top of a window; each widget sends its messages through `send`. */
 fun create<Msg>(v: View<Msg>, send: fun(Msg)): Live<Msg> = create_in(v, 1, send);
@@ -158,6 +173,63 @@ fun create_in<Msg>(v: View<Msg>, axis: i32, send: fun(Msg)): Live<Msg> = match v
         );
         Live.Checkbox(check, text, current)
     }
+    Dropdown(choices, selected) => {
+        let at = picked(choices, selected);
+        // The drop-down owns the list it's made with.
+        let drop = gtk_drop_down_new(Some(string_list(choices, at.is_none())), None);
+        // Set before connecting, so the first pick isn't sent as a choice.
+        gtk_drop_down_set_selected(drop, position(at));
+        let blank = Ref.new(at.is_none());
+        let current = Ref.new(choices);
+        connect_notify(
+            drop,
+            "notify::selected",
+            fun(d: GtkWidget, spec: Option<GParamSpec>) {
+                // The blank item is 0 when shown: it, and "none", send nothing.
+                let i = gtk_drop_down_get_selected(d) as i64 - if blank.get() { 1 } else { 0 };
+                let now = current.get();
+                if i >= 0 && i < now.len {
+                    send(now[i].1);
+                }
+            },
+            0,
+        );
+        Live.Dropdown(drop, blank, current)
+    }
+    Slider(min, max, value, on_change) => {
+        // Made on 0..1 (GTK refuses an empty range here) and then given its own,
+        // which may be a single number.
+        let scale = gtk_scale_new_with_range(0, 0.0, 1.0, 1.0);
+        gtk_range_set_range(scale, min as f64, max as f64);
+        // Whole numbers, drawn beside the handle.
+        gtk_scale_set_digits(scale, 0);
+        gtk_scale_set_draw_value(scale, 1);
+        // Steps of 1 until `.step` styles it; `snap` panics on min > max.
+        let range = Ref.new((min, max, 1));
+        let last = Ref.new(snap(value, min, max, 1));
+        // Set before connecting, so the first number isn't sent as a move.
+        show_number(scale, range, last, value);
+        let current = Ref.new(on_change);
+        connect_widget(
+            scale,
+            "value-changed",
+            fun(s: GtkWidget) {
+                let (lo, hi, step) = range.get();
+                let raw = gtk_range_get_value(s);
+                let v = snap(nearest(raw), lo, hi, step);
+                if v as f64 != raw {
+                    // Between steps: put the handle on one; that move comes back here.
+                    gtk_range_set_value(s, v as f64);
+                } else if v != last.get() {
+                    last.set(v);
+                    let f = current.get();
+                    send(f(v));
+                }
+            },
+            0,
+        );
+        Live.Slider(scale, range, last, current)
+    }
     Spacer => {
         // An empty box given all the spare room along its parent's axis.
         let room = gtk_box_new(0, 0);
@@ -231,6 +303,39 @@ fun focus_target<Msg>(node: Live<Msg>): GtkWidget = match node {
     TextArea(scrolled, _, _) => gtk_scrolled_window_get_child(scrolled).unwrap_or(scrolled),
     _ => widget(node),
 };
+
+/** The index of the first choice labelled `selected`, or `None` when no choice is. */
+fun picked<Msg>(choices: (string, Msg)[], selected: string): Option<i64> {
+    let mut i = 0;
+    while i < choices.len {
+        if choices[i].0 == selected {
+            return Some(i);
+        }
+        i = i + 1;
+    }
+    None
+}
+
+/** A new GTK list of the choices' labels, after a blank item when `blank`. */
+fun string_list<Msg>(choices: (string, Msg)[], blank: bool): GtkStringList {
+    let list = gtk_string_list_new(None);
+    if blank {
+        gtk_string_list_append(list, "");
+    }
+    for (label, _) of choices {
+        gtk_string_list_append(list, label);
+    }
+    list
+}
+
+/** The item a drop-down picks for `picked`: that choice, or the blank item (first) for none. */
+fun position(at: Option<i64>): u32 = match at {
+    Some(i) => i as u32,
+    None => 0,
+};
+
+/** `x` rounded to the nearest whole number, half-way away from zero. */
+fun nearest(x: f64): i64 = if x >= 0.0 { (x + 0.5) as i64 } else { -((0.5 - x) as i64) };
 
 /** A text buffer's whole text; the copy C allocated is freed. */
 fun text_of(buffer: GtkTextBuffer): string {

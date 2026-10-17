@@ -3,7 +3,7 @@
  * text, long text, button look, shortcut, tooltip), defaults included, so a
  * dropped modifier is undone. Used when widgets are made and by `SetStyle`.
  *
- * Depends on: views, keys, live_tree, gtk.raw
+ * Depends on: views, widgets, keys, live_tree, gtk.raw
  * Used by: build, patch
  */
 
@@ -23,6 +23,8 @@ import gtk {
     gtk_label_set_selectable,
     gtk_label_set_wrap,
     gtk_label_set_wrap_mode,
+    gtk_range_set_increments,
+    gtk_range_set_value,
     gtk_shortcut_controller_add_shortcut,
     gtk_shortcut_controller_remove_shortcut,
     gtk_shortcut_new,
@@ -48,6 +50,7 @@ import gtk {
 import live_tree { Live, widget };
 import views { Style, Align, ButtonStyle };
 import keys { parse };
+import widgets { snap };
 
 /**
  * Gives `node`'s widget every field of `style`, defaults included, so a
@@ -97,8 +100,27 @@ fun apply_style<Msg>(node: Live<Msg>, style: Style, axis: i32) {
             style_button(button, style.look);
             style_shortcut(controller, shortcut, style.shortcut);
         }
+        Slider(scale, range, last, _) => {
+            let (min, max, _) = range.get();
+            range.set((min, max, style.step));
+            // Arrow keys move one step, Page Up/Down ten.
+            gtk_range_set_increments(scale, style.step as f64, (style.step * 10) as f64);
+            show_number(scale, range, last, last.get());
+        }
         _ => {}
     }
+}
+
+/**
+ * Moves a slider's handle to `n`, put on its range and steps. `last` is set
+ * first, so the `value-changed` this causes is seen as no change and sends
+ * nothing, even outside a patch.
+ */
+fun show_number(scale: GtkWidget, range: Ref<(i64, i64, i64)>, last: Ref<i64>, n: i64) {
+    let (min, max, step) = range.get();
+    let v = snap(n, min, max, step);
+    last.set(v);
+    gtk_range_set_value(scale, v as f64);
 }
 
 /**

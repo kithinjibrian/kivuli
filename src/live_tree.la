@@ -37,6 +37,17 @@ enum Live<Msg> {
      * function turning its text into a message (its `changed` handler reads it).
      */
     TextArea(GtkWidget, GtkTextBuffer, Ref<fun(string): Msg>),
+    /**
+     * A drop-down, whether its list starts with the blank item (shown when no
+     * choice is picked), and the choices its `notify::selected` handler reads.
+     */
+    Dropdown(GtkWidget, Ref<bool>, Ref<(string, Msg)[]>),
+    /**
+     * A slider (a `GtkScale`), its `(min, max, step)`, the number it last
+     * showed or sent, and the function turning a move into a message: its
+     * `value-changed` handler reads all three.
+     */
+    Slider(GtkWidget, Ref<(i64, i64, i64)>, Ref<i64>, Ref<fun(i64): Msg>),
     Spacer(GtkWidget),
     Separator(GtkWidget),
     /** A scrolled window and the one child it shows. */
@@ -51,6 +62,8 @@ fun widget<Msg>(node: Live<Msg>): GtkWidget = match node {
     Input(w, _, _) => w,
     Checkbox(w, _, _) => w,
     TextArea(w, _, _) => w,
+    Dropdown(w, _, _) => w,
+    Slider(w, _, _, _) => w,
     Spacer(w) => w,
     Separator(w) => w,
     Scroll(w, _) => w,
