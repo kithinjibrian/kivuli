@@ -12,17 +12,6 @@ Rules:
 
 ## OPEN — Requires human input before implementation
 
-### DECISION-018 — Where View's modifiers go once views.la is full
-
-**Status:** open (blocks the next new modifier, not PRP-008)
-**Raised:** 2026-10-17 — Session 8 (PRP-008)
-
-**Question:** `src/views.la` reaches about 499 lines with PRP-008. Lugha attaches an `impl` only to a type in the same file, so the modifiers can't move out. Options: (A) move `View.map`'s body (about 60 lines) to a new module whose free function the method calls: `views` and that module would import each other (Lugha allows cycles; CLAUDE.md rule 2 says imports run one way), so it needs an explicit exception; (B) move the `View` enum and its `impl` into their own file and keep the rest of `views.la`; little else is left in it, so this barely helps; (C) raise the file size rule for `views.la` alone.
-
-**Recommendation:** (A), with the exception written into CLAUDE.md's architecture rule 2: the only cycle allowed is `views` ↔ the module holding `map`'s body.
-
----
-
 ---
 
 ## DEFERRED — Acknowledged, not yet needed
@@ -130,6 +119,20 @@ Rules:
 ---
 
 ## RESOLVED
+
+### DECISION-018 — Where View's modifiers go once views.la is full
+
+**Status:** resolved
+**Resolved:** 2026-10-18 — Session 11 (PRP-010)
+**Raised:** 2026-10-17 — Session 8 (PRP-008)
+
+**Question:** `src/views.la` reaches about 499 lines with PRP-008. Lugha attaches an `impl` only to a type in the same file, so the modifiers can't move out. Options: (A) move `View.map`'s body (about 60 lines) to a new module whose free function the method calls: `views` and that module would import each other (Lugha allows cycles; CLAUDE.md rule 2 says imports run one way), so it needs an explicit exception; (B) move the `View` enum and its `impl` into their own file and keep the rest of `views.la`; little else is left in it, so this barely helps; (C) raise the file size rule for `views.la` alone.
+
+**Outcome:** (A), the user's choice: `View.map`'s body moves to `src/mapping.la`; `views` and `mapping` import each other, the one written exception to CLAUDE.md's architecture rule 2.
+
+**Copied to MEMORY.md:** with PRP-010's merge.
+
+---
 
 ### DECISION-012 — How apps style their frame
 
