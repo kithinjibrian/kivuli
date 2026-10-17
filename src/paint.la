@@ -59,12 +59,19 @@ fun paint_all<Msg>(xs: View<Msg>[], t: Option<Theme>): Result<View<Msg>[], strin
     Ok(out)
 }
 
-/** `s` with the classes of its looks. */
-fun paint_style(s: Style, t: Option<Theme>): Result<Style, string> = if s.looks.len == 0 {
-    Ok(Style { classes: [], ..s })
+/** `s` with the classes of its looks, and of its header's (the root's). */
+fun paint_style(s: Style, t: Option<Theme>): Result<Style, string> = Ok(Style {
+    classes: classes_of(s.looks, t)?,
+    header_classes: classes_of(s.header_looks, t)?,
+    ..s,
+});
+
+/** The classes of these looks in the theme. */
+fun classes_of(names: string[], t: Option<Theme>): Result<string[], string> = if names.len == 0 {
+    Ok([])
 } else {
     match t {
-        Some(theme) => Ok(Style { classes: classes(merged(theme, s.looks)?), ..s }),
+        Some(theme) => Ok(classes(merged(theme, names)?)),
         None => Err("a node has .style([…]) but the root has no .theme(…)"),
     }
 };

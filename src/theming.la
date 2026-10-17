@@ -42,6 +42,12 @@ public struct Surface {
     public border: Option<Border>,
     /** The corner radius in pixels. */
     public radius: Option<i64>,
+    /**
+     * `Some(true)` turns the theme's edges off: its shadow, and its border
+     * line (as themes draw under a header bar), unless this look sets its own
+     * `border`. `None` or `Some(false)`: the theme's.
+     */
+    public flat: Option<bool>,
 }
 
 impl Surface {
@@ -51,6 +57,7 @@ impl Surface {
         text: None,
         border: None,
         radius: None,
+        flat: None,
     };
 }
 
@@ -190,6 +197,7 @@ fun merged(t: Theme, names: string[]): Result<Surface, string> {
             text: if s.text.is_some() { s.text } else { out.text },
             border: if s.border.is_some() { s.border } else { out.border },
             radius: if s.radius.is_some() { s.radius } else { out.radius },
+            flat: if s.flat.is_some() { s.flat } else { out.flat },
         };
     }
     Ok(out)
@@ -238,6 +246,14 @@ fun rules(s: Surface): (string, string)[] {
     match s.radius {
         Some(r) => out.push(("kv-radius-{r}", "border-radius: {r}px;")),
         None => {}
+    }
+    if s.flat == Some(true) {
+        // Decided here, not by the cascade: a look's own border stays.
+        if s.border.is_some() {
+            out.push(("kv-flat-shadow", "box-shadow: none;"));
+        } else {
+            out.push(("kv-flat", "box-shadow: none; border-width: 0;"));
+        }
     }
     out
 }

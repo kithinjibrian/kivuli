@@ -206,3 +206,47 @@ fun a_header_bar_is_the_titlebar_and_its_parts_follow_the_model() {
     ]);
     assert_eq(received.get(), ["Back", "More", "More"]);
 }
+
+enum Head {
+    Toggle,
+}
+
+fun view_head(on: bool): View<Head> = column([text("page")]).theme(
+    theme([Look.Bar, Look.Red], surface),
+).header([button("Toggle", Head.Toggle)], text("Title"), []).header_style(
+    if on { [Look.Bar, Look.Red] } else { [] },
+);
+
+/** The bar's classes and text colour, as far as its looks go. */
+fun bar_state(bar: GtkWidget): string {
+    let red = lgtk_widget_rgba(bar) == 4278190335;
+    "kv-bg {gtk_widget_has_css_class(bar, "kv-bg-242424ff")} kv-fg {gtk_widget_has_css_class(bar, "kv-fg-ff0000ff")} red {red} titlebar {gtk_widget_has_css_class(bar, "titlebar")}"
+}
+
+@test
+fun the_header_bar_takes_its_looks_and_the_apps_css_wins_there() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen: Ref<string[]> = Ref.new([]);
+    let received: Ref<string[]> = Ref.new([]);
+    with_app("org.kivuli.test.header_look", true, fun(
+        on: bool,
+        msg: Head,
+    ): bool = !on, view_head, received, fun(window: GtkWidget, root: fun(): Live<Head>) {
+        let Framed(bar, _, _, Pack(_, _, start), _) = root() else {
+            panic("expected a header");
+        };
+        note(seen, bar_state(bar));
+        emit_widget(widget(start[0]), "clicked");
+        note(seen, bar_state(bar));
+        emit_widget(widget(start[0]), "clicked");
+        note(seen, bar_state(bar));
+    });
+    assert_eq(seen.get(), [
+        "kv-bg 1 kv-fg 1 red true titlebar 1",
+        "kv-bg 0 kv-fg 0 red false titlebar 1",
+        "kv-bg 1 kv-fg 1 red true titlebar 1",
+    ]);
+    assert_eq(received.get(), ["Toggle", "Toggle"]);
+}

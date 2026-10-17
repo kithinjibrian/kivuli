@@ -106,6 +106,10 @@ public struct Style {
     theme: Option<Theme>,
     /** The window opens maximized (`.maximized()`). Root only. */
     maximized: bool,
+    /** The app's looks on the header bar, by name (`.header_style`). Root only, with `.header`. */
+    header_looks: string[],
+    /** The CSS classes `header_looks` give: filled in by `paint`. */
+    header_classes: string[],
 }
 
 /** The style of a node with no modifiers: what GTK does by default. */
@@ -137,4 +141,6 @@ fun plain(): Style = Style {
     classes: [],
     theme: None,
     maximized: false,
+    header_looks: [],
+    header_classes: [],
 };
