@@ -253,9 +253,20 @@ Branch: main
 
 ---
 
-## SESSION 8 — 2026-10-17 — PRP-008: header look — open
+## SESSION 8 — 2026-10-17 — PRP-008: header look, kivuli 0.3.0 — closed
 
-Branch: main
+Branch: main (PRP-008 on prp-008-header_look, merged)
+
+### WHAT WAS DONE
+- Read the themes' CSS: GTK Default-dark and Yaru-dark (its gtk.gresource) draw the line under a header bar as a 1 px bottom border, not a shadow; the screenshot's 2 px is that pixel on a scaled display.
+- PRP-008 approved and built: `.header_style([…])` on the root, `Surface.flat`; examples/frame.la's header and rail share one flat Frame look. No lugha-gtk change. kivuli 0.3.0, tagged locally.
+- DECISION-018 opened (views.la at 499 lines: how the next modifier fits); DECISION-017 got a lead (GTK's theme picks dark by a CSS media query on its provider).
+
+### STILL OPEN AT CLOSE
+- Not pushed, waiting for the user's go: main (session 7's and this session's commits) and tag v0.3.0.
+- For the user to check by hand: `lughac run examples/frame.la`: the header bar and rail are one #242424 surface with no line between them, focused or not.
+- DECISION-018 blocks the next new modifier.
+- `reports/.gitkeep` deleted in the working tree, not by Claude; left alone.
 
 ---
 
