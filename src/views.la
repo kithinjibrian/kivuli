@@ -42,103 +42,6 @@ public enum View<Msg> {
     Lazy(string, fun(): View<Msg>, Option<View<Msg>>),
 }
 
-/**
- * Builds a line of text.
- *
- * Example:
- *     text("Clicked {m.count} times")
- */
-public fun text<Msg>(s: string): View<Msg> = View.Text(s);
-
-/**
- * Builds a button that sends `msg` each time it's clicked.
- *
- * Example:
- *     button("Add", Msg.Add)
- */
-public fun button<Msg>(label: string, msg: Msg): View<Msg> = View.Button(label, Some(msg));
-
-/**
- * Stacks `children` top to bottom.
- *
- * Example:
- *     column([text("Hi"), button("Add", Msg.Add)])
- */
-public fun column<Msg>(children: View<Msg>[]): View<Msg> = View.Column(children);
-
-/**
- * Lays `children` out side by side, left to right.
- *
- * Example:
- *     row([button("Add", Msg.Add), button("Reset", Msg.Reset)])
- */
-public fun row<Msg>(children: View<Msg>[]): View<Msg> = View.Row(children);
-
-/**
- * Builds a one-line text field showing `value`. Each edit sends
- * `on_change(text)`, the field's whole new text; store it in the model and
- * pass it back as `value`.
- *
- * Example:
- *     input(m.name, Msg.Named)
- */
-public fun input<Msg>(value: string, on_change: fun(string): Msg): View<Msg> = View.Input(
-    value,
-    on_change,
-    None,
-);
-
-/**
- * Builds a check box labelled `label`, ticked when `checked`. Each toggle
- * sends `on_toggle(ticked)`; store it in the model and pass it back as
- * `checked`.
- *
- * Example:
- *     checkbox("Done", item.done, Msg.Done)
- */
-public fun checkbox<Msg>(
-    label: string,
-    checked: bool,
-    on_toggle: fun(bool): Msg,
-): View<Msg> = View.Checkbox(label, checked, on_toggle);
-
-/**
- * Builds empty room that grows along its column (down) or row (across), so
- * what follows is pushed to the far end.
- *
- * Example:
- *     row([text("Total"), spacer(), text("42")])
- */
-public fun spacer<Msg>(): View<Msg> = View.Spacer;
-
-/**
- * Builds a thin line across its column (horizontal) or row (vertical).
- *
- * Example:
- *     column([text("Header"), separator(), text("Body")])
- */
-public fun separator<Msg>(): View<Msg> = View.Separator;
-
-/**
- * Shows `child` in a scrolled area that takes the room it's given and scrolls
- * when the child is bigger.
- *
- * Example:
- *     scroll(column(rows))
- */
-public fun scroll<Msg>(child: View<Msg>): View<Msg> = View.Scroll(child);
-
-/**
- * Stacks `children` top to bottom, like `column`, but matches them across
- * views by their keys rather than their positions: reordering, inserting or
- * deleting rows moves, adds or removes just those widgets. Keys must be
- * unique within one keyed column.
- *
- * Example:
- *     keyed_column(todos.map(fun(t: Todo) = (t.id, checkbox(t.title, t.done, Msg.Done))))
- */
-public fun keyed_column<Msg>(children: (string, View<Msg>)[]): View<Msg> = View.Keyed(children);
-
 /** The app's window, as `.window(title, width, height)` sets it. */
 public struct Window {
     title: string,
@@ -196,6 +99,16 @@ public struct Style {
     placeholder: string,
     /** A name for tests to find the node by (`kivuli.testing`); not shown. */
     name: string,
+    /** Long text flows onto more lines. Text and check box labels. */
+    wrap: bool,
+    /** With `wrap`, the most characters of width the text asks for; 0 for no cap. */
+    wrap_at: i64,
+    /** Long text stays one line, cut with "…" (with `wrap`: at most 3 lines). Text and check box labels. */
+    ellipsize: bool,
+    /** The user can select and copy the text. Text only. */
+    selectable: bool,
+    /** Hover text; "" for none. Any node. */
+    tooltip: string,
 }
 
 /** The style of a node with no modifiers: what GTK does by default. */
@@ -213,6 +126,11 @@ fun plain(): Style = Style {
     window: None,
     placeholder: "",
     name: "",
+    wrap: false,
+    wrap_at: 0,
+    ellipsize: false,
+    selectable: false,
+    tooltip: "",
 };
 
 /** `v` with its style changed by `f`: one `Styled` wrapper, however many modifiers. */
@@ -378,6 +296,62 @@ impl View<Msg> {
      *     input(m.draft, Msg.Draft).on_submit(Msg.Add)
      */
     /**
+     * Lets long text flow onto more lines, breaking at word boundaries; on
+     * text and check box labels (ignored elsewhere).
+     *
+     * Example:
+     *     text(m.description).wrap()
+     */
+    public fun wrap(self): View<Msg> = restyle(self, fun(s: Style) = Style { wrap: true, ..s });
+
+    /**
+     * Wraps long text, asking for at most `chars` characters of width so it
+     * doesn't widen the window; `chars <= 0` is plain `.wrap()`.
+     *
+     * Example:
+     *     text(m.description).wrap_at(50)
+     */
+    public fun wrap_at(self, chars: i64): View<Msg> = restyle(
+        self,
+        fun(s: Style) = Style { wrap: true, wrap_at: chars, ..s },
+    );
+
+    /**
+     * Keeps long text on one line, cut at the end with "…"; with `.wrap()`,
+     * at most three lines, the last cut. On text and check box labels.
+     *
+     * Example:
+     *     checkbox(t.title, t.done, Msg.Done).ellipsize().tooltip(t.title)
+     */
+    public fun ellipsize(self): View<Msg> = restyle(
+        self,
+        fun(s: Style) = Style { ellipsize: true, ..s },
+    );
+
+    /**
+     * Lets the user select and copy the text; text only.
+     *
+     * Example:
+     *     text(m.error).wrap().selectable()
+     */
+    public fun selectable(self): View<Msg> = restyle(
+        self,
+        fun(s: Style) = Style { selectable: true, ..s },
+    );
+
+    /**
+     * Shows `hint` when the pointer rests on the node; `""` removes it. Tests
+     * can click a button by its tooltip (`kivuli.testing.click`).
+     *
+     * Example:
+     *     button("✕", Msg.Delete(t.id)).tooltip("Delete {t.title}")
+     */
+    public fun tooltip(self, hint: string): View<Msg> = restyle(
+        self,
+        fun(s: Style) = Style { tooltip: hint, ..s },
+    );
+
+    /**
      * Names the node for tests: `kivuli.testing.type_into(v, id, text)` finds
      * a text field or text area by it. Not shown on screen.
      *
@@ -432,29 +406,3 @@ impl View<Msg> {
         ),
     };
 }
-
-/**
- * Builds `build()` only when `key` differs from the key this lazy node had
- * last update; otherwise kivuli reuses what it built before, and doesn't diff
- * it either. The key must cover everything the subtree shows: leave something
- * out and a change to it won't appear. Modifiers belong inside `build`;
- * modifiers on the lazy node itself are ignored.
- *
- * Example:
- *     lazy("{t.id}:{t.done}:{t.title}", fun() = todo_row(t))
- */
-public fun lazy<Msg>(key: string, build: fun(): View<Msg>): View<Msg> = View.Lazy(key, build, None);
-
-/**
- * Builds a multi-line text field showing `value`, scrolling inside itself and
- * wrapping long lines. Each edit sends `on_change(text)`, the whole new text;
- * Enter starts a new line. `.height(n)` sets its height (80 pixels by default);
- * `.name(id)` lets tests find it.
- *
- * Example:
- *     text_area(m.notes, Msg.Notes).height(120).name("notes")
- */
-public fun text_area<Msg>(value: string, on_change: fun(string): Msg): View<Msg> = View.TextArea(
-    value,
-    on_change,
-);

@@ -1,6 +1,6 @@
 # PRP-002 — Long text and tooltips
 
-Status: draft, for the user's approval
+Status: built (session 3) on branch prp-002-long_text_and_tooltips; merged into main
 Discovery: session 3, 2026-10-17. Answers marked *(you)* were chosen in the interview; *(proposed)* are recommendations for you to confirm or change with this PRP.
 
 ## FEATURE: Modifiers for text that doesn't fit (`.wrap()`, `.wrap_at(chars)`, `.ellipsize()`), selectable text (`.selectable()`), and hover text on any node (`.tooltip(s)`).
@@ -71,15 +71,15 @@ fun deleting_by_tooltip() {
 ## TESTS TO WRITE
 
 Pure (no display):
-- [ ] `test/lib.la`: each modifier lands in the style (`wrap`, `wrap_at` setting both fields, `ellipsize`, `selectable`, `tooltip`); they merge with others.
-- [ ] `test/diff.la`: adding a tooltip or `.wrap()` is a `SetStyle`, not a rebuild.
-- [ ] `test/testing.la`: `click` by tooltip; label and tooltip on one button count once; two buttons sharing a tooltip are `Ambiguous`; `is_disabled` by tooltip; `tooltip(v, label)` gives the text, `""` when none, `NotFound` for no such button.
+- [x] `test/lib.la`: each modifier lands in the style (`wrap`, `wrap_at` setting both fields, `ellipsize`, `selectable`, `tooltip`); they merge with others.
+- [x] `test/diff.la`: adding a tooltip or `.wrap()` is a `SetStyle`, not a rebuild.
+- [x] `test/testing.la`: `click` by tooltip; label and tooltip on one button count once; two buttons sharing a tooltip are `Ambiguous`; `is_disabled` by tooltip; `tooltip(v, label)` gives the text, `""` when none, `NotFound` for no such button.
 
 Live GTK (skipped without a display):
-- [ ] `test/live_style.la`: a text with `.wrap()` reads back wrap on and `WORD_CHAR`; `.wrap_at(40)` → max-width-chars 40; `.ellipsize()` → `END` and wrap off; both → wrap on, `END`, lines 3; `.selectable()` → selectable; dropping each (a message) resets it; a tooltip set, changed and removed reads back from the widget.
-- [ ] `test/live_forms.la`: a check box's label is kivuli's `GtkLabel` child; `.ellipsize()` reaches it; relabelling (SetLabel) changes that label's text; emitting `toggled` still works.
-- [ ] lugha-gtk `test/label.la`: each new extern set and read back.
-- [ ] The to-do app's own tests: delete by tooltip.
+- [x] `test/live_style.la`: a text with `.wrap()` reads back wrap on and `WORD_CHAR`; `.wrap_at(40)` → max-width-chars 40; `.ellipsize()` → `END` and wrap off; both → wrap on, `END`, lines 3; `.selectable()` → selectable; dropping each (a message) resets it; a tooltip set, changed and removed reads back from the widget.
+- [x] `test/live_forms.la`: a check box's label is kivuli's `GtkLabel` child; `.ellipsize()` reaches it; relabelling (SetLabel) changes that label's text; emitting `toggled` still works.
+- [x] lugha-gtk `test/label.la`: each new extern set and read back.
+- [x] The to-do app's own tests: delete by tooltip.
 
 ## ROLLBACK PLAN
 
@@ -87,14 +87,20 @@ Live GTK (skipped without a display):
 - To abandon: leave it unmerged; lugha-gtk 0.1.16 is additions only.
 
 ## ACCEPTANCE CRITERIA
-- [ ] Long text can wrap, wrap at a width, be cut with "…", or both, on text and check box labels; text can be selectable; any node can have a tooltip.
-- [ ] Tests click buttons by tooltip.
-- [ ] The tests above written first and passing; the full suite and the examples' tests pass before the merge.
-- [ ] Every example builds; `lughac fmt --check` clean; every `public` item documented; no file over 500 lines.
-- [ ] CHANGELOG.md and README.md (modifier table) updated.
-- [ ] Merged into `main`.
+- [x] Long text can wrap, wrap at a width, be cut with "…", or both, on text and check box labels; text can be selectable; any node can have a tooltip.
+- [x] Tests click buttons by tooltip.
+- [x] The tests above written first and passing; the full suite and the examples' tests pass before the merge.
+- [x] Every example builds; `lughac fmt --check` clean; every `public` item documented; no file over 500 lines.
+- [x] CHANGELOG.md and README.md (modifier table) updated.
+- [x] Merged into `main`.
 
 ## VALIDATION
 - While building: only the tests covering each step (the user's rule).
 - Before the merge: `lughac fmt --check src examples test`, `lughac test test/`, `lughac test examples/todo.la examples/notes.la`, every example built; in lugha-gtk `lughac test test/`.
 - For the user: `lughac run examples/todo.la`, add a task with a very long title: it's cut with "…", its full title shows on hover, and hovering ✕ says "Delete …".
+
+## NOTES FROM THE BUILD
+
+- **The split went the other way.** Lugha attaches an `impl` block only to a type declared in the same file (spec, "Methods"), so the modifiers can't leave `views.la`. Instead the widget builders (`text` … `text_area`, plain functions) moved to `src/widgets.la`; `lib.la` re-exports both, so apps see no change. `views.la` 460 → 337 lines.
+- **Check boxes** are now built with `gtk_check_button_new` and a `GtkLabel` child kivuli keeps in the live tree (`Checkbox(widget, label, handler)`); `SetLabel` sets that label's text. The existing relabel-and-toggle GTK test passes through it unchanged.
+- **Mutation-checked:** an empty tooltip that wasn't actively cleared left the old one showing — the reset test catches it.

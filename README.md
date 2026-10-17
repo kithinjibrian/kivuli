@@ -103,6 +103,9 @@ lughac run examples/notes.la
 | `.expand()`, `.align(Align.Start \| Center \| End)` | Take spare room along the parent; place across it. |
 | `.width(n)`, `.height(n)` | A minimum size in pixels. |
 | `.size(points)`, `.bold()`, `.dim()` | Text. |
+| `.wrap()`, `.wrap_at(chars)`, `.ellipsize()` | Long text on text and check box labels: onto more lines (at most `chars` wide), or cut with "…"; both: up to three lines, the last cut. |
+| `.selectable()` | Text the user can select and copy. |
+| `.tooltip(hint)` | Hover text on any node; tests can click a button by it. |
 | `.style(ButtonStyle.Primary \| Danger \| Subtle \| Normal)`, `.disabled(bool)` | Buttons. |
 | `.placeholder(hint)`, `.on_submit(msg)` | Text fields: a hint while empty; the message Enter sends. |
 | `.name(id)` | A name tests find a text field or text area by (not shown). |
@@ -143,7 +146,7 @@ fun adding_a_task() {
 }
 ```
 
-`click`, `is_disabled`, `type_into` and `submit` (finding a text field by its placeholder or `.name`, a text area by its `.name`), `toggle` and `texts` each return a `Lookup` error when what's asked for isn't there (`NotFound`), isn't unique (`Ambiguous`) or sends nothing (`Silent`). `examples/todo.la` ends with its own tests: `lughac test examples/todo.la`.
+`click` and `is_disabled` (by a button's label or tooltip), `tooltip`, `type_into` and `submit` (finding a text field by its placeholder or `.name`, a text area by its `.name`), `toggle` and `texts` each return a `Lookup` error when what's asked for isn't there (`NotFound`), isn't unique (`Ambiguous`) or sends nothing (`Silent`). `examples/todo.la` ends with its own tests: `lughac test examples/todo.la`.
 
 ## Tests
 

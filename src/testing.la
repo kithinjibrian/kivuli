@@ -21,7 +21,8 @@ public enum Lookup {
 }
 
 /**
- * The message clicking the button labelled `label` sends.
+ * The message clicking the button labelled `label` sends; a button is also
+ * found by its tooltip.
  * @returns `Ok(msg)`; `Err(NotFound)`, `Err(Ambiguous)`, or `Err(Silent)` when it's disabled
  *
  * Example:
@@ -37,7 +38,7 @@ public fun click<Msg>(v: View<Msg>, label: string): Result<Msg, Lookup> {
 }
 
 /**
- * Whether the button labelled `label` is disabled.
+ * Whether the button labelled `label` (or with that tooltip) is disabled.
  * @returns `Ok(disabled)`; `Err(NotFound)` or `Err(Ambiguous)`
  *
  * Example:
@@ -46,6 +47,26 @@ public fun click<Msg>(v: View<Msg>, label: string): Result<Msg, Lookup> {
 public fun is_disabled<Msg>(v: View<Msg>, label: string): Result<bool, Lookup> {
     let found = only(buttons(v, label), "button \"{label}\"")?;
     Ok(found.is_none())
+}
+
+/**
+ * The tooltip of the button labelled `label`: `""` when it has none.
+ * @returns `Ok(text)`; `Err(NotFound)` or `Err(Ambiguous)`
+ *
+ * Example:
+ *     assert_eq(kivuli.testing.tooltip(view(m), "✕"), Ok("Delete milk"));
+ */
+public fun tooltip<Msg>(v: View<Msg>, label: string): Result<string, Lookup> {
+    let mut found: string[] = [];
+    for (node, style) of nodes(v) {
+        match node {
+            Button(l, _) => if l == label {
+                found.push(style.tooltip);
+            },
+            _ => {}
+        }
+    }
+    only(found, "button \"{label}\"")
 }
 
 /**
@@ -117,12 +138,13 @@ fun only<T>(found: T[], what: string): Result<T, Lookup> = if found.len == 0 {
     Ok(found[0])
 };
 
-/** The messages of the buttons labelled `label` (`None` for a disabled one). */
-fun buttons<Msg>(v: View<Msg>, label: string): Option<Msg>[] {
+/** The messages of the buttons whose label or tooltip is `s` (`None` for a disabled one). */
+fun buttons<Msg>(v: View<Msg>, s: string): Option<Msg>[] {
     let mut out: Option<Msg>[] = [];
-    for (node, _) of nodes(v) {
+    for (node, style) of nodes(v) {
         match node {
-            Button(l, msg) => if l == label {
+            // One button whose label and tooltip both match is still one match.
+            Button(l, msg) => if l == s || style.tooltip == s {
                 out.push(msg);
             },
             _ => {}

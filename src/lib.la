@@ -1,14 +1,15 @@
 /**
  * kivuli's public API and the package's entry: `import kivuli;` loads this
- * module. It holds the view tree (from `views`) and effects (from `effects`),
+ * module. It holds the view tree (types and modifiers from `views`, builders
+ * from `widgets`) and effects (from `effects`),
  * re-exported, the two ways to run an app (`sandbox` and `application`), and
  * the testing helpers as `kivuli.testing`.
  *
- * Depends on: views, effects, testing, live
+ * Depends on: views, widgets, effects, testing, live
  */
 
-public import views {
-    View,
+public import views { View, Align, ButtonStyle };
+public import widgets {
     text,
     button,
     column,
@@ -19,8 +20,6 @@ public import views {
     separator,
     scroll,
     keyed_column,
-    Align,
-    ButtonStyle,
     lazy,
     text_area,
 };

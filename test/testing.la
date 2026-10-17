@@ -1,7 +1,7 @@
 // The testing helpers, used as an app's own tests would use them, on a small
 // to-do app, with no GTK. (test/entry.la reaches them through `import kivuli;`.)
 import kivuli { View, button, checkbox, column, input, lazy, row, text, text_area };
-import kivuli.testing { Lookup, click, is_disabled, submit, texts, toggle, type_into };
+import kivuli.testing { Lookup, click, is_disabled, submit, texts, toggle, tooltip, type_into };
 
 enum Msg {
     Notes(string),
@@ -95,4 +95,33 @@ fun a_name_on_two_fields_is_ambiguous_and_an_unknown_one_not_found() {
 @test
 fun texts_leave_out_what_is_typed_in_text_areas() {
     assert_eq(texts(column([text("Notes"), text_area("secret draft", Msg.Notes)])), ["Notes"]);
+}
+
+fun deletes(): View<Msg> = column([
+    row([checkbox("milk", false, Msg.Done), button("✕", Msg.Clear).tooltip("Delete milk")]),
+    row([
+        checkbox("eggs", false, Msg.Done),
+        button("✕", Msg.Add).tooltip("Delete eggs").disabled(true),
+    ]),
+    button("Same", Msg.Add).tooltip("Same"),
+    button("Twin", Msg.Add).tooltip("Shared"),
+    button("Twin2", Msg.Clear).tooltip("Shared"),
+]);
+
+@test
+fun click_finds_a_button_by_its_tooltip() {
+    assert_eq(click(deletes(), "Delete milk"), Ok(Msg.Clear));
+    assert_eq(click(deletes(), "✕"), Err(Lookup.Ambiguous("button \"✕\"", 2)));
+    // Label and tooltip both "Same": one button, so one match.
+    assert_eq(click(deletes(), "Same"), Ok(Msg.Add));
+    assert_eq(click(deletes(), "Shared"), Err(Lookup.Ambiguous("button \"Shared\"", 2)));
+}
+
+@test
+fun is_disabled_by_tooltip_and_reading_a_tooltip() {
+    assert_eq(is_disabled(deletes(), "Delete eggs"), Ok(true));
+    assert_eq(click(deletes(), "Delete eggs"), Err(Lookup.Silent("button \"Delete eggs\"")));
+    assert_eq(tooltip(deletes(), "Twin"), Ok("Shared"));
+    assert_eq(tooltip(column([button("Plain", Msg.Add)]), "Plain"), Ok(""));
+    assert_eq(tooltip(deletes(), "Nope"), Err(Lookup.NotFound("button \"Nope\"")));
 }

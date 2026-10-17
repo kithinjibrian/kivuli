@@ -348,3 +348,14 @@ fun a_text_area_that_becomes_an_input_is_replaced() {
     let expected: Patch<Msg>[] = [Patch.Replace([], input("a", Msg.Named))];
     assert_same(patches(text_area("a", Msg.Named), input("a", Msg.Named)), expected);
 }
+
+@test
+fun a_tooltip_or_wrapping_is_a_restyle() {
+    let tip: Patch<Msg>[] = [
+        Patch.SetStyle([], Style { tooltip: "hi", ..plain() }),
+        Patch.SetMsg([], Some(Msg.Add)),
+    ];
+    assert_same(patches(button("x", Msg.Add), button("x", Msg.Add).tooltip("hi")), tip);
+    let wrapped: Patch<Msg>[] = [Patch.SetStyle([], Style { wrap: true, ..plain() })];
+    assert_same(patches(text("long"), text("long").wrap()), wrapped);
+}

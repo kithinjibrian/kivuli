@@ -15,7 +15,6 @@ import gtk {
     gtk_box_reorder_child_after,
     gtk_button_set_label,
     gtk_check_button_set_active,
-    gtk_check_button_set_label,
     gtk_editable_get_text,
     gtk_editable_set_text,
     gtk_label_set_text,
@@ -44,7 +43,7 @@ fun apply<Msg>(
     SetLabel(path, s) => {
         match at(live, path) {
             Button(w, _) => gtk_button_set_label(w, s),
-            Checkbox(w, _) => gtk_check_button_set_label(w, s),
+            Checkbox(_, label, _) => gtk_label_set_text(label, s),
             _ => panic("kivuli: a SetLabel patch points at something without a label"),
         }
         live
@@ -104,7 +103,7 @@ fun apply<Msg>(
     }
     SetOnToggle(path, on_toggle) => {
         match at(live, path) {
-            Checkbox(_, current) => current.set(on_toggle),
+            Checkbox(_, _, current) => current.set(on_toggle),
             _ => panic("kivuli: a SetOnToggle patch points at something that isn't a check box"),
         }
         live

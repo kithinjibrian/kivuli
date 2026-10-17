@@ -24,8 +24,11 @@ enum Live<Msg> {
      * message Enter sends: its `changed` and `activate` handlers read these boxes.
      */
     Input(GtkWidget, Ref<fun(string): Msg>, Ref<Option<Msg>>),
-    /** A check box and the function turning its state into a message: its `toggled` handler reads this box. */
-    Checkbox(GtkWidget, Ref<fun(bool): Msg>),
+    /**
+     * A check box, the label kivuli gave it (long-text modifiers style it), and
+     * the function turning its state into a message: its `toggled` handler reads it.
+     */
+    Checkbox(GtkWidget, GtkWidget, Ref<fun(bool): Msg>),
     /**
      * A text area: the scrolled window holding it, its buffer, and the
      * function turning its text into a message (its `changed` handler reads it).
@@ -43,7 +46,7 @@ fun widget<Msg>(node: Live<Msg>): GtkWidget = match node {
     Button(w, _) => w,
     Box(w, _, _) => w,
     Input(w, _, _) => w,
-    Checkbox(w, _) => w,
+    Checkbox(w, _, _) => w,
     TextArea(w, _, _) => w,
     Spacer(w) => w,
     Separator(w) => w,
