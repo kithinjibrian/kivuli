@@ -207,13 +207,24 @@ Branch: main
 
 ---
 
-## SESSION 5 — 2026-10-17 — PRP-006 (disabled text fields), then "app look" — open
+## SESSION 5 — 2026-10-17 — PRP-006: disabled text fields, kivuli 0.1.1 — closed
 
-Branch: main
+Branch: main (PRP-006 on prp-006-disabled_text_fields, merged)
 
-Notes so far:
+### WHAT WAS DONE
 - PRP-006 approved and built on prp-006-disabled_text_fields: optional field messages (None = disabled), SetOnChange sets sensitivity, is_field_disabled; kivuli 0.1.1.
 - "App look" discussed before its PRP. The user chose typed styles (StyleX-like: an app enum of looks, each a typed Surface, applied with `.style([...])`, later ones win, kivuli generates the CSS) over plain CSS or per-widget colours; and `.style` for it, the button variant renamed `.button_style(ButtonStyle.…)` (breaking: 0.2.0). To record in DECISIONS.md and MEMORY.md with that PRP.
+
+### STILL OPEN AT CLOSE
+- v0.1.1 tagged locally; main (6 commits) and the tag not pushed: waiting for the user's go.
+- `test/live_forms.la` split (562 lines) awaiting the user.
+- `reports/.gitkeep` deleted in the working tree, not by Claude; left alone.
+
+---
+
+## SESSION 6 — 2026-10-17 — PRP-007: app look — open
+
+Branch: main
 
 ---
 
