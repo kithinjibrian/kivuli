@@ -18,6 +18,8 @@ import kivuli {
     Align,
     ButtonStyle,
     text_area,
+    dropdown,
+    slider,
 };
 
 // Views and patches can hold functions, which have no `==`: compare what they
@@ -31,6 +33,7 @@ enum Msg {
     Reset,
     Named(string),
     Done(bool),
+    Level(i64),
 }
 
 fun counter(count: i64): View<Msg> = column([
@@ -358,4 +361,29 @@ fun a_tooltip_or_wrapping_is_a_restyle() {
     assert_same(patches(button("x", Msg.Add), button("x", Msg.Add).tooltip("hi")), tip);
     let wrapped: Patch<Msg>[] = [Patch.SetStyle([], Style { wrap: true, ..plain() })];
     assert_same(patches(text("long"), text("long").wrap()), wrapped);
+}
+
+@test
+fun a_dropdown_always_sets_its_choices() {
+    let choices = [("Add", Msg.Add), ("Reset", Msg.Reset)];
+    let expected: Patch<Msg>[] = [Patch.SetChoices([], choices, "Add")];
+    assert_same(patches(dropdown(choices, "Reset"), dropdown(choices, "Add")), expected);
+    let same: Patch<Msg>[] = [Patch.SetChoices([], choices, "Reset")];
+    assert_same(patches(dropdown(choices, "Reset"), dropdown(choices, "Reset")), same);
+}
+
+@test
+fun a_slider_sets_only_what_changed_and_re_points_its_handler() {
+    let moved: Patch<Msg>[] = [Patch.SetNumber([], 50), Patch.SetOnSlide([], Msg.Level)];
+    assert_same(patches(slider(0, 100, 42, Msg.Level), slider(0, 100, 50, Msg.Level)), moved);
+    let ranged: Patch<Msg>[] = [Patch.SetRange([], 0, 10), Patch.SetOnSlide([], Msg.Level)];
+    assert_same(patches(slider(0, 100, 5, Msg.Level), slider(0, 10, 5, Msg.Level)), ranged);
+    let still: Patch<Msg>[] = [Patch.SetOnSlide([], Msg.Level)];
+    assert_same(patches(slider(0, 100, 5, Msg.Level), slider(0, 100, 5, Msg.Level)), still);
+}
+
+@test
+fun a_dropdown_that_becomes_a_slider_is_replaced() {
+    let expected: Patch<Msg>[] = [Patch.Replace([], slider(0, 1, 0, Msg.Level))];
+    assert_same(patches(dropdown([("Add", Msg.Add)], "Add"), slider(0, 1, 0, Msg.Level)), expected);
 }

@@ -1,0 +1,233 @@
+// Drop-downs and sliders on real GTK widgets: what a user picks or slides
+// reaches the model, updates move the widgets, and kivuli's own patches don't
+// echo back as messages. Needs a display, so it is skipped without one.
+import std.env;
+import gtk {
+    GtkApplication,
+    GtkWidget,
+    connect_app,
+    emit_widget,
+    g_application_quit,
+    g_application_run,
+    g_object_unref,
+    g_timeout_add_full,
+    gtk_application_new,
+    gtk_application_window_new,
+    gtk_drop_down_get_model,
+    gtk_drop_down_get_selected,
+    gtk_drop_down_set_selected,
+    gtk_range_get_value,
+    gtk_range_set_value,
+    gtk_string_list_get_n_items,
+    gtk_string_list_get_string,
+};
+import kivuli.live { mount, live_of };
+import kivuli.effects { sandbox_app };
+import kivuli.live_tree { Live, widget };
+import kivuli { View, button, column, dropdown, slider };
+
+fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
+
+/**
+ * Runs `steps` on the mounted app's top column, noting every message `update`
+ * receives; `steps` calls its `done` to end the app.
+ */
+fun with_app<Model, Msg>(
+    id: string,
+    model: Model,
+    update: fun(Model, Msg): Model,
+    view: fun(Model): View<Msg>,
+    received: Ref<string[]>,
+    steps: fun(Live<Msg>[], fun()),
+) {
+    let application = gtk_application_new(id, 0);
+    connect_app(
+        application,
+        "activate",
+        fun(a: GtkApplication) {
+            let window = gtk_application_window_new(a);
+            let app = mount(a, window, sandbox_app(
+                "org.kivuli.test",
+                model,
+                fun(m: Model, msg: Msg): Model {
+                    received.update(fun(xs) {
+                        let mut ys = xs;
+                        ys.push("{msg}");
+                        ys
+                    });
+                    update(m, msg)
+                },
+                view,
+            ));
+            let Box(_, _, kids) = live_of(app) else {
+                panic("expected a column");
+            };
+            steps(kids, fun() {
+                g_application_quit(a);
+            });
+        },
+        0,
+    );
+    g_application_run(application, 0, None);
+    g_object_unref(application);
+}
+
+fun note(seen: Ref<string[]>, s: string) {
+    seen.update(fun(xs) {
+        let mut ys = xs;
+        ys.push(s);
+        ys
+    });
+}
+
+enum Pick {
+    Size(string),
+    Grow,
+    Reset,
+}
+
+struct Sizes {
+    size: string,
+    big: bool,
+}
+
+fun update_sizes(s: Sizes, msg: Pick): Sizes = match msg {
+    Size(size) => Sizes { size: size, ..s },
+    Grow => Sizes { big: true, ..s },
+    Reset => Sizes { size: "", ..s },
+};
+
+fun view_sizes(s: Sizes): View<Pick> {
+    let mut choices = [("Small", Pick.Size("Small")), ("Large", Pick.Size("Large"))];
+    if s.big {
+        choices.push(("Huge", Pick.Size("Huge")));
+    }
+    column([dropdown(choices, s.size), button("Grow", Pick.Grow), button("Reset", Pick.Reset)])
+}
+
+/** A drop-down as GTK shows it: its labels, "|"-separated, and the picked index. */
+fun listed(node: Live<Pick>): string {
+    let w = widget(node);
+    let mut labels: string[] = [];
+    match gtk_drop_down_get_model(w) {
+        Some(list) => {
+            let mut i: u32 = 0;
+            while i < gtk_string_list_get_n_items(list) {
+                labels.push(gtk_string_list_get_string(list, i).unwrap_or("?"));
+                i = i + 1;
+            }
+        }
+        None => {}
+    }
+    "{labels.join("|")} @{gtk_drop_down_get_selected(w)}"
+}
+
+@test
+fun a_dropdown_sends_picks_follows_the_model_and_does_not_echo() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen: Ref<string[]> = Ref.new([]);
+    let received: Ref<string[]> = Ref.new([]);
+    with_app("org.kivuli.test.dropdown", Sizes {
+        size: "Small",
+        big: false,
+    }, update_sizes, view_sizes, received, fun(kids: Live<Pick>[], done: fun()) {
+        let drop = kids[0];
+        note(seen, listed(drop));
+        // What a user's pick ends with, outside any dispatch.
+        gtk_drop_down_set_selected(widget(drop), 1);
+        note(seen, listed(drop));
+        // New labels: the list is rebuilt, the pick kept.
+        emit_widget(widget(kids[1]), "clicked");
+        note(seen, listed(drop));
+        // No such label: a blank first item, picked.
+        emit_widget(widget(kids[2]), "clicked");
+        note(seen, listed(drop));
+        // Picking a real choice past the blank sends it; the blank goes on
+        // the main loop's next turn (GTK's list can't change inside its
+        // own signal).
+        gtk_drop_down_set_selected(widget(drop), 3);
+        note(seen, listed(drop));
+        g_timeout_add_full(0, 50, fun(): i32 {
+            note(seen, listed(drop));
+            done();
+            0
+        });
+    });
+    assert_eq(seen.get(), [
+        "Small|Large @0",
+        "Small|Large @1",
+        "Small|Large|Huge @1",
+        "|Small|Large|Huge @0",
+        "|Small|Large|Huge @3",
+        "Small|Large|Huge @2",
+    ]);
+    assert_eq(received.get(), ["Size(\"Large\")", "Grow", "Reset", "Size(\"Huge\")"]);
+}
+
+enum Slide {
+    Volume(i64),
+    Font(i64),
+    Loud,
+    Small,
+}
+
+struct Levels {
+    volume: i64,
+    font: i64,
+    small: bool,
+}
+
+fun update_levels(l: Levels, msg: Slide): Levels = match msg {
+    Volume(n) => Levels { volume: n, ..l },
+    Font(n) => Levels { font: n, ..l },
+    Loud => Levels { volume: 90, ..l },
+    Small => Levels { small: true, ..l },
+};
+
+fun view_levels(l: Levels): View<Slide> = column([
+    slider(0, 100, l.volume, Slide.Volume),
+    slider(8, if l.small { 20 } else { 72 }, l.font, Slide.Font).step(2),
+    button("Loud", Slide.Loud),
+    button("Small", Slide.Small),
+]);
+
+fun number(node: Live<Slide>): string = "{gtk_range_get_value(widget(node)) as i64}";
+
+@test
+fun a_slider_sends_whole_steps_once_follows_the_model_and_does_not_echo() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen: Ref<string[]> = Ref.new([]);
+    let received: Ref<string[]> = Ref.new([]);
+    with_app("org.kivuli.test.slider", Levels {
+        volume: 50,
+        font: 13,
+        small: false,
+    }, update_levels, view_levels, received, fun(kids: Live<Slide>[], done: fun()) {
+        let volume = widget(kids[0]);
+        let font = widget(kids[1]);
+        // 13 isn't on a step of 2 from 8: shown as 14, and nothing sent.
+        note(seen, "{number(kids[0])} {number(kids[1])}");
+        // A user's move: sent once; between whole numbers it's rounded, and
+        // landing on the same number again sends nothing.
+        gtk_range_set_value(volume, 42.0);
+        gtk_range_set_value(volume, 42.4);
+        note(seen, number(kids[0]));
+        // Between steps: put on the nearest one.
+        gtk_range_set_value(font, 17.0);
+        note(seen, number(kids[1]));
+        // Updates move the handle (SetNumber) and the range (SetRange), no echo.
+        emit_widget(widget(kids[2]), "clicked");
+        emit_widget(widget(kids[3]), "clicked");
+        note(seen, "{number(kids[0])} {number(kids[1])}");
+        // Past the end: GTK clamps it to the new greatest value.
+        gtk_range_set_value(font, 40.0);
+        note(seen, number(kids[1]));
+        done();
+    });
+    assert_eq(seen.get(), ["50 14", "42", "18", "90 18", "20"]);
+    assert_eq(received.get(), ["Volume(42)", "Font(18)", "Loud", "Small", "Font(20)"]);
+}

@@ -2,7 +2,21 @@
 // subscriptions. No GTK.
 import kivuli.effects { commands, timers };
 import kivuli.testing { click, submit, texts, toggle, type_into };
-import kivuli { Cmd, Sub, View, button, checkbox, column, input, lazy, row, text, text_area };
+import kivuli {
+    Cmd,
+    Sub,
+    View,
+    button,
+    checkbox,
+    column,
+    input,
+    lazy,
+    row,
+    text,
+    text_area,
+    dropdown,
+    slider,
+};
 
 // Views and commands can hold functions, which have no `==`: compare what
 // they print instead (DECISION-008).
@@ -12,6 +26,7 @@ fun assert_same<T>(actual: T, expected: T) {
 
 // A small component with its own messages.
 enum Part {
+    Level(i64),
     Inc,
     Named(string),
     Shown(bool),
@@ -70,4 +85,12 @@ fun subscriptions_map_their_ticks() {
 fun a_mapped_text_area_sends_the_mapped_message() {
     let v = text_area("", Part.Named).name("n").map(App.Left);
     assert_eq(type_into(v, "n", "hi"), Ok(App.Left(Part.Named("hi"))));
+}
+
+@test
+fun mapped_choices_and_sliders_send_mapped_messages() {
+    let picks = dropdown([("Go", Part.Go), ("Inc", Part.Inc)], "Go").name("d").map(App.Right);
+    assert_eq(kivuli.testing.choose(picks, "d", "Inc"), Ok(App.Right(Part.Inc)));
+    let slid = slider(0, 9, 3, Part.Level).name("s").map(App.Left);
+    assert_eq(kivuli.testing.slide(slid, "s", 5), Ok(App.Left(Part.Level(5))));
 }

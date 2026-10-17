@@ -4,7 +4,7 @@
  * live in `views`; apps get both through the entry.
  *
  * Depends on: views
- * Used by: lib
+ * Used by: lib; `snap` by build and testing
  */
 
 import views { View };
@@ -131,3 +131,49 @@ public fun text_area<Msg>(value: string, on_change: fun(string): Msg): View<Msg>
     value,
     on_change,
 );
+
+/**
+ * Builds a drop-down offering `choices`, each a label and the message picking
+ * it sends; `selected` is the label shown picked. When it matches no label, a
+ * blank item is shown picked (picking it sends nothing). With two equal
+ * labels, `selected` picks the first. `.name(id)` lets tests find it.
+ *
+ * Example:
+ *     dropdown([("Normal", Msg.Weight(false)), ("Bold", Msg.Weight(true))], if m.bold { "Bold" } else { "Normal" })
+ */
+public fun dropdown<Msg>(choices: (string, Msg)[], selected: string): View<Msg> = View.Dropdown(
+    choices,
+    selected,
+);
+
+/**
+ * Builds a horizontal slider from `min` to `max` showing `value` (clamped to
+ * the range) and its number beside the handle. Each move to a new whole step
+ * sends `on_change(value)`. `.step(n)` makes it move in steps of `n`;
+ * `.name(id)` lets tests find it. `min > max` panics when it's shown.
+ *
+ * Example:
+ *     slider(0, 100, m.volume, Msg.Volume).name("volume")
+ */
+public fun slider<Msg>(
+    min: i64,
+    max: i64,
+    value: i64,
+    on_change: fun(i64): Msg,
+): View<Msg> = View.Slider(min, max, value, on_change);
+
+/**
+ * Where a slider from `min` to `max` moving in `step`s stops for `value`:
+ * clamped to the range, then the nearest step from `min` (half-way rounds up),
+ * never past `max`. Shared by the live slider and `kivuli.testing.slide`, so
+ * tests round as the widget does.
+ */
+fun snap(value: i64, min: i64, max: i64, step: i64): i64 {
+    if min > max {
+        panic("kivuli: a slider's least value {min} is greater than its greatest {max}");
+    }
+    let by = if step <= 0 { 1 } else { step };
+    let clamped = if value < min { min } else if value > max { max } else { value };
+    let near = min + (clamped - min + by / 2) / by * by;
+    if near > max { near - by } else { near }
+}

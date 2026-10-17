@@ -75,6 +75,9 @@ fun shown<M>(node: Live<M>): string = match node {
         "~{grows}"
     }
     Separator(w) => if gtk_orientable_get_orientation(w) == 0 { "-" } else { "|" },
+    // Shown in full by test/live_choices.la.
+    Dropdown(_, _) => "<choices>",
+    Slider(_, _, _, _) => "<slider>",
     Scroll(_, kid) => "scroll(" + shown(kid) + ")",
     Box(_, _, kids) => {
         let mut out = "";

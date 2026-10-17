@@ -69,6 +69,7 @@ lughac run examples/todo.la
 lughac run examples/stopwatch.la
 lughac run examples/counters.la
 lughac run examples/notes.la
+lughac run examples/settings.la
 ```
 
 ## What's there
@@ -89,6 +90,8 @@ lughac run examples/notes.la
 | `input(value, on_change)` | A one-line text field; each edit sends `on_change(text)`. |
 | `text_area(value, on_change)` | A multi-line text field that wraps and scrolls inside itself; each edit sends `on_change(text)`, Enter starts a new line. |
 | `checkbox(label, checked, on_toggle)` | Each toggle sends `on_toggle(ticked)`. |
+| `dropdown(choices, selected)` | A drop-down of `(label, msg)` choices; picking one sends its message. `selected` is the label shown picked; one matching no label shows a blank item. |
+| `slider(min, max, value, on_change)` | A whole-number slider showing its number; each move to a new step sends `on_change(value)`. `.step(n)` moves it in steps of `n` from `min`. |
 | `column(children)`, `row(children)` | Children top to bottom, or left to right. |
 | `keyed_column(children)` | Like `column`, with `(key, view)` children matched by key: reordering, inserting or deleting moves, adds or removes just those widgets. |
 | `scroll(child)` | Scrolls its child when it's bigger than the room it's given. |
@@ -109,8 +112,9 @@ lughac run examples/notes.la
 | `.shortcut(keys)` | Keys that press a button from anywhere in the window: `"Ctrl+N"`, `"Ctrl+Shift+Delete"`, `"Escape"`. A disabled button's shortcut does nothing; unreadable keys, or two enabled buttons with the same ones, stop the app with a message. |
 | `.autofocus()` | Keyboard focus goes to the node when it's first shown. |
 | `.style(ButtonStyle.Primary \| Danger \| Subtle \| Normal)`, `.disabled(bool)` | Buttons. |
+| `.step(n)` | Sliders: move in steps of `n`, counted from the least value. |
 | `.placeholder(hint)`, `.on_submit(msg)` | Text fields: a hint while empty; the message Enter sends. |
-| `.name(id)` | A name tests find a text field or text area by (not shown). |
+| `.name(id)` | A name tests find a text field, text area, drop-down or slider by (not shown). |
 | `.window(title, width, height)` | On the root of `view`: the window's title (it may follow the model) and size. |
 
 Everything visual comes from the GTK theme (button styles are the theme's `suggested-action`, `destructive-action` and `flat`): there are no colours to set, and apps follow the user's light or dark theme.
@@ -139,7 +143,7 @@ row([counter(m.left).map(Msg.Left), counter(m.right).map(Msg.Right)])
 `update` and `view` are pure, so app tests need no window. `kivuli.testing` works out what a user's action would send from a view alone:
 
 ```
-import kivuli.testing { Lookup, click, is_disabled, type_into, submit, toggle, texts };
+import kivuli.testing { Lookup, click, is_disabled, type_into, submit, toggle, choose, slide, texts };
 
 @test
 fun adding_a_task() {
@@ -149,7 +153,7 @@ fun adding_a_task() {
 }
 ```
 
-`click` and `is_disabled` (by a button's label or tooltip), `press` (by shortcut), `tooltip`, `type_into` and `submit` (finding a text field by its placeholder or `.name`, a text area by its `.name`), `toggle` and `texts` each return a `Lookup` error when what's asked for isn't there (`NotFound`), isn't unique (`Ambiguous`) or sends nothing (`Silent`). `examples/todo.la` ends with its own tests: `lughac test examples/todo.la`.
+`click` and `is_disabled` (by a button's label or tooltip), `press` (by shortcut), `tooltip`, `type_into` and `submit` (finding a text field by its placeholder or `.name`, a text area by its `.name`), `toggle`, `choose(view, name, label)` and `slide(view, name, value)` (a drop-down or slider by its `.name`; `slide` clamps and rounds to the step as the slider would) and `texts` each return a `Lookup` error when what's asked for isn't there (`NotFound`), isn't unique (`Ambiguous`) or sends nothing (`Silent`). `examples/todo.la` ends with its own tests: `lughac test examples/todo.la`.
 
 ## Tests
 

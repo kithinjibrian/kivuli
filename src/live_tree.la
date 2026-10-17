@@ -37,10 +37,34 @@ enum Live<Msg> {
      * function turning its text into a message (its `changed` handler reads it).
      */
     TextArea(GtkWidget, GtkTextBuffer, Ref<fun(string): Msg>),
+    /** A drop-down, and the state its `notify::selected` handler and patches share. */
+    Dropdown(GtkWidget, Ref<Choices<Msg>>),
+    /**
+     * A slider (a `GtkScale`), its `(min, max, step)`, the number it last
+     * showed or sent, and the function turning a move into a message: its
+     * `value-changed` handler reads all three.
+     */
+    Slider(GtkWidget, Ref<(i64, i64, i64)>, Ref<i64>, Ref<fun(i64): Msg>),
     Spacer(GtkWidget),
     Separator(GtkWidget),
     /** A scrolled window and the one child it shows. */
     Scroll(GtkWidget, Live<Msg>),
+}
+
+/**
+ * A drop-down's state. What the view asks for (`offered`, `pick`) can run
+ * ahead of GTK's list (`shown`) for one turn of the main loop: see
+ * `build.sync_choices`.
+ */
+struct Choices<Msg> {
+    /** The choices the view offers. */
+    offered: (string, Msg)[],
+    /** The index of the one shown picked; `None` shows the blank item. */
+    pick: Option<i64>,
+    /** GTK's list now, item by item: its label and the message picking it sends (`None`: the blank). */
+    shown: (string, Option<Msg>)[],
+    /** True while kivuli changes the widget or a pick is being sent: the handler then does nothing. */
+    busy: bool,
 }
 
 /** The GTK widget showing `node`. */
@@ -51,6 +75,8 @@ fun widget<Msg>(node: Live<Msg>): GtkWidget = match node {
     Input(w, _, _) => w,
     Checkbox(w, _, _) => w,
     TextArea(w, _, _) => w,
+    Dropdown(w, _) => w,
+    Slider(w, _, _, _) => w,
     Spacer(w) => w,
     Separator(w) => w,
     Scroll(w, _) => w,

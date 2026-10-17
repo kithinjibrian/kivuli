@@ -15,6 +15,8 @@ import kivuli {
     Align,
     ButtonStyle,
     text_area,
+    dropdown,
+    slider,
 };
 
 // Views and patches can hold functions, which have no `==`: compare what they
@@ -28,6 +30,7 @@ enum Msg {
     Reset,
     Named(string),
     Done(bool),
+    Level(i64),
 }
 
 struct Model {
@@ -228,4 +231,22 @@ fun shortcut_and_autofocus_land_in_the_style() {
     assert_same(button("Add", Msg.Add).shortcut("Ctrl+N"), keyed);
     let focused: View<Msg> = View.Styled(View.Text("x"), Style { autofocus: true, ..plain() });
     assert_same(text("x").autofocus(), focused);
+}
+
+@test
+fun a_dropdown_and_a_slider_are_plain_nodes() {
+    let picks: View<Msg> = View.Dropdown([("Add", Msg.Add), ("Reset", Msg.Reset)], "Reset");
+    assert_same(dropdown([("Add", Msg.Add), ("Reset", Msg.Reset)], "Reset"), picks);
+    match slider(0, 100, 42, Msg.Level) {
+        Slider(min, max, value, on_change) => {
+            assert_eq((min, max, value), (0, 100, 42));
+            assert_eq(on_change(7), Msg.Level(7));
+        }
+        _ => panic("expected a slider"),
+    }
+    let stepped: View<Msg> = View.Styled(View.Slider(0, 10, 4, Msg.Level), Style {
+        step: 2,
+        ..plain(),
+    });
+    assert_same(slider(0, 10, 4, Msg.Level).step(2), stepped);
 }

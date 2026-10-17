@@ -25,6 +25,10 @@ public enum View<Msg> {
     TextArea(string, fun(string): Msg),
     /** A check box: its label, whether it's ticked, and the message each toggle sends. */
     Checkbox(string, bool, fun(bool): Msg),
+    /** A drop-down: each choice's label and the message picking it sends, and the label shown picked. */
+    Dropdown((string, Msg)[], string),
+    /** A whole-number slider: its least and greatest value, its value, and the message each move sends. */
+    Slider(i64, i64, i64, fun(i64): Msg),
     /** Empty room that grows along its column or row, pushing what follows to the end. */
     Spacer,
     /** A thin line across its column or row. */
@@ -113,6 +117,8 @@ public struct Style {
     shortcut: string,
     /** Takes keyboard focus when first shown. Any node. */
     autofocus: bool,
+    /** How far a slider's handle moves at a time, counted from its least value; 1 by default. Sliders only. */
+    step: i64,
 }
 
 /** The style of a node with no modifiers: what GTK does by default. */
@@ -137,6 +143,7 @@ fun plain(): Style = Style {
     tooltip: "",
     shortcut: "",
     autofocus: false,
+    step: 1,
 };
 
 /** `v` with its style changed by `f`: one `Styled` wrapper, however many modifiers. */
@@ -396,6 +403,18 @@ impl View<Msg> {
         fun(s: Style) = Style { name: id, ..s },
     );
 
+    /**
+     * Makes a slider move in steps of `n`, counted from its least value: with
+     * `slider(8, 72, …).step(2)` it stops at 8, 10, 12 … `n <= 0` is 1.
+     *
+     * Example:
+     *     slider(8, 72, m.font, Msg.Font).step(2)
+     */
+    public fun step(self, n: i64): View<Msg> = restyle(
+        self,
+        fun(s: Style) = Style { step: if n <= 0 { 1 } else { n }, ..s },
+    );
+
     public fun on_submit(self, msg: Msg): View<Msg> = match self {
         Input(value, on_change, _) => View.Input(value, on_change, Some(msg)),
         Styled(inside, s) => View.Styled(inside.on_submit(msg), s),
@@ -425,6 +444,16 @@ impl View<Msg> {
             label,
             checked,
             fun(b: bool): B = f(on_toggle(b)),
+        ),
+        Dropdown(choices, selected) => View.Dropdown(
+            choices.map(fun(choice) = (choice.0, f(choice.1))),
+            selected,
+        ),
+        Slider(min, max, value, on_change) => View.Slider(
+            min,
+            max,
+            value,
+            fun(n: i64): B = f(on_change(n)),
         ),
         Spacer => View.Spacer,
         Separator => View.Separator,
