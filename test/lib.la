@@ -109,7 +109,5 @@ fun spacers_separators_and_scrolls_are_plain_nodes() {
 @test
 fun a_keyed_column_keeps_its_keys_with_its_children() {
     let expected: View<Msg> = View.Keyed([("a", View.Text("A")), ("b", View.Text("B"))]);
-    // Annotated: lughac doesn't yet infer `Msg` for a call inside a tuple.
-    let built: View<Msg> = keyed_column([("a", text("A")), ("b", text("B"))]);
-    assert_same(built, expected);
+    assert_same(keyed_column([("a", text("A")), ("b", text("B"))]), expected);
 }

@@ -234,11 +234,14 @@ fun reversing_moves_rows_one_place_at_a_time() {
 
 @test
 fun a_moved_row_is_also_diffed_at_its_new_place() {
-    // Annotated: lughac doesn't yet infer `Msg` for a call inside a tuple.
-    let before: View<Msg> = keyed_column([("a", text("a")), ("b", text("b"))]);
-    let after: View<Msg> = keyed_column([("b", text("B!")), ("a", text("a"))]);
     let expected: Patch<Msg>[] = [Patch.Move([], 1, 0), Patch.SetText([0], "B!")];
-    assert_same(patches(before, after), expected);
+    assert_same(
+        patches(
+            keyed_column([("a", text("a")), ("b", text("b"))]),
+            keyed_column([("b", text("B!")), ("a", text("a"))]),
+        ),
+        expected,
+    );
 }
 
 @test
