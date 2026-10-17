@@ -92,7 +92,7 @@ If unsure whether something has a security implication, stop and ask.
 
 ## OUTWARD-FACING ACTIONS — NON-NEGOTIABLE
 
-Ask before anything that leaves this machine: creating the GitHub repository, `git push`, tagging a release, opening PRs or issues in other repositories. Exception: lugha-gtk releases are pushed and tagged without asking (the user's standing go, session 3). The plan (`gh repo create kithinjibrian/kivuli --public`, push `main`, tag `v0.1.0`) runs only on the user's go.
+Ask before anything that leaves this machine: creating the GitHub repository, `git push`, tagging a release, opening PRs or issues in other repositories. Exception: lugha-gtk releases are pushed and tagged without asking (the user's standing go, session 3). Before any push or tag, check the test run's real exit status: `lughac test … | tail` hides a failure (lugha-gtk v0.1.19 shipped a failing test that way). The plan (`gh repo create kithinjibrian/kivuli --public`, push `main`, tag `v0.1.0`) runs only on the user's go.
 
 ---
 
