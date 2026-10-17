@@ -8,7 +8,8 @@
  * Used by: testing, keys, live
  */
 
-import views { View, Style, plain };
+import views { View };
+import looks { Style, plain };
 
 /**
  * Every node of `v` in order, without its `Styled` wrapper but with the style

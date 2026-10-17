@@ -48,7 +48,7 @@ import gtk {
     pango_attr_weight_new,
 };
 import live_tree { Live, widget };
-import views { Style, Align, ButtonStyle };
+import looks { Style, Align, ButtonStyle };
 import keys { parse };
 import widgets { snap };
 

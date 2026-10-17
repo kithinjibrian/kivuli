@@ -61,7 +61,8 @@ import gtk {
     lgtk_text_get,
 };
 import live_tree { Choices, Live, widget };
-import views { View, Style };
+import views { View };
+import looks { Style };
 import styling { apply_style, flag, show_number };
 import widgets { snap };
 

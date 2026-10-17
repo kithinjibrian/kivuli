@@ -8,7 +8,8 @@
  * Used by: live (from step 3, part 2)
  */
 
-import views { View, Style, plain };
+import views { View };
+import looks { Style, plain };
 
 /**
  * One change to the live widgets. A path is the list of child indexes from
