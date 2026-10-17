@@ -10,7 +10,6 @@
 
 import gtk {
     GParamSpec,
-    GtkStringList,
     GtkTextBuffer,
     GtkWidget,
     connect_buffer,
@@ -27,6 +26,7 @@ import gtk {
     gtk_check_button_set_child,
     gtk_drop_down_get_selected,
     gtk_drop_down_new,
+    gtk_drop_down_set_model,
     gtk_drop_down_set_selected,
     gtk_editable_get_text,
     gtk_editable_set_text,
@@ -44,6 +44,7 @@ import gtk {
     gtk_separator_new,
     gtk_string_list_append,
     gtk_string_list_new,
+    gtk_string_list_unref,
     gtk_shortcut_controller_new,
     gtk_shortcut_controller_set_scope,
     gtk_text_buffer_set_text,
@@ -59,7 +60,7 @@ import gtk {
     lgtk_cstring_text,
     lgtk_text_get,
 };
-import live_tree { Live, widget };
+import live_tree { Choices, Live, widget };
 import views { View, Style };
 import styling { apply_style, flag, show_number };
 import widgets { snap };
@@ -174,27 +175,38 @@ fun create_in<Msg>(v: View<Msg>, axis: i32, send: fun(Msg)): Live<Msg> = match v
         Live.Checkbox(check, text, current)
     }
     Dropdown(choices, selected) => {
-        let at = picked(choices, selected);
-        // The drop-down owns the list it's made with.
-        let drop = gtk_drop_down_new(Some(string_list(choices, at.is_none())), None);
-        // Set before connecting, so the first pick isn't sent as a choice.
-        gtk_drop_down_set_selected(drop, position(at));
-        let blank = Ref.new(at.is_none());
-        let current = Ref.new(choices);
+        let drop = gtk_drop_down_new(None, None);
+        let state = Ref.new(Choices {
+            offered: choices,
+            pick: picked(choices, selected),
+            shown: [],
+            busy: false,
+        });
+        // Filled before connecting, so the first pick isn't sent as a choice.
+        sync_choices(drop, state);
         connect_notify(
             drop,
             "notify::selected",
             fun(d: GtkWidget, spec: Option<GParamSpec>) {
-                // The blank item is 0 when shown: it, and "none", send nothing.
-                let i = gtk_drop_down_get_selected(d) as i64 - if blank.get() { 1 } else { 0 };
-                let now = current.get();
-                if i >= 0 && i < now.len {
-                    send(now[i].1);
+                let now = state.get();
+                let i = gtk_drop_down_get_selected(d) as i64;
+                // "None" (0xffffffff) and the blank item send nothing.
+                if !now.busy && i < now.shown.len {
+                    match now.shown[i].1 {
+                        Some(msg) => {
+                            // Busy while it's sent: the update's patch must not
+                            // replace GTK's list inside this signal.
+                            state.update(fun(s) = Choices { busy: true, ..s });
+                            send(msg);
+                            state.update(fun(s) = Choices { busy: false, ..s });
+                        }
+                        None => {}
+                    }
                 }
             },
             0,
         );
-        Live.Dropdown(drop, blank, current)
+        Live.Dropdown(drop, state)
     }
     Slider(min, max, value, on_change) => {
         // Made on 0..1 (GTK refuses an empty range here) and then given its own,
@@ -316,23 +328,45 @@ fun picked<Msg>(choices: (string, Msg)[], selected: string): Option<i64> {
     None
 }
 
-/** A new GTK list of the choices' labels, after a blank item when `blank`. */
-fun string_list<Msg>(choices: (string, Msg)[], blank: bool): GtkStringList {
-    let list = gtk_string_list_new(None);
-    if blank {
-        gtk_string_list_append(list, "");
+/**
+ * Makes a drop-down show what its state asks for: the choices, after a blank
+ * item when none is picked, and the pick. GTK's list is rebuilt only when its
+ * labels change; the messages are re-pointed always. Busy meanwhile, so the
+ * handler ignores the signals this causes. Never call it from inside the
+ * drop-down's own `notify::selected` (GTK frees the old list mid-signal):
+ * `patch` defers it to the next turn then.
+ */
+fun sync_choices<Msg>(drop: GtkWidget, state: Ref<Choices<Msg>>) {
+    let now = state.get();
+    let mut want: (string, Option<Msg>)[] = [];
+    if now.pick.is_none() {
+        want.push(("", None));
     }
-    for (label, _) of choices {
-        gtk_string_list_append(list, label);
+    for (label, msg) of now.offered {
+        want.push((label, Some(msg)));
     }
-    list
+    state.set(Choices { shown: want, busy: true, ..now });
+    if labels(now.shown) != labels(want) {
+        let list = gtk_string_list_new(None);
+        for (label, _) of want {
+            gtk_string_list_append(list, label);
+        }
+        // The drop-down takes its own reference.
+        gtk_drop_down_set_model(drop, Some(list));
+        gtk_string_list_unref(list);
+    }
+    let at: u32 = match now.pick {
+        Some(i) => i as u32,
+        None => 0,
+    };
+    if gtk_drop_down_get_selected(drop) != at {
+        gtk_drop_down_set_selected(drop, at);
+    }
+    state.update(fun(s) = Choices { busy: false, ..s });
 }
 
-/** The item a drop-down picks for `picked`: that choice, or the blank item (first) for none. */
-fun position(at: Option<i64>): u32 = match at {
-    Some(i) => i as u32,
-    None => 0,
-};
+/** The labels of a list of items, in order. */
+fun labels<T>(items: (string, T)[]): string[] = items.map(fun(item) = item.0);
 
 /** `x` rounded to the nearest whole number, half-way away from zero. */
 fun nearest(x: f64): i64 = if x >= 0.0 { (x + 0.5) as i64 } else { -((0.5 - x) as i64) };

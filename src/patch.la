@@ -15,25 +15,24 @@ import gtk {
     gtk_box_reorder_child_after,
     gtk_button_set_label,
     gtk_check_button_set_active,
-    gtk_drop_down_get_selected,
-    gtk_drop_down_set_model,
-    gtk_drop_down_set_selected,
     gtk_editable_get_text,
     gtk_editable_set_text,
+    g_timeout_add_full,
     gtk_label_set_text,
     gtk_range_set_range,
     gtk_scrolled_window_set_child,
-    gtk_string_list_unref,
     gtk_text_buffer_set_text,
     gtk_widget_set_sensitive,
+    gtk_widget_ref,
+    gtk_widget_unref,
     gtk_window_set_child,
     lgtk_text_cursor,
     lgtk_text_place_cursor,
 };
 import diff;
-import build { create, create_in, picked, position, string_list, text_of };
+import build { create, create_in, picked, sync_choices, text_of };
 import styling { apply_style, flag, show_number };
-import live_tree { Live, widget };
+import live_tree { Choices, Live, widget };
 
 /** Applies one patch to the widgets, and returns the `Live` tree that now mirrors them. */
 fun apply<Msg>(
@@ -116,22 +115,22 @@ fun apply<Msg>(
     }
     SetChoices(path, choices, selected) => {
         match at(live, path) {
-            Dropdown(drop, blank, current) => {
-                let pick = picked(choices, selected);
-                // The handler reads these: set before GTK's list changes.
-                let relist = pick.is_none() != blank.get() || labels(current.get()) != labels(
-                    choices,
-                );
-                blank.set(pick.is_none());
-                current.set(choices);
-                // Rebuilt only when what it lists changes: an open drop-down stays open.
-                if relist {
-                    let list = string_list(choices, pick.is_none());
-                    gtk_drop_down_set_model(drop, Some(list));
-                    gtk_string_list_unref(list);
-                }
-                if gtk_drop_down_get_selected(drop) != position(pick) {
-                    gtk_drop_down_set_selected(drop, position(pick));
+            Dropdown(drop, state) => {
+                let now = state.get();
+                state.set(Choices { offered: choices, pick: picked(choices, selected), ..now });
+                if now.busy {
+                    // Sent from the drop-down's own pick, inside GTK's signal:
+                    // synced on the next turn, with the latest state then. The
+                    // widget is held alive until then, in case it's removed.
+                    let held = gtk_widget_ref(drop);
+                    g_timeout_add_full(0, 0, fun(): i32 {
+                        sync_choices(held, state);
+                        gtk_widget_unref(held);
+                        // G_SOURCE_REMOVE: once.
+                        0
+                    });
+                } else {
+                    sync_choices(drop, state);
                 }
             }
             _ => panic("kivuli: a SetChoices patch points at something that isn't a drop-down"),
@@ -279,9 +278,6 @@ fun at<Msg>(node: Live<Msg>, path: i64[]): Live<Msg> {
     }
     here
 }
-
-/** The choices' labels, in order. */
-fun labels<Msg>(choices: (string, Msg)[]): string[] = choices.map(fun(choice) = choice.0);
 
 fun parent(path: i64[]): i64[] {
     let mut p: i64[] = [];
