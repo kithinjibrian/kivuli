@@ -1,0 +1,63 @@
+/**
+ * `View.map`'s body: the same view, sending `f(msg)` wherever it would send
+ * `msg`. Moved out of `views.la` (DECISION-018), where every modifier must
+ * stay with `View`; `views` and `mapping` import each other, the one import
+ * cycle kivuli allows.
+ *
+ * Depends on: views
+ * Used by: views (`View.map`)
+ */
+
+import views { View };
+
+/** `v` sending `f(msg)` wherever it would send `msg`; what's shown is unchanged. */
+fun mapped<Msg, B>(v: View<Msg>, f: fun(Msg): B): View<B> = match v {
+    Text(s) => View.Text(s),
+    Button(label, msg) => View.Button(label, msg.map(f)),
+    Column(xs) => View.Column(xs.map(fun(x) = x.map(f))),
+    Row(xs) => View.Row(xs.map(fun(x) = x.map(f))),
+    TextArea(value, on_change) => View.TextArea(value, match on_change {
+        Some(g) => Some(fun(s: string): B = f(g(s))),
+        None => None,
+    }),
+    Input(value, messages) => View.Input(value, match messages {
+        Some((on_change, on_submit)) => Some(
+            (fun(s: string): B = f(on_change(s)), on_submit.map(f)),
+        ),
+        None => None,
+    }),
+    Checkbox(label, checked, on_toggle) => View.Checkbox(
+        label,
+        checked,
+        fun(b: bool): B = f(on_toggle(b)),
+    ),
+    Dropdown(choices, selected) => View.Dropdown(
+        choices.map(fun(choice) = (choice.0, f(choice.1))),
+        selected,
+    ),
+    Slider(min, max, value, on_change) => View.Slider(
+        min,
+        max,
+        value,
+        fun(n: i64): B = f(on_change(n)),
+    ),
+    Icon(name) => View.Icon(name),
+    Image(path) => View.Image(path),
+    Spacer => View.Spacer,
+    Separator => View.Separator,
+    Scroll(x) => View.Scroll(x.map(f)),
+    Keyed(pairs) => View.Keyed(pairs.map(fun(pair) = (pair.0, pair.1.map(f)))),
+    Styled(x, style) => View.Styled(x.map(f), style),
+    Framed(body, start, title, end) => View.Framed(
+        body.map(f),
+        start.map(fun(x) = x.map(f)),
+        title.map(f),
+        end.map(fun(x) = x.map(f)),
+    ),
+    // The key stays: what's built is the same, only its messages change.
+    Lazy(key, build, built) => View.Lazy(
+        key,
+        fun(): View<B> = build().map(f),
+        built.map(fun(b) = b.map(f)),
+    ),
+};
