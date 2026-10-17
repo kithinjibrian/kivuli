@@ -192,7 +192,22 @@ Branch: main (each PRP on its own branch, merged with --no-ff)
 
 ---
 
-## SESSION 4 — 2026-10-17 — PRP-006: disabled text fields — open
+## SESSION 4 — 2026-10-17 — PRP-006 drafted: disabled text fields — closed
+
+Branch: main
+
+### WHAT WAS DONE
+- Closed session 3 (it had been left open) and opened this one.
+- Wrote PRPs/prp-006-disabled_text_fields.md from the user's brief: `Input(string, Option<(fun(string): Msg, Option<Msg>)>)`, `TextArea(string, Option<fun(string): Msg>)`, `SetOnChange` carrying the option and the sensitivity, `kivuli.testing.is_field_disabled`, release 0.1.1. No code.
+
+### STILL OPEN AT CLOSE
+- PRP-006 awaits the user's approval.
+- Sessions 3 and 4 closes are committed, not pushed (kivuli pushes need the user's go).
+- `reports/.gitkeep` deleted in the working tree, not by Claude; left alone.
+
+---
+
+## SESSION 5 — 2026-10-17 — PRP-006 (disabled text fields), then "app look" — open
 
 Branch: main
 
