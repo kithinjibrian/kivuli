@@ -1,6 +1,6 @@
 # PRP-006 — Disabled text fields
 
-Status: approved by the user (session 5); building on branch prp-006-disabled_text_fields
+Status: built (session 5) on branch prp-006-disabled_text_fields; merged into main
 Discovery: session 4, 2026-10-17, from the user's brief (no interview: the brief settles the behaviour). *(you)*: from the brief; *(proposed)*: for you to confirm or change with this PRP.
 
 ## FEATURE: `.disabled(true)` on `input(…)` and `text_area(…)`: the field shows its value greyed out, can't be edited, and sends no messages.
@@ -74,27 +74,35 @@ fun locked_fields_send_nothing() {
 ## TESTS TO WRITE
 
 Pure:
-- [ ] `test/lib.la`: `input(…).disabled(true)` and `text_area(…).disabled(true)` are `None`; `disabled(false)` keeps `Some`; through a `Styled` wrapper; `.on_submit` on a disabled input stays `None`, in either order.
-- [ ] `test/diff.la`: enabled → disabled gives `SetOnChange(path, None)` and `SetOnSubmit(path, None)`; disabled → enabled gives `Some`; a value change while disabled still gives `SetValue`; disabling isn't a `SetStyle` or a `Replace`.
-- [ ] `test/testing.la`: `type_into` and `submit` on a disabled input → `Silent`; `type_into` on a disabled text area → `Silent`; `is_field_disabled` → `Ok(true)`, `Ok(false)`, `NotFound`, `Ambiguous`.
-- [ ] `test/map.la`: a mapped enabled field sends mapped messages; a mapped disabled one stays `None`.
+- [x] `test/lib.la`: `input(…).disabled(true)` and `text_area(…).disabled(true)` are `None`; `disabled(false)` keeps `Some`; through a `Styled` wrapper; `.on_submit` on a disabled input stays `None`, in either order.
+- [x] `test/diff.la`: enabled → disabled gives `SetOnChange(path, None)` and `SetOnSubmit(path, None)`; disabled → enabled gives `Some`; a value change while disabled still gives `SetValue`; disabling isn't a `SetStyle` or a `Replace`.
+- [x] `test/testing.la`: `type_into` and `submit` on a disabled input → `Silent`; `type_into` on a disabled text area → `Silent`; `is_field_disabled` → `Ok(true)`, `Ok(false)`, `NotFound`, `Ambiguous`.
+- [x] `test/map.la`: a mapped enabled field sends mapped messages; a mapped disabled one stays `None`.
 
 Live GTK (skipped without a display), `test/live_disabled.la`:
-- [ ] an input disabled from the start is insensitive; text set in it outside a dispatch sends nothing; enabling it (a message) makes it sensitive and typing sends; disabling again; the value updates while disabled; the same widget throughout.
-- [ ] a text area: the same, its editor insensitive and its scrolled window not.
-- [ ] Enter (`activate`) on a disabled input sends nothing.
+- [x] an input disabled from the start is insensitive; text set in it outside a dispatch sends nothing; enabling it (a message) makes it sensitive and typing sends; disabling again; the value updates while disabled; the same widget throughout.
+- [x] a text area: the same, its editor insensitive and its scrolled window not.
+- [x] Enter (`activate`) on a disabled input sends nothing.
 
 ## ROLLBACK PLAN
 - Branch `prp-006-disabled_text_fields` from `main`; abandon by leaving it unmerged. No lugha-gtk change.
 
 ## ACCEPTANCE CRITERIA
-- [ ] `.disabled(true)` greys out inputs and text areas and stops their messages; toggling it follows the model on the same widget.
-- [ ] `kivuli.testing` reports disabled fields as `Silent` and through `is_field_disabled`.
-- [ ] Tests above written first; narrow runs while building; the full suite and the examples' tests pass before the merge.
-- [ ] Every example builds; fmt clean; public items documented; no file over 500 lines (new tests outside `live_forms.la`).
-- [ ] README, docs/DESIGN.md, MEMORY.md, CHANGELOG updated; 0.1.1 tagged; merged into `main`. Pushed only on your go.
+- [x] `.disabled(true)` greys out inputs and text areas and stops their messages; toggling it follows the model on the same widget.
+- [x] `kivuli.testing` reports disabled fields as `Silent` and through `is_field_disabled`.
+- [x] Tests above written first; narrow runs while building; the full suite and the examples' tests pass before the merge.
+- [x] Every example builds; fmt clean; public items documented; no file over 500 lines (new tests outside `live_forms.la`).
+- [x] README, docs/DESIGN.md, MEMORY.md, CHANGELOG updated; 0.1.1 tagged; merged into `main`. Pushed only on your go.
 
 ## VALIDATION
 - While building: only the tests covering each step.
 - Before the merge: `lughac fmt --check src examples test`, `lughac test test/`, the examples' own tests, every example built.
 - For the user: in any example, `.disabled(true)` on a field: greyed out, no typing.
+
+## NOTES FROM THE BUILD
+
+- **The representation as proposed**: `Input(string, Option<(fun(string): Msg, Option<Msg>)>)`, `TextArea(string, Option<fun(string): Msg>)`. Inside kivuli, `diff` and `testing.fields` unpack an input's pair into `(Option<on_change>, Option<on_submit>)`, both `None` when disabled; the live tree keeps the two `Ref`s it had, now holding options.
+- **A text area greys out its editor**, not its scrolled window, confirmed on real widgets (the test reads both: editor 0, scroll 1). `build.editor(scrolled)` finds the text view; `focus_target` uses it too.
+- **GTK sets a field's text as a delete then an insert**, so the live test's programmatic edits on an *enabled* field send two messages (the emptied text, then the new one). A real user's typing doesn't. The test expects both, with a comment; while disabled, nothing at all is sent.
+- **Mutation-checked:** without the sensitivity update in `SetOnChange`, the entry stays greyed out after it's enabled again.
+- **No lugha-gtk change**: `gtk_widget_set_sensitive`/`get_sensitive` were already bound (0.1.11).

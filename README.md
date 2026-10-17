@@ -114,7 +114,8 @@ lughac run examples/gallery.la
 | `.tooltip(hint)` | Hover text on any node; tests can click a button by it. |
 | `.shortcut(keys)` | Keys that press a button from anywhere in the window: `"Ctrl+N"`, `"Ctrl+Shift+Delete"`, `"Escape"`. A disabled button's shortcut does nothing; unreadable keys, or two enabled buttons with the same ones, stop the app with a message. |
 | `.autofocus()` | Keyboard focus goes to the node when it's first shown. |
-| `.style(ButtonStyle.Primary \| Danger \| Subtle \| Normal)`, `.disabled(bool)` | Buttons. |
+| `.style(ButtonStyle.Primary \| Danger \| Subtle \| Normal)` | Buttons. |
+| `.disabled(bool)` | Buttons, text fields and text areas: greyed out by the theme, and they send nothing. A disabled field still shows its value and follows the model. `.disabled(false)` changes nothing. |
 | `.step(n)` | Sliders: move in steps of `n`, counted from the least value. |
 | `.icon(name)` | Buttons: a theme icon before the label; with the label `""`, an icon-only button (give it a `.tooltip`, which tests find it by). |
 | `.fit(Fit.Contain \| Cover \| ScaleDown \| Fill)` | Pictures: the whole picture (default), filled and cropped, never enlarged, or stretched. |
@@ -148,7 +149,7 @@ row([counter(m.left).map(Msg.Left), counter(m.right).map(Msg.Right)])
 `update` and `view` are pure, so app tests need no window. `kivuli.testing` works out what a user's action would send from a view alone:
 
 ```
-import kivuli.testing { Lookup, click, is_disabled, type_into, submit, toggle, choose, slide, texts };
+import kivuli.testing { Lookup, click, is_disabled, is_field_disabled, type_into, submit, toggle, choose, slide, texts };
 
 @test
 fun adding_a_task() {
@@ -158,7 +159,7 @@ fun adding_a_task() {
 }
 ```
 
-`click` and `is_disabled` (by a button's label or tooltip), `press` (by shortcut), `tooltip`, `type_into` and `submit` (finding a text field by its placeholder or `.name`, a text area by its `.name`), `toggle`, `choose(view, name, label)` and `slide(view, name, value)` (a drop-down or slider by its `.name`; `slide` clamps and rounds to the step as the slider would) and `texts` each return a `Lookup` error when what's asked for isn't there (`NotFound`), isn't unique (`Ambiguous`) or sends nothing (`Silent`). `examples/todo.la` ends with its own tests: `lughac test examples/todo.la`.
+`click` and `is_disabled` (by a button's label or tooltip), `press` (by shortcut), `tooltip`, `type_into` and `submit` (finding a text field by its placeholder or `.name`, a text area by its `.name`), `toggle`, `choose(view, name, label)` and `slide(view, name, value)` (a drop-down or slider by its `.name`; `slide` clamps and rounds to the step as the slider would) and `texts` each return a `Lookup` error when what's asked for isn't there (`NotFound`), isn't unique (`Ambiguous`) or sends nothing (`Silent`: a disabled button or field, or Enter without `.on_submit`). `is_field_disabled(view, hint)` tells whether a text field or text area is disabled. `examples/todo.la` ends with its own tests: `lughac test examples/todo.la`.
 
 ## Tests
 
