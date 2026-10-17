@@ -55,11 +55,10 @@ public fun sandbox<Model, Msg>(
  * Example:
  *     fun main(): i32 = kivuli.application(App {
  *         id: "org.kivuli.stopwatch",
+ *         init: (Model { ms: 0, running: false }, Cmd.none()),
  *         update: update,
  *         view: view,
  *         subscriptions: subscriptions,
- *         // After `update`: lughac infers a field's type only from earlier fields.
- *         init: (Model { ms: 0, running: false }, Cmd.none()),
  *     });
  */
 public fun application<Model, Msg>(app: App<Model, Msg>): i32 = live.run(app);

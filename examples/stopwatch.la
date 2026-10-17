@@ -51,10 +51,8 @@ fun view(m: Model): View<Msg> = column([
 
 fun main(): i32 = application(App {
     id: "org.kivuli.stopwatch",
+    init: (Model { elapsed: 0, running: false, last: 0 }, Cmd.none()),
     update: update,
     view: view,
     subscriptions: subscriptions,
-    // lughac: `init` after `update`, since a field's type is inferred only
-    // from the fields before it (`Cmd.none()` names no `Msg`).
-    init: (Model { elapsed: 0, running: false, last: 0 }, Cmd.none()),
 });
