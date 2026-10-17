@@ -20,6 +20,7 @@ public import views {
     keyed_column,
     Align,
     ButtonStyle,
+    lazy,
 };
 public import effects { Cmd, Sub, App };
 import live;

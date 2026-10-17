@@ -12,24 +12,6 @@ Rules:
 
 ## OPEN — Requires human input before implementation
 
-### DECISION-002 — The shape of `lazy` (risk R1)
-
-**Status:** open
-**Raised:** 2026-10-16 — kickoff brief §6
-**Resolved by:** human, after a technical check of `lughac spec`
-**Blocks:** step 6 of kivuli v1 (`lazy`)
-
-**Question:** `lazy(input: T, f)` must keep `input` in a `View<Msg>` node to compare next render, but `View` is generic only over `Msg`. How do we store and compare the input?
-
-**Options:**
-- A) Store a closure `fun(): bool` that compares against a captured previous value. Awkward, because it needs the previous value captured.
-- B) A cheap key supplied by the app: `lazy(key: string, f: fun(): View<Msg>)` / `lazy_i64(key: i64, …)` (Elm's keyed discipline).
-- C) An `Eq`-bounded interface value, if Lugha allows `Eq` as an interface type (check `lughac spec`).
-
-**Notes:** Brief: prefer the simplest that works. B needs no language support.
-
----
-
 ### DECISION-003 — Module path of the testing helpers
 
 **Status:** open
@@ -88,6 +70,20 @@ Rules:
 ---
 
 ## RESOLVED
+
+### DECISION-002 — The shape of `lazy` (risk R1)
+
+**Status:** resolved
+**Raised:** 2026-10-16 — kickoff brief §6
+**Resolved:** 2026-10-17 — Session 3
+
+**Question:** `lazy` must recognise an unchanged input next render, but `View` is generic only over `Msg`, so it can't hold the input. How is the input compared?
+
+**Outcome:** a string key supplied by the app: `lazy(key: string, build: fun(): View<Msg>)`. Before each diff, kivuli resolves the new view: a lazy whose key it built last time reuses that subtree without calling `build`, and the diff skips two lazies with equal keys entirely. Built subtrees are cached by key, and the cache keeps only the keys the current view used. Modifiers go inside `build`; modifiers on `lazy(…)` itself are ignored.
+
+**Rationale:** works with no language support, and it's the brief's preferred "simplest that works". The cost: a key that leaves out something the subtree depends on shows a stale subtree. Rejected: comparing the input with `==` (needs a type-erased comparable value Lugha may not have), and leaving `lazy` out of v1.
+
+**Copied to MEMORY.md:** yes
 
 ### DECISION-010 — Modifiers wait for lughac: the expected type doesn't reach a method's receiver
 

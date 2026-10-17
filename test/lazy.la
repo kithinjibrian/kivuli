@@ -1,0 +1,98 @@
+// Lazy subtrees: built only when their key changes, reused and left undiffed
+// otherwise. Each test counts calls of the build function. No GTK.
+import kivuli.diff { Patch, diff as patches, resolve };
+import kivuli { View, column, lazy, text };
+
+// Views can hold functions, which have no `==`: compare what they print
+// instead (DECISION-008).
+fun assert_same<T>(actual: T, expected: T) {
+    assert_eq("{actual}", "{expected}");
+}
+
+enum Msg {
+    Go,
+}
+
+// A build function for `label` that counts its calls in `builds`.
+fun counted(builds: Ref<i64>, label: string): fun(): View<Msg> = fun(): View<Msg> {
+    builds.update(fun(n) = n + 1);
+    text(label)
+};
+
+fun keys(cache: (string, View<Msg>)[]): string[] {
+    let mut out: string[] = [];
+    for (k, _) of cache {
+        out.push(k);
+    }
+    out
+}
+
+@test
+fun a_lazy_is_built_once_and_reused_while_its_key_holds() {
+    let builds = Ref.new(0);
+    let (_, first) = resolve(lazy("a", counted(builds, "A")), []);
+    assert_eq(builds.get(), 1);
+    let (_, second) = resolve(lazy("a", counted(builds, "A")), first);
+    assert_eq(builds.get(), 1);
+    resolve(lazy("b", counted(builds, "B")), second);
+    assert_eq(builds.get(), 2);
+}
+
+@test
+fun the_same_key_twice_in_one_view_builds_once() {
+    let builds = Ref.new(0);
+    resolve(column([lazy("a", counted(builds, "A")), lazy("a", counted(builds, "A"))]), []);
+    assert_eq(builds.get(), 1);
+}
+
+@test
+fun the_cache_keeps_only_what_the_view_used() {
+    let builds = Ref.new(0);
+    let (_, both) = resolve(
+        column([lazy("a", counted(builds, "A")), lazy("b", counted(builds, "B"))]),
+        [],
+    );
+    assert_eq(keys(both), ["a", "b"]);
+    let (_, one) = resolve(column([lazy("a", counted(builds, "A"))]), both);
+    assert_eq(keys(one), ["a"]);
+}
+
+@test
+fun lazies_inside_a_reused_one_stay_cached() {
+    let builds = Ref.new(0);
+    let outer = fun(): View<Msg> = column([lazy("inner", counted(builds, "in"))]);
+    let (_, first) = resolve(lazy("outer", outer), []);
+    let (_, second) = resolve(lazy("outer", outer), first);
+    assert_eq(keys(second), ["inner", "outer"]);
+    assert_eq(builds.get(), 1);
+}
+
+@test
+fun equal_keys_are_neither_rebuilt_nor_diffed() {
+    // The new build function would show "two": reusing "one" proves it wasn't called.
+    let (old, cache) = resolve(lazy("k", fun(): View<Msg> = text("one")), []);
+    let (new, _) = resolve(lazy("k", fun(): View<Msg> = text("two")), cache);
+    let none: Patch<Msg>[] = [];
+    assert_same(patches(old, new), none);
+}
+
+@test
+fun a_new_key_diffs_what_was_built() {
+    let (old, cache) = resolve(lazy("k1", fun(): View<Msg> = text("one")), []);
+    let (new, _) = resolve(lazy("k2", fun(): View<Msg> = text("two")), cache);
+    let expected: Patch<Msg>[] = [Patch.SetText([], "two")];
+    assert_same(patches(old, new), expected);
+}
+
+@test
+fun a_lazy_next_to_a_plain_node_compares_what_it_built() {
+    let (old, _) = resolve(lazy("k", fun(): View<Msg> = text("one")), []);
+    let expected: Patch<Msg>[] = [Patch.SetText([], "plain")];
+    assert_same(patches(old, text("plain")), expected);
+}
+
+@test
+fun modifiers_on_a_lazy_node_are_ignored() {
+    let build = fun(): View<Msg> = text("x");
+    assert_same(lazy("k", build).padding(4).bold(), lazy("k", build));
+}

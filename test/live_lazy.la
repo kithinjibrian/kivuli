@@ -1,0 +1,120 @@
+// Lazy rows on real GTK widgets: editing one row builds and updates only that
+// row. Needs a display, so it is skipped without one.
+import std.env;
+import gtk {
+    GtkApplication,
+    connect_app,
+    g_application_quit,
+    g_application_run,
+    g_object_unref,
+    gtk_application_new,
+    gtk_application_window_new,
+    gtk_label_get_text,
+};
+import kivuli.live { dispatch, live_of, mount };
+import kivuli.live_tree { Live, widget };
+import kivuli.effects { sandbox_app };
+import kivuli { View, keyed_column, lazy, text };
+
+fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
+
+enum Msg {
+    Rename(i64, string),
+}
+
+struct Item {
+    id: i64,
+    title: string,
+}
+
+struct List {
+    items: Item[],
+}
+
+fun update(l: List, msg: Msg): List = match msg {
+    Rename(id, title) => {
+        let mut items: Item[] = [];
+        for it of l.items {
+            items.push(if it.id == id { Item { title: title, ..it } } else { it });
+        }
+        List { items: items }
+    }
+};
+
+// Each row is lazy, keyed on what it shows; `builds` counts the rows built.
+fun view_with(builds: Ref<i64>): fun(List): View<Msg> = fun(l: List): View<Msg> {
+    let mut rows: (string, View<Msg>)[] = [];
+    for it of l.items {
+        let title = it.title;
+        rows.push(("{it.id}", lazy("{it.id}:{title}", fun(): View<Msg> {
+            builds.update(fun(n) = n + 1);
+            text(title)
+        })));
+    }
+    keyed_column(rows)
+};
+
+fun labels(root: Live<Msg>): string[] {
+    let Box(_, _, kids) = root else {
+        panic("expected a box");
+    };
+    let mut out: string[] = [];
+    for k of kids {
+        out.push(gtk_label_get_text(widget(k)));
+    }
+    out
+}
+
+@test
+fun editing_one_lazy_row_builds_and_updates_only_that_row() {
+    if !has_display() {
+        skip("no display");
+    }
+    let builds = Ref.new(0);
+    let seen: Ref<string[]> = Ref.new([]);
+    let application = gtk_application_new("org.kivuli.test.lazy", 0);
+    connect_app(
+        application,
+        "activate",
+        fun(a: GtkApplication) {
+            let window = gtk_application_window_new(a);
+            let init = List {
+                items: [
+                    Item { id: 1, title: "a" },
+                    Item { id: 2, title: "b" },
+                    Item { id: 3, title: "c" },
+                ],
+            };
+            let app = mount(
+                a,
+                window,
+                sandbox_app("org.kivuli.test", init, update, view_with(builds)),
+            );
+            let note = fun() {
+                let shown = labels(live_of(app));
+                let n = builds.get();
+                seen.update(fun(xs) {
+                    let mut ys = xs;
+                    ys.push("{n} {shown}");
+                    ys
+                });
+            };
+            note();
+            dispatch(app, Msg.Rename(2, "B!"));
+            note();
+            // Renaming to the same title changes no key: nothing is built.
+            dispatch(app, Msg.Rename(2, "B!"));
+            note();
+            g_application_quit(a);
+        },
+        0,
+    );
+    g_application_run(application, 0, None);
+    g_object_unref(application);
+
+    assert_eq(seen.get(), [
+        "3 [\"a\", \"b\", \"c\"]",
+        "4 [\"a\", \"B!\", \"c\"]",
+        "4 [\"a\", \"B!\", \"c\"]",
+    ]);
+}

@@ -53,7 +53,17 @@ enum Patch<Msg> {
  */
 fun diff<Msg>(old: View<Msg>, new: View<Msg>): Patch<Msg>[] = diff_at([], old, new);
 
-fun diff_at<Msg>(path: i64[], old: View<Msg>, new: View<Msg>): Patch<Msg>[] {
+fun diff_at<Msg>(path: i64[], old: View<Msg>, new: View<Msg>): Patch<Msg>[] = match (old, new) {
+    // Lazies are transparent: same key, nothing to do; otherwise compare what they built.
+    (Lazy(a, _, Some(x)), Lazy(b, _, Some(y))) => if a == b { [] } else { diff_at(path, x, y) },
+    (Lazy(_, _, Some(x)), _) => diff_at(path, x, new),
+    (_, Lazy(_, _, Some(y))) => diff_at(path, old, y),
+    (Lazy(_, _, None), _) => panic("kivuli: a lazy node reached the diff unresolved"),
+    (_, Lazy(_, _, None)) => panic("kivuli: a lazy node reached the diff unresolved"),
+    _ => diff_node(path, old, new),
+};
+
+fun diff_node<Msg>(path: i64[], old: View<Msg>, new: View<Msg>): Patch<Msg>[] {
     let (old_inside, old_style) = split(old);
     let (new_inside, new_style) = split(new);
     let inside = diff_inside(path, old_inside, new_inside, new);
@@ -62,6 +72,133 @@ fun diff_at<Msg>(path: i64[], old: View<Msg>, new: View<Msg>): Patch<Msg>[] {
         return inside;
     }
     if old_style == new_style { inside } else { joined([Patch.SetStyle(path, new_style)], inside) }
+}
+
+/**
+ * The view with every lazy node built or reused: one whose key is in `cache`
+ * (what the last update built) gets that subtree without calling its build
+ * function. Also returns the cache for next time: the keys this view used,
+ * so subtrees no longer shown are dropped.
+ */
+fun resolve<Msg>(
+    v: View<Msg>,
+    cache: (string, View<Msg>)[],
+): (View<Msg>, (string, View<Msg>)[]) = resolve_with(v, cache, []);
+
+/** `resolve`, with `used` the cache entries this view has used so far. */
+fun resolve_with<Msg>(
+    v: View<Msg>,
+    cache: (string, View<Msg>)[],
+    used: (string, View<Msg>)[],
+): (View<Msg>, (string, View<Msg>)[]) = match v {
+    Lazy(key, build, _) => {
+        // Built earlier in this view (the same key twice) or by the last update.
+        let found = match lookup(used, key) {
+            Some(b) => Some(b),
+            None => lookup(cache, key),
+        };
+        match found {
+            // Reused whole: its own lazies stay cached too.
+            Some(built) => (
+                View.Lazy(key, build, Some(built)),
+                with_entry(keep_lazies(built, used), key, built),
+            ),
+            None => {
+                let (built, after) = resolve_with(build(), cache, used);
+                (View.Lazy(key, build, Some(built)), with_entry(after, key, built))
+            }
+        }
+    }
+    Column(xs) => {
+        let (ys, after) = resolve_all(xs, cache, used);
+        (View.Column(ys), after)
+    }
+    Row(xs) => {
+        let (ys, after) = resolve_all(xs, cache, used);
+        (View.Row(ys), after)
+    }
+    Keyed(pairs) => {
+        let mut out: (string, View<Msg>)[] = [];
+        let mut now = used;
+        for (k, x) of pairs {
+            let (y, after) = resolve_with(x, cache, now);
+            out.push((k, y));
+            now = after;
+        }
+        (View.Keyed(out), now)
+    }
+    Scroll(x) => {
+        let (y, after) = resolve_with(x, cache, used);
+        (View.Scroll(y), after)
+    }
+    Styled(x, style) => {
+        let (y, after) = resolve_with(x, cache, used);
+        (View.Styled(y, style), after)
+    }
+    _ => (v, used),
+};
+
+fun resolve_all<Msg>(
+    xs: View<Msg>[],
+    cache: (string, View<Msg>)[],
+    used: (string, View<Msg>)[],
+): (View<Msg>[], (string, View<Msg>)[]) {
+    let mut out: View<Msg>[] = [];
+    let mut now = used;
+    for x of xs {
+        let (y, after) = resolve_with(x, cache, now);
+        out.push(y);
+        now = after;
+    }
+    (out, now)
+}
+
+/** `used` plus the entry of every resolved lazy inside `v`. */
+fun keep_lazies<Msg>(v: View<Msg>, used: (string, View<Msg>)[]): (string, View<Msg>)[] = match v {
+    Lazy(key, _, Some(built)) => with_entry(keep_lazies(built, used), key, built),
+    Column(xs) => keep_all(xs, used),
+    Row(xs) => keep_all(xs, used),
+    Keyed(pairs) => {
+        let mut now = used;
+        for (_, x) of pairs {
+            now = keep_lazies(x, now);
+        }
+        now
+    }
+    Scroll(x) => keep_lazies(x, used),
+    Styled(x, _) => keep_lazies(x, used),
+    _ => used,
+};
+
+fun keep_all<Msg>(xs: View<Msg>[], used: (string, View<Msg>)[]): (string, View<Msg>)[] {
+    let mut now = used;
+    for x of xs {
+        now = keep_lazies(x, now);
+    }
+    now
+}
+
+fun lookup<Msg>(entries: (string, View<Msg>)[], key: string): Option<View<Msg>> {
+    for (k, v) of entries {
+        if k == key {
+            return Some(v);
+        }
+    }
+    None
+}
+
+/** `entries` with `key` → `v`, unless `key` is already there. */
+fun with_entry<Msg>(
+    entries: (string, View<Msg>)[],
+    key: string,
+    v: View<Msg>,
+): (string, View<Msg>)[] {
+    if lookup(entries, key).is_some() {
+        return entries;
+    }
+    let mut out = entries;
+    out.push((key, v));
+    out
 }
 
 /** A node without its `Styled` wrapper, and its style (`plain()` when it has none). */

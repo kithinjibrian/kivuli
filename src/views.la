@@ -33,6 +33,11 @@ public enum View<Msg> {
     Keyed((string, View<Msg>)[]),
     /** A node and its modifiers: built by the modifier methods, never by hand. */
     Styled(View<Msg>, Style),
+    /**
+     * A subtree built only when its key changes: the key, the function that
+     * builds it, and the subtree once kivuli has built or reused it.
+     */
+    Lazy(string, fun(): View<Msg>, Option<View<Msg>>),
 }
 
 /**
@@ -204,6 +209,8 @@ fun plain(): Style = Style {
 /** `v` with its style changed by `f`: one `Styled` wrapper, however many modifiers. */
 fun restyle<Msg>(v: View<Msg>, f: fun(Style): Style): View<Msg> = match v {
     Styled(inner, s) => View.Styled(inner, f(s)),
+    // A lazy subtree's style is whatever `build` gives it (DECISION-002).
+    Lazy(_, _, _) => v,
     _ => View.Styled(v, f(plain())),
 };
 
@@ -343,3 +350,15 @@ impl View<Msg> {
         },
     );
 }
+
+/**
+ * Builds `build()` only when `key` differs from the key this lazy node had
+ * last update; otherwise kivuli reuses what it built before, and doesn't diff
+ * it either. The key must cover everything the subtree shows: leave something
+ * out and a change to it won't appear. Modifiers belong inside `build`;
+ * modifiers on the lazy node itself are ignored.
+ *
+ * Example:
+ *     lazy("{t.id}:{t.done}:{t.title}", fun() = todo_row(t))
+ */
+public fun lazy<Msg>(key: string, build: fun(): View<Msg>): View<Msg> = View.Lazy(key, build, None);

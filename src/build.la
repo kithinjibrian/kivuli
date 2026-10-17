@@ -136,6 +136,15 @@ fun create_in<Msg>(v: View<Msg>, axis: i32, send: fun(Msg)): Live<Msg> = match v
         Live.Scroll(scrolled, kid)
     }
     // On screen a keyed column is a column: the keys matter only to the diff.
+    // Transparent: the widgets are those of what it built.
+    Lazy(_, build, built) => create_in(
+        match built {
+            Some(b) => b,
+            None => build(),
+        },
+        axis,
+        send,
+    ),
     Keyed(children) => {
         let mut views_of: View<Msg>[] = [];
         for (_, v) of children {
