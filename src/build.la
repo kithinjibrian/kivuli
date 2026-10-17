@@ -19,6 +19,7 @@ import gtk {
     g_timeout_add_full,
     gtk_box_append,
     gtk_box_new,
+    gtk_button_set_child,
     gtk_button_new_with_label,
     gtk_check_button_get_active,
     gtk_check_button_new,
@@ -31,7 +32,9 @@ import gtk {
     gtk_editable_get_text,
     gtk_editable_set_text,
     gtk_entry_new,
+    gtk_image_new_from_icon_name,
     gtk_label_new,
+    gtk_picture_new_for_filename,
     gtk_range_get_value,
     gtk_range_set_range,
     gtk_range_set_value,
@@ -57,12 +60,14 @@ import gtk {
     gtk_widget_set_sensitive,
     gtk_widget_set_size_request,
     gtk_widget_set_vexpand,
+    gtk_widget_set_visible,
     lgtk_cstring_text,
     lgtk_text_get,
 };
 import live_tree { Choices, Live, widget };
-import views { View, Style };
-import styling { apply_style, flag, show_number };
+import views { View };
+import looks { Style };
+import styling { apply_style, flag, show_content, show_number };
 import widgets { snap };
 
 /** Builds the GTK widgets for `v` at the top of a window; each widget sends its messages through `send`. */
@@ -76,7 +81,19 @@ fun create<Msg>(v: View<Msg>, send: fun(Msg)): Live<Msg> = create_in(v, 1, send)
 fun create_in<Msg>(v: View<Msg>, axis: i32, send: fun(Msg)): Live<Msg> = match v {
     Text(s) => Live.Label(gtk_label_new(s)),
     Button(label, msg) => {
-        let button = gtk_button_new_with_label(label);
+        // kivuli's own content, an icon and a label, so both can come and go
+        // through one path (`show_content`). The label GTK makes here is
+        // replaced by it (lugha-gtk binds no plain `gtk_button_new`).
+        let button = gtk_button_new_with_label("");
+        let text = gtk_label_new(label);
+        // Hidden until `.icon` names one.
+        let image = gtk_image_new_from_icon_name("");
+        gtk_widget_set_visible(image, 0);
+        let content = gtk_box_new(0, 0);
+        gtk_box_append(content, image);
+        gtk_box_append(content, text);
+        gtk_button_set_child(button, Some(content));
+        show_content(button, text, image);
         let current = Ref.new(msg);
         // No message means disabled (decision 6): greyed out, and the handler
         // below sends nothing even if GTK delivers a click.
@@ -99,7 +116,7 @@ fun create_in<Msg>(v: View<Msg>, axis: i32, send: fun(Msg)): Live<Msg> = match v
         let controller = gtk_shortcut_controller_new();
         gtk_shortcut_controller_set_scope(controller, 2);
         gtk_widget_add_controller(button, controller);
-        Live.Button(button, current, controller, Ref.new(None))
+        Live.Button(button, current, controller, Ref.new(None), text, image)
     }
     // Spacing comes later as a modifier.
     Column(children) => create_box(1, children, send),
@@ -242,6 +259,9 @@ fun create_in<Msg>(v: View<Msg>, axis: i32, send: fun(Msg)): Live<Msg> = match v
         );
         Live.Slider(scale, range, last, current)
     }
+    Icon(name) => Live.Icon(gtk_image_new_from_icon_name(name)),
+    // GTK reads the file now; a missing one shows nothing.
+    Image(path) => Live.Image(gtk_picture_new_for_filename(path)),
     Spacer => {
         // An empty box given all the spare room along its parent's axis.
         let room = gtk_box_new(0, 0);

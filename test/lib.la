@@ -1,5 +1,5 @@
 // Building views: what an app's `view` returns is exactly the tree it wrote.
-import kivuli.views { Style, plain };
+import kivuli.looks { Style, plain };
 import kivuli {
     View,
     text,
@@ -17,6 +17,9 @@ import kivuli {
     text_area,
     dropdown,
     slider,
+    icon,
+    image,
+    Fit,
 };
 
 // Views and patches can hold functions, which have no `==`: compare what they
@@ -249,4 +252,22 @@ fun a_dropdown_and_a_slider_are_plain_nodes() {
         ..plain(),
     });
     assert_same(slider(0, 10, 4, Msg.Level).step(2), stepped);
+}
+
+@test
+fun icons_and_images_are_plain_nodes_with_their_modifiers() {
+    let add: View<Msg> = View.Icon("list-add-symbolic");
+    assert_same(icon("list-add-symbolic"), add);
+    let big: View<Msg> = View.Styled(View.Icon("list-add-symbolic"), Style { size: 48, ..plain() });
+    assert_same(icon("list-add-symbolic").size(48), big);
+    let picture: View<Msg> = View.Image("a.png");
+    assert_same(image("a.png"), picture);
+    assert_eq(plain().fit, Fit.Contain);
+    let covered: View<Msg> = View.Styled(View.Image("a.png"), Style { fit: Fit.Cover, ..plain() });
+    assert_same(image("a.png").fit(Fit.Cover), covered);
+    let iconned: View<Msg> = View.Styled(View.Button("Add", Some(Msg.Add)), Style {
+        icon: "list-add-symbolic",
+        ..plain(),
+    });
+    assert_same(button("Add", Msg.Add).icon("list-add-symbolic"), iconned);
 }

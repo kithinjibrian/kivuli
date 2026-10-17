@@ -3,7 +3,7 @@
  * text, long text, button look, shortcut, tooltip), defaults included, so a
  * dropped modifier is undone. Used when widgets are made and by `SetStyle`.
  *
- * Depends on: views, widgets, keys, live_tree, gtk.raw
+ * Depends on: looks, widgets, keys, live_tree, gtk.raw
  * Used by: build, patch
  */
 
@@ -16,6 +16,9 @@ import gtk {
     gtk_box_set_spacing,
     gtk_callback_action_new,
     gtk_entry_set_placeholder_text,
+    gtk_image_set_from_icon_name,
+    gtk_image_set_pixel_size,
+    gtk_label_get_text,
     gtk_label_set_attributes,
     gtk_label_set_ellipsize,
     gtk_label_set_lines,
@@ -29,7 +32,10 @@ import gtk {
     gtk_shortcut_controller_remove_shortcut,
     gtk_shortcut_new,
     gtk_shortcut_trigger_parse_string,
+    gtk_picture_set_content_fit,
     gtk_widget_add_css_class,
+    gtk_widget_get_visible,
+    gtk_widget_set_visible,
     gtk_widget_remove_css_class,
     gtk_widget_set_halign,
     gtk_widget_set_hexpand,
@@ -48,7 +54,7 @@ import gtk {
     pango_attr_weight_new,
 };
 import live_tree { Live, widget };
-import views { Style, Align, ButtonStyle };
+import looks { Style, Align, ButtonStyle, Fit };
 import keys { parse };
 import widgets { snap };
 
@@ -96,10 +102,23 @@ fun apply_style<Msg>(node: Live<Msg>, style: Style, axis: i32) {
             entry,
             if style.placeholder == "" { None } else { Some(style.placeholder) },
         ),
-        Button(button, _, controller, shortcut) => {
+        Button(button, _, controller, shortcut, label, image) => {
             style_button(button, style.look);
             style_shortcut(controller, shortcut, style.shortcut);
+            if style.icon == "" {
+                gtk_widget_set_visible(image, 0);
+            } else {
+                gtk_image_set_from_icon_name(image, style.icon);
+                gtk_widget_set_visible(image, 1);
+            }
+            show_content(button, label, image);
         }
+        // Pixels on an icon; -1 is the theme's size.
+        Icon(image) => gtk_image_set_pixel_size(
+            image,
+            if style.size > 0 { style.size as i32 } else { -1 },
+        ),
+        Image(picture) => gtk_picture_set_content_fit(picture, content_fit(style.fit)),
         Slider(scale, range, last, _) => {
             let (min, max, _) = range.get();
             range.set((min, max, style.step));
@@ -190,6 +209,38 @@ fun style_button(button: GtkWidget, look: ButtonStyle) {
         Subtle => gtk_widget_add_css_class(button, "flat"),
     }
 }
+
+/**
+ * Shows a button's label and icon as they're set now: the icon when it's been
+ * given a name (visible), the label when it has text or there's no icon. The
+ * theme classes are those GTK itself gives such a button: `text-button` for a
+ * label, `image-button` for an icon, both for both (GTK's theme has no class
+ * of its own for icon and label).
+ */
+fun show_content(button: GtkWidget, label: GtkWidget, image: GtkWidget) {
+    let has_icon = gtk_widget_get_visible(image) != 0;
+    let has_label = gtk_label_get_text(label) != "" || !has_icon;
+    gtk_widget_set_visible(label, flag(has_label));
+    css_class(button, "text-button", has_label);
+    css_class(button, "image-button", has_icon);
+}
+
+/** Adds the CSS class to the widget, or removes it. */
+fun css_class(w: GtkWidget, class: string, on: bool) {
+    if on {
+        gtk_widget_add_css_class(w, class);
+    } else {
+        gtk_widget_remove_css_class(w, class);
+    }
+}
+
+/** GTK's `GtkContentFit` for a `Fit`. */
+fun content_fit(fit: Fit): i32 = match fit {
+    Fill => 0,
+    Contain => 1,
+    Cover => 2,
+    ScaleDown => 3,
+};
 
 /**
  * Gives a label the text fields of `style`: size and bold as Pango attributes

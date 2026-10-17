@@ -1,0 +1,125 @@
+/**
+ * The style types: what modifiers set on a node (`Style`) and the values its
+ * fields take. Plain data, no GTK. The modifiers that build a `Style` are
+ * methods of `View`, in `views` (an `impl` must sit with its type).
+ *
+ * Used by: views, lib, diff, walk, testing, live, build, styling
+ */
+
+/** The app's window, as `.window(title, width, height)` sets it. */
+public struct Window {
+    title: string,
+    /** The size it opens at, in pixels. */
+    width: i64,
+    height: i64,
+}
+
+/** How a button looks, from the theme (docs/DESIGN.md). */
+public enum ButtonStyle {
+    Normal,
+    /** The one main action in a view. */
+    Primary,
+    /** Deletes or discards. */
+    Danger,
+    /** Low emphasis, toolbar-like. */
+    Subtle,
+}
+
+/** How a picture fills the room it's given, as `.fit(…)` sets it. */
+public enum Fit {
+    /** The whole picture, scaled to fit, keeping its shape: the default. */
+    Contain,
+    /** Fills the room, keeping its shape, cropping what doesn't fit. */
+    Cover,
+    /** As `Contain`, but never larger than the picture itself. */
+    ScaleDown,
+    /** Stretched to fill the room exactly. */
+    Fill,
+}
+
+/** Where a node sits across its column (left to right) or row (top to bottom). */
+public enum Align {
+    /** Stretched across the whole width (in a column) or height (in a row): the default. */
+    Fill,
+    Start,
+    Center,
+    End,
+}
+
+/**
+ * Every modifier a node can carry. Built by the modifier methods; a field
+ * that doesn't fit a node is kept and ignored when it's shown.
+ */
+public struct Style {
+    /** Pixels of empty room on all four sides. */
+    padding: i64,
+    /** Pixels between a column's or row's children. */
+    spacing: i64,
+    /** Whether the node takes spare room along its column (down) or row (across). */
+    expand: bool,
+    align: Align,
+    /** The smallest width and height in pixels; -1 leaves it to the widget. */
+    width: i64,
+    height: i64,
+    /** Text size in points, or an icon's size in pixels; 0 keeps the theme's. Text and icons. */
+    size: i64,
+    /** Bold text. Text only. */
+    bold: bool,
+    /** Faded text, for secondary information. Text only. */
+    dim: bool,
+    /** How a button looks in the theme. Buttons only. */
+    look: ButtonStyle,
+    /** The window's title and size, from the root of `view`. Root only. */
+    window: Option<Window>,
+    /** Hint text an empty text field shows; "" for none. Text fields only. */
+    placeholder: string,
+    /** A name for tests to find the node by (`kivuli.testing`); not shown. */
+    name: string,
+    /** Long text flows onto more lines. Text and check box labels. */
+    wrap: bool,
+    /** With `wrap`, the most characters of width the text asks for; 0 for no cap. */
+    wrap_at: i64,
+    /** Long text stays one line, cut with "…" (with `wrap`: at most 3 lines). Text and check box labels. */
+    ellipsize: bool,
+    /** The user can select and copy the text. Text only. */
+    selectable: bool,
+    /** Hover text; "" for none. Any node. */
+    tooltip: string,
+    /** Keys that press the button from anywhere in the window, as "Ctrl+N"; "" for none. Buttons only. */
+    shortcut: string,
+    /** Takes keyboard focus when first shown. Any node. */
+    autofocus: bool,
+    /** How far a slider's handle moves at a time, counted from its least value; 1 by default. Sliders only. */
+    step: i64,
+    /** A theme icon shown on a button, before its label; "" for none. Buttons only. */
+    icon: string,
+    /** How a picture fills the room it's given. Images only. */
+    fit: Fit,
+}
+
+/** The style of a node with no modifiers: what GTK does by default. */
+fun plain(): Style = Style {
+    padding: 0,
+    spacing: 0,
+    expand: false,
+    align: Align.Fill,
+    width: -1,
+    height: -1,
+    size: 0,
+    bold: false,
+    dim: false,
+    look: ButtonStyle.Normal,
+    window: None,
+    placeholder: "",
+    name: "",
+    wrap: false,
+    wrap_at: 0,
+    ellipsize: false,
+    selectable: false,
+    tooltip: "",
+    shortcut: "",
+    autofocus: false,
+    step: 1,
+    icon: "",
+    fit: Fit.Contain,
+};

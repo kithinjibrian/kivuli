@@ -16,6 +16,18 @@ Rules:
 
 ## DEFERRED — Acknowledged, not yet needed
 
+### DECISION-011 — lughac: a module's private imports can be imported through it
+
+**Status:** deferred (a lughac bug, for the lugha repository; kivuli doesn't rely on it)
+**Raised:** 2026-10-17 — Session 3 (PRP-005)
+**Revisit when:** lughac fixes it; then nothing in kivuli should change.
+
+**Question:** After `Style`, `plain` and `Fit` moved from `views.la` to `looks.la` (which `views.la` imports without `public`), `import kivuli.views { Style, plain };` and `import kivuli.views { Fit };` still compile in `test/`. A plain `import` should not re-export: only `public import` should.
+
+**Notes:** Reproduced with a one-line test importing `Fit` through `kivuli.views` (passed). kivuli's tests now import from `kivuli.looks`, where the items live, so a fix breaks nothing here. Not worked around: reported to the user for the lugha session.
+
+---
+
 ### DECISION-005 — Multiple windows and dialogs
 
 **Status:** deferred

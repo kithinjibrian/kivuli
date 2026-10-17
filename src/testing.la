@@ -8,7 +8,8 @@
  * Used by: lib (re-exported), apps' tests
  */
 
-import views { View, Style };
+import views { View };
+import looks { Style };
 import walk { nodes };
 import keys;
 import widgets { snap };

@@ -2,7 +2,7 @@
 // sandbox runs, and the window a view's root asks for. No GTK.
 import kivuli.effects { commands, sandbox_app, timers };
 import kivuli.diff { Patch, diff as patches };
-import kivuli.views { Style, Window, plain };
+import kivuli.looks { Style, Window, plain };
 import kivuli { App, Cmd, Sub, View, column, text };
 
 // Views and commands can hold functions, which have no `==`: compare what

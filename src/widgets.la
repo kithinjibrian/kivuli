@@ -163,6 +163,27 @@ public fun slider<Msg>(
 ): View<Msg> = View.Slider(min, max, value, on_change);
 
 /**
+ * Builds a theme icon by name, at the theme's size; `.size(n)` makes it `n`
+ * pixels. Symbolic icons (`…-symbolic`) take the theme's text colour. A name
+ * the theme doesn't have shows GTK's "missing image" icon.
+ *
+ * Example:
+ *     icon("emblem-ok-symbolic").size(64)
+ */
+public fun icon<Msg>(name: string): View<Msg> = View.Icon(name);
+
+/**
+ * Builds a picture of the file at `path` (PNG, JPEG, SVG …), scaled to the
+ * room it's given as `.fit` says; `.width`/`.height` give it room. A relative
+ * path is relative to the directory the app was started from. A missing or
+ * unreadable file shows nothing, and the app keeps running.
+ *
+ * Example:
+ *     image("assets/logo.png").width(64).height(64)
+ */
+public fun image<Msg>(path: string): View<Msg> = View.Image(path);
+
+/**
  * Where a slider from `min` to `max` moving in `step`s stops for `value`:
  * clamped to the range, then the nearest step from `min` (half-way rounds up),
  * never past `max`. Shared by the live slider and `kivuli.testing.slide`, so

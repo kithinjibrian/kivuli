@@ -2,7 +2,7 @@
 // showing the old view show the new one. `diff` is package-level: files in
 // test/ see package-level items (lughac milestone 97).
 import kivuli.diff { Patch, diff as patches };
-import kivuli.views { Style, plain };
+import kivuli.looks { Style, plain };
 import kivuli {
     View,
     text,
@@ -20,6 +20,9 @@ import kivuli {
     text_area,
     dropdown,
     slider,
+    icon,
+    image,
+    Fit,
 };
 
 // Views and patches can hold functions, which have no `==`: compare what they
@@ -386,4 +389,35 @@ fun a_slider_sets_only_what_changed_and_re_points_its_handler() {
 fun a_dropdown_that_becomes_a_slider_is_replaced() {
     let expected: Patch<Msg>[] = [Patch.Replace([], slider(0, 1, 0, Msg.Level))];
     assert_same(patches(dropdown([("Add", Msg.Add)], "Add"), slider(0, 1, 0, Msg.Level)), expected);
+}
+
+@test
+fun a_renamed_icon_or_a_new_file_is_set_in_place() {
+    let renamed: Patch<Msg>[] = [Patch.SetIcon([], "user-trash-symbolic")];
+    assert_same(patches(icon("list-add-symbolic"), icon("user-trash-symbolic")), renamed);
+    let none: Patch<Msg>[] = [];
+    assert_same(patches(icon("list-add-symbolic"), icon("list-add-symbolic")), none);
+    let moved: Patch<Msg>[] = [Patch.SetFile([], "b.png")];
+    assert_same(patches(image("a.png"), image("b.png")), moved);
+    assert_same(patches(image("a.png"), image("a.png")), none);
+}
+
+@test
+fun a_button_icon_or_an_image_fit_is_a_restyle() {
+    let iconned: Patch<Msg>[] = [
+        Patch.SetStyle([], Style { icon: "list-add-symbolic", ..plain() }),
+        Patch.SetMsg([], Some(Msg.Add)),
+    ];
+    assert_same(
+        patches(button("Add", Msg.Add), button("Add", Msg.Add).icon("list-add-symbolic")),
+        iconned,
+    );
+    let refit: Patch<Msg>[] = [Patch.SetStyle([], Style { fit: Fit.Cover, ..plain() })];
+    assert_same(patches(image("a.png"), image("a.png").fit(Fit.Cover)), refit);
+}
+
+@test
+fun an_icon_that_becomes_an_image_is_replaced() {
+    let expected: Patch<Msg>[] = [Patch.Replace([], image("a.png"))];
+    assert_same(patches(icon("list-add-symbolic"), image("a.png")), expected);
 }

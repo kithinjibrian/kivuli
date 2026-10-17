@@ -13,9 +13,10 @@ enum Live<Msg> {
     Label(GtkWidget),
     /**
      * The button, the message it sends (its click handler reads it), its
-     * shortcut controller, and the shortcut in it now, if any.
+     * shortcut controller, the shortcut in it now, if any, and kivuli's own
+     * content: its label and its icon (each hidden when empty).
      */
-    Button(GtkWidget, Ref<Option<Msg>>, GtkEventController, Ref<Option<GtkShortcut>>),
+    Button(GtkWidget, Ref<Option<Msg>>, GtkEventController, Ref<Option<GtkShortcut>>, GtkWidget, GtkWidget),
     /**
      * A column or a row: both are a `GtkBox`, and patch the same way. The
      * orientation (`GtkOrientation`: 1 vertical, 0 horizontal) lays out
@@ -45,6 +46,10 @@ enum Live<Msg> {
      * `value-changed` handler reads all three.
      */
     Slider(GtkWidget, Ref<(i64, i64, i64)>, Ref<i64>, Ref<fun(i64): Msg>),
+    /** A theme icon (a `GtkImage`). */
+    Icon(GtkWidget),
+    /** A picture from a file (a `GtkPicture`). */
+    Image(GtkWidget),
     Spacer(GtkWidget),
     Separator(GtkWidget),
     /** A scrolled window and the one child it shows. */
@@ -70,13 +75,15 @@ struct Choices<Msg> {
 /** The GTK widget showing `node`. */
 fun widget<Msg>(node: Live<Msg>): GtkWidget = match node {
     Label(w) => w,
-    Button(w, _, _, _) => w,
+    Button(w, _, _, _, _, _) => w,
     Box(w, _, _) => w,
     Input(w, _, _) => w,
     Checkbox(w, _, _) => w,
     TextArea(w, _, _) => w,
     Dropdown(w, _) => w,
     Slider(w, _, _, _) => w,
+    Icon(w) => w,
+    Image(w) => w,
     Spacer(w) => w,
     Separator(w) => w,
     Scroll(w, _) => w,

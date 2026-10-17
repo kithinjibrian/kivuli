@@ -12,6 +12,8 @@ import kivuli {
     text_area,
     dropdown,
     slider,
+    icon,
+    image,
 };
 import kivuli.testing {
     Lookup,
@@ -197,4 +199,16 @@ fun slide_clamps_and_rounds_like_the_widget() {
     assert_eq(slide(settings(), "font", 13), Ok(Msg.Level(14)));
     assert_eq(slide(settings(), "font", 10), Ok(Msg.Level(10)));
     assert_eq(slide(settings(), "twin", 1), Err(Lookup.Ambiguous("slider \"twin\"", 2)));
+}
+
+@test
+fun an_icon_only_button_is_clicked_by_its_tooltip_and_pictures_are_not_texts() {
+    let v: View<Msg> = column([
+        icon("emblem-ok-symbolic"),
+        image("a.png"),
+        text("Tasks"),
+        button("", Msg.Clear).icon("user-trash-symbolic").tooltip("Clear all"),
+    ]);
+    assert_eq(click(v, "Clear all"), Ok(Msg.Clear));
+    assert_eq(texts(v), ["Tasks"]);
 }

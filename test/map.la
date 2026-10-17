@@ -16,6 +16,9 @@ import kivuli {
     text_area,
     dropdown,
     slider,
+    icon,
+    image,
+    Fit,
 };
 
 // Views and commands can hold functions, which have no `==`: compare what
@@ -93,4 +96,13 @@ fun mapped_choices_and_sliders_send_mapped_messages() {
     assert_eq(kivuli.testing.choose(picks, "d", "Inc"), Ok(App.Right(Part.Inc)));
     let slid = slider(0, 9, 3, Part.Level).name("s").map(App.Left);
     assert_eq(kivuli.testing.slide(slid, "s", 5), Ok(App.Left(Part.Level(5))));
+}
+
+@test
+fun icons_and_images_pass_through_map() {
+    // Icons send nothing: the part's message type comes from the annotation.
+    let part: View<Part> = column([icon("list-add-symbolic"), image("a.png").fit(Fit.Cover)]);
+    let mapped = part.map(App.Left);
+    let expected: View<App> = column([icon("list-add-symbolic"), image("a.png").fit(Fit.Cover)]);
+    assert_same(mapped, expected);
 }

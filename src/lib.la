@@ -8,7 +8,8 @@
  * Depends on: views, widgets, effects, testing, live
  */
 
-public import views { View, Align, ButtonStyle };
+public import views { View };
+public import looks { Align, ButtonStyle, Fit };
 public import widgets {
     text,
     button,
@@ -24,6 +25,8 @@ public import widgets {
     text_area,
     dropdown,
     slider,
+    icon,
+    image,
 };
 public import effects { Cmd, Sub, App };
 public import testing;
