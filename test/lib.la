@@ -86,7 +86,7 @@ fun a_row_holds_its_children_in_order() {
 fun an_input_shows_its_value_and_turns_text_into_a_message() {
     // `Msg.Named` is a variant used as a function (lughac milestone 94).
     match input("Ada", Msg.Named) {
-        Input(value, on_change, _) => {
+        Input(value, Some((on_change, _))) => {
             assert_eq(value, "Ada");
             assert_eq(on_change("Grace"), Msg.Named("Grace"));
         }
@@ -185,7 +185,7 @@ fun disabled_reaches_a_styled_button_and_ignores_other_nodes() {
 @test
 fun a_text_area_shows_its_text_and_turns_edits_into_messages() {
     match text_area("a", Msg.Named) {
-        TextArea(value, on_change) => {
+        TextArea(value, Some(on_change)) => {
             assert_eq(value, "a");
             assert_eq(on_change("b\nc"), Msg.Named("b\nc"));
         }
@@ -195,7 +195,7 @@ fun a_text_area_shows_its_text_and_turns_edits_into_messages() {
 
 @test
 fun a_name_lands_in_the_style() {
-    let expected: View<Msg> = View.Styled(View.TextArea("a", Msg.Named), Style {
+    let expected: View<Msg> = View.Styled(View.TextArea("a", Some(Msg.Named)), Style {
         name: "notes",
         ..plain(),
     });
@@ -270,4 +270,29 @@ fun icons_and_images_are_plain_nodes_with_their_modifiers() {
         ..plain(),
     });
     assert_same(button("Add", Msg.Add).icon("list-add-symbolic"), iconned);
+}
+
+@test
+fun disabling_a_field_takes_its_messages_away() {
+    let off: View<Msg> = View.Input("Ada", None);
+    assert_same(input("Ada", Msg.Named).disabled(true), off);
+    assert_same(input("Ada", Msg.Named).on_submit(Msg.Add).disabled(true), off);
+    // Nothing to add Enter to once it's disabled: either order is the same.
+    assert_same(input("Ada", Msg.Named).disabled(true).on_submit(Msg.Add), off);
+    let area: View<Msg> = View.TextArea("a", None);
+    assert_same(text_area("a", Msg.Named).disabled(true), area);
+    // Through a style wrapper.
+    let named: View<Msg> = View.Styled(View.TextArea("a", None), Style {
+        name: "notes",
+        ..plain(),
+    });
+    assert_same(text_area("a", Msg.Named).name("notes").disabled(true), named);
+}
+
+@test
+fun disabled_false_changes_nothing_on_a_field() {
+    let on: View<Msg> = View.Input("Ada", Some((Msg.Named, Some(Msg.Add))));
+    assert_same(input("Ada", Msg.Named).on_submit(Msg.Add).disabled(false), on);
+    let area: View<Msg> = View.TextArea("a", Some(Msg.Named));
+    assert_same(text_area("a", Msg.Named).disabled(false), area);
 }

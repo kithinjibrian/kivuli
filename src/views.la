@@ -21,10 +21,14 @@ public enum View<Msg> {
     Column(View<Msg>[]),
     /** Children side by side, left to right. */
     Row(View<Msg>[]),
-    /** A one-line text field: what it shows, the message each edit sends, and the message Enter sends. */
-    Input(string, fun(string): Msg, Option<Msg>),
-    /** A multi-line text field: what it shows, and the message each edit sends. */
-    TextArea(string, fun(string): Msg),
+    /**
+     * A one-line text field: what it shows, and its messages: the one each
+     * edit sends and the one Enter sends. `None` when disabled (decision 6):
+     * the two go together, so Enter can't send while editing can't.
+     */
+    Input(string, Option<(fun(string): Msg, Option<Msg>)>),
+    /** A multi-line text field: what it shows, and the message each edit sends; `None` when disabled. */
+    TextArea(string, Option<fun(string): Msg>),
     /** A check box: its label, whether it's ticked, and the message each toggle sends. */
     Checkbox(string, bool, fun(bool): Msg),
     /** A drop-down: each choice's label and the message picking it sends, and the label shown picked. */
@@ -164,17 +168,22 @@ impl View<Msg> {
     );
 
     /**
-     * When `off`, takes a button's message away: it's greyed out and clicks
-     * send nothing. `disabled(false)` changes nothing. Ignored on other nodes.
+     * When `off`, takes the messages of a button, text field or text area
+     * away: it's greyed out, a button's clicks send nothing, and a field
+     * can't be edited (its value still shows and follows the model).
+     * `disabled(false)` changes nothing. Ignored on other nodes.
      *
      * Example:
      *     button("Reset", Msg.Reset).disabled(m.count == 0)
+     *     input(m.title, Msg.Title).disabled(m.locked)
      */
     public fun disabled(self, off: bool): View<Msg> = if !off {
         self
     } else {
         match self {
             Button(label, _) => View.Button(label, None),
+            Input(value, _) => View.Input(value, None),
+            TextArea(value, _) => View.TextArea(value, None),
             Styled(inside, s) => View.Styled(inside.disabled(true), s),
             _ => self,
         }
@@ -347,7 +356,9 @@ impl View<Msg> {
     );
 
     public fun on_submit(self, msg: Msg): View<Msg> = match self {
-        Input(value, on_change, _) => View.Input(value, on_change, Some(msg)),
+        Input(value, Some((on_change, _))) => View.Input(value, Some((on_change, Some(msg)))),
+        // Disabled: there are no messages to add Enter's to.
+        Input(_, None) => self,
         Styled(inside, s) => View.Styled(inside.on_submit(msg), s),
         _ => self,
     };
@@ -365,12 +376,16 @@ impl View<Msg> {
         Button(label, msg) => View.Button(label, msg.map(f)),
         Column(xs) => View.Column(xs.map(fun(x) = x.map(f))),
         Row(xs) => View.Row(xs.map(fun(x) = x.map(f))),
-        TextArea(value, on_change) => View.TextArea(value, fun(s: string): B = f(on_change(s))),
-        Input(value, on_change, on_submit) => View.Input(
-            value,
-            fun(s: string): B = f(on_change(s)),
-            on_submit.map(f),
-        ),
+        TextArea(value, on_change) => View.TextArea(value, match on_change {
+            Some(g) => Some(fun(s: string): B = f(g(s))),
+            None => None,
+        }),
+        Input(value, messages) => View.Input(value, match messages {
+            Some((on_change, on_submit)) => Some(
+                (fun(s: string): B = f(on_change(s)), on_submit.map(f)),
+            ),
+            None => None,
+        }),
         Checkbox(label, checked, on_toggle) => View.Checkbox(
             label,
             checked,

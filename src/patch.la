@@ -31,7 +31,7 @@ import gtk {
     lgtk_text_place_cursor,
 };
 import diff;
-import build { create, create_in, picked, sync_choices, text_of };
+import build { create, create_in, editor, picked, sync_choices, text_of };
 import styling { apply_style, flag, show_content, show_number };
 import live_tree { Choices, Live, widget };
 
@@ -92,8 +92,15 @@ fun apply<Msg>(
     }
     SetOnChange(path, on_change) => {
         match at(live, path) {
-            Input(_, current, _) => current.set(on_change),
-            TextArea(_, _, current) => current.set(on_change),
+            // As SetMsg for buttons: no function is disabled, greyed out.
+            Input(entry, current, _) => {
+                current.set(on_change);
+                gtk_widget_set_sensitive(entry, flag(on_change.is_some()));
+            }
+            TextArea(scrolled, _, current) => {
+                current.set(on_change);
+                gtk_widget_set_sensitive(editor(scrolled), flag(on_change.is_some()));
+            }
             _ => panic("kivuli: a SetOnChange patch points at something that isn't a text field"),
         }
         live

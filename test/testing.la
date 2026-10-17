@@ -20,6 +20,7 @@ import kivuli.testing {
     choose,
     click,
     is_disabled,
+    is_field_disabled,
     press,
     slide,
     submit,
@@ -211,4 +212,36 @@ fun an_icon_only_button_is_clicked_by_its_tooltip_and_pictures_are_not_texts() {
     ]);
     assert_eq(click(v, "Clear all"), Ok(Msg.Clear));
     assert_eq(texts(v), ["Tasks"]);
+}
+
+fun locked(): View<Msg> = column([
+    input("milk", Msg.Draft).placeholder("New task").on_submit(Msg.Add).disabled(true),
+    text_area("old notes", Msg.Notes).name("notes").disabled(true),
+    input("", Msg.Draft).placeholder("Open"),
+    input("", Msg.Draft).placeholder("Twin"),
+    input("", Msg.Draft).placeholder("Twin"),
+]);
+
+@test
+fun a_disabled_field_is_silent() {
+    assert_eq(
+        type_into(locked(), "New task", "eggs"),
+        Err(Lookup.Silent("text field \"New task\"")),
+    );
+    assert_eq(submit(locked(), "New task"), Err(Lookup.Silent("text field \"New task\"")));
+    assert_eq(type_into(locked(), "notes", "new"), Err(Lookup.Silent("text field \"notes\"")));
+    // An enabled one still sends.
+    assert_eq(type_into(locked(), "Open", "x"), Ok(Msg.Draft("x")));
+}
+
+@test
+fun is_field_disabled_finds_fields_as_type_into_does() {
+    assert_eq(is_field_disabled(locked(), "New task"), Ok(true));
+    assert_eq(is_field_disabled(locked(), "notes"), Ok(true));
+    assert_eq(is_field_disabled(locked(), "Open"), Ok(false));
+    assert_eq(
+        is_field_disabled(locked(), "Nowhere"),
+        Err(Lookup.NotFound("text field \"Nowhere\"")),
+    );
+    assert_eq(is_field_disabled(locked(), "Twin"), Err(Lookup.Ambiguous("text field \"Twin\"", 2)));
 }

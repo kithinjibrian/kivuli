@@ -1,0 +1,186 @@
+// Disabled text fields on real GTK widgets: insensitive while disabled, what
+// a user does then sends nothing, the value still follows the model, and
+// enabling them again works on the same widgets. Needs a display, so it is
+// skipped without one.
+import std.env;
+import gtk {
+    GtkApplication,
+    GtkWidget,
+    connect_app,
+    emit_widget,
+    g_application_quit,
+    g_application_run,
+    g_object_unref,
+    gtk_application_new,
+    gtk_application_window_new,
+    gtk_editable_get_text,
+    gtk_editable_set_text,
+    gtk_scrolled_window_get_child,
+    gtk_text_buffer_set_text,
+    gtk_widget_get_sensitive,
+};
+import kivuli.live { mount, live_of };
+import kivuli.effects { sandbox_app };
+import kivuli.build { text_of };
+import kivuli.live_tree { Live, widget };
+import kivuli { View, button, column, input, text_area };
+
+fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
+
+/** Runs `steps` on the mounted app's top column, noting every message `update` receives. */
+fun with_app<Model, Msg>(
+    id: string,
+    model: Model,
+    update: fun(Model, Msg): Model,
+    view: fun(Model): View<Msg>,
+    received: Ref<string[]>,
+    steps: fun(Live<Msg>[]),
+) {
+    let application = gtk_application_new(id, 0);
+    connect_app(
+        application,
+        "activate",
+        fun(a: GtkApplication) {
+            let window = gtk_application_window_new(a);
+            let app = mount(a, window, sandbox_app(
+                "org.kivuli.test",
+                model,
+                fun(m: Model, msg: Msg): Model {
+                    received.update(fun(xs) {
+                        let mut ys = xs;
+                        ys.push("{msg}");
+                        ys
+                    });
+                    update(m, msg)
+                },
+                view,
+            ));
+            let Box(_, _, kids) = live_of(app) else {
+                panic("expected a column");
+            };
+            steps(kids);
+            g_application_quit(a);
+        },
+        0,
+    );
+    g_application_run(application, 0, None);
+    g_object_unref(application);
+}
+
+fun note(seen: Ref<string[]>, s: string) {
+    seen.update(fun(xs) {
+        let mut ys = xs;
+        ys.push(s);
+        ys
+    });
+}
+
+enum Edit {
+    Typed(string),
+    Noted(string),
+    Enter,
+    Set,
+    Lock,
+    Unlock,
+}
+
+struct Form {
+    title: string,
+    notes: string,
+    locked: bool,
+}
+
+fun update_form(f: Form, msg: Edit): Form = match msg {
+    Typed(s) => Form { title: s, ..f },
+    Noted(s) => Form { notes: s, ..f },
+    Enter => f,
+    Set => Form { title: "set", notes: "set notes", ..f },
+    Lock => Form { locked: true, ..f },
+    Unlock => Form { locked: false, ..f },
+};
+
+fun view_form(f: Form): View<Edit> = column([
+    input(f.title, Edit.Typed).on_submit(Edit.Enter).disabled(f.locked),
+    text_area(f.notes, Edit.Noted).disabled(f.locked),
+    button("Set", Edit.Set),
+    button("Lock", Edit.Lock),
+    button("Unlock", Edit.Unlock),
+]);
+
+/**
+ * The two fields as GTK shows them: each one's text and whether it's
+ * sensitive, and for the text area its editor and its scrolled window apart.
+ */
+fun fields(kids: Live<Edit>[]): string {
+    let entry = widget(kids[0]);
+    let TextArea(scrolled, buffer, _) = kids[1] else {
+        panic("expected a text area");
+    };
+    let editor = gtk_scrolled_window_get_child(scrolled).unwrap_or(scrolled);
+    "<{gtk_editable_get_text(entry)}> {gtk_widget_get_sensitive(entry)} | <{text_of(buffer)}> editor {gtk_widget_get_sensitive(editor)} scroll {gtk_widget_get_sensitive(scrolled)}"
+}
+
+/** What a user does in both fields: types, presses Enter, writes notes (outside any dispatch). */
+fun use_fields(kids: Live<Edit>[], title: string, notes: string) {
+    let entry = widget(kids[0]);
+    let TextArea(_, buffer, _) = kids[1] else {
+        panic("expected a text area");
+    };
+    gtk_editable_set_text(entry, title);
+    emit_widget(entry, "activate");
+    gtk_text_buffer_set_text(buffer, notes, -1);
+}
+
+@test
+fun disabled_fields_send_nothing_follow_the_model_and_come_back() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen: Ref<string[]> = Ref.new([]);
+    let received: Ref<string[]> = Ref.new([]);
+    with_app("org.kivuli.test.disabled", Form {
+        title: "",
+        notes: "",
+        locked: true,
+    }, update_form, view_form, received, fun(kids: Live<Edit>[]) {
+        let entry: GtkWidget = widget(kids[0]);
+        let area: GtkWidget = widget(kids[1]);
+        note(seen, fields(kids));
+        // Disabled from the start: nothing reaches `update`.
+        use_fields(kids, "x", "y");
+        note(seen, fields(kids));
+        // The value still follows the model while disabled.
+        emit_widget(widget(kids[2]), "clicked");
+        note(seen, fields(kids));
+        // Enabled: the same widgets now send.
+        emit_widget(widget(kids[4]), "clicked");
+        note(seen, fields(kids));
+        use_fields(kids, "abc", "n");
+        // Disabled again: silent again.
+        emit_widget(widget(kids[3]), "clicked");
+        note(seen, fields(kids));
+        use_fields(kids, "zzz", "zzz");
+        note(seen, "same: {widget(kids[0]) == entry && widget(kids[1]) == area}");
+    });
+    assert_eq(seen.get(), [
+        "<> 0 | <> editor 0 scroll 1",
+        "<x> 0 | <y> editor 0 scroll 1",
+        "<set> 0 | <set notes> editor 0 scroll 1",
+        "<set> 1 | <set notes> editor 1 scroll 1",
+        "<abc> 0 | <n> editor 0 scroll 1",
+        "same: true",
+    ]);
+    // Setting a field's text from code is a delete then an insert in GTK, so
+    // each enabled use sends two edits (the emptied text, then the new one).
+    // Nothing at all is sent while the fields are disabled.
+    assert_eq(received.get(), [
+        "Set",
+        "Unlock",
+        "Typed(\"\")",
+        "Typed(\"abc\")",
+        "Enter",
+        "Noted(\"\")",
+        "Noted(\"n\")",
+        "Lock",
+    ]);
+}
