@@ -2,20 +2,37 @@
 // the model, and kivuli's own patches don't echo back as messages. Needs a
 // display, so it is skipped without one.
 import std.env;
-import gtk;
+import gtk {
+    GtkApplication,
+    GtkWidget,
+    connect_app,
+    emit_widget,
+    g_application_quit,
+    g_application_run,
+    g_object_unref,
+    gtk_application_new,
+    gtk_application_window_new,
+    gtk_check_button_get_active,
+    gtk_check_button_get_label,
+    gtk_check_button_set_active,
+    gtk_editable_get_text,
+    gtk_editable_set_text,
+    gtk_label_get_text,
+    gtk_window_set_child,
+};
 import kivuli.live { Running, State, create, sender, widget };
 import kivuli { View, button, checkbox, column, input, text };
 
 fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
 
 // A check box as `[x] label` or `[ ] label`, read back from GTK.
-fun ticked(w: gtk.raw.GtkWidget): string {
-    let tick = if gtk.raw.gtk_check_button_get_active(w) != 0 {
+fun ticked(w: GtkWidget): string {
+    let tick = if gtk_check_button_get_active(w) != 0 {
         "x"
     } else {
         " "
     };
-    "[{tick}] " + gtk.raw.gtk_check_button_get_label(w).unwrap_or("?")
+    "[{tick}] " + gtk_check_button_get_label(w).unwrap_or("?")
 }
 
 enum Form {
@@ -49,12 +66,12 @@ fun typing_reaches_the_model_and_a_patch_does_not_echo() {
     // would run a second dispatch inside the first, whose state the outer one
     // then overwrites, so the final model alone can't show it.
     let received: Ref<string[]> = Ref.new([]);
-    let application = gtk.raw.gtk_application_new("org.kivuli.test.input", 0);
-    gtk.raw.connect_app(
+    let application = gtk_application_new("org.kivuli.test.input", 0);
+    connect_app(
         application,
         "activate",
-        fun(a: gtk.raw.GtkApplication) {
-            let window = gtk.raw.gtk_application_window_new(a);
+        fun(a: GtkApplication) {
+            let window = gtk_application_window_new(a);
             let state: Ref<Option<State<Person, Form>>> = Ref.new(None);
             let app = Running {
                 window: window,
@@ -73,23 +90,23 @@ fun typing_reaches_the_model_and_a_patch_does_not_echo() {
             let init = Person { name: "" };
             let tree = view_person(init);
             let first = create(tree, sender(app));
-            gtk.raw.gtk_window_set_child(window, widget(first));
+            gtk_window_set_child(window, widget(first));
             state.set(Some(State { model: init, tree: tree, live: first }));
             let Box(_, _, kids) = first else {
                 panic("expected a column");
             };
             // What a user typing "Ada" ends with: the entry's text changes, outside any dispatch.
-            gtk.raw.gtk_editable_set_text(widget(kids[0]), "Ada");
-            after_typing.set(gtk.raw.gtk_label_get_text(widget(kids[1])));
+            gtk_editable_set_text(widget(kids[0]), "Ada");
+            after_typing.set(gtk_label_get_text(widget(kids[1])));
             // Clear empties the entry through a SetValue patch; its `changed` echo is dropped.
-            gtk.raw.emit_widget(widget(kids[2]), "clicked");
-            after_clear.set(gtk.raw.gtk_editable_get_text(widget(kids[0])));
-            gtk.raw.g_application_quit(a);
+            emit_widget(widget(kids[2]), "clicked");
+            after_clear.set(gtk_editable_get_text(widget(kids[0])));
+            g_application_quit(a);
         },
         0,
     );
-    gtk.raw.g_application_run(application, 0, None);
-    gtk.raw.g_object_unref(application);
+    g_application_run(application, 0, None);
+    g_object_unref(application);
 
     assert_eq(after_typing.get(), "Hello, Ada");
     assert_eq(after_clear.get(), "");
@@ -133,12 +150,12 @@ fun ticking_reaches_the_model_and_a_patch_does_not_echo() {
     let after_reset = Ref.new("");
     // Every message `update` receives; see the input test for why.
     let received: Ref<string[]> = Ref.new([]);
-    let application = gtk.raw.gtk_application_new("org.kivuli.test.checkbox", 0);
-    gtk.raw.connect_app(
+    let application = gtk_application_new("org.kivuli.test.checkbox", 0);
+    connect_app(
         application,
         "activate",
-        fun(a: gtk.raw.GtkApplication) {
-            let window = gtk.raw.gtk_application_window_new(a);
+        fun(a: GtkApplication) {
+            let window = gtk_application_window_new(a);
             let state: Ref<Option<State<Task, Chore>>> = Ref.new(None);
             let app = Running {
                 window: window,
@@ -157,23 +174,23 @@ fun ticking_reaches_the_model_and_a_patch_does_not_echo() {
             let init = Task { done: false };
             let tree = view_task(init);
             let first = create(tree, sender(app));
-            gtk.raw.gtk_window_set_child(window, widget(first));
+            gtk_window_set_child(window, widget(first));
             state.set(Some(State { model: init, tree: tree, live: first }));
             let Box(_, _, kids) = first else {
                 panic("expected a column");
             };
             // What a user's click ends with: the box becomes ticked, outside any dispatch.
-            gtk.raw.gtk_check_button_set_active(widget(kids[0]), 1);
+            gtk_check_button_set_active(widget(kids[0]), 1);
             after_tick.set(ticked(widget(kids[0])));
             // Reset unticks it through a SetChecked patch; its `toggled` echo is dropped.
-            gtk.raw.emit_widget(widget(kids[1]), "clicked");
+            emit_widget(widget(kids[1]), "clicked");
             after_reset.set(ticked(widget(kids[0])));
-            gtk.raw.g_application_quit(a);
+            g_application_quit(a);
         },
         0,
     );
-    gtk.raw.g_application_run(application, 0, None);
-    gtk.raw.g_object_unref(application);
+    g_application_run(application, 0, None);
+    g_object_unref(application);
 
     assert_eq(after_tick.get(), "[x] Done!");
     assert_eq(after_reset.get(), "[ ] Done");

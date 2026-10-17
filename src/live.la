@@ -9,29 +9,61 @@
  * Used by: lib
  */
 
-import gtk;
+import gtk {
+    GtkApplication,
+    GtkWidget,
+    connect_app,
+    connect_widget,
+    g_application_run,
+    g_object_unref,
+    gtk_application_new,
+    gtk_application_window_new,
+    gtk_box_append,
+    gtk_box_insert_child_after,
+    gtk_box_new,
+    gtk_box_remove,
+    gtk_box_reorder_child_after,
+    gtk_button_new_with_label,
+    gtk_button_set_label,
+    gtk_check_button_get_active,
+    gtk_check_button_new_with_label,
+    gtk_check_button_set_active,
+    gtk_check_button_set_label,
+    gtk_editable_get_text,
+    gtk_editable_set_text,
+    gtk_entry_new,
+    gtk_label_new,
+    gtk_label_set_text,
+    gtk_scrolled_window_new,
+    gtk_scrolled_window_set_child,
+    gtk_separator_new,
+    gtk_widget_set_hexpand,
+    gtk_widget_set_vexpand,
+    gtk_window_present,
+    gtk_window_set_child,
+};
 import diff;
 import views { View };
 
 /** The widgets on screen, shaped exactly like the `View` they show. */
 enum Live<Msg> {
-    Label(gtk.raw.GtkWidget),
+    Label(GtkWidget),
     /** The button and the message it sends: its click handler reads this box. */
-    Button(gtk.raw.GtkWidget, Ref<Msg>),
+    Button(GtkWidget, Ref<Msg>),
     /**
      * A column or a row: both are a `GtkBox`, and patch the same way. The
      * orientation (`GtkOrientation`: 1 vertical, 0 horizontal) lays out
      * children added later.
      */
-    Box(gtk.raw.GtkWidget, i32, Live<Msg>[]),
+    Box(GtkWidget, i32, Live<Msg>[]),
     /** A text field and the function turning its text into a message: its `changed` handler reads this box. */
-    Input(gtk.raw.GtkWidget, Ref<fun(string): Msg>),
+    Input(GtkWidget, Ref<fun(string): Msg>),
     /** A check box and the function turning its state into a message: its `toggled` handler reads this box. */
-    Checkbox(gtk.raw.GtkWidget, Ref<fun(bool): Msg>),
-    Spacer(gtk.raw.GtkWidget),
-    Separator(gtk.raw.GtkWidget),
+    Checkbox(GtkWidget, Ref<fun(bool): Msg>),
+    Spacer(GtkWidget),
+    Separator(GtkWidget),
     /** A scrolled window and the one child it shows. */
-    Scroll(gtk.raw.GtkWidget, Live<Msg>),
+    Scroll(GtkWidget, Live<Msg>),
 }
 
 /** What changes as the app runs: the model, the view it gave, and the widgets showing it. */
@@ -43,7 +75,7 @@ struct State<Model, Msg> {
 
 /** A running app: what's fixed at start, plus its changing `State`. */
 struct Running<Model, Msg> {
-    window: gtk.raw.GtkWidget,
+    window: GtkWidget,
     update_fn: fun(Model, Msg): Model,
     view_fn: fun(Model): View<Msg>,
     // `None` only while the first view is being built.
@@ -65,12 +97,12 @@ fun run<Model, Msg>(
     update: fun(Model, Msg): Model,
     view: fun(Model): View<Msg>,
 ): i32 {
-    let application = gtk.raw.gtk_application_new(id, 0);
-    gtk.raw.connect_app(
+    let application = gtk_application_new(id, 0);
+    connect_app(
         application,
         "activate",
-        fun(a: gtk.raw.GtkApplication) {
-            let window = gtk.raw.gtk_application_window_new(a);
+        fun(a: GtkApplication) {
+            let window = gtk_application_window_new(a);
             let state: Ref<Option<State<Model, Msg>>> = Ref.new(None);
             let app = Running {
                 window: window,
@@ -81,14 +113,14 @@ fun run<Model, Msg>(
             };
             let tree = view(init);
             let live = create(tree, sender(app));
-            gtk.raw.gtk_window_set_child(window, widget(live));
+            gtk_window_set_child(window, widget(live));
             state.set(Some(State { model: init, tree: tree, live: live }));
-            gtk.raw.gtk_window_present(window);
+            gtk_window_present(window);
         },
         0,
     );
-    let status = gtk.raw.g_application_run(application, 0, None);
-    gtk.raw.g_object_unref(application);
+    let status = g_application_run(application, 0, None);
+    g_object_unref(application);
     status
 }
 
@@ -127,16 +159,16 @@ fun create<Msg>(v: View<Msg>, send: fun(Msg)): Live<Msg> = create_in(v, 1, send)
  * along it and separators cross it.
  */
 fun create_in<Msg>(v: View<Msg>, axis: i32, send: fun(Msg)): Live<Msg> = match v {
-    Text(s) => Live.Label(gtk.raw.gtk_label_new(s)),
+    Text(s) => Live.Label(gtk_label_new(s)),
     Button(label, msg) => {
-        let button = gtk.raw.gtk_button_new_with_label(label);
+        let button = gtk_button_new_with_label(label);
         let current = Ref.new(msg);
         // Connected once, for the widget's whole life: a SetMsg patch changes
         // `current`, never the connection.
-        gtk.raw.connect_widget(
+        connect_widget(
             button,
             "clicked",
-            fun(b: gtk.raw.GtkWidget) {
+            fun(b: GtkWidget) {
                 send(current.get());
             },
             0,
@@ -147,32 +179,32 @@ fun create_in<Msg>(v: View<Msg>, axis: i32, send: fun(Msg)): Live<Msg> = match v
     Column(children) => create_box(1, children, send),
     Row(children) => create_box(0, children, send),
     Input(value, on_change) => {
-        let entry = gtk.raw.gtk_entry_new();
+        let entry = gtk_entry_new();
         // Set before connecting, so the first text isn't sent as an edit.
-        gtk.raw.gtk_editable_set_text(entry, value);
+        gtk_editable_set_text(entry, value);
         let current = Ref.new(on_change);
-        gtk.raw.connect_widget(
+        connect_widget(
             entry,
             "changed",
-            fun(e: gtk.raw.GtkWidget) {
+            fun(e: GtkWidget) {
                 let f = current.get();
-                send(f(gtk.raw.gtk_editable_get_text(e)));
+                send(f(gtk_editable_get_text(e)));
             },
             0,
         );
         Live.Input(entry, current)
     }
     Checkbox(label, checked, on_toggle) => {
-        let check = gtk.raw.gtk_check_button_new_with_label(label);
+        let check = gtk_check_button_new_with_label(label);
         // Set before connecting, so the first state isn't sent as a toggle.
-        gtk.raw.gtk_check_button_set_active(check, flag(checked));
+        gtk_check_button_set_active(check, flag(checked));
         let current = Ref.new(on_toggle);
-        gtk.raw.connect_widget(
+        connect_widget(
             check,
             "toggled",
-            fun(c: gtk.raw.GtkWidget) {
+            fun(c: GtkWidget) {
                 let f = current.get();
-                send(f(gtk.raw.gtk_check_button_get_active(c) != 0));
+                send(f(gtk_check_button_get_active(c) != 0));
             },
             0,
         );
@@ -180,24 +212,24 @@ fun create_in<Msg>(v: View<Msg>, axis: i32, send: fun(Msg)): Live<Msg> = match v
     }
     Spacer => {
         // An empty box given all the spare room along its parent's axis.
-        let room = gtk.raw.gtk_box_new(0, 0);
+        let room = gtk_box_new(0, 0);
         if axis == 1 {
-            gtk.raw.gtk_widget_set_vexpand(room, 1);
+            gtk_widget_set_vexpand(room, 1);
         } else {
-            gtk.raw.gtk_widget_set_hexpand(room, 1);
+            gtk_widget_set_hexpand(room, 1);
         }
         Live.Spacer(room)
     }
     // Across the axis: a horizontal line in a column, a vertical one in a row.
-    Separator => Live.Separator(gtk.raw.gtk_separator_new(1 - axis)),
+    Separator => Live.Separator(gtk_separator_new(1 - axis)),
     Scroll(child) => {
-        let scrolled = gtk.raw.gtk_scrolled_window_new();
+        let scrolled = gtk_scrolled_window_new();
         // A scrolled window asks for almost no room of its own: let it take
         // the spare room both ways, or it shows a sliver.
-        gtk.raw.gtk_widget_set_hexpand(scrolled, 1);
-        gtk.raw.gtk_widget_set_vexpand(scrolled, 1);
+        gtk_widget_set_hexpand(scrolled, 1);
+        gtk_widget_set_vexpand(scrolled, 1);
         let kid = create_in(child, 1, send);
-        gtk.raw.gtk_scrolled_window_set_child(scrolled, Some(widget(kid)));
+        gtk_scrolled_window_set_child(scrolled, Some(widget(kid)));
         Live.Scroll(scrolled, kid)
     }
     // On screen a keyed column is a column: the keys matter only to the diff.
@@ -212,11 +244,11 @@ fun create_in<Msg>(v: View<Msg>, axis: i32, send: fun(Msg)): Live<Msg> = match v
 
 /** Builds a `GtkBox` of `orientation` holding the widgets for `children`. */
 fun create_box<Msg>(orientation: i32, children: View<Msg>[], send: fun(Msg)): Live<Msg> {
-    let box = gtk.raw.gtk_box_new(orientation, 0);
+    let box = gtk_box_new(orientation, 0);
     let mut kids: Live<Msg>[] = [];
     for child of children {
         let kid = create_in(child, orientation, send);
-        gtk.raw.gtk_box_append(box, widget(kid));
+        gtk_box_append(box, widget(kid));
         kids.push(kid);
     }
     Live.Box(box, orientation, kids)
@@ -224,19 +256,19 @@ fun create_box<Msg>(orientation: i32, children: View<Msg>[], send: fun(Msg)): Li
 
 /** Applies one patch to the widgets, and returns the `Live` tree that now mirrors them. */
 fun apply<Msg>(
-    window: gtk.raw.GtkWidget,
+    window: GtkWidget,
     live: Live<Msg>,
     patch: diff.Patch<Msg>,
     send: fun(Msg),
 ): Live<Msg> = match patch {
     SetText(path, s) => {
-        gtk.raw.gtk_label_set_text(widget(at(live, path)), s);
+        gtk_label_set_text(widget(at(live, path)), s);
         live
     }
     SetLabel(path, s) => {
         match at(live, path) {
-            Button(w, _) => gtk.raw.gtk_button_set_label(w, s),
-            Checkbox(w, _) => gtk.raw.gtk_check_button_set_label(w, s),
+            Button(w, _) => gtk_button_set_label(w, s),
+            Checkbox(w, _) => gtk_check_button_set_label(w, s),
             _ => panic("kivuli: a SetLabel patch points at something without a label"),
         }
         live
@@ -252,8 +284,8 @@ fun apply<Msg>(
         let entry = widget(at(live, path));
         // Only when the field shows something else: rewriting the same text
         // would move the cursor to the end while the user types.
-        if gtk.raw.gtk_editable_get_text(entry) != value {
-            gtk.raw.gtk_editable_set_text(entry, value);
+        if gtk_editable_get_text(entry) != value {
+            gtk_editable_set_text(entry, value);
         }
         live
     }
@@ -267,7 +299,7 @@ fun apply<Msg>(
     SetChecked(path, checked) => {
         // GTK fires `toggled` only on a real change, and while patching the
         // echo is dropped, so this needs no same-state check of its own.
-        gtk.raw.gtk_check_button_set_active(widget(at(live, path)), flag(checked));
+        gtk_check_button_set_active(widget(at(live, path)), flag(checked));
         live
     }
     SetOnToggle(path, on_toggle) => {
@@ -280,7 +312,7 @@ fun apply<Msg>(
     Append(path, v) => update_at(live, path, 0, fun(node: Live<Msg>): Live<Msg> = match node {
         Box(box, orientation, kids) => {
             let kid = create_in(v, orientation, send);
-            gtk.raw.gtk_box_append(box, widget(kid));
+            gtk_box_append(box, widget(kid));
             let mut next = kids;
             next.push(kid);
             Live.Box(box, orientation, next)
@@ -291,7 +323,7 @@ fun apply<Msg>(
         let i = path[path.len - 1];
         update_at(live, parent(path), 0, fun(node: Live<Msg>): Live<Msg> = match node {
             Box(box, orientation, kids) => {
-                gtk.raw.gtk_box_remove(box, widget(kids[i]));
+                gtk_box_remove(box, widget(kids[i]));
                 Live.Box(box, orientation, diff.without(kids, i))
             }
             _ => panic("kivuli: a Remove patch points into something that isn't a column or row"),
@@ -300,7 +332,7 @@ fun apply<Msg>(
     Insert(path, at, v) => update_at(live, path, 0, fun(node: Live<Msg>): Live<Msg> = match node {
         Box(box, orientation, kids) => {
             let kid = create_in(v, orientation, send);
-            gtk.raw.gtk_box_insert_child_after(box, widget(kid), sibling_before(kids, at));
+            gtk_box_insert_child_after(box, widget(kid), sibling_before(kids, at));
             Live.Box(box, orientation, diff.inserted(kids, at, kid))
         }
         _ => panic("kivuli: an Insert patch points at something that isn't a keyed column"),
@@ -308,14 +340,14 @@ fun apply<Msg>(
     Move(path, from, to) => update_at(live, path, 0, fun(node: Live<Msg>): Live<Msg> = match node {
         Box(box, orientation, kids) => {
             let next = diff.moved(kids, from, to);
-            gtk.raw.gtk_box_reorder_child_after(box, widget(kids[from]), sibling_before(next, to));
+            gtk_box_reorder_child_after(box, widget(kids[from]), sibling_before(next, to));
             Live.Box(box, orientation, next)
         }
         _ => panic("kivuli: a Move patch points at something that isn't a keyed column"),
     }),
     Replace(path, v) => if path.len == 0 {
         let fresh = create(v, send);
-        gtk.raw.gtk_window_set_child(window, widget(fresh));
+        gtk_window_set_child(window, widget(fresh));
         fresh
     } else {
         let i = path[path.len - 1];
@@ -324,8 +356,8 @@ fun apply<Msg>(
                 let fresh = create_in(v, orientation, send);
                 // Insert after the previous sibling (or first), then drop the
                 // old widget, so the new one takes exactly its place.
-                gtk.raw.gtk_box_insert_child_after(box, widget(fresh), sibling_before(kids, i));
-                gtk.raw.gtk_box_remove(box, widget(kids[i]));
+                gtk_box_insert_child_after(box, widget(fresh), sibling_before(kids, i));
+                gtk_box_remove(box, widget(kids[i]));
                 let mut next = kids;
                 next[i] = fresh;
                 Live.Box(box, orientation, next)
@@ -334,7 +366,7 @@ fun apply<Msg>(
                 // Setting a new child drops the old one (and the viewport GTK
                 // may have wrapped it in).
                 let fresh = create_in(v, 1, send);
-                gtk.raw.gtk_scrolled_window_set_child(scrolled, Some(widget(fresh)));
+                gtk_scrolled_window_set_child(scrolled, Some(widget(fresh)));
                 Live.Scroll(scrolled, fresh)
             }
             _ => panic("kivuli: a Replace patch points into something with no children"),
@@ -380,7 +412,7 @@ fun at<Msg>(node: Live<Msg>, path: i64[]): Live<Msg> {
 }
 
 /** The GTK widget showing `node`. */
-fun widget<Msg>(node: Live<Msg>): gtk.raw.GtkWidget = match node {
+fun widget<Msg>(node: Live<Msg>): GtkWidget = match node {
     Label(w) => w,
     Button(w, _) => w,
     Box(w, _, _) => w,
@@ -409,7 +441,7 @@ fun parent(path: i64[]): i64[] {
 }
 
 /** The widget to place a child after so it lands at index `at`: the one before it, or `None` (first). */
-fun sibling_before<Msg>(kids: Live<Msg>[], at: i64): Option<gtk.raw.GtkWidget> = if at == 0 {
+fun sibling_before<Msg>(kids: Live<Msg>[], at: i64): Option<GtkWidget> = if at == 0 {
     None
 } else {
     Some(widget(kids[at - 1]))

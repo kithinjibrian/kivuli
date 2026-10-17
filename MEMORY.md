@@ -117,7 +117,7 @@ Decisions 1–12 were agreed in the design discussion in the lugha repository (a
 
 **Why:** the user's direction (session 2): one set of bindings.
 
-**How it's imported:** through lugha-gtk's entry (`src/lib.la` re-exports `raw`, 0.1.4): `import gtk;`, then `gtk.raw.…`. The user chose this over moving kivuli onto the high-level wrappers (`gtk { Window, Box, … }`), which would have needed a lugha-gtk wrapper for every GTK feature first.
+**How it's imported:** through lugha-gtk's entry, by name: `import gtk { GtkWidget, gtk_box_new, … };` (lugha-gtk 0.1.8's `public import raw { * };`, lughac milestone 100). Before that glob existed it was `import gtk;` then `gtk.raw.…` (0.1.4). The user chose this over moving kivuli onto the high-level wrappers (`gtk { Window, Box, … }`), which would have needed a lugha-gtk wrapper for every GTK feature first.
 
 ---
 

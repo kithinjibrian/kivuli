@@ -2,7 +2,27 @@
 // and after each one the widgets are read back from GTK. Needs a display, so
 // it is skipped without one.
 import std.env;
-import gtk;
+import gtk {
+    GtkApplication,
+    GtkWidget,
+    connect_app,
+    emit_widget,
+    g_application_quit,
+    g_application_run,
+    g_object_unref,
+    gtk_application_new,
+    gtk_application_window_new,
+    gtk_button_get_label,
+    gtk_check_button_get_active,
+    gtk_check_button_get_label,
+    gtk_editable_get_text,
+    gtk_label_get_text,
+    gtk_orientable_get_orientation,
+    gtk_widget_get_first_child,
+    gtk_widget_get_next_sibling,
+    gtk_widget_get_vexpand,
+    gtk_window_set_child,
+};
 import kivuli.live { Live, Running, State, create, dispatch, sender, widget };
 import kivuli { View, button, column, keyed_column, row, scroll, separator, spacer, text };
 
@@ -43,26 +63,26 @@ fun view(m: Model): View<Msg> {
 
 // What GTK shows, read back from the widgets themselves; buttons in brackets.
 fun shown<M>(node: Live<M>): string = match node {
-    Label(w) => gtk.raw.gtk_label_get_text(w),
-    Button(w, _) => "[" + gtk.raw.gtk_button_get_label(w).unwrap_or("?") + "]",
-    Input(w, _) => "<" + gtk.raw.gtk_editable_get_text(w) + ">",
+    Label(w) => gtk_label_get_text(w),
+    Button(w, _) => "[" + gtk_button_get_label(w).unwrap_or("?") + "]",
+    Input(w, _) => "<" + gtk_editable_get_text(w) + ">",
     Checkbox(w, _) => {
-        let tick = if gtk.raw.gtk_check_button_get_active(w) != 0 {
+        let tick = if gtk_check_button_get_active(w) != 0 {
             "x"
         } else {
             " "
         };
-        "[{tick}] " + gtk.raw.gtk_check_button_get_label(w).unwrap_or("?")
+        "[{tick}] " + gtk_check_button_get_label(w).unwrap_or("?")
     }
     Spacer(w) => {
-        let grows = if gtk.raw.gtk_widget_get_vexpand(w) != 0 {
+        let grows = if gtk_widget_get_vexpand(w) != 0 {
             "v"
         } else {
             "h"
         };
         "~{grows}"
     }
-    Separator(w) => if gtk.raw.gtk_orientable_get_orientation(w) == 0 {
+    Separator(w) => if gtk_orientable_get_orientation(w) == 0 {
         "-"
     } else {
         "|"
@@ -86,12 +106,12 @@ fun messages_patch_the_same_widgets() {
     }
     let seen: Ref<string[]> = Ref.new([]);
     let same_root = Ref.new(false);
-    let application = gtk.raw.gtk_application_new("org.kivuli.test.live", 0);
-    gtk.raw.connect_app(
+    let application = gtk_application_new("org.kivuli.test.live", 0);
+    connect_app(
         application,
         "activate",
-        fun(a: gtk.raw.GtkApplication) {
-            let window = gtk.raw.gtk_application_window_new(a);
+        fun(a: GtkApplication) {
+            let window = gtk_application_window_new(a);
             let state: Ref<Option<State<Model, Msg>>> = Ref.new(None);
             let app = Running {
                 window: window,
@@ -103,7 +123,7 @@ fun messages_patch_the_same_widgets() {
             let init = Model { count: 0, rows: 0 };
             let tree = view(init);
             let first = create(tree, sender(app));
-            gtk.raw.gtk_window_set_child(window, widget(first));
+            gtk_window_set_child(window, widget(first));
             state.set(Some(State { model: init, tree: tree, live: first }));
             for msg of [Msg.Add, Msg.More, Msg.More, Msg.Add, Msg.Fewer, Msg.Add] {
                 dispatch(app, msg);
@@ -122,7 +142,7 @@ fun messages_patch_the_same_widgets() {
                 panic("no state before the press");
             };
             match before.live {
-                Box(_, _, kids) => gtk.raw.emit_widget(widget(kids[1]), "clicked"),
+                Box(_, _, kids) => emit_widget(widget(kids[1]), "clicked"),
                 _ => panic("expected a column"),
             }
             let Some(s) = state.get() else {
@@ -135,12 +155,12 @@ fun messages_patch_the_same_widgets() {
             });
             // Patched, never rebuilt: the column on screen is the one made first.
             same_root.set(widget(s.live) == widget(first));
-            gtk.raw.g_application_quit(a);
+            g_application_quit(a);
         },
         0,
     );
-    gtk.raw.g_application_run(application, 0, None);
-    gtk.raw.g_object_unref(application);
+    g_application_run(application, 0, None);
+    g_object_unref(application);
 
     let expected = [
         "Clicked 1 times | [Add] | not two | ",
@@ -199,12 +219,12 @@ fun separators_spacers_and_scrolls_follow_their_parent_and_patch() {
         skip("no display");
     }
     let seen: Ref<string[]> = Ref.new([]);
-    let application = gtk.raw.gtk_application_new("org.kivuli.test.layout", 0);
-    gtk.raw.connect_app(
+    let application = gtk_application_new("org.kivuli.test.layout", 0);
+    connect_app(
         application,
         "activate",
-        fun(a: gtk.raw.GtkApplication) {
-            let window = gtk.raw.gtk_application_window_new(a);
+        fun(a: GtkApplication) {
+            let window = gtk_application_window_new(a);
             let state: Ref<Option<State<Panel, Pane>>> = Ref.new(None);
             let app = Running {
                 window: window,
@@ -216,7 +236,7 @@ fun separators_spacers_and_scrolls_follow_their_parent_and_patch() {
             let init = Panel { rows: 1, swapped: false };
             let tree = view_panel(init);
             let first = create(tree, sender(app));
-            gtk.raw.gtk_window_set_child(window, widget(first));
+            gtk_window_set_child(window, widget(first));
             state.set(Some(State { model: init, tree: tree, live: first }));
             seen.update(fun(xs) {
                 let mut ys = xs;
@@ -234,12 +254,12 @@ fun separators_spacers_and_scrolls_follow_their_parent_and_patch() {
                     ys
                 });
             }
-            gtk.raw.g_application_quit(a);
+            g_application_quit(a);
         },
         0,
     );
-    gtk.raw.g_application_run(application, 0, None);
-    gtk.raw.g_object_unref(application);
+    g_application_run(application, 0, None);
+    g_object_unref(application);
 
     // `-` a horizontal separator, `|` a vertical one; `~v` a spacer growing
     // down, `~h` one growing across.
@@ -272,13 +292,13 @@ fun view_rows(r: Rows): View<Edit> {
 
 // The labels `box` shows, in the order GTK lays them out: read from GTK,
 // not from kivuli's own record of the children.
-fun on_screen(box: gtk.raw.GtkWidget): string {
+fun on_screen(box: GtkWidget): string {
     let mut out: string[] = [];
-    let mut here = gtk.raw.gtk_widget_get_first_child(box);
+    let mut here = gtk_widget_get_first_child(box);
     while here.is_some() {
         let w = here.unwrap();
-        out.push(gtk.raw.gtk_label_get_text(w));
-        here = gtk.raw.gtk_widget_get_next_sibling(w);
+        out.push(gtk_label_get_text(w));
+        here = gtk_widget_get_next_sibling(w);
     }
     "{out}"
 }
@@ -290,12 +310,12 @@ fun keyed_rows_move_insert_and_go_as_whole_widgets() {
     }
     let seen: Ref<string[]> = Ref.new([]);
     let same_c = Ref.new(false);
-    let application = gtk.raw.gtk_application_new("org.kivuli.test.keyed", 0);
-    gtk.raw.connect_app(
+    let application = gtk_application_new("org.kivuli.test.keyed", 0);
+    connect_app(
         application,
         "activate",
-        fun(a: gtk.raw.GtkApplication) {
-            let window = gtk.raw.gtk_application_window_new(a);
+        fun(a: GtkApplication) {
+            let window = gtk_application_window_new(a);
             let state: Ref<Option<State<Rows, Edit>>> = Ref.new(None);
             let app = Running {
                 window: window,
@@ -307,7 +327,7 @@ fun keyed_rows_move_insert_and_go_as_whole_widgets() {
             let init = Rows { keys: ["a", "b", "c", "d"] };
             let tree = view_rows(init);
             let first = create(tree, sender(app));
-            gtk.raw.gtk_window_set_child(window, widget(first));
+            gtk_window_set_child(window, widget(first));
             state.set(Some(State { model: init, tree: tree, live: first }));
             let Box(box, _, kids) = first else {
                 panic("expected a box");
@@ -336,12 +356,12 @@ fun keyed_rows_move_insert_and_go_as_whole_widgets() {
                 panic("expected a box");
             };
             same_c.set(widget(now[2]) == c);
-            gtk.raw.g_application_quit(a);
+            g_application_quit(a);
         },
         0,
     );
-    gtk.raw.g_application_run(application, 0, None);
-    gtk.raw.g_object_unref(application);
+    g_application_run(application, 0, None);
+    g_object_unref(application);
 
     assert_eq(seen.get(), [
         "[\"c\", \"a\", \"b\", \"d\"]",
