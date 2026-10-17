@@ -8,6 +8,11 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.4.1] — 2026-10-17
+
+### Fixed
+- A button's content (its icon and label) is centered in the button, as GTK's own buttons do: a button wider or taller than its content (a `.width(n)`, one stretched across a column, a big tile) no longer shows it at the start. Natural-size buttons look as before.
+
 ## [0.4.0] — 2026-10-17
 
 ### Added
