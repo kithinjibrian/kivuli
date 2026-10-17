@@ -218,3 +218,14 @@ fun long_text_modifiers_and_tooltips_land_in_the_style() {
     });
     assert_same(button("x", Msg.Add).tooltip("Add one"), tipped);
 }
+
+@test
+fun shortcut_and_autofocus_land_in_the_style() {
+    let keyed: View<Msg> = View.Styled(View.Button("Add", Some(Msg.Add)), Style {
+        shortcut: "Ctrl+N",
+        ..plain(),
+    });
+    assert_same(button("Add", Msg.Add).shortcut("Ctrl+N"), keyed);
+    let focused: View<Msg> = View.Styled(View.Text("x"), Style { autofocus: true, ..plain() });
+    assert_same(text("x").autofocus(), focused);
+}

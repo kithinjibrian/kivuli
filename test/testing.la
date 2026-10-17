@@ -1,7 +1,17 @@
 // The testing helpers, used as an app's own tests would use them, on a small
 // to-do app, with no GTK. (test/entry.la reaches them through `import kivuli;`.)
 import kivuli { View, button, checkbox, column, input, lazy, row, text, text_area };
-import kivuli.testing { Lookup, click, is_disabled, submit, texts, toggle, tooltip, type_into };
+import kivuli.testing {
+    Lookup,
+    click,
+    is_disabled,
+    press,
+    submit,
+    texts,
+    toggle,
+    tooltip,
+    type_into,
+};
 
 enum Msg {
     Notes(string),
@@ -124,4 +134,20 @@ fun is_disabled_by_tooltip_and_reading_a_tooltip() {
     assert_eq(tooltip(deletes(), "Twin"), Ok("Shared"));
     assert_eq(tooltip(column([button("Plain", Msg.Add)]), "Plain"), Ok(""));
     assert_eq(tooltip(deletes(), "Nope"), Err(Lookup.NotFound("button \"Nope\"")));
+}
+
+fun keyed(): View<Msg> = column([
+    button("Add", Msg.Add).shortcut("Ctrl+N"),
+    button("Clear", Msg.Clear).shortcut("Ctrl+L").disabled(true),
+    button("One", Msg.Add).shortcut("Ctrl+D"),
+    button("Two", Msg.Clear).shortcut("ctrl+d"),
+]);
+
+@test
+fun press_gives_the_message_of_the_button_with_that_shortcut() {
+    assert_eq(press(keyed(), "Ctrl+N"), Ok(Msg.Add));
+    assert_eq(press(keyed(), "ctrl+n"), Ok(Msg.Add));
+    assert_eq(press(keyed(), "Ctrl+L"), Err(Lookup.Silent("shortcut \"Ctrl+L\"")));
+    assert_eq(press(keyed(), "Ctrl+Q"), Err(Lookup.NotFound("shortcut \"Ctrl+Q\"")));
+    assert_eq(press(keyed(), "Ctrl+D"), Err(Lookup.Ambiguous("shortcut \"Ctrl+D\"", 2)));
 }

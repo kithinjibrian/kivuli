@@ -86,3 +86,11 @@ fun a_new_title_restyles_the_root() {
         expected,
     );
 }
+
+@test
+fun focus_commands_flatten_and_map() {
+    let cmd: Cmd<Msg> = Cmd.batch([Cmd.focus("task"), Cmd.none()]);
+    let expected: Cmd<Msg>[] = [Cmd.Focus("task")];
+    assert_same(commands(cmd), expected);
+    assert_same(commands(cmd.map(fun(m: Msg): Msg = m)), expected);
+}

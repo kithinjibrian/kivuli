@@ -63,7 +63,7 @@ fun view(m: Model): View<Msg> {
 // What GTK shows, read back from the widgets themselves; buttons in brackets.
 fun shown<M>(node: Live<M>): string = match node {
     Label(w) => gtk_label_get_text(w),
-    Button(w, _) => "[" + gtk_button_get_label(w).unwrap_or("?") + "]",
+    Button(w, _, _, _) => "[" + gtk_button_get_label(w).unwrap_or("?") + "]",
     Input(w, _, _) => "<" + gtk_editable_get_text(w) + ">",
     TextArea(_, _, _) => "<area>",
     Checkbox(w, label, _) => {

@@ -21,6 +21,7 @@ import gtk {
     g_timeout_add_full,
     gtk_application_new,
     gtk_application_window_new,
+    gtk_widget_grab_focus,
     gtk_window_present,
     gtk_window_set_child,
     gtk_window_set_default_size,
@@ -29,8 +30,10 @@ import gtk {
 import diff;
 import views { View, Window };
 import effects { App, Cmd, Timer, commands, timers };
-import build { create };
-import patch { apply };
+import build { create, focus_target };
+import patch { apply, at };
+import keys { duplicate };
+import walk { path_of_name };
 import live_tree { Live, widget };
 
 /** What changes as the app runs: the model, the view it gave, and the widgets showing it. */
@@ -104,6 +107,7 @@ fun mount<Model, Msg>(
     let (model, cmd) = program.init;
     let view = program.view;
     let tree = diff.resolve(view(model), None);
+    check_shortcuts(tree);
     let live = create(tree, sender(app));
     gtk_window_set_child(window, widget(live));
     app.state.set(Some(State { model: model, tree: tree, live: live }));
@@ -142,6 +146,7 @@ fun dispatch<Model, Msg>(app: Running<Model, Msg>, msg: Msg) {
     let (model, cmd) = update(s.model, msg);
     // Lazy nodes whose keys are unchanged at their place reuse what they built.
     let tree = diff.resolve(view(model), Some(s.tree));
+    check_shortcuts(tree);
     let mut live = s.live;
     app.patching.set(true);
     for change of diff.diff(s.tree, tree) {
@@ -174,6 +179,27 @@ fun show_window(window: GtkWidget, old: Option<Window>, new: Option<Window>) {
     }
 }
 
+/** Two enabled buttons with one shortcut would leave GTK to pick one: stop instead. */
+fun check_shortcuts<Msg>(tree: View<Msg>) {
+    match duplicate(tree) {
+        Some(combo) => panic("kivuli: two enabled buttons have the shortcut \"{combo}\""),
+        None => {}
+    }
+}
+
+/** Gives keyboard focus to the node named `name` in the view shown now; nothing if there's none. */
+fun focus_named<Model, Msg>(app: Running<Model, Msg>, name: string) {
+    let Some(s) = app.state.get() else {
+        return;
+    };
+    match path_of_name(s.tree, name) {
+        Some(path) => {
+            gtk_widget_grab_focus(focus_target(at(s.live, path)));
+        }
+        None => {}
+    }
+}
+
 /** Carries out `cmd`: timers for `Cmd.after`, quitting for `Cmd.quit`. */
 fun perform<Model, Msg>(app: Running<Model, Msg>, cmd: Cmd<Msg>) {
     for c of commands(cmd) {
@@ -187,6 +213,7 @@ fun perform<Model, Msg>(app: Running<Model, Msg>, cmd: Cmd<Msg>) {
                 });
             }
             Quit => g_application_quit(app.application),
+            Focus(name) => focus_named(app, name),
             _ => {}
         }
     }
@@ -200,13 +227,13 @@ fun perform<Model, Msg>(app: Running<Model, Msg>, cmd: Cmd<Msg>) {
 fun resubscribe<Model, Msg>(app: Running<Model, Msg>, model: Model) {
     let subscriptions = app.program.subscriptions;
     let wanted = timers(subscriptions(model));
-    let mut keys: Set<string> = #{};
+    let mut wanted_keys: Set<string> = #{};
     for w of wanted {
-        keys.insert(w.key);
+        wanted_keys.insert(w.key);
     }
     let mut kept: Map<string, Ticking<Msg>> = #{};
     for t of app.timers.get() {
-        if keys.has(t.key) {
+        if wanted_keys.has(t.key) {
             kept[t.key] = t;
         } else {
             g_source_remove(t.source);

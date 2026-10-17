@@ -109,6 +109,10 @@ public struct Style {
     selectable: bool,
     /** Hover text; "" for none. Any node. */
     tooltip: string,
+    /** Keys that press the button from anywhere in the window, as "Ctrl+N"; "" for none. Buttons only. */
+    shortcut: string,
+    /** Takes keyboard focus when first shown. Any node. */
+    autofocus: bool,
 }
 
 /** The style of a node with no modifiers: what GTK does by default. */
@@ -131,6 +135,8 @@ fun plain(): Style = Style {
     ellipsize: false,
     selectable: false,
     tooltip: "",
+    shortcut: "",
+    autofocus: false,
 };
 
 /** `v` with its style changed by `f`: one `Styled` wrapper, however many modifiers. */
@@ -349,6 +355,33 @@ impl View<Msg> {
     public fun tooltip(self, hint: string): View<Msg> = restyle(
         self,
         fun(s: Style) = Style { tooltip: hint, ..s },
+    );
+
+    /**
+     * Lets `keys` press the button from anywhere in the window: modifiers
+     * (`Ctrl`, `Shift`, `Alt`, `Super`) and a key joined with `+`, such as
+     * `"Ctrl+N"` or `"Ctrl+Shift+Delete"`. A disabled button's shortcut does
+     * nothing. Unreadable keys, or two enabled buttons with the same ones,
+     * stop the app with a message naming them. Ignored on other nodes.
+     *
+     * Example:
+     *     button("Add", Msg.Add).shortcut("Ctrl+N")
+     */
+    public fun shortcut(self, keys: string): View<Msg> = restyle(
+        self,
+        fun(s: Style) = Style { shortcut: keys, ..s },
+    );
+
+    /**
+     * Gives the node keyboard focus when it's first shown: when the window
+     * opens, or when an update adds it.
+     *
+     * Example:
+     *     input(m.draft, Msg.Draft).placeholder("New task").autofocus()
+     */
+    public fun autofocus(self): View<Msg> = restyle(
+        self,
+        fun(s: Style) = Style { autofocus: true, ..s },
     );
 
     /**

@@ -1,0 +1,133 @@
+/**
+ * Shortcut keys: "Ctrl+N" as an app writes it, turned into GTK's accelerator
+ * form ("<Control>n"), and the check that no two enabled buttons share one.
+ * Pure: kivuli parses the keys itself, so a typo shows up in plain tests too.
+ *
+ * Depends on: views, walk
+ * Used by: build, live, testing
+ */
+
+import views { View };
+import walk { nodes };
+
+/**
+ * GTK's form of `keys`, or what's wrong with it. `keys` is modifiers
+ * (`Ctrl`, `Shift`, `Alt`, `Super`) and one key, joined with `+`, in any case.
+ */
+fun parse(keys: string): Result<string, string> {
+    if keys == "" {
+        return Err("no key");
+    }
+    let parts = keys.split("+");
+    let last = parts[parts.len - 1];
+    if last == "" {
+        return Err("no key after \"{keys}\"");
+    }
+    let mut out = "";
+    let mut i = 0;
+    while i < parts.len - 1 {
+        let modifier = match lower(parts[i]) {
+            "ctrl" => "<Control>",
+            "shift" => "<Shift>",
+            "alt" => "<Alt>",
+            "super" => "<Super>",
+            _ => {
+                return Err("unknown modifier \"{parts[i]}\"");
+            }
+        };
+        out = out + modifier;
+        i = i + 1;
+    }
+    let key = key_name(last).ok_or("unknown key \"{last}\"")?;
+    Ok(out + key)
+}
+
+/** GTK's name for one key written as an app writes it, if kivuli knows it. */
+fun key_name(key: string): Option<string> {
+    let k = lower(key);
+    if k.char_count() == 1 {
+        let c = k.chars().collect()[0];
+        // A letter or digit stands for itself (GTK's letter keys are lower case).
+        return if c.is_alphabetic() || c.is_digit() { Some(k) } else { None };
+    }
+    let named: Map<string, string> = #{
+        "enter": "Return",
+        "escape": "Escape",
+        "delete": "Delete",
+        "backspace": "BackSpace",
+        "tab": "Tab",
+        "space": "space",
+        "home": "Home",
+        "end": "End",
+        "pageup": "Page_Up",
+        "pagedown": "Page_Down",
+        "up": "Up",
+        "down": "Down",
+        "left": "Left",
+        "right": "Right",
+        "plus": "plus",
+        "minus": "minus",
+        "comma": "comma",
+        "period": "period",
+        "slash": "slash",
+    };
+    match named.get(k) {
+        Some(name) => Some(name),
+        None => function_key(k),
+    }
+}
+
+/** `f1` … `f12` as GTK names them (`F1` …). */
+fun function_key(k: string): Option<string> {
+    let mut n = 1;
+    while n <= 12 {
+        if k == "f{n}" {
+            return Some("F{n}");
+        }
+        n = n + 1;
+    }
+    None
+}
+
+fun lower(s: string): string {
+    let mut out = "";
+    for c of s.chars() {
+        out = out + "{c.to_lower()}";
+    }
+    out
+}
+
+/**
+ * A shortcut two enabled buttons in `v` share, as the first of them wrote it,
+ * if any. Keys that don't parse are left to `parse`'s callers.
+ */
+fun duplicate<Msg>(v: View<Msg>): Option<string> {
+    let mut seen: Set<string> = #{};
+    for (node, style) of nodes(v) {
+        match node {
+            Button(_, Some(_)) => if style.shortcut != "" {
+                match parse(style.shortcut) {
+                    Ok(gtk) => if !seen.insert(gtk) {
+                        return Some(first_written(v, gtk));
+                    },
+                    Err(_) => {}
+                }
+            },
+            _ => {}
+        }
+    }
+    None
+}
+
+/** How the first enabled button with GTK keys `gtk` wrote them. */
+fun first_written<Msg>(v: View<Msg>, gtk: string): string {
+    for (node, style) of nodes(v) {
+        match node {
+            Button(_, Some(_)) => if parse(style.shortcut) == Ok(gtk) {
+                return style.shortcut;
+            },
+            _ => {}
+        }
+    }
+    gtk
+}

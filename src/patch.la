@@ -42,7 +42,7 @@ fun apply<Msg>(
     }
     SetLabel(path, s) => {
         match at(live, path) {
-            Button(w, _) => gtk_button_set_label(w, s),
+            Button(w, _, _, _) => gtk_button_set_label(w, s),
             Checkbox(_, label, _) => gtk_label_set_text(label, s),
             _ => panic("kivuli: a SetLabel patch points at something without a label"),
         }
@@ -50,7 +50,7 @@ fun apply<Msg>(
     }
     SetMsg(path, msg) => {
         match at(live, path) {
-            Button(button, current) => {
+            Button(button, current, _, _) => {
                 current.set(msg);
                 gtk_widget_set_sensitive(button, flag(msg.is_some()));
             }

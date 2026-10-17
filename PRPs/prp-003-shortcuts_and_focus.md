@@ -1,6 +1,6 @@
 # PRP-003 — Keyboard shortcuts and focus
 
-Status: approved by the user (session 3); building on branch prp-003-shortcuts_and_focus
+Status: built (session 3) on branch prp-003-shortcuts_and_focus; merged into main
 Discovery: session 3, 2026-10-17. *(you)*: chosen in the interview; *(proposed)*: for you to confirm or change with this PRP.
 
 ## FEATURE: Keyboard shortcuts on buttons (`.shortcut("Ctrl+N")`), and focus: `.autofocus()` and `Cmd.focus(name)`.
@@ -68,28 +68,36 @@ fun ctrl_n_adds() {
 ## TESTS TO WRITE
 
 Pure:
-- [ ] `test/keys.la`: `Ctrl+N` → `<Control>n`; `Ctrl+Shift+Delete` → `<Control><Shift>Delete`; `Escape`, `F5`, `Alt+Up`, `Super+Space`; case-insensitive; errors for `""`, `Ctrl+`, `Ctrl+Nope`, `Ctrl+N+M`, `Hyper+N`; `duplicate` finds two enabled buttons sharing keys, ignores a disabled one and different keys.
-- [ ] `test/lib.la`: `.shortcut`, `.autofocus` land in the style.
-- [ ] `test/testing.la`: `press` → message; disabled → `Silent`; none → `NotFound`; two enabled → `Ambiguous`; a bad key string panics (checked by its parse error, since a test can't expect a panic).
-- [ ] `test/effects.la`: `Cmd.focus("x")` flattens and maps.
+- [x] `test/keys.la`: `Ctrl+N` → `<Control>n`; `Ctrl+Shift+Delete` → `<Control><Shift>Delete`; `Escape`, `F5`, `Alt+Up`, `Super+Space`; case-insensitive; errors for `""`, `Ctrl+`, `Ctrl+Nope`, `Ctrl+N+M`, `Hyper+N`; `duplicate` finds two enabled buttons sharing keys, ignores a disabled one and different keys.
+- [x] `test/lib.la`: `.shortcut`, `.autofocus` land in the style.
+- [x] `test/testing.la`: `press` → message; disabled → `Silent`; none → `NotFound`; two enabled → `Ambiguous`; a bad key string panics (checked by its parse error, since a test can't expect a panic).
+- [x] `test/effects.la`: `Cmd.focus("x")` flattens and maps.
 
 Live GTK (skipped without a display):
-- [ ] `test/live_forms.la`: a button's shortcut is a global-scope controller whose trigger reads back `<Control>n`; activating it presses the button and sends its message (main loop run until it arrives); disabled → nothing sent; changing the keys replaces the trigger, dropping them removes it.
-- [ ] `test/live_forms.la`: `.autofocus()` gives the field focus once the window has run a turn; `Cmd.focus("notes")` moves focus to a text area's editor; an unknown name changes nothing.
-- [ ] lugha-gtk `test/shortcuts.la`: parse, controller, activate; grab and read focus.
+- [x] `test/live_forms.la`: a button's shortcut is a global-scope controller whose trigger reads back `<Control>n`; activating it presses the button and sends its message (main loop run until it arrives); disabled → nothing sent; changing the keys replaces the trigger, dropping them removes it.
+- [x] `test/live_forms.la`: `.autofocus()` gives the field focus once the window has run a turn; `Cmd.focus("notes")` moves focus to a text area's editor; an unknown name changes nothing.
+- [x] lugha-gtk `test/shortcuts.la`: parse, controller, activate; grab and read focus.
 
 ## ROLLBACK PLAN
 - Branch `prp-003-shortcuts_and_focus` from `main`; abandon by leaving it unmerged. lugha-gtk 0.1.17 is additions only.
 
 ## ACCEPTANCE CRITERIA
-- [ ] Buttons take shortcuts that press them from anywhere in the window; disabled buttons' shortcuts do nothing; bad keys and duplicates panic with clear messages.
-- [ ] `.autofocus()` and `Cmd.focus(name)` move keyboard focus.
-- [ ] `kivuli.testing.press` works without GTK.
-- [ ] Tests above written first; narrow runs while building; the full suite and the examples' tests pass before the merge.
-- [ ] Every example builds; fmt clean; public items documented; no file over 500 lines.
-- [ ] CHANGELOG.md and README.md updated. Merged into `main`.
+- [x] Buttons take shortcuts that press them from anywhere in the window; disabled buttons' shortcuts do nothing; bad keys and duplicates panic with clear messages.
+- [x] `.autofocus()` and `Cmd.focus(name)` move keyboard focus.
+- [x] `kivuli.testing.press` works without GTK.
+- [x] Tests above written first; narrow runs while building; the full suite and the examples' tests pass before the merge.
+- [x] Every example builds; fmt clean; public items documented; no file over 500 lines.
+- [x] CHANGELOG.md and README.md updated. Merged into `main`.
 
 ## VALIDATION
 - While building: only the tests covering each step.
 - Before the merge: `lughac fmt --check src examples test`, `lughac test test/`, the examples' own tests, every example built; lugha-gtk `lughac test test/`.
 - For the user: run the to-do app; the cursor starts in the new-task field; Ctrl+N adds; Ctrl+Shift+Delete clears done tasks (and does nothing when none are done).
+
+## NOTES FROM THE BUILD
+
+- **Callback action, not GTK's activate action.** The proposed mechanism (GTK's `activate` action, showing the button's press) does nothing until the button's window is on screen: the lugha-gtk test with an unshown window timed out. A shortcut now runs a callback action that emits the button's `clicked`, which works always and still sends nothing for a disabled button (its handler has no message). The cost: no visible press when the keys are used. lugha-gtk 0.1.17 added `gtk_callback_action_new`.
+- **Focus in a text field** sits on the text widget inside the entry, so tests check "the field or inside it" (`gtk_widget_is_ancestor`, lugha-gtk 0.1.17); reading a shortcut back needed `gtk_shortcut_get_trigger`/`get_action`/`trigger_to_string` (lugha-gtk 0.1.18).
+- **New modules:** `src/keys.la` (parsing, duplicates) and `src/walk.la` (the node walk moved out of `testing.la`, plus `path_of_name` for `Cmd.focus`; named `walk`, since a module `nodes` clashed with its function).
+- **Not covered by a test:** that changing a button's keys *removes* the old shortcut from the controller (the test reads the current one only); the code removes it before adding the new one.
+- **Mutation-checked:** without autofocus, the focus test fails.

@@ -20,7 +20,17 @@ import kivuli {
     text,
 };
 // For the tests at the bottom; `lughac build` leaves tests out.
-import kivuli.testing { Lookup, click, is_disabled, submit, texts, toggle, tooltip, type_into };
+import kivuli.testing {
+    Lookup,
+    click,
+    is_disabled,
+    press,
+    submit,
+    texts,
+    toggle,
+    tooltip,
+    type_into,
+};
 
 struct Todo {
     id: i64,
@@ -87,8 +97,12 @@ fun items(n: i64): string = if n == 1 { "1 item" } else { "{n} items" };
 fun view(m: Model): View<Msg> = column([
     text("To-do").size(24).bold(),
     row([
-        input(m.draft, Msg.Draft).placeholder("What needs doing?").on_submit(Msg.Add).expand(),
-        button("Add", Msg.Add).style(ButtonStyle.Primary).disabled(m.draft.trim() == ""),
+        input(m.draft, Msg.Draft).placeholder("What needs doing?").on_submit(
+            Msg.Add,
+        ).autofocus().expand(),
+        button("Add", Msg.Add).style(ButtonStyle.Primary).shortcut("Ctrl+N").disabled(
+            m.draft.trim() == "",
+        ),
     ]).spacing(8),
     row([
         tab("All", Filter.All, m.filter),
@@ -101,7 +115,9 @@ fun view(m: Model): View<Msg> = column([
     row([
         text("{items(left(m))} left").dim().align(Align.Center),
         spacer(),
-        button("Clear done", Msg.ClearDone).style(ButtonStyle.Danger).disabled(!any_done(m)),
+        button("Clear done", Msg.ClearDone).style(ButtonStyle.Danger).shortcut(
+            "Ctrl+Shift+Delete",
+        ).disabled(!any_done(m)),
     ]),
 ]).padding(20).spacing(12).window("To-do — {left(m)} left", 420, 560);
 
@@ -209,4 +225,15 @@ fun a_long_title_is_cut_and_shown_whole_on_hover() {
     let long = "buy oat milk, the barista kind, from the shop on the corner";
     let m = add(start(), long);
     assert_eq(tooltip(view(m), "✕"), Ok("Delete {long}"));
+}
+
+@test
+fun keyboard_shortcuts_add_and_clear() {
+    let m = add(start(), "milk");
+    // Ctrl+N is Add's shortcut: disabled (sending nothing) while the draft is blank.
+    assert_eq(press(view(m), "Ctrl+N"), Err(Lookup.Silent("shortcut \"Ctrl+N\"")));
+    let typed = update(m, Msg.Draft("eggs"));
+    assert_eq(press(view(typed), "Ctrl+N"), Ok(Msg.Add));
+    let ticked = update(m, Msg.Toggle(1, true));
+    assert_eq(press(view(ticked), "Ctrl+Shift+Delete"), Ok(Msg.ClearDone));
 }
