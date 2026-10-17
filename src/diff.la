@@ -21,6 +21,10 @@ enum Patch<Msg> {
     SetLabel(i64[], string),
     /** The button at the path sends a new message from now on. */
     SetMsg(i64[], Msg),
+    /** The text field at the path shows this text. */
+    SetValue(i64[], string),
+    /** The text field at the path turns edits into messages with this function from now on. */
+    SetOnChange(i64[], fun(string): Msg),
     /** The widget at the path is a different kind now: build this view in its place. */
     Replace(i64[], View<Msg>),
     /** The column or row at the path gains this view as its last child. */
@@ -32,8 +36,8 @@ enum Patch<Msg> {
 /**
  * Lists the changes that turn widgets showing `old` into widgets showing
  * `new`, in the order they must be applied. Two equal trees of text and
- * columns give no changes. Every button gives a `SetMsg`, because messages
- * can't be compared (they may hold closures).
+ * columns give no changes. Every button gives a `SetMsg` and every text
+ * field a `SetOnChange`, because messages and functions can't be compared.
  */
 fun diff<Msg>(old: View<Msg>, new: View<Msg>): Patch<Msg>[] = diff_at([], old, new);
 
@@ -46,6 +50,7 @@ fun diff_at<Msg>(path: i64[], old: View<Msg>, new: View<Msg>): Patch<Msg>[] = ma
     (Button(a, _), Button(b, msg)) => diff_button(path, a, b, msg),
     (Column(xs), Column(ys)) => diff_children(path, xs, ys),
     (Row(xs), Row(ys)) => diff_children(path, xs, ys),
+    (Input(a, _), Input(b, on_change)) => diff_input(path, a, b, on_change),
     _ => [Patch.Replace(path, new)],
 };
 
@@ -56,6 +61,21 @@ fun diff_button<Msg>(path: i64[], old_label: string, label: string, msg: Msg): P
     }
     // Always re-point: we can't tell whether the message changed.
     out.push(Patch.SetMsg(path, msg));
+    out
+}
+
+fun diff_input<Msg>(
+    path: i64[],
+    old_value: string,
+    value: string,
+    on_change: fun(string): Msg,
+): Patch<Msg>[] {
+    let mut out: Patch<Msg>[] = [];
+    if old_value != value {
+        out.push(Patch.SetValue(path, value));
+    }
+    // Always re-point, as for buttons: functions can't be compared.
+    out.push(Patch.SetOnChange(path, on_change));
     out
 }
 

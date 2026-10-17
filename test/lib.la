@@ -1,5 +1,5 @@
 // Building views: what an app's `view` returns is exactly the tree it wrote.
-import kivuli { View, text, button, column, row };
+import kivuli { View, text, button, column, row, input };
 
 // Views and patches can hold functions, which have no `==`: compare what they
 // print instead (functions print as `<fun>`; DECISION-008).
@@ -10,6 +10,7 @@ fun assert_same<T>(actual: T, expected: T) {
 enum Msg {
     Add,
     Reset,
+    Named(string),
 }
 
 struct Model {
@@ -56,4 +57,16 @@ fun a_row_holds_its_children_in_order() {
         View.Button("Reset", Msg.Reset),
     ]);
     assert_same(row([button("Add", Msg.Add), button("Reset", Msg.Reset)]), expected);
+}
+
+@test
+fun an_input_shows_its_value_and_turns_text_into_a_message() {
+    // `Msg.Named` is a variant used as a function (lughac milestone 94).
+    match input("Ada", Msg.Named) {
+        Input(value, on_change) => {
+            assert_eq(value, "Ada");
+            assert_eq(on_change("Grace"), Msg.Named("Grace"));
+        }
+        _ => panic("expected an input"),
+    }
 }

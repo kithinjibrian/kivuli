@@ -20,6 +20,8 @@ enum Live<Msg> {
     Button(gtk.raw.GtkWidget, Ref<Msg>),
     /** A column or a row: both are a `GtkBox`, and patch the same way. */
     Box(gtk.raw.GtkWidget, Live<Msg>[]),
+    /** A text field and the function turning its text into a message: its `changed` handler reads this box. */
+    Input(gtk.raw.GtkWidget, Ref<fun(string): Msg>),
 }
 
 /** What changes as the app runs: the model, the view it gave, and the widgets showing it. */
@@ -36,6 +38,9 @@ struct Running<Model, Msg> {
     view_fn: fun(Model): View<Msg>,
     // `None` only while the first view is being built.
     state: Ref<Option<State<Model, Msg>>>,
+    // True while patches are applied: a widget changed by a patch (an entry's
+    // text) emits its signal, and that echo must not dispatch again.
+    patching: Ref<bool>,
 }
 
 /**
@@ -57,7 +62,13 @@ fun run<Model, Msg>(
         fun(a: gtk.raw.GtkApplication) {
             let window = gtk.raw.gtk_application_window_new(a);
             let state: Ref<Option<State<Model, Msg>>> = Ref.new(None);
-            let app = Running { window: window, update_fn: update, view_fn: view, state: state };
+            let app = Running {
+                window: window,
+                update_fn: update,
+                view_fn: view,
+                state: state,
+                patching: Ref.new(false),
+            };
             let tree = view(init);
             let live = create(tree, sender(app));
             gtk.raw.gtk_window_set_child(window, widget(live));
@@ -73,7 +84,10 @@ fun run<Model, Msg>(
 
 /** The function every widget calls to send a message to `app`. */
 fun sender<Model, Msg>(app: Running<Model, Msg>): fun(Msg) = fun(msg: Msg) {
-    dispatch(app, msg);
+    // An echo of our own patch, not the user: the model already has it.
+    if !app.patching.get() {
+        dispatch(app, msg);
+    }
 };
 
 /** update → view → diff → patch the widgets → store. */
@@ -86,9 +100,11 @@ fun dispatch<Model, Msg>(app: Running<Model, Msg>, msg: Msg) {
     let model = update(s.model, msg);
     let tree = view(model);
     let mut live = s.live;
+    app.patching.set(true);
     for patch of diff.diff(s.tree, tree) {
         live = apply(app.window, live, patch, sender(app));
     }
+    app.patching.set(false);
     app.state.set(Some(State { model: model, tree: tree, live: live }));
 }
 
@@ -113,6 +129,22 @@ fun create<Msg>(v: View<Msg>, send: fun(Msg)): Live<Msg> = match v {
     // GtkOrientation: 1 vertical, 0 horizontal. Spacing comes later as a modifier.
     Column(children) => create_box(1, children, send),
     Row(children) => create_box(0, children, send),
+    Input(value, on_change) => {
+        let entry = gtk.raw.gtk_entry_new();
+        // Set before connecting, so the first text isn't sent as an edit.
+        gtk.raw.gtk_editable_set_text(entry, value);
+        let current = Ref.new(on_change);
+        gtk.raw.connect_widget(
+            entry,
+            "changed",
+            fun(e: gtk.raw.GtkWidget) {
+                let f = current.get();
+                send(f(gtk.raw.gtk_editable_get_text(e)));
+            },
+            0,
+        );
+        Live.Input(entry, current)
+    }
 };
 
 /** Builds a `GtkBox` of `orientation` holding the widgets for `children`. */
@@ -146,6 +178,22 @@ fun apply<Msg>(
         match at(live, path) {
             Button(_, current) => current.set(msg),
             _ => panic("kivuli: a SetMsg patch points at something that isn't a button"),
+        }
+        live
+    }
+    SetValue(path, value) => {
+        let entry = widget(at(live, path));
+        // Only when the field shows something else: rewriting the same text
+        // would move the cursor to the end while the user types.
+        if gtk.raw.gtk_editable_get_text(entry) != value {
+            gtk.raw.gtk_editable_set_text(entry, value);
+        }
+        live
+    }
+    SetOnChange(path, on_change) => {
+        match at(live, path) {
+            Input(_, current) => current.set(on_change),
+            _ => panic("kivuli: a SetOnChange patch points at something that isn't a text field"),
         }
         live
     }
@@ -234,6 +282,7 @@ fun widget<Msg>(node: Live<Msg>): gtk.raw.GtkWidget = match node {
     Label(w) => w,
     Button(w, _) => w,
     Box(w, _) => w,
+    Input(w, _) => w,
 };
 
 fun parent(path: i64[]): i64[] {

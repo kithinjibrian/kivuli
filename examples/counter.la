@@ -1,25 +1,30 @@
 // A counter written with kivuli: a model, the messages that change it, and a
 // view of it. No widget is touched by hand.
-import kivuli { View, text, button, column, row, sandbox };
+import kivuli { View, text, button, column, row, input, sandbox };
 
 struct Model {
     count: i64,
+    name: string,
 }
 
 enum Msg {
     Add,
     Reset,
+    Named(string),
 }
 
 fun update(m: Model, msg: Msg): Model = match msg {
-    Add => Model { count: m.count + 1 },
-    Reset => Model { count: 0 },
+    Add => Model { count: m.count + 1, ..m },
+    Reset => Model { count: 0, ..m },
+    Named(name) => Model { name: name, ..m },
 };
 
 fun view(m: Model): View<Msg> = column([
+    input(m.name, Msg.Named),
+    text("Hello, {m.name}"),
     text("Clicked {m.count} times"),
     row([button("Add", Msg.Add), button("Reset", Msg.Reset)]),
     text("Kithinji brian"),
 ]);
 
-fun main(): i32 = sandbox("org.kivuli.counter", Model { count: 0 }, update, view);
+fun main(): i32 = sandbox("org.kivuli.counter", Model { count: 0, name: "" }, update, view);

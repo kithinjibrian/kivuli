@@ -2,7 +2,7 @@
 // showing the old view show the new one. `diff` is package-level: files in
 // test/ see package-level items (lughac milestone 97).
 import kivuli.diff { Patch, diff as patches };
-import kivuli { View, text, button, column, row };
+import kivuli { View, text, button, column, row, input };
 
 // Views and patches can hold functions, which have no `==`: compare what they
 // print instead (functions print as `<fun>`; DECISION-008).
@@ -13,6 +13,7 @@ fun assert_same<T>(actual: T, expected: T) {
 enum Msg {
     Add,
     Reset,
+    Named(string),
 }
 
 fun counter(count: i64): View<Msg> = column([
@@ -97,4 +98,25 @@ fun a_row_diffs_its_children_like_a_column() {
 fun a_row_that_becomes_a_column_is_replaced() {
     let expected: Patch<Msg>[] = [Patch.Replace([], column([text("a")]))];
     assert_same(patches(row([text("a")]), column([text("a")])), expected);
+}
+
+@test
+fun a_changed_input_value_is_set_and_its_handler_re_pointed() {
+    let expected: Patch<Msg>[] = [Patch.SetValue([], "Ada"), Patch.SetOnChange([], Msg.Named)];
+    assert_same(patches(input("", Msg.Named), input("Ada", Msg.Named)), expected);
+}
+
+@test
+fun an_unchanged_input_value_is_left_alone() {
+    let expected: Patch<Msg>[] = [Patch.SetOnChange([], Msg.Named)];
+    assert_same(patches(input("Ada", Msg.Named), input("Ada", Msg.Named)), expected);
+}
+
+@test
+fun the_re_pointed_handler_is_the_new_one() {
+    let changes = patches(input("", Msg.Named), input("", fun(s: string) = Msg.Named(s + "!")));
+    match changes[0] {
+        SetOnChange(_, f) => assert_eq(f("hi"), Msg.Named("hi!")),
+        _ => panic("expected SetOnChange"),
+    }
 }

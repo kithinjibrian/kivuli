@@ -19,6 +19,8 @@ public enum View<Msg> {
     Column(View<Msg>[]),
     /** Children side by side, left to right. */
     Row(View<Msg>[]),
+    /** A one-line text field: what it shows, and the message each edit sends. */
+    Input(string, fun(string): Msg),
 }
 
 /**
@@ -52,3 +54,16 @@ public fun column<Msg>(children: View<Msg>[]): View<Msg> = View.Column(children)
  *     row([button("Add", Msg.Add), button("Reset", Msg.Reset)])
  */
 public fun row<Msg>(children: View<Msg>[]): View<Msg> = View.Row(children);
+
+/**
+ * Builds a one-line text field showing `value`. Each edit sends
+ * `on_change(text)`, the field's whole new text; store it in the model and
+ * pass it back as `value`.
+ *
+ * Example:
+ *     input(m.name, Msg.Named)
+ */
+public fun input<Msg>(value: string, on_change: fun(string): Msg): View<Msg> = View.Input(
+    value,
+    on_change,
+);
