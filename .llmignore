@@ -23,3 +23,4 @@ LICENSE
 # (../lugha-gtk may be edited for GTK bindings on the user's word: CLAUDE.md, DECISION-004)
 ../lugha/
 /examples/raw
+/examples/counters

@@ -44,6 +44,21 @@ impl Cmd<Msg> {
 
     /** Closes the window and ends the app; `main` returns. */
     public fun quit(): Cmd<Msg> = Cmd.Quit;
+
+    /**
+     * The same command, sending `f(msg)` wherever it would send `msg`: for a
+     * component's commands inside a bigger app.
+     *
+     * Example:
+     *     let (next, cmd) = timer.update(m.timer, t);
+     *     (Model { timer: next, ..m }, cmd.map(Msg.Timer))
+     */
+    public fun map<B>(self, f: fun(Msg): B): Cmd<B> = match self {
+        Nothing => Cmd.Nothing,
+        Batch(cmds) => Cmd.Batch(cmds.map(fun(c) = c.map(f))),
+        After(ms, msg) => Cmd.After(ms, f(msg)),
+        Quit => Cmd.Quit,
+    };
 }
 
 /**
@@ -78,6 +93,18 @@ impl Sub<Msg> {
      *     if m.running { Sub.every(10, Msg.Tick) } else { Sub.none() }
      */
     public fun every(ms: i64, f: fun(i64): Msg): Sub<Msg> = Sub.Every(ms, f);
+
+    /**
+     * The same subscription, sending `f(msg)` wherever it would send `msg`.
+     *
+     * Example:
+     *     timer.subscriptions(m.timer).map(Msg.Timer)
+     */
+    public fun map<B>(self, f: fun(Msg): B): Sub<B> = match self {
+        Quiet => Sub.Quiet,
+        Batch(subs) => Sub.Batch(subs.map(fun(x) = x.map(f))),
+        Every(ms, tick) => Sub.Every(ms, fun(now: i64): B = f(tick(now))),
+    };
 }
 
 /**

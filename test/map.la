@@ -1,0 +1,67 @@
+// Mapping a component's messages into a bigger app's: views, commands and
+// subscriptions. No GTK.
+import kivuli.effects { commands, timers };
+import kivuli.testing { click, submit, texts, toggle, type_into };
+import kivuli { Cmd, Sub, View, button, checkbox, column, input, lazy, row, text };
+
+// Views and commands can hold functions, which have no `==`: compare what
+// they print instead (DECISION-008).
+fun assert_same<T>(actual: T, expected: T) {
+    assert_eq("{actual}", "{expected}");
+}
+
+// A small component with its own messages.
+enum Part {
+    Inc,
+    Named(string),
+    Shown(bool),
+    Go,
+}
+
+fun part(label: string): View<Part> = column([
+    text(label),
+    row([button("+", Part.Inc), checkbox("Show", false, Part.Shown)]),
+    input("", Part.Named).placeholder("Name").on_submit(Part.Go),
+    lazy("tail", fun(): View<Part> = text("tail")),
+]);
+
+// The app it sits in.
+enum App {
+    Left(Part),
+    Right(Part),
+}
+
+@test
+fun every_handler_sends_the_mapped_message() {
+    let v = part("left").map(App.Left);
+    assert_eq(click(v, "+"), Ok(App.Left(Part.Inc)));
+    assert_eq(toggle(v, "Show"), Ok(App.Left(Part.Shown(true))));
+    assert_eq(type_into(v, "Name", "Ada"), Ok(App.Left(Part.Named("Ada"))));
+    assert_eq(submit(v, "Name"), Ok(App.Left(Part.Go)));
+}
+
+@test
+fun mapping_keeps_text_and_structure_and_looks_through_lazies() {
+    let v = row([part("left").map(App.Left), part("right").map(App.Right)]);
+    assert_eq(texts(v), ["left", "tail", "right", "tail"]);
+    let Row(halves) = v else {
+        panic("expected a row");
+    };
+    assert_eq(click(halves[1], "+"), Ok(App.Right(Part.Inc)));
+}
+
+@test
+fun commands_map_their_messages_and_keep_quit() {
+    let cmd: Cmd<Part> = Cmd.batch([Cmd.after(5, Part.Go), Cmd.quit()]);
+    let expected: Cmd<App>[] = [Cmd.After(5, App.Left(Part.Go)), Cmd.Quit];
+    assert_same(commands(cmd.map(App.Left)), expected);
+}
+
+@test
+fun subscriptions_map_their_ticks() {
+    let sub: Sub<Part> = Sub.every(1000, fun(now: i64): Part = Part.Named("{now}"));
+    let t = timers(sub.map(App.Right))[0];
+    assert_eq(t.key, "1000#0");
+    let tick = t.tick;
+    assert_eq(tick(7), App.Right(Part.Named("7")));
+}

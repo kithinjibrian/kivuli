@@ -77,120 +77,66 @@ fun diff_node<Msg>(path: i64[], old: View<Msg>, new: View<Msg>): Patch<Msg>[] {
 }
 
 /**
- * The view with every lazy node built or reused: one whose key is in `cache`
- * (what the last update built) gets that subtree without calling its build
- * function. Also returns the cache for next time: the keys this view used,
- * so subtrees no longer shown are dropped.
+ * The view with every lazy node built or reused. A lazy reuses what the lazy
+ * at the same place in `old` (the last view, resolved) built, when its key is
+ * the same, without calling its build function; otherwise it builds. Places
+ * are matched as the diff matches them: by position, and by row key in a
+ * keyed column. Per place, as in Elm: two copies of one component (`map`) with
+ * equal keys each keep their own subtree.
  */
-fun resolve<Msg>(
-    v: View<Msg>,
-    cache: Map<string, View<Msg>>,
-): (View<Msg>, Map<string, View<Msg>>) = resolve_with(v, cache, #{});
-
-/** `resolve`, with `used` the cache entries this view has used so far. */
-fun resolve_with<Msg>(
-    v: View<Msg>,
-    cache: Map<string, View<Msg>>,
-    used: Map<string, View<Msg>>,
-): (View<Msg>, Map<string, View<Msg>>) = match v {
-    Lazy(key, build, _) => {
-        // Built earlier in this view (the same key twice) or by the last update.
-        let found = match used.get(key) {
-            Some(b) => Some(b),
-            None => cache.get(key),
-        };
-        match found {
-            // Reused whole: its own lazies stay cached too.
-            Some(built) => (
-                View.Lazy(key, build, Some(built)),
-                with_entry(keep_lazies(built, used), key, built),
-            ),
-            None => {
-                let (built, after) = resolve_with(build(), cache, used);
-                (View.Lazy(key, build, Some(built)), with_entry(after, key, built))
+fun resolve<Msg>(v: View<Msg>, old: Option<View<Msg>>): View<Msg> = match v {
+    Lazy(key, build, _) => match old {
+        Some(Lazy(k, _, Some(built))) => if k == key {
+            View.Lazy(key, build, Some(built))
+        } else {
+            // A new key at this place: build, matching what's inside against
+            // the old build, so lazies further in can still be reused.
+            View.Lazy(key, build, Some(resolve(build(), Some(built))))
+        },
+        _ => View.Lazy(key, build, Some(resolve(build(), counterpart(old)))),
+    },
+    Styled(x, style) => View.Styled(resolve(x, counterpart(old)), style),
+    Column(xs) => View.Column(resolve_children(xs, match counterpart(old) {
+        Some(Column(ys)) => ys,
+        _ => [],
+    })),
+    Row(xs) => View.Row(resolve_children(xs, match counterpart(old) {
+        Some(Row(ys)) => ys,
+        _ => [],
+    })),
+    Keyed(pairs) => {
+        let mut before: Map<string, View<Msg>> = #{};
+        match counterpart(old) {
+            Some(Keyed(olds)) => {
+                for (k, x) of olds {
+                    before[k] = x;
+                }
             }
+            _ => {}
         }
+        View.Keyed(pairs.map(fun(pair) = (pair.0, resolve(pair.1, before.get(pair.0)))))
     }
-    Column(xs) => {
-        let (ys, after) = resolve_all(xs, cache, used);
-        (View.Column(ys), after)
-    }
-    Row(xs) => {
-        let (ys, after) = resolve_all(xs, cache, used);
-        (View.Row(ys), after)
-    }
-    Keyed(pairs) => {
-        let mut out: (string, View<Msg>)[] = [];
-        let mut now = used;
-        for (k, x) of pairs {
-            let (y, after) = resolve_with(x, cache, now);
-            out.push((k, y));
-            now = after;
-        }
-        (View.Keyed(out), now)
-    }
-    Scroll(x) => {
-        let (y, after) = resolve_with(x, cache, used);
-        (View.Scroll(y), after)
-    }
-    Styled(x, style) => {
-        let (y, after) = resolve_with(x, cache, used);
-        (View.Styled(y, style), after)
-    }
-    _ => (v, used),
+    Scroll(x) => View.Scroll(resolve(x, match counterpart(old) {
+        Some(Scroll(y)) => Some(y),
+        _ => None,
+    })),
+    _ => v,
 };
 
-fun resolve_all<Msg>(
-    xs: View<Msg>[],
-    cache: Map<string, View<Msg>>,
-    used: Map<string, View<Msg>>,
-): (View<Msg>[], Map<string, View<Msg>>) {
+/** The old node a new one (not a lazy) is matched against: through its style and any lazy around it. */
+fun counterpart<Msg>(old: Option<View<Msg>>): Option<View<Msg>> = match old {
+    Some(Styled(x, _)) => counterpart(Some(x)),
+    Some(Lazy(_, _, Some(built))) => counterpart(Some(built)),
+    _ => old,
+};
+
+fun resolve_children<Msg>(xs: View<Msg>[], olds: View<Msg>[]): View<Msg>[] {
     let mut out: View<Msg>[] = [];
-    let mut now = used;
-    for x of xs {
-        let (y, after) = resolve_with(x, cache, now);
-        out.push(y);
-        now = after;
+    let mut i = 0;
+    while i < xs.len {
+        out.push(resolve(xs[i], if i < olds.len { Some(olds[i]) } else { None }));
+        i = i + 1;
     }
-    (out, now)
-}
-
-/** `used` plus the entry of every resolved lazy inside `v`. */
-fun keep_lazies<Msg>(v: View<Msg>, used: Map<string, View<Msg>>): Map<string, View<Msg>> = match v {
-    Lazy(key, _, Some(built)) => with_entry(keep_lazies(built, used), key, built),
-    Column(xs) => keep_all(xs, used),
-    Row(xs) => keep_all(xs, used),
-    Keyed(pairs) => {
-        let mut now = used;
-        for (_, x) of pairs {
-            now = keep_lazies(x, now);
-        }
-        now
-    }
-    Scroll(x) => keep_lazies(x, used),
-    Styled(x, _) => keep_lazies(x, used),
-    _ => used,
-};
-
-fun keep_all<Msg>(xs: View<Msg>[], used: Map<string, View<Msg>>): Map<string, View<Msg>> {
-    let mut now = used;
-    for x of xs {
-        now = keep_lazies(x, now);
-    }
-    now
-}
-
-/** `used` with `key` → `v`, unless `key` is already there (the first build of a key wins). */
-fun with_entry<Msg>(
-    used: Map<string, View<Msg>>,
-    key: string,
-    v: View<Msg>,
-): Map<string, View<Msg>> {
-    if used.has(key) {
-        return used;
-    }
-    let mut out = used;
-    out[key] = v;
     out
 }
 

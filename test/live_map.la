@@ -1,0 +1,126 @@
+// Two mapped copies of one component on real GTK widgets: a click in one sends
+// that copy's message, and only that copy rebuilds, though both use the same
+// lazy keys. Needs a display, so it is skipped without one.
+import std.env;
+import gtk {
+    GtkApplication,
+    connect_app,
+    emit_widget,
+    g_application_quit,
+    g_application_run,
+    g_object_unref,
+    gtk_application_new,
+    gtk_application_window_new,
+    gtk_label_get_text,
+};
+import kivuli.live { live_of, mount };
+import kivuli.live_tree { Live, widget };
+import kivuli.effects { sandbox_app };
+import kivuli { View, button, column, lazy, row, text };
+
+fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
+
+enum Step {
+    Up,
+}
+
+enum Msg {
+    Left(Step),
+    Right(Step),
+}
+
+struct Model {
+    left: i64,
+    right: i64,
+}
+
+fun update(m: Model, msg: Msg): Model = match msg {
+    Left(_) => Model { left: m.left + 1, ..m },
+    Right(_) => Model { right: m.right + 1, ..m },
+};
+
+// The component: keyed on the count only, so both copies share keys while
+// their counts are equal. `builds` records which copy was built.
+fun counter(
+    n: i64,
+    side: string,
+    builds: Ref<string[]>,
+): View<Step> = lazy("count:{n}", fun(): View<Step> {
+    builds.update(fun(xs) {
+        let mut ys = xs;
+        ys.push(side);
+        ys
+    });
+    column([text("{n}"), button("+", Step.Up)])
+});
+
+fun view_with(builds: Ref<string[]>): fun(Model): View<Msg> = fun(m: Model): View<Msg> = row([
+    counter(m.left, "left", builds).map(Msg.Left),
+    counter(m.right, "right", builds).map(Msg.Right),
+]);
+
+// The count each side shows, and its "+" button, read from the widgets.
+fun side(root: Live<Msg>, i: i64): Live<Msg> {
+    let Box(_, _, halves) = root else {
+        panic("expected a row");
+    };
+    halves[i]
+}
+
+fun count_of(half: Live<Msg>): string {
+    let Box(_, _, kids) = half else {
+        panic("expected a column");
+    };
+    gtk_label_get_text(widget(kids[0]))
+}
+
+fun plus_of(half: Live<Msg>): Live<Msg> {
+    let Box(_, _, kids) = half else {
+        panic("expected a column");
+    };
+    kids[1]
+}
+
+@test
+fun a_click_in_one_copy_reaches_and_rebuilds_only_that_copy() {
+    if !has_display() {
+        skip("no display");
+    }
+    let builds: Ref<string[]> = Ref.new([]);
+    let received: Ref<string[]> = Ref.new([]);
+    let shown: Ref<string[]> = Ref.new([]);
+    let application = gtk_application_new("org.kivuli.test.map", 0);
+    connect_app(
+        application,
+        "activate",
+        fun(a: GtkApplication) {
+            let window = gtk_application_window_new(a);
+            let app = mount(a, window, sandbox_app(
+                "org.kivuli.test",
+                Model { left: 0, right: 0 },
+                fun(m: Model, msg: Msg): Model {
+                    received.update(fun(xs) {
+                        let mut ys = xs;
+                        ys.push("{msg}");
+                        ys
+                    });
+                    update(m, msg)
+                },
+                view_with(builds),
+            ));
+            emit_widget(widget(plus_of(side(live_of(app), 1))), "clicked");
+            let now = live_of(app);
+            shown.set([count_of(side(now, 0)), count_of(side(now, 1))]);
+            g_application_quit(a);
+        },
+        0,
+    );
+    g_application_run(application, 0, None);
+    g_object_unref(application);
+
+    assert_eq(received.get(), ["Right(Up)"]);
+    assert_eq(shown.get(), ["0", "1"]);
+    // Both built at start; then only the right one, whose key changed. The
+    // left kept its own build, not the right's (they had the same key).
+    assert_eq(builds.get(), ["left", "right", "right"]);
+}

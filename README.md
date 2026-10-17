@@ -67,6 +67,7 @@ Inside this repository, run the examples directly:
 lughac run examples/counter.la
 lughac run examples/todo.la
 lughac run examples/stopwatch.la
+lughac run examples/counters.la
 ```
 
 ## What's there
@@ -90,7 +91,7 @@ lughac run examples/stopwatch.la
 | `keyed_column(children)` | Like `column`, with `(key, view)` children matched by key: reordering, inserting or deleting moves, adds or removes just those widgets. |
 | `scroll(child)` | Scrolls its child when it's bigger than the room it's given. |
 | `spacer()`, `separator()` | Room that grows along its column or row; a line across it. |
-| `lazy(key, build)` | Calls `build` only when `key` changes; otherwise reuses the subtree and skips diffing it. The key must cover everything the subtree shows. |
+| `lazy(key, build)` | Calls `build` only when `key` changes at that place; otherwise reuses the subtree and skips diffing it. The key must cover everything the subtree shows. |
 
 **Modifiers**, chained on any view (a modifier that doesn't fit a node is ignored):
 
@@ -105,6 +106,14 @@ lughac run examples/stopwatch.la
 | `.window(title, width, height)` | On the root of `view`: the window's title (it may follow the model) and size. |
 
 Everything visual comes from the GTK theme (button styles are the theme's `suggested-action`, `destructive-action` and `flat`): there are no colours to set, and apps follow the user's light or dark theme.
+
+**Components.** A part of an app can have its own model, messages, `update` and `view`, and sit in a bigger app through `map`, which sends `f(msg)` wherever the part would send `msg`:
+
+```
+row([counter(m.left).map(Msg.Left), counter(m.right).map(Msg.Right)])
+```
+
+`Cmd` and `Sub` have `map` too, for a part's commands and subscriptions. `examples/counters.la` shows two copies of one component.
 
 **Effects**, for `application`:
 

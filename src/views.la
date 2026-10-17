@@ -377,6 +377,42 @@ impl View<Msg> {
         Styled(inside, s) => View.Styled(inside.on_submit(msg), s),
         _ => self,
     };
+
+    /**
+     * The same view, sending `f(msg)` wherever it would send `msg`: how a
+     * component with its own message type sits inside a bigger app. Map its
+     * commands and subscriptions too (`Cmd.map`, `Sub.map`).
+     *
+     * Example:
+     *     row([counter.view(m.left).map(Msg.Left), counter.view(m.right).map(Msg.Right)])
+     */
+    public fun map<B>(self, f: fun(Msg): B): View<B> = match self {
+        Text(s) => View.Text(s),
+        Button(label, msg) => View.Button(label, msg.map(f)),
+        Column(xs) => View.Column(xs.map(fun(x) = x.map(f))),
+        Row(xs) => View.Row(xs.map(fun(x) = x.map(f))),
+        Input(value, on_change, on_submit) => View.Input(
+            value,
+            fun(s: string): B = f(on_change(s)),
+            on_submit.map(f),
+        ),
+        Checkbox(label, checked, on_toggle) => View.Checkbox(
+            label,
+            checked,
+            fun(b: bool): B = f(on_toggle(b)),
+        ),
+        Spacer => View.Spacer,
+        Separator => View.Separator,
+        Scroll(x) => View.Scroll(x.map(f)),
+        Keyed(pairs) => View.Keyed(pairs.map(fun(pair) = (pair.0, pair.1.map(f)))),
+        Styled(x, style) => View.Styled(x.map(f), style),
+        // The key stays: what's built is the same, only its messages change.
+        Lazy(key, build, built) => View.Lazy(
+            key,
+            fun(): View<B> = build().map(f),
+            built.map(fun(b) = b.map(f)),
+        ),
+    };
 }
 
 /**

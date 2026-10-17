@@ -234,8 +234,8 @@ public fun find_button(v: View<Msg>, label: string): ButtonRef<Msg> { … }
 │                        imports nothing, so private modules' tests have no cycle back to it),
 │                        diff.la (pure tree diff → patches), live_tree.la (the Live tree type and widget(): data only), build.la (creating and styling widgets), live.la (run loop, patches, timers), effects.la (Cmd, Sub, App: pure), testing.la (kivuli.testing: pure helpers for app tests, re-exported by lib.la). Imports run one way: live_tree ← build ← live; effects ← live;
 │                        
-├── examples/          — hello.la (stale `lughac init` scaffold, see CONTEXT.md); planned: counter, todo, stopwatch
-├── test/              — @test files mirroring src/: lib.la, entry.la (the API through `import kivuli;`), diff.la, effects.la, lazy.la, testing.la, and the GTK ones (skipped without a display) live.la, live_forms.la, live_style.la, live_effects.la, live_lazy.la. A test file imports another test file by its bare name (`import support;` for `test/support.la`), not `test.support` or `kivuli.test.support` (those are E0312)
+├── examples/          — counter.la, counters.la (components with map), todo.la (with its own tests), stopwatch.la (effects), raw.la (the counter on raw GTK); hello.la is an empty leftover
+├── test/              — @test files mirroring src/: lib.la, entry.la (the API through `import kivuli;`), diff.la, effects.la, lazy.la, map.la, testing.la, and the GTK ones (skipped without a display) live.la, live_forms.la, live_style.la, live_effects.la, live_lazy.la, live_map.la. A test file imports another test file by its bare name (`import support;` for `test/support.la`), not `test.support` or `kivuli.test.support` (those are E0312)
 ├── PRPs/              — prp-{NNN}-{feature_name}.md (+ TEMPLATE.md, DISCOVERY.md)
 ├── docs/
 │   ├── CODE_STYLE.md  — documentation rules for .la code

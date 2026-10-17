@@ -70,8 +70,6 @@ struct Running<Model, Msg> {
     // text) emits its signal, and that echo must not dispatch again.
     patching: Ref<bool>,
     timers: Ref<Ticking<Msg>[]>,
-    // Subtrees lazy nodes built, by key, for the next update to reuse.
-    built: Ref<Map<string, View<Msg>>>,
 }
 
 /**
@@ -106,7 +104,6 @@ fun mount<Model, Msg>(
     program: App<Model, Msg>,
 ): Running<Model, Msg> {
     let none_yet: Ticking<Msg>[] = [];
-    let nothing_built: Map<string, View<Msg>> = #{};
     let app = Running {
         application: application,
         window: window,
@@ -114,12 +111,10 @@ fun mount<Model, Msg>(
         state: Ref.new(None),
         patching: Ref.new(false),
         timers: Ref.new(none_yet),
-        built: Ref.new(nothing_built),
     };
     let (model, cmd) = program.init;
     let view = program.view;
-    let (tree, built) = diff.resolve(view(model), app.built.get());
-    app.built.set(built);
+    let tree = diff.resolve(view(model), None);
     let live = create(tree, sender(app));
     gtk_window_set_child(window, widget(live));
     app.state.set(Some(State { model: model, tree: tree, live: live }));
@@ -156,9 +151,8 @@ fun dispatch<Model, Msg>(app: Running<Model, Msg>, msg: Msg) {
     let update = app.program.update;
     let view = app.program.view;
     let (model, cmd) = update(s.model, msg);
-    // Lazy nodes whose keys are unchanged reuse what they built last time.
-    let (tree, built) = diff.resolve(view(model), app.built.get());
-    app.built.set(built);
+    // Lazy nodes whose keys are unchanged at their place reuse what they built.
+    let tree = diff.resolve(view(model), Some(s.tree));
     let mut live = s.live;
     app.patching.set(true);
     for patch of diff.diff(s.tree, tree) {

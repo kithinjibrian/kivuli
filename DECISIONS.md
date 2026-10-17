@@ -76,7 +76,9 @@ Rules:
 
 **Question:** `lazy` must recognise an unchanged input next render, but `View` is generic only over `Msg`, so it can't hold the input. How is the input compared?
 
-**Outcome:** a string key supplied by the app: `lazy(key: string, build: fun(): View<Msg>)`. Before each diff, kivuli resolves the new view: a lazy whose key it built last time reuses that subtree without calling `build`, and the diff skips two lazies with equal keys entirely. Built subtrees are cached by key, and the cache keeps only the keys the current view used. Modifiers go inside `build`; modifiers on `lazy(…)` itself are ignored.
+**Outcome:** a string key supplied by the app: `lazy(key: string, build: fun(): View<Msg>)`. Before each diff, kivuli resolves the new view against the last one: a lazy reuses what the lazy **at the same place** built last update, if its key is the same, without calling `build` (Elm's rule). Places are matched as the diff matches them: by position, and by row key in a `keyed_column`. The diff skips two lazies with equal keys entirely. Modifiers go inside `build`; modifiers on `lazy(…)` itself are ignored.
+
+**Amended (session 3, the user's choice):** at first, built subtrees were cached globally by key. With `View.map`, two copies of one component could share a key and reuse each other's subtree, handlers and all (a silent wrong message). Reuse is now per place, so keys only need to differ from the last update at the same spot.
 
 **Rationale:** works with no language support, and it's the brief's preferred "simplest that works". The cost: a key that leaves out something the subtree depends on shows a stale subtree. Rejected: comparing the input with `==` (needs a type-erased comparable value Lugha may not have), and leaving `lazy` out of v1.
 

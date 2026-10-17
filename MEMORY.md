@@ -81,7 +81,7 @@ Decisions 1–12 were agreed in the design discussion in the lugha repository (a
 
 ### 9. Performance tools: `lazy` and `keyed_column`
 
-**Decision:** `lazy(key: string, build)` skips building and diffing a subtree whose key is unchanged (DECISION-002, session 3: the app supplies a key covering every input; subtrees cached by key). `keyed_column` handles reordering. No virtualised list in v1.
+**Decision:** `lazy(key: string, build)` skips building and diffing a subtree whose key is unchanged at the same place (DECISION-002, session 3: the app supplies a key covering every input; reuse is per place, as in Elm, so mapped components can't mix). `keyed_column` handles reordering. No virtualised list in v1.
 
 ---
 

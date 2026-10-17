@@ -1,0 +1,65 @@
+// Two copies of one component in one app: each counter has its own model,
+// messages, update and view, and `map` turns its messages into the app's.
+import kivuli { Align, ButtonStyle, View, button, column, lazy, row, sandbox, separator, text };
+
+// The component.
+
+struct Counter {
+    count: i64,
+}
+
+enum Step {
+    Up,
+    Down,
+}
+
+fun step(c: Counter, s: Step): Counter = match s {
+    Up => Counter { count: c.count + 1 },
+    Down => Counter { count: c.count - 1 },
+};
+
+// Lazy, keyed on the count: both counters use the same key, and each keeps
+// its own build (lazies are reused per place).
+fun counter(title: string, c: Counter): View<Step> = lazy(
+    "{title}:{c.count}",
+    fun(): View<Step> = column([
+        text(title).dim().align(Align.Center),
+        text("{c.count}").size(28).bold().align(Align.Center),
+        row([button("−", Step.Down), button("+", Step.Up).style(ButtonStyle.Primary)]).spacing(
+            6,
+        ).align(Align.Center),
+    ]).spacing(6),
+);
+
+// The app.
+
+struct Model {
+    left: Counter,
+    right: Counter,
+}
+
+enum Msg {
+    Left(Step),
+    Right(Step),
+}
+
+fun update(m: Model, msg: Msg): Model = match msg {
+    Left(s) => Model { left: step(m.left, s), ..m },
+    Right(s) => Model { right: step(m.right, s), ..m },
+};
+
+fun view(m: Model): View<Msg> = column([
+    row([
+        counter("Left", m.left).map(Msg.Left),
+        separator(),
+        counter("Right", m.right).map(Msg.Right),
+    ]).spacing(16).align(Align.Center),
+    text("Total {m.left.count + m.right.count}").align(Align.Center),
+]).padding(24).spacing(16).window("Counters", 360, 220);
+
+fun main(): i32 = sandbox(
+    "org.kivuli.counters",
+    Model { left: Counter { count: 0 }, right: Counter { count: 0 } },
+    update,
+    view,
+);
