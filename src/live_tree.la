@@ -1,0 +1,42 @@
+/**
+ * The live tree: the GTK widgets on screen, shaped like the `View` they show.
+ * Data only; making widgets is `build`, running the app and patching is `live`.
+ *
+ * Depends on: gtk.raw
+ * Used by: build, live
+ */
+
+import gtk { GtkWidget };
+
+/** The widgets on screen, shaped exactly like the `View` they show. */
+enum Live<Msg> {
+    Label(GtkWidget),
+    /** The button and the message it sends: its click handler reads this box. */
+    Button(GtkWidget, Ref<Msg>),
+    /**
+     * A column or a row: both are a `GtkBox`, and patch the same way. The
+     * orientation (`GtkOrientation`: 1 vertical, 0 horizontal) lays out
+     * children added later.
+     */
+    Box(GtkWidget, i32, Live<Msg>[]),
+    /** A text field and the function turning its text into a message: its `changed` handler reads this box. */
+    Input(GtkWidget, Ref<fun(string): Msg>),
+    /** A check box and the function turning its state into a message: its `toggled` handler reads this box. */
+    Checkbox(GtkWidget, Ref<fun(bool): Msg>),
+    Spacer(GtkWidget),
+    Separator(GtkWidget),
+    /** A scrolled window and the one child it shows. */
+    Scroll(GtkWidget, Live<Msg>),
+}
+
+/** The GTK widget showing `node`. */
+fun widget<Msg>(node: Live<Msg>): GtkWidget = match node {
+    Label(w) => w,
+    Button(w, _) => w,
+    Box(w, _, _) => w,
+    Input(w, _) => w,
+    Checkbox(w, _) => w,
+    Spacer(w) => w,
+    Separator(w) => w,
+    Scroll(w, _) => w,
+};

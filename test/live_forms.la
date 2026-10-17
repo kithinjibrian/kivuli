@@ -20,7 +20,8 @@ import gtk {
     gtk_label_get_text,
     gtk_window_set_child,
 };
-import kivuli.live { Running, State, sender, widget };
+import kivuli.live { Running, State, sender };
+import kivuli.live_tree { widget };
 import kivuli.build { create };
 import kivuli { View, button, checkbox, column, input, text };
 

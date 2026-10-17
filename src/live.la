@@ -5,7 +5,7 @@
  * responsible for deciding what to show (the app's `view`) or what changed
  * (`diff`).
  *
- * Depends on: views, diff, build, gtk.raw
+ * Depends on: views, diff, live_tree, build, gtk.raw
  * Used by: lib
  */
 
@@ -34,27 +34,7 @@ import gtk {
 import diff;
 import views { View };
 import build { create, create_in, apply_style, flag };
-
-/** The widgets on screen, shaped exactly like the `View` they show. */
-enum Live<Msg> {
-    Label(GtkWidget),
-    /** The button and the message it sends: its click handler reads this box. */
-    Button(GtkWidget, Ref<Msg>),
-    /**
-     * A column or a row: both are a `GtkBox`, and patch the same way. The
-     * orientation (`GtkOrientation`: 1 vertical, 0 horizontal) lays out
-     * children added later.
-     */
-    Box(GtkWidget, i32, Live<Msg>[]),
-    /** A text field and the function turning its text into a message: its `changed` handler reads this box. */
-    Input(GtkWidget, Ref<fun(string): Msg>),
-    /** A check box and the function turning its state into a message: its `toggled` handler reads this box. */
-    Checkbox(GtkWidget, Ref<fun(bool): Msg>),
-    Spacer(GtkWidget),
-    Separator(GtkWidget),
-    /** A scrolled window and the one child it shows. */
-    Scroll(GtkWidget, Live<Msg>),
-}
+import live_tree { Live, widget };
 
 /** What changes as the app runs: the model, the view it gave, and the widgets showing it. */
 struct State<Model, Msg> {
@@ -309,18 +289,6 @@ fun at<Msg>(node: Live<Msg>, path: i64[]): Live<Msg> {
     }
     here
 }
-
-/** The GTK widget showing `node`. */
-fun widget<Msg>(node: Live<Msg>): GtkWidget = match node {
-    Label(w) => w,
-    Button(w, _) => w,
-    Box(w, _, _) => w,
-    Input(w, _) => w,
-    Checkbox(w, _) => w,
-    Spacer(w) => w,
-    Separator(w) => w,
-    Scroll(w, _) => w,
-};
 
 fun parent(path: i64[]): i64[] {
     let mut p: i64[] = [];

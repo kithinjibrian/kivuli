@@ -21,7 +21,8 @@ import gtk {
     pango_attr_list_to_string,
     gtk_window_set_child,
 };
-import kivuli.live { Live, Running, State, dispatch, sender, widget };
+import kivuli.live { Running, State, dispatch, sender };
+import kivuli.live_tree { Live, widget };
 import kivuli.build { create };
 import kivuli { View, Align, column, row, spacer, text };
 

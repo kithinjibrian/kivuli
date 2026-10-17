@@ -23,7 +23,8 @@ import gtk {
     gtk_widget_get_vexpand,
     gtk_window_set_child,
 };
-import kivuli.live { Live, Running, State, dispatch, sender, widget };
+import kivuli.live { Running, State, dispatch, sender };
+import kivuli.live_tree { Live, widget };
 import kivuli.build { create };
 import kivuli { View, button, column, keyed_column, row, scroll, separator, spacer, text };
 

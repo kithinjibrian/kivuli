@@ -181,7 +181,7 @@ A task is done only when `fmt --check` is clean, `lughac test test/` passes (ski
 The package entry is `src/lib.la` (lughac milestone 99): apps write `import kivuli { View, text, sandbox };` or `import kivuli;` then `kivuli.sandbox(…)`. There is no `ui` module.
 
 1. **Apps see only the package entry (`src/lib.la`, `import kivuli;`) and `kivuli.testing`.** `views` is reached through the entry's re-export; `live`, `diff` and `effects` are private (package-level). *Why:* the public surface is the Elm contract, and leaking widgets lets apps bypass `update`/`view`.
-2. **Private modules import `views`, not the entry `lib`.** *Why:* the entry is the app-facing surface over `live`; private modules need only the view types, which keeps dependencies pointing one way.
+2. **Private modules import `views`, not the entry `lib`; `build` never imports `live`.** Shared types go in their own module (`views` for `View`, `live_tree` for `Live`) so imports run one way. *Why:* the entry is the app-facing surface over `live`; private modules need only the view types, which keeps dependencies pointing one way.
 3. **`diff` is pure.** It takes two `View` trees and returns patches. It never calls GTK. *Why:* it must be unit-testable with no display, and it is where most bugs will live.
 4. **Only `live.la`, `build.la` and `effects.la` call GTK/GLib.** `build.la` makes and styles widgets; `live.la` runs the app and applies patches. *Why:* few places to audit every extern call and every pinned closure.
 5. **Connect each GTK signal once per widget, never per render.** The handler reads the message to send from a `Ref` stored with the live widget, and a patch only `set`s that `Ref`. *Why:* messages may hold closures and can't be compared, and reconnecting per render leaks pinned closures (risk R4).
@@ -231,7 +231,7 @@ public fun find_button(v: View<Msg>, label: string): ButtonRef<Msg> { … }
 ├── lugha.toml         — package `kivuli`, source `src`
 ├── src/               — lib.la (the entry, `import kivuli;`: re-exports views, adds sandbox), views.la (View and its builders;
 │                        imports nothing, so private modules' tests have no cycle back to it),
-│                        diff.la (pure tree diff → patches), live.la (Live tree, run loop, patches), build.la (creating and styling widgets);
+│                        diff.la (pure tree diff → patches), live_tree.la (the Live tree type and widget(): data only), build.la (creating and styling widgets), live.la (run loop, patches). Imports run one way: live_tree ← build ← live;
 │                        planned: testing.la, effects.la
 ├── examples/          — hello.la (stale `lughac init` scaffold, see CONTEXT.md); planned: counter, todo, stopwatch
 ├── test/              — @test files mirroring src/: lib.la, diff.la, live.la and live_forms.la (GTK, skipped without a display). A test file imports another test file by its bare name (`import support;` for `test/support.la`), not `test.support` or `kivuli.test.support` (those are E0312)

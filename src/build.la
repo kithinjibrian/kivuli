@@ -4,7 +4,7 @@
  * nodes; not responsible for running the app or deciding what changed
  * (`live`, `diff`).
  *
- * Depends on: views, live, gtk.raw
+ * Depends on: views, live_tree, gtk.raw
  * Used by: live
  */
 
@@ -43,7 +43,7 @@ import gtk {
     pango_attr_size_new,
     pango_attr_weight_new,
 };
-import live { Live, widget };
+import live_tree { Live, widget };
 import views { View, Style, Align };
 
 /** Builds the GTK widgets for `v` at the top of a window; each widget sends its messages through `send`. */
