@@ -9,6 +9,8 @@ Never deleted. Older entries are never modified.
 ## [Unreleased]
 
 ### Added
+- `text_area(value, on_change)`: a multi-line text field that wraps, scrolls inside itself and keeps the cursor while you type (PRP-001); `examples/notes.la`.
+- `.name(id)`: a name tests find a text field or text area by.
 - `View.map(f)`, `Cmd.map(f)`, `Sub.map(f)`: components with their own messages inside a bigger app; `examples/counters.la`.
 
 ### Changed

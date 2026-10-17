@@ -21,6 +21,8 @@ public enum View<Msg> {
     Row(View<Msg>[]),
     /** A one-line text field: what it shows, the message each edit sends, and the message Enter sends. */
     Input(string, fun(string): Msg, Option<Msg>),
+    /** A multi-line text field: what it shows, and the message each edit sends. */
+    TextArea(string, fun(string): Msg),
     /** A check box: its label, whether it's ticked, and the message each toggle sends. */
     Checkbox(string, bool, fun(bool): Msg),
     /** Empty room that grows along its column or row, pushing what follows to the end. */
@@ -192,6 +194,8 @@ public struct Style {
     window: Option<Window>,
     /** Hint text an empty text field shows; "" for none. Text fields only. */
     placeholder: string,
+    /** A name for tests to find the node by (`kivuli.testing`); not shown. */
+    name: string,
 }
 
 /** The style of a node with no modifiers: what GTK does by default. */
@@ -208,6 +212,7 @@ fun plain(): Style = Style {
     look: ButtonStyle.Normal,
     window: None,
     placeholder: "",
+    name: "",
 };
 
 /** `v` with its style changed by `f`: one `Styled` wrapper, however many modifiers. */
@@ -372,6 +377,18 @@ impl View<Msg> {
      * Example:
      *     input(m.draft, Msg.Draft).on_submit(Msg.Add)
      */
+    /**
+     * Names the node for tests: `kivuli.testing.type_into(v, id, text)` finds
+     * a text field or text area by it. Not shown on screen.
+     *
+     * Example:
+     *     text_area(m.notes, Msg.Notes).name("notes")
+     */
+    public fun name(self, id: string): View<Msg> = restyle(
+        self,
+        fun(s: Style) = Style { name: id, ..s },
+    );
+
     public fun on_submit(self, msg: Msg): View<Msg> = match self {
         Input(value, on_change, _) => View.Input(value, on_change, Some(msg)),
         Styled(inside, s) => View.Styled(inside.on_submit(msg), s),
@@ -391,6 +408,7 @@ impl View<Msg> {
         Button(label, msg) => View.Button(label, msg.map(f)),
         Column(xs) => View.Column(xs.map(fun(x) = x.map(f))),
         Row(xs) => View.Row(xs.map(fun(x) = x.map(f))),
+        TextArea(value, on_change) => View.TextArea(value, fun(s: string): B = f(on_change(s))),
         Input(value, on_change, on_submit) => View.Input(
             value,
             fun(s: string): B = f(on_change(s)),
@@ -426,3 +444,17 @@ impl View<Msg> {
  *     lazy("{t.id}:{t.done}:{t.title}", fun() = todo_row(t))
  */
 public fun lazy<Msg>(key: string, build: fun(): View<Msg>): View<Msg> = View.Lazy(key, build, None);
+
+/**
+ * Builds a multi-line text field showing `value`, scrolling inside itself and
+ * wrapping long lines. Each edit sends `on_change(text)`, the whole new text;
+ * Enter starts a new line. `.height(n)` sets its height (80 pixels by default);
+ * `.name(id)` lets tests find it.
+ *
+ * Example:
+ *     text_area(m.notes, Msg.Notes).height(120).name("notes")
+ */
+public fun text_area<Msg>(value: string, on_change: fun(string): Msg): View<Msg> = View.TextArea(
+    value,
+    on_change,
+);

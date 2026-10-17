@@ -22,7 +22,7 @@ enum Patch<Msg> {
     SetLabel(i64[], string),
     /** The button at the path sends this message from now on, or nothing (disabled) for `None`. */
     SetMsg(i64[], Option<Msg>),
-    /** The text field at the path shows this text. */
+    /** The text field or text area at the path shows this text. */
     SetValue(i64[], string),
     /** The text field at the path turns edits into messages with this function from now on. */
     SetOnChange(i64[], fun(string): Msg),
@@ -172,6 +172,7 @@ fun diff_inside<Msg>(
         on_change,
         on_submit,
     ),
+    (TextArea(a, _), TextArea(b, on_change)) => diff_text_area(path, a, b, on_change),
     (Checkbox(la, ca, _), Checkbox(lb, cb, on_toggle)) => diff_checkbox(
         path,
         la,
@@ -236,6 +237,21 @@ fun diff_checkbox<Msg>(
         out.push(Patch.SetChecked(path, checked));
     }
     out.push(Patch.SetOnToggle(path, on_toggle));
+    out
+}
+
+/** As `diff_input`, without Enter: a text area has no `on_submit`. */
+fun diff_text_area<Msg>(
+    path: i64[],
+    old_value: string,
+    value: string,
+    on_change: fun(string): Msg,
+): Patch<Msg>[] {
+    let mut out: Patch<Msg>[] = [];
+    if old_value != value {
+        out.push(Patch.SetValue(path, value));
+    }
+    out.push(Patch.SetOnChange(path, on_change));
     out
 }
 

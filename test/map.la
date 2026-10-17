@@ -2,7 +2,7 @@
 // subscriptions. No GTK.
 import kivuli.effects { commands, timers };
 import kivuli.testing { click, submit, texts, toggle, type_into };
-import kivuli { Cmd, Sub, View, button, checkbox, column, input, lazy, row, text };
+import kivuli { Cmd, Sub, View, button, checkbox, column, input, lazy, row, text, text_area };
 
 // Views and commands can hold functions, which have no `==`: compare what
 // they print instead (DECISION-008).
@@ -64,4 +64,10 @@ fun subscriptions_map_their_ticks() {
     assert_eq(t.key, "1000#0");
     let tick = t.tick;
     assert_eq(tick(7), App.Right(Part.Named("7")));
+}
+
+@test
+fun a_mapped_text_area_sends_the_mapped_message() {
+    let v = text_area("", Part.Named).name("n").map(App.Left);
+    assert_eq(type_into(v, "n", "hi"), Ok(App.Left(Part.Named("hi"))));
 }

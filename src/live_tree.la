@@ -6,7 +6,7 @@
  * Used by: build, live
  */
 
-import gtk { GtkWidget };
+import gtk { GtkTextBuffer, GtkWidget };
 
 /** The widgets on screen, shaped exactly like the `View` they show. */
 enum Live<Msg> {
@@ -26,6 +26,11 @@ enum Live<Msg> {
     Input(GtkWidget, Ref<fun(string): Msg>, Ref<Option<Msg>>),
     /** A check box and the function turning its state into a message: its `toggled` handler reads this box. */
     Checkbox(GtkWidget, Ref<fun(bool): Msg>),
+    /**
+     * A text area: the scrolled window holding it, its buffer, and the
+     * function turning its text into a message (its `changed` handler reads it).
+     */
+    TextArea(GtkWidget, GtkTextBuffer, Ref<fun(string): Msg>),
     Spacer(GtkWidget),
     Separator(GtkWidget),
     /** A scrolled window and the one child it shows. */
@@ -39,6 +44,7 @@ fun widget<Msg>(node: Live<Msg>): GtkWidget = match node {
     Box(w, _, _) => w,
     Input(w, _, _) => w,
     Checkbox(w, _) => w,
+    TextArea(w, _, _) => w,
     Spacer(w) => w,
     Separator(w) => w,
     Scroll(w, _) => w,

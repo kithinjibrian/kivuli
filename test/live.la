@@ -66,6 +66,7 @@ fun shown<M>(node: Live<M>): string = match node {
     Label(w) => gtk_label_get_text(w),
     Button(w, _) => "[" + gtk_button_get_label(w).unwrap_or("?") + "]",
     Input(w, _, _) => "<" + gtk_editable_get_text(w) + ">",
+    TextArea(_, _, _) => "<area>",
     Checkbox(w, _) => {
         let tick = if gtk_check_button_get_active(w) != 0 { "x" } else { " " };
         "[{tick}] " + gtk_check_button_get_label(w).unwrap_or("?")

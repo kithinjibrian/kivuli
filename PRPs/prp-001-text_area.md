@@ -1,6 +1,6 @@
 # PRP-001 — Multi-line text area
 
-Status: draft, for the user's approval
+Status: built (session 3) on branch prp-001-text_area; merged into main
 Discovery: session 3, 2026-10-17. Answers marked *(you)* were chosen in the interview; *(proposed)* are recommendations not yet asked, for you to confirm or change with this PRP.
 
 ## FEATURE: A scrolling, word-wrapping multi-line text field, `text_area(value, on_change)`.
@@ -69,17 +69,17 @@ fun typing_notes() {
 ## TESTS TO WRITE
 
 All pure ones run with no display:
-- [ ] `test/lib.la`: `text_area("a", f)` builds the node; `on_change("b")` is `f("b")`; `.name("n")` lands in the style.
-- [ ] `test/diff.la`: changed text gives `SetValue` + `SetOnChange`; same text gives only `SetOnChange`; a text area that becomes an input is `Replace`.
-- [ ] `test/testing.la`: `type_into` finds a text area by name; an input by name; an input still by placeholder; a name shared by two fields is `Ambiguous`; an unknown name is `NotFound`; `texts` leaves text-area contents out.
-- [ ] `test/map.la`: a mapped text area's `on_change` sends the mapped message.
-- [ ] Live GTK (`test/live_forms.la`, skipped without a display):
+- [x] `test/lib.la`: `text_area("a", f)` builds the node; `on_change("b")` is `f("b")`; `.name("n")` lands in the style.
+- [x] `test/diff.la`: changed text gives `SetValue` + `SetOnChange`; same text gives only `SetOnChange`; a text area that becomes an input is `Replace`.
+- [x] `test/testing.la`: `type_into` finds a text area by name; an input by name; an input still by placeholder; a name shared by two fields is `Ambiguous`; an unknown name is `NotFound`; `texts` leaves text-area contents out.
+- [x] `test/map.la`: a mapped text area's `on_change` sends the mapped message.
+- [x] Live GTK (`test/live_forms.la`, skipped without a display):
   - typing (setting the buffer from outside a dispatch) sends `on_change` with the whole text, and the model sees it;
   - an update with the same text leaves the cursor where it was (mutation-checked: without the guard it moves);
   - the model setting a shorter text clamps the cursor to the end; a longer one keeps its offset;
   - a model-driven change sends no echo message;
   - the text area wraps (`gtk_text_view_get_wrap_mode` = 3) and sits in a scrolled window with the requested height.
-- [ ] lugha-gtk `test/text.la`: set, get (no leak path), cursor get/place, `"changed"` fires.
+- [x] lugha-gtk `test/text.la`: set, get (no leak path), cursor get/place, `"changed"` fires.
 
 ## ROLLBACK PLAN
 
@@ -87,20 +87,26 @@ All pure ones run with no display:
 - To abandon: leave the branch unmerged (or delete it); `main` stays as it is. lugha-gtk 0.1.15 is additions only, so leaving it published is harmless.
 
 ## ACCEPTANCE CRITERIA
-- [ ] `text_area(value, on_change)` works in an app, scrolls, wraps, and keeps the cursor while typing.
-- [ ] `.name(id)` finds a text area (and an input) from `kivuli.testing`.
-- [ ] All tests above written first and passing; existing tests unchanged and passing.
-- [ ] `lughac test test/` and `lughac test examples/todo.la` pass
-- [ ] Every example passes `lughac check` and `lughac build`
-- [ ] `lughac fmt --check src examples test` is clean
-- [ ] Every `public` item has a `/** … */` doc comment
-- [ ] No file over 500 lines
-- [ ] CHANGELOG.md and README.md (widget table) updated
-- [ ] Merged into `main` from `prp-001-text_area`
+- [x] `text_area(value, on_change)` works in an app, scrolls, wraps, and keeps the cursor while typing.
+- [x] `.name(id)` finds a text area (and an input) from `kivuli.testing`.
+- [x] All tests above written first and passing; existing tests unchanged and passing.
+- [x] `lughac test test/` and `lughac test examples/todo.la` pass
+- [x] Every example passes `lughac check` and `lughac build`
+- [x] `lughac fmt --check src examples test` is clean
+- [x] Every `public` item has a `/** … */` doc comment
+- [x] No file over 500 lines
+- [x] CHANGELOG.md and README.md (widget table) updated
+- [x] Merged into `main` from `prp-001-text_area`
 
 ## VALIDATION
 - `lughac fmt --check src examples test`
 - `lughac test test/` and `lughac test examples/todo.la`
 - `for f in examples/*.la; do lughac build "$f" -o /tmp/x || exit 1; done`
 - In lugha-gtk: `lughac test test/`
-- For the user: add `text_area(m.notes, Msg.Notes)` to an example (proposed: task notes in the to-do app, or a small `examples/notes.la`), run it, type several lines, check wrapping, scrolling and that the cursor never jumps.
+- For the user: `examples/notes.la` (a small notes app), run it, type several lines, check wrapping, scrolling and that the cursor never jumps.
+
+## NOTES FROM THE BUILD
+
+- **Same-text guard, how it's checked.** The PRP planned to show the guard by the cursor moving without it. But a text area restores the cursor offset after any rewrite, so the cursor can't show it. What the guard prevents for a text area is a needless rewrite firing `changed` again: the test counts `changed` signals instead (1 with the guard, 3 without — mutation-checked). The cursor restore is mutation-checked separately.
+- **Height.** The scrolled window gets the requested (or 80 px default) size request; GTK 4 reads a size request back only through out-parameters, so the test checks the wrapping and the scrolled window's child, not the height. Seeing it is part of the user's check with `examples/notes.la`.
+- **lugha-gtk 0.1.15** shipped as planned, with `src/c/text.c` (four helpers) beside `signals.c`.

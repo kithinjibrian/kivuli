@@ -49,8 +49,9 @@ public fun is_disabled<Msg>(v: View<Msg>, label: string): Result<bool, Lookup> {
 }
 
 /**
- * The message typing `text` into the text field with placeholder `hint`
- * sends: what its `on_change` makes of the whole new text.
+ * The message typing `text` into the text field or text area with
+ * placeholder or name `hint` sends: what its `on_change` makes of the whole
+ * new text.
  * @returns `Ok(msg)`; `Err(NotFound)` or `Err(Ambiguous)`
  *
  * Example:
@@ -130,13 +131,17 @@ fun buttons<Msg>(v: View<Msg>, label: string): Option<Msg>[] {
     out
 }
 
-/** The handlers of the text fields whose placeholder is `hint`. */
+/** The handlers of the text fields with placeholder or name `hint`, and of the text areas named `hint`. */
 fun fields<Msg>(v: View<Msg>, hint: string): (fun(string): Msg, Option<Msg>)[] {
     let mut out: (fun(string): Msg, Option<Msg>)[] = [];
     for (node, style) of nodes(v) {
         match node {
-            Input(_, on_change, on_submit) => if style.placeholder == hint {
+            Input(_, on_change, on_submit) => if style.placeholder == hint || style.name == hint {
                 out.push((on_change, on_submit));
+            },
+            // A text area has no Enter message: `submit` on it is `Silent`.
+            TextArea(_, on_change) => if style.name == hint {
+                out.push((on_change, None));
             },
             _ => {}
         }
