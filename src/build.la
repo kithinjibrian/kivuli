@@ -4,26 +4,20 @@
  * nodes; not responsible for running the app or deciding what changed
  * (`live`, `diff`).
  *
- * Depends on: views, live_tree, gtk.raw
+ * Depends on: views, live_tree, styling, gtk.raw
  * Used by: live
  */
 
 import gtk {
-    GVariant,
-    GtkEventController,
-    GtkShortcut,
     GtkTextBuffer,
     GtkWidget,
     connect_buffer,
     connect_widget,
-    emit_widget,
     g_free,
     g_timeout_add_full,
     gtk_box_append,
     gtk_box_new,
-    gtk_box_set_spacing,
     gtk_button_new_with_label,
-    gtk_callback_action_new,
     gtk_check_button_get_active,
     gtk_check_button_new,
     gtk_check_button_set_active,
@@ -31,55 +25,29 @@ import gtk {
     gtk_editable_get_text,
     gtk_editable_set_text,
     gtk_entry_new,
-    gtk_entry_set_placeholder_text,
     gtk_label_new,
-    gtk_label_set_attributes,
-    gtk_label_set_ellipsize,
-    gtk_label_set_lines,
-    gtk_label_set_max_width_chars,
-    gtk_label_set_selectable,
-    gtk_label_set_wrap,
-    gtk_label_set_wrap_mode,
     gtk_scrolled_window_get_child,
     gtk_scrolled_window_new,
     gtk_scrolled_window_set_child,
     gtk_separator_new,
-    gtk_shortcut_controller_add_shortcut,
     gtk_shortcut_controller_new,
-    gtk_shortcut_controller_remove_shortcut,
     gtk_shortcut_controller_set_scope,
-    gtk_shortcut_new,
-    gtk_shortcut_trigger_parse_string,
     gtk_text_buffer_set_text,
     gtk_text_view_get_buffer,
     gtk_text_view_new,
     gtk_text_view_set_wrap_mode,
     gtk_widget_add_controller,
-    gtk_widget_add_css_class,
     gtk_widget_grab_focus,
-    gtk_widget_remove_css_class,
-    gtk_widget_set_halign,
     gtk_widget_set_hexpand,
-    gtk_widget_set_margin_bottom,
-    gtk_widget_set_margin_end,
-    gtk_widget_set_margin_start,
-    gtk_widget_set_margin_top,
     gtk_widget_set_sensitive,
     gtk_widget_set_size_request,
-    gtk_widget_set_tooltip_text,
-    gtk_widget_set_valign,
     gtk_widget_set_vexpand,
     lgtk_cstring_text,
     lgtk_text_get,
-    pango_attr_list_insert,
-    pango_attr_list_new,
-    pango_attr_list_unref,
-    pango_attr_size_new,
-    pango_attr_weight_new,
 };
 import live_tree { Live, widget };
-import views { View, Style, Align, ButtonStyle };
-import keys { parse };
+import views { View, Style };
+import styling { apply_style, flag };
 
 /** Builds the GTK widgets for `v` at the top of a window; each widget sends its messages through `send`. */
 fun create<Msg>(v: View<Msg>, send: fun(Msg)): Live<Msg> = create_in(v, 1, send);
@@ -258,170 +226,11 @@ fun create_box<Msg>(orientation: i32, children: View<Msg>[], send: fun(Msg)): Li
     Live.Box(box, orientation, kids)
 }
 
-/**
- * Gives `node`'s widget every field of `style`, defaults included, so a
- * modifier that's gone is undone. `axis` is its parent's (as for `create_in`):
- * `expand` grows along it and `align` places across it.
- */
-fun apply_style<Msg>(node: Live<Msg>, style: Style, axis: i32) {
-    let w = widget(node);
-    let pad = style.padding as i32;
-    gtk_widget_set_margin_top(w, pad);
-    gtk_widget_set_margin_bottom(w, pad);
-    gtk_widget_set_margin_start(w, pad);
-    gtk_widget_set_margin_end(w, pad);
-    // Spacers and scrolls always take spare room (see `create_in`).
-    let grows = style.expand || match node {
-        Spacer(_) => true,
-        Scroll(_, _) => true,
-        _ => false,
-    };
-    if axis == 1 {
-        gtk_widget_set_vexpand(w, flag(grows));
-        gtk_widget_set_halign(w, gtk_align(style.align));
-    } else {
-        gtk_widget_set_hexpand(w, flag(grows));
-        gtk_widget_set_valign(w, gtk_align(style.align));
-    }
-    // A text area keeps its default height (80 pixels) until `.height` sets one.
-    let height = match node {
-        TextArea(_, _, _) => if style.height < 0 { 80 } else { style.height },
-        _ => style.height,
-    };
-    gtk_widget_set_size_request(w, style.width as i32, height as i32);
-    gtk_widget_set_tooltip_text(w, if style.tooltip == "" { None } else { Some(style.tooltip) });
-    match node {
-        Box(box, _, _) => gtk_box_set_spacing(box, style.spacing as i32),
-        Label(label) => {
-            style_text(label, style);
-            style_long_text(label, style);
-            gtk_label_set_selectable(label, flag(style.selectable));
-        }
-        Checkbox(_, label, _) => style_long_text(label, style),
-        Input(entry, _, _) => gtk_entry_set_placeholder_text(
-            entry,
-            if style.placeholder == "" { None } else { Some(style.placeholder) },
-        ),
-        Button(button, _, controller, shortcut) => {
-            style_button(button, style.look);
-            style_shortcut(controller, shortcut, style.shortcut);
-        }
-        _ => {}
-    }
-}
-
-/**
- * Gives a label the long-text fields of `style`, defaults included: wrapping
- * (at word boundaries, else characters), its width cap, and ellipsizing, which
- * with wrapping allows three lines.
- */
-fun style_long_text(label: GtkWidget, style: Style) {
-    gtk_label_set_wrap(label, flag(style.wrap));
-    // PangoWrapMode 2: at word boundaries, breaking a word only if it's longer than a line.
-    gtk_label_set_wrap_mode(label, 2);
-    // PangoEllipsizeMode: 3 end, 0 none.
-    gtk_label_set_ellipsize(label, if style.ellipsize { 3 } else { 0 });
-    gtk_label_set_lines(label, if style.wrap && style.ellipsize { 3 } else { -1 });
-    gtk_label_set_max_width_chars(
-        label,
-        if style.wrap && style.wrap_at > 0 { style.wrap_at as i32 } else { -1 },
-    );
-}
-
-/**
- * Puts `combo` (keys as the app wrote them) in the button's shortcut controller in
- * place of the shortcut there now; `""` leaves it without one. Keys kivuli
- * can't read stop the app with a message naming them.
- */
-fun style_shortcut(
-    controller: GtkEventController,
-    current: Ref<Option<GtkShortcut>>,
-    combo: string,
-) {
-    match current.get() {
-        Some(old) => gtk_shortcut_controller_remove_shortcut(controller, old),
-        None => {}
-    }
-    current.set(None);
-    if combo == "" {
-        return;
-    }
-    let accel = match parse(combo) {
-        Ok(g) => g,
-        Err(problem) => panic("kivuli: can't read the shortcut \"{combo}\": {problem}"),
-    };
-    let Some(trigger) = gtk_shortcut_trigger_parse_string(accel) else {
-        panic("kivuli: GTK can't read the shortcut \"{combo}\" (as \"{accel}\")");
-    };
-    // Pressing the keys clicks the button, so a disabled one (no message) sends
-    // nothing. A callback action, not GTK's activate action: that one does
-    // nothing until the window is on screen.
-    let action = gtk_callback_action_new(fun(w: GtkWidget, args: Option<GVariant>): i32 {
-        emit_widget(w, "clicked");
-        1
-    });
-    let shortcut = gtk_shortcut_new(trigger, action);
-    gtk_shortcut_controller_add_shortcut(controller, shortcut);
-    current.set(Some(shortcut));
-}
-
 /** The widget that takes keyboard focus for `node`: a text area's editor, else the node's widget. */
 fun focus_target<Msg>(node: Live<Msg>): GtkWidget = match node {
     TextArea(scrolled, _, _) => gtk_scrolled_window_get_child(scrolled).unwrap_or(scrolled),
     _ => widget(node),
 };
-
-/** Gives a button the theme's CSS class for `look`, and only that one. */
-fun style_button(button: GtkWidget, look: ButtonStyle) {
-    gtk_widget_remove_css_class(button, "suggested-action");
-    gtk_widget_remove_css_class(button, "destructive-action");
-    gtk_widget_remove_css_class(button, "flat");
-    match look {
-        Normal => {}
-        Primary => gtk_widget_add_css_class(button, "suggested-action"),
-        Danger => gtk_widget_add_css_class(button, "destructive-action"),
-        Subtle => gtk_widget_add_css_class(button, "flat"),
-    }
-}
-
-/**
- * Gives a label the text fields of `style`: size and bold as Pango attributes
- * (a fresh list each time, or none), dim as the theme's `dim-label` class.
- */
-fun style_text(label: GtkWidget, style: Style) {
-    if style.size > 0 || style.bold {
-        let list = pango_attr_list_new();
-        if style.bold {
-            // PangoWeight: 700 is bold.
-            pango_attr_list_insert(list, pango_attr_weight_new(700));
-        }
-        if style.size > 0 {
-            // Pango sizes are points times PANGO_SCALE (1024).
-            pango_attr_list_insert(list, pango_attr_size_new((style.size * 1024) as i32));
-        }
-        gtk_label_set_attributes(label, Some(list));
-        // The label holds its own reference now.
-        pango_attr_list_unref(list);
-    } else {
-        gtk_label_set_attributes(label, None);
-    }
-    if style.dim {
-        gtk_widget_add_css_class(label, "dim-label");
-    } else {
-        gtk_widget_remove_css_class(label, "dim-label");
-    }
-}
-
-/** `GtkAlign`: 0 fill, 1 start, 2 end, 3 center. */
-fun gtk_align(a: Align): i32 = match a {
-    Fill => 0,
-    Start => 1,
-    End => 2,
-    Center => 3,
-};
-
-/** A Lugha `bool` as a C `gboolean`. */
-fun flag(b: bool): i32 = if b { 1 } else { 0 };
 
 /** A text buffer's whole text; the copy C allocated is freed. */
 fun text_of(buffer: GtkTextBuffer): string {

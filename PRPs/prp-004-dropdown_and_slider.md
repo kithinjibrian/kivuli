@@ -1,6 +1,6 @@
 # PRP-004 — Dropdown and slider
 
-Status: draft, for the user's approval
+Status: approved by the user (session 3); building on branch prp-004-dropdown_and_slider
 Discovery: session 3, 2026-10-17. *(you)*: chosen in the interview; *(proposed)*: for you to confirm or change with this PRP.
 
 ## FEATURE: `dropdown(choices, selected)`, a list of labelled choices each sending its own message, and `slider(min, max, value, on_change)`, a whole-number slider.
