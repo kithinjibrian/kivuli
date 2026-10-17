@@ -20,6 +20,9 @@ import gtk {
     gtk_picture_get_content_fit,
     gtk_picture_get_file,
     gtk_widget_get_visible,
+    gtk_button_get_child,
+    gtk_widget_get_halign,
+    gtk_widget_get_valign,
     gtk_widget_has_css_class,
     lgtk_cstring_text,
 };
@@ -253,4 +256,55 @@ fun a_buttons_icon_and_label_come_and_go_with_the_theme_classes() {
         "same: true",
     ]);
     assert_eq(received.get(), ["Next", "Next", "Next", "Pressed"]);
+}
+
+enum Tap {
+    Tapped,
+}
+
+// A fixed-width icon button, a stretched labelled one (a column fills its
+// children across), and a natural-size one with icon and label.
+fun view_wide(n: i64): View<Tap> = column([
+    button("", Tap.Tapped).icon("list-add-symbolic").width(200),
+    button("Stretched", Tap.Tapped),
+    button("Both", Tap.Tapped).icon("list-add-symbolic"),
+]);
+
+/** Where a button's content box sits in it (`GtkAlign`: 0 fill, 3 center). */
+fun placed(node: Live<Tap>): string {
+    let Some(content) = gtk_button_get_child(widget(node)) else {
+        return "no content";
+    };
+    "halign {gtk_widget_get_halign(content)} valign {gtk_widget_get_valign(content)}"
+}
+
+@test
+fun a_buttons_content_is_centered_in_it() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen: Ref<string[]> = Ref.new([]);
+    let received: Ref<string[]> = Ref.new([]);
+    with_app("org.kivuli.test.centered", 0, fun(
+        n: i64,
+        msg: Tap,
+    ): i64 = n, view_wide, received, fun(kids: Live<Tap>[]) {
+        for kid of kids {
+            note(seen, placed(kid));
+        }
+        // The icon and label fill their box, which is centered: one group.
+        let Button(_, _, _, _, label, image) = kids[2] else {
+            panic("expected a button");
+        };
+        note(
+            seen,
+            "a group: {gtk_widget_get_halign(image) == 0 && gtk_widget_get_halign(label) == 0}",
+        );
+    });
+    assert_eq(seen.get(), [
+        "halign 3 valign 3",
+        "halign 3 valign 3",
+        "halign 3 valign 3",
+        "a group: true",
+    ]);
 }

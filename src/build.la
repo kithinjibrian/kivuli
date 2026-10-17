@@ -61,9 +61,11 @@ import gtk {
     gtk_text_view_set_wrap_mode,
     gtk_widget_add_controller,
     gtk_widget_grab_focus,
+    gtk_widget_set_halign,
     gtk_widget_set_hexpand,
     gtk_widget_set_sensitive,
     gtk_widget_set_size_request,
+    gtk_widget_set_valign,
     gtk_widget_set_vexpand,
     gtk_widget_set_visible,
     lgtk_cstring_text,
@@ -95,6 +97,12 @@ fun create_in<Msg>(v: View<Msg>, axis: i32, send: fun(Msg)): Live<Msg> = match v
         let image = gtk_image_new_from_icon_name("");
         gtk_widget_set_visible(image, 0);
         let content = gtk_box_new(0, 0);
+        // Centered in the button both ways (`GTK_ALIGN_CENTER`), as GTK's own
+        // button content is: a button wider or taller than its content (a
+        // `.width`, a stretched one, a tile) shows it in the middle, not at
+        // the start. At natural size, nothing moves.
+        gtk_widget_set_halign(content, 3);
+        gtk_widget_set_valign(content, 3);
         gtk_box_append(content, image);
         gtk_box_append(content, text);
         gtk_button_set_child(button, Some(content));
