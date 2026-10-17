@@ -4,6 +4,12 @@
 import kivuli.diff { Patch, diff as patches };
 import kivuli { View, text, button, column, row };
 
+// Views and patches can hold functions, which have no `==`: compare what they
+// print instead (functions print as `<fun>`; DECISION-008).
+fun assert_same<T>(actual: T, expected: T) {
+    assert_eq("{actual}", "{expected}");
+}
+
 enum Msg {
     Add,
     Reset,
@@ -18,13 +24,13 @@ fun counter(count: i64): View<Msg> = column([
 @test
 fun equal_text_needs_nothing() {
     let none: Patch<Msg>[] = [];
-    assert_eq(patches(text("hi"), text("hi")), none);
+    assert_same(patches(text("hi"), text("hi")), none);
 }
 
 @test
 fun changed_text_is_set_in_place() {
     let expected: Patch<Msg>[] = [Patch.SetText([], "bye")];
-    assert_eq(patches(text("hi"), text("bye")), expected);
+    assert_same(patches(text("hi"), text("bye")), expected);
 }
 
 @test
@@ -36,19 +42,19 @@ fun a_counter_click_changes_one_label() {
         Patch.SetMsg([1], Msg.Add),
         Patch.SetMsg([2], Msg.Reset),
     ];
-    assert_eq(patches(counter(2), counter(3)), expected);
+    assert_same(patches(counter(2), counter(3)), expected);
 }
 
 @test
 fun a_renamed_button_keeps_its_widget() {
     let expected: Patch<Msg>[] = [Patch.SetLabel([], "Again"), Patch.SetMsg([], Msg.Add)];
-    assert_eq(patches(button("Add", Msg.Add), button("Again", Msg.Add)), expected);
+    assert_same(patches(button("Add", Msg.Add), button("Again", Msg.Add)), expected);
 }
 
 @test
 fun a_different_kind_is_replaced() {
     let expected: Patch<Msg>[] = [Patch.Replace([1], text("gone"))];
-    assert_eq(
+    assert_same(
         patches(column([text("a"), button("b", Msg.Add)]), column([text("a"), text("gone")])),
         expected,
     );
@@ -57,19 +63,19 @@ fun a_different_kind_is_replaced() {
 @test
 fun a_longer_column_appends() {
     let expected: Patch<Msg>[] = [Patch.Append([], text("b")), Patch.Append([], text("c"))];
-    assert_eq(patches(column([text("a")]), column([text("a"), text("b"), text("c")])), expected);
+    assert_same(patches(column([text("a")]), column([text("a"), text("b"), text("c")])), expected);
 }
 
 @test
 fun a_shorter_column_removes_from_the_end() {
     let expected: Patch<Msg>[] = [Patch.Remove([2]), Patch.Remove([1])];
-    assert_eq(patches(column([text("a"), text("b"), text("c")]), column([text("a")])), expected);
+    assert_same(patches(column([text("a"), text("b"), text("c")]), column([text("a")])), expected);
 }
 
 @test
 fun nested_paths_lead_through_columns() {
     let expected: Patch<Msg>[] = [Patch.SetText([1, 0], "new")];
-    assert_eq(
+    assert_same(
         patches(
             column([text("top"), column([text("old")])]),
             column([text("top"), column([text("new")])]),
@@ -81,7 +87,7 @@ fun nested_paths_lead_through_columns() {
 @test
 fun a_row_diffs_its_children_like_a_column() {
     let expected: Patch<Msg>[] = [Patch.SetText([1], "b2"), Patch.Append([], text("c"))];
-    assert_eq(
+    assert_same(
         patches(row([text("a"), text("b")]), row([text("a"), text("b2"), text("c")])),
         expected,
     );
@@ -90,5 +96,5 @@ fun a_row_diffs_its_children_like_a_column() {
 @test
 fun a_row_that_becomes_a_column_is_replaced() {
     let expected: Patch<Msg>[] = [Patch.Replace([], column([text("a")]))];
-    assert_eq(patches(row([text("a")]), column([text("a")])), expected);
+    assert_same(patches(row([text("a")]), column([text("a")])), expected);
 }

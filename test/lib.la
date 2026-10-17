@@ -1,6 +1,12 @@
 // Building views: what an app's `view` returns is exactly the tree it wrote.
 import kivuli { View, text, button, column, row };
 
+// Views and patches can hold functions, which have no `==`: compare what they
+// print instead (functions print as `<fun>`; DECISION-008).
+fun assert_same<T>(actual: T, expected: T) {
+    assert_eq("{actual}", "{expected}");
+}
+
 enum Msg {
     Add,
     Reset,
@@ -24,12 +30,12 @@ fun builds_the_tree_it_describes() {
         View.Button("Add", Msg.Add),
         View.Button("Reset", Msg.Reset),
     ]);
-    assert_eq(view(Model { count: 2 }), expected);
+    assert_same(view(Model { count: 2 }), expected);
 }
 
 @test
 fun the_view_follows_the_model() {
-    assert_ne(view(Model { count: 0 }), view(Model { count: 1 }));
+    assert_ne("{view(Model { count: 0 })}", "{view(Model { count: 1 })}");
 }
 
 @test
@@ -49,5 +55,5 @@ fun a_row_holds_its_children_in_order() {
         View.Button("Add", Msg.Add),
         View.Button("Reset", Msg.Reset),
     ]);
-    assert_eq(row([button("Add", Msg.Add), button("Reset", Msg.Reset)]), expected);
+    assert_same(row([button("Add", Msg.Add), button("Reset", Msg.Reset)]), expected);
 }

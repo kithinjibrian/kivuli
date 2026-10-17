@@ -89,6 +89,20 @@ Rules:
 
 ## RESOLVED
 
+### DECISION-008 — How tests compare views once they hold functions
+
+**Status:** resolved
+**Raised:** 2026-10-17 — Session 2 (adding `input`)
+**Resolved:** 2026-10-17 — Session 2
+
+**Question:** `input`'s node holds `on_change: fun(string): Msg`. Functions have no `==`, so `View` (and `Patch`, which holds views) can't be compared with `assert_eq` (E0404). How do tests compare them?
+
+**Outcome:** compare printed forms with a helper, `assert_same(actual, expected)` = `assert_eq("{actual}", "{expected}")`. Functions print as `<fun>`, so structure is checked fully. Which function a node holds is checked separately, by calling it (`f("x")` gives `Msg.Named("x")`).
+
+**Rationale:** smallest change. The existing tests keep their shape, and the runtime stays as designed. Rejected: keeping `View` comparable through handler ids in a side table (a runtime redesign), and a hand-written `describe()` format (more code to keep in step with `View`).
+
+**Copied to MEMORY.md:** yes
+
 ### DECISION-001 — Wait for the Lugha prerequisites, or start kivuli v1 now?
 
 **Status:** resolved

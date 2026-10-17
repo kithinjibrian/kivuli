@@ -121,6 +121,14 @@ Decisions 1–12 were agreed in the design discussion in the lugha repository (a
 
 ---
 
+### 15. Tests compare views by their printed form
+
+**Decision:** `View` and `Patch` aren't `Eq` once a node holds a function (from `input` on). Tests use `assert_same(a, b)` (`assert_eq("{a}", "{b}")`; functions print as `<fun>`), and check handlers by calling them (DECISION-008).
+
+**Rules out:** `assert_eq` on views or patches; handler ids or a registry just to make views comparable.
+
+---
+
 ## CURRENT PROJECT STATE
 
 ### Fully Working
