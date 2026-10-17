@@ -87,12 +87,11 @@ enum Paint {
     Toggle,
 }
 
-/** `[l]` when `on`, else no look. */
-fun only_if(on: bool, l: Look): Look[] = if on { [l] } else { [] };
-
 fun view_painted(on: bool): View<Paint> = column([
-    text("words").style(only_if(on, Look.Red)),
-    button("Toggle", Paint.Toggle).button_style(ButtonStyle.Primary).style(only_if(on, Look.Bar)),
+    text("words").style(if on { [Look.Red] } else { [] }),
+    button("Toggle", Paint.Toggle).button_style(ButtonStyle.Primary).style(
+        if on { [Look.Bar] } else { [] },
+    ),
 ]).theme(theme([Look.Bar, Look.Red], surface));
 
 /** A widget's colour and classes, as far as looks go. */
