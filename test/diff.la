@@ -17,6 +17,7 @@ import kivuli {
     keyed_column,
     Align,
     ButtonStyle,
+    text_area,
 };
 
 // Views and patches can hold functions, which have no `==`: compare what they
@@ -328,4 +329,22 @@ fun a_button_style_is_a_restyle() {
         patches(button("Reset", Msg.Reset), button("Reset", Msg.Reset).style(ButtonStyle.Danger)),
         expected,
     );
+}
+
+@test
+fun a_changed_text_area_is_set_and_its_handler_re_pointed() {
+    let expected: Patch<Msg>[] = [Patch.SetValue([], "b"), Patch.SetOnChange([], Msg.Named)];
+    assert_same(patches(text_area("a", Msg.Named), text_area("b", Msg.Named)), expected);
+}
+
+@test
+fun an_unchanged_text_area_only_re_points_its_handler() {
+    let expected: Patch<Msg>[] = [Patch.SetOnChange([], Msg.Named)];
+    assert_same(patches(text_area("a", Msg.Named), text_area("a", Msg.Named)), expected);
+}
+
+@test
+fun a_text_area_that_becomes_an_input_is_replaced() {
+    let expected: Patch<Msg>[] = [Patch.Replace([], input("a", Msg.Named))];
+    assert_same(patches(text_area("a", Msg.Named), input("a", Msg.Named)), expected);
 }

@@ -4,8 +4,10 @@
 import std.env;
 import gtk {
     GtkApplication,
+    GtkTextBuffer,
     GtkWidget,
     connect_app,
+    connect_buffer,
     emit_widget,
     g_application_quit,
     g_application_run,
@@ -19,11 +21,17 @@ import gtk {
     gtk_editable_set_text,
     gtk_entry_get_placeholder_text,
     gtk_label_get_text,
+    gtk_scrolled_window_get_child,
+    gtk_text_buffer_set_text,
+    gtk_text_view_get_wrap_mode,
+    lgtk_text_cursor,
+    lgtk_text_place_cursor,
 };
-import kivuli.live { mount, live_of };
+import kivuli.live { dispatch, mount, live_of };
 import kivuli.effects { sandbox_app };
+import kivuli.build { text_of };
 import kivuli.live_tree { Live, widget };
-import kivuli { View, button, checkbox, column, input, text };
+import kivuli { View, button, checkbox, column, input, text, text_area };
 
 fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
 
@@ -248,4 +256,112 @@ fun enter_sends_the_current_message_and_the_placeholder_follows() {
     assert_eq(seen.get(), ["0 sent", "1 sent", "2 sent"]);
     // The second Enter sends 2: the handler was re-pointed (SetOnSubmit), not left at 1.
     assert_eq(received.get(), ["Send(1)", "Send(2)"]);
+}
+
+enum Edit {
+    Typed(string),
+    Set(string),
+}
+
+struct Notes {
+    text: string,
+}
+
+fun update_notes(n: Notes, msg: Edit): Notes = match msg {
+    Typed(t) => Notes { text: t },
+    Set(t) => Notes { text: t },
+};
+
+fun view_notes(n: Notes): View<Edit> = column([text_area(n.text, Edit.Typed).name("notes")]);
+
+@test
+fun a_text_area_sends_edits_keeps_its_cursor_and_does_not_echo() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen: Ref<string[]> = Ref.new([]);
+    let received: Ref<string[]> = Ref.new([]);
+    let note = fun(s: string) {
+        seen.update(fun(xs) {
+            let mut ys = xs;
+            ys.push(s);
+            ys
+        });
+    };
+    let application = gtk_application_new("org.kivuli.test.textarea", 0);
+    connect_app(
+        application,
+        "activate",
+        fun(a: GtkApplication) {
+            let window = gtk_application_window_new(a);
+            let app = mount(a, window, sandbox_app(
+                "org.kivuli.test",
+                Notes { text: "" },
+                fun(n: Notes, msg: Edit): Notes {
+                    received.update(fun(xs) {
+                        let mut ys = xs;
+                        ys.push("{msg}");
+                        ys
+                    });
+                    update_notes(n, msg)
+                },
+                view_notes,
+            ));
+            let Box(_, _, kids) = live_of(app) else {
+                panic("expected a column");
+            };
+            let TextArea(scrolled, buffer, _) = kids[0] else {
+                panic("expected a text area");
+            };
+            // Every `changed` the buffer fires, kivuli's own included.
+            let changes = Ref.new(0);
+            connect_buffer(
+                buffer,
+                "changed",
+                fun(b: GtkTextBuffer) {
+                    changes.update(fun(c) = c + 1);
+                },
+                0,
+            );
+            let wrap = match gtk_scrolled_window_get_child(scrolled) {
+                Some(view) => gtk_text_view_get_wrap_mode(view),
+                None => -1,
+            };
+            note("wrap {wrap}");
+            // What a user typing ends with: the buffer changes outside any dispatch.
+            gtk_text_buffer_set_text(buffer, "hello world", -1);
+            note("typed: {text_of(buffer)}, changes {changes.get()}");
+            // The update that followed asked for the text already shown: no rewrite,
+            // so no second `changed`.
+            lgtk_text_place_cursor(buffer, 8);
+            dispatch(app, Edit.Set("hello world"));
+            note("same text: cursor {lgtk_text_cursor(buffer)}, changes {changes.get()}");
+            // The model shortens the text: the cursor is clamped to its end.
+            dispatch(app, Edit.Set("hi"));
+            note("shorter: {text_of(buffer)}, cursor {lgtk_text_cursor(buffer)}");
+            // The model lengthens it: the cursor keeps its offset.
+            lgtk_text_place_cursor(buffer, 1);
+            dispatch(app, Edit.Set("hi there, friend"));
+            note("longer: {text_of(buffer)}, cursor {lgtk_text_cursor(buffer)}");
+            g_application_quit(a);
+        },
+        0,
+    );
+    g_application_run(application, 0, None);
+    g_object_unref(application);
+
+    assert_eq(seen.get(), [
+        "wrap 3",
+        "typed: hello world, changes 1",
+        "same text: cursor 8, changes 1",
+        "shorter: hi, cursor 2",
+        "longer: hi there, friend, cursor 1",
+    ]);
+    // The model's changes sent no echo: only the typing and the app's own messages.
+    assert_eq(received.get(), [
+        "Typed(\"hello world\")",
+        "Set(\"hello world\")",
+        "Set(\"hi\")",
+        "Set(\"hi there, friend\")",
+    ]);
 }

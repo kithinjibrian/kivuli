@@ -20,11 +20,14 @@ import gtk {
     gtk_editable_set_text,
     gtk_label_set_text,
     gtk_scrolled_window_set_child,
+    gtk_text_buffer_set_text,
     gtk_widget_set_sensitive,
     gtk_window_set_child,
+    lgtk_text_cursor,
+    lgtk_text_place_cursor,
 };
 import diff;
-import build { create, create_in, apply_style, flag };
+import build { create, create_in, apply_style, flag, text_of };
 import live_tree { Live, widget };
 
 /** Applies one patch to the widgets, and returns the `Live` tree that now mirrors them. */
@@ -57,17 +60,31 @@ fun apply<Msg>(
         live
     }
     SetValue(path, value) => {
-        let entry = widget(at(live, path));
-        // Only when the field shows something else: rewriting the same text
-        // would move the cursor to the end while the user types.
-        if gtk_editable_get_text(entry) != value {
-            gtk_editable_set_text(entry, value);
+        match at(live, path) {
+            Input(entry, _, _) => {
+                // Only when the field shows something else: rewriting the same text
+                // would move the cursor to the start while the user types.
+                if gtk_editable_get_text(entry) != value {
+                    gtk_editable_set_text(entry, value);
+                }
+            }
+            TextArea(_, buffer, _) => {
+                // As for an input; when the text really changes, the cursor keeps
+                // its offset, clamped to the end of a shorter text.
+                if text_of(buffer) != value {
+                    let cursor = lgtk_text_cursor(buffer);
+                    gtk_text_buffer_set_text(buffer, value, -1);
+                    lgtk_text_place_cursor(buffer, cursor);
+                }
+            }
+            _ => panic("kivuli: a SetValue patch points at something that isn't a text field"),
         }
         live
     }
     SetOnChange(path, on_change) => {
         match at(live, path) {
             Input(_, current, _) => current.set(on_change),
+            TextArea(_, _, current) => current.set(on_change),
             _ => panic("kivuli: a SetOnChange patch points at something that isn't a text field"),
         }
         live

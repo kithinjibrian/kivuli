@@ -1,9 +1,10 @@
 // The testing helpers, used as an app's own tests would use them, on a small
 // to-do app, with no GTK. (test/entry.la reaches them through `import kivuli;`.)
-import kivuli { View, button, checkbox, column, input, lazy, row, text };
+import kivuli { View, button, checkbox, column, input, lazy, row, text, text_area };
 import kivuli.testing { Lookup, click, is_disabled, submit, texts, toggle, type_into };
 
 enum Msg {
+    Notes(string),
     Draft(string),
     Add,
     Clear,
@@ -66,4 +67,32 @@ fun toggling_sends_the_opposite_state() {
 fun texts_include_what_lazy_nodes_build() {
     let m = Model { items: ["a", "b"], ..empty() };
     assert_eq(texts(view(m)), ["2 tasks"]);
+}
+
+fun with_notes(): View<Msg> = column([
+    input("", Msg.Draft).placeholder("New task").name("task"),
+    text_area("old notes", Msg.Notes).name("notes"),
+    text_area("", Msg.Notes).name("twice"),
+    input("", Msg.Draft).name("twice"),
+]);
+
+@test
+fun type_into_finds_text_areas_and_inputs_by_name() {
+    assert_eq(type_into(with_notes(), "notes", "a\nb"), Ok(Msg.Notes("a\nb")));
+    assert_eq(type_into(with_notes(), "task", "milk"), Ok(Msg.Draft("milk")));
+    assert_eq(type_into(with_notes(), "New task", "milk"), Ok(Msg.Draft("milk")));
+}
+
+@test
+fun a_name_on_two_fields_is_ambiguous_and_an_unknown_one_not_found() {
+    assert_eq(
+        type_into(with_notes(), "twice", "x"),
+        Err(Lookup.Ambiguous("text field \"twice\"", 2)),
+    );
+    assert_eq(type_into(with_notes(), "nope", "x"), Err(Lookup.NotFound("text field \"nope\"")));
+}
+
+@test
+fun texts_leave_out_what_is_typed_in_text_areas() {
+    assert_eq(texts(column([text("Notes"), text_area("secret draft", Msg.Notes)])), ["Notes"]);
 }

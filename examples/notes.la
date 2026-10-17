@@ -1,0 +1,88 @@
+// A note: a title and a multi-line body, with a running count. The body is a
+// text area: it wraps, scrolls inside itself, and keeps the cursor while you
+// type. Its tests are at the bottom: `lughac test examples/notes.la`.
+import kivuli {
+    Align,
+    ButtonStyle,
+    View,
+    button,
+    column,
+    input,
+    row,
+    sandbox,
+    spacer,
+    text,
+    text_area,
+};
+// For the tests at the bottom; `lughac build` leaves tests out.
+import kivuli.testing { click, is_disabled, texts, type_into };
+
+struct Note {
+    title: string,
+    body: string,
+}
+
+enum Msg {
+    Title(string),
+    Body(string),
+    Clear,
+}
+
+fun update(n: Note, msg: Msg): Note = match msg {
+    Title(t) => Note { title: t, ..n },
+    Body(b) => Note { body: b, ..n },
+    Clear => Note { title: "", body: "" },
+};
+
+fun count(body: string): string {
+    let lines = if body == "" { 0 } else { body.lines().len };
+    let chars = body.char_count();
+    "{lines} {if lines == 1 { "line" } else { "lines" }} · {chars} {if chars == 1 { "character" } else { "characters" }}"
+}
+
+fun heading(n: Note): string = if n.title.trim() == "" { "Untitled" } else { n.title.trim() };
+
+fun view(n: Note): View<Msg> = column([
+    input(n.title, Msg.Title).placeholder("Title").name("title"),
+    text_area(n.body, Msg.Body).name("body").expand(),
+    row([
+        text(count(n.body)).dim().align(Align.Center),
+        spacer(),
+        button("Clear", Msg.Clear).style(ButtonStyle.Danger).disabled(
+            n.title == "" && n.body == "",
+        ),
+    ]),
+]).padding(16).spacing(10).window("{heading(n)} — Notes", 480, 420);
+
+fun main(): i32 = sandbox("org.kivuli.notes", Note { title: "", body: "" }, update, view);
+
+// Tests: what a user does, worked out from the view and fed back through `update`.
+
+fun start(): Note = Note { title: "", body: "" };
+
+fun typed(n: Note, field: string, text: string): Note = update(
+    n,
+    type_into(view(n), field, text).unwrap_or(Msg.Clear),
+);
+
+@test
+fun typing_a_body_counts_its_lines_and_characters() {
+    let n = typed(start(), "body", "milk\neggs");
+    assert_eq(n.body, "milk\neggs");
+    assert_eq(texts(view(n)), ["2 lines · 9 characters"]);
+}
+
+@test
+fun the_title_names_the_window_and_clear_empties_both() {
+    let n = typed(typed(start(), "title", "Shopping"), "body", "milk");
+    assert_eq(heading(n), "Shopping");
+    let cleared = update(n, click(view(n), "Clear").unwrap_or(Msg.Clear));
+    assert_eq(cleared.title, "");
+    assert_eq(cleared.body, "");
+}
+
+@test
+fun clear_is_disabled_while_the_note_is_empty() {
+    assert_eq(is_disabled(view(start()), "Clear"), Ok(true));
+    assert_eq(is_disabled(view(typed(start(), "body", "x")), "Clear"), Ok(false));
+}

@@ -170,6 +170,8 @@ Notes so far (handoff to be written at close):
 - Benchmark (examples/bench.la): the diff was O(n²) from `out = joined(out, …)` copying per row — fixed (push in place). Still slow at 1,000 rows: lughac's Map/Set inserts are quadratic (1000: 31 ms, 2000: 198, 4000: 441, 8000: 2491; arrays 0 ms), which dominates resolve (~150 ms) and the keyed diff's sets (~40 ms). Prompt for the lugha session given to the user. 100 rows: 3–4 ms per update.
 - From here on, every feature goes through a PRP (the user's decision): discovery one question at a time with a recommended answer, PRPs/prp-NNN-*.md, approval, then code. Steps 0–8 and the work since were built hands-on without one.
 - PRP-001 (text area) approved by the user as written; building on branch prp-001-text_area. Showcase: examples/notes.la.
+- lughac PR #58 (Map/Set inserts fixed; user-installed): 8,000 inserts 1–3 ms; 1,000-row keyed updates now ~2–25 ms. Reversing 1,000 rows still ~1 s: kivuli's keyed diff rebuilds its working arrays per move (a later PRP if apps need it).
+- PRP-001 built: text_area + .name; lugha-gtk 0.1.15 pushed (text views, src/c/text.c). Tests written first (pure, then GTK incl. two mutation checks); examples/notes.la with 3 tests. Merged into main.
 
 ---
 

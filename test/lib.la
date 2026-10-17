@@ -14,6 +14,7 @@ import kivuli {
     keyed_column,
     Align,
     ButtonStyle,
+    text_area,
 };
 
 // Views and patches can hold functions, which have no `==`: compare what they
@@ -173,4 +174,24 @@ fun disabled_reaches_a_styled_button_and_ignores_other_nodes() {
     assert_same(button("Go", Msg.Add).style(ButtonStyle.Primary).disabled(true), expected);
     let label: View<Msg> = text("x");
     assert_same(label.disabled(true), label);
+}
+
+@test
+fun a_text_area_shows_its_text_and_turns_edits_into_messages() {
+    match text_area("a", Msg.Named) {
+        TextArea(value, on_change) => {
+            assert_eq(value, "a");
+            assert_eq(on_change("b\nc"), Msg.Named("b\nc"));
+        }
+        _ => panic("expected a text area"),
+    }
+}
+
+@test
+fun a_name_lands_in_the_style() {
+    let expected: View<Msg> = View.Styled(View.TextArea("a", Msg.Named), Style {
+        name: "notes",
+        ..plain(),
+    });
+    assert_same(text_area("a", Msg.Named).name("notes"), expected);
 }

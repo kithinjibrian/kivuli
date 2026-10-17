@@ -9,8 +9,11 @@
  */
 
 import gtk {
+    GtkTextBuffer,
     GtkWidget,
+    connect_buffer,
     connect_widget,
+    g_free,
     gtk_box_append,
     gtk_box_new,
     gtk_box_set_spacing,
@@ -27,6 +30,10 @@ import gtk {
     gtk_scrolled_window_new,
     gtk_scrolled_window_set_child,
     gtk_separator_new,
+    gtk_text_buffer_set_text,
+    gtk_text_view_get_buffer,
+    gtk_text_view_new,
+    gtk_text_view_set_wrap_mode,
     gtk_widget_add_css_class,
     gtk_widget_remove_css_class,
     gtk_widget_set_halign,
@@ -39,6 +46,8 @@ import gtk {
     gtk_widget_set_size_request,
     gtk_widget_set_valign,
     gtk_widget_set_vexpand,
+    lgtk_cstring_text,
+    lgtk_text_get,
     pango_attr_list_insert,
     pango_attr_list_new,
     pango_attr_list_unref,
@@ -109,6 +118,29 @@ fun create_in<Msg>(v: View<Msg>, axis: i32, send: fun(Msg)): Live<Msg> = match v
             0,
         );
         Live.Input(entry, current, submit)
+    }
+    TextArea(value, on_change) => {
+        let view = gtk_text_view_new();
+        // Word wrapping, breaking a word only when it's longer than the line.
+        gtk_text_view_set_wrap_mode(view, 3);
+        let buffer = gtk_text_view_get_buffer(view);
+        // Set before connecting, so the first text isn't sent as an edit.
+        gtk_text_buffer_set_text(buffer, value, -1);
+        let current = Ref.new(on_change);
+        connect_buffer(
+            buffer,
+            "changed",
+            fun(b: GtkTextBuffer) {
+                let f = current.get();
+                send(f(text_of(b)));
+            },
+            0,
+        );
+        // Its own scrolled window: long text scrolls instead of growing the window.
+        let scrolled = gtk_scrolled_window_new();
+        gtk_scrolled_window_set_child(scrolled, Some(view));
+        gtk_widget_set_size_request(scrolled, -1, 80);
+        Live.TextArea(scrolled, buffer, current)
     }
     Checkbox(label, checked, on_toggle) => {
         let check = gtk_check_button_new_with_label(label);
@@ -209,7 +241,12 @@ fun apply_style<Msg>(node: Live<Msg>, style: Style, axis: i32) {
         gtk_widget_set_hexpand(w, flag(grows));
         gtk_widget_set_valign(w, gtk_align(style.align));
     }
-    gtk_widget_set_size_request(w, style.width as i32, style.height as i32);
+    // A text area keeps its default height (80 pixels) until `.height` sets one.
+    let height = match node {
+        TextArea(_, _, _) => if style.height < 0 { 80 } else { style.height },
+        _ => style.height,
+    };
+    gtk_widget_set_size_request(w, style.width as i32, height as i32);
     match node {
         Box(box, _, _) => gtk_box_set_spacing(box, style.spacing as i32),
         Label(label) => style_text(label, style),
@@ -273,3 +310,11 @@ fun gtk_align(a: Align): i32 = match a {
 
 /** A Lugha `bool` as a C `gboolean`. */
 fun flag(b: bool): i32 = if b { 1 } else { 0 };
+
+/** A text buffer's whole text; the copy C allocated is freed. */
+fun text_of(buffer: GtkTextBuffer): string {
+    let owned = lgtk_text_get(buffer);
+    let text = lgtk_cstring_text(owned);
+    g_free(owned);
+    text
+}

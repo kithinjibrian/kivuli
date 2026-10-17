@@ -22,6 +22,7 @@ public import views {
     Align,
     ButtonStyle,
     lazy,
+    text_area,
 };
 public import effects { Cmd, Sub, App };
 public import testing;
