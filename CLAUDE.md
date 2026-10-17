@@ -228,6 +228,7 @@ public fun find_button(v: View<Msg>, label: string): ButtonRef<Msg> { … }
 ├── CHANGELOG.md       — what shipped
 ├── .llmignore         — protected paths
 ├── .claude/           — settings.json: deny rules mirroring .llmignore
+├── README.md          — what kivuli is, an example, requirements, the API at a glance, testing
 ├── lugha.toml         — package `kivuli`, source `src`
 ├── src/               — lib.la (the entry, `import kivuli;`: re-exports views, adds sandbox), views.la (View and its builders;
 │                        imports nothing, so private modules' tests have no cycle back to it),
