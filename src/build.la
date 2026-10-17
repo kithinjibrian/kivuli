@@ -22,9 +22,12 @@ import gtk {
     gtk_editable_set_text,
     gtk_entry_new,
     gtk_label_new,
+    gtk_label_set_attributes,
     gtk_scrolled_window_new,
     gtk_scrolled_window_set_child,
     gtk_separator_new,
+    gtk_widget_add_css_class,
+    gtk_widget_remove_css_class,
     gtk_widget_set_halign,
     gtk_widget_set_hexpand,
     gtk_widget_set_margin_bottom,
@@ -34,6 +37,11 @@ import gtk {
     gtk_widget_set_size_request,
     gtk_widget_set_valign,
     gtk_widget_set_vexpand,
+    pango_attr_list_insert,
+    pango_attr_list_new,
+    pango_attr_list_unref,
+    pango_attr_size_new,
+    pango_attr_weight_new,
 };
 import live { Live, widget };
 import views { View, Style, Align };
@@ -175,7 +183,36 @@ fun apply_style<Msg>(node: Live<Msg>, style: Style, axis: i32) {
     gtk_widget_set_size_request(w, style.width as i32, style.height as i32);
     match node {
         Box(box, _, _) => gtk_box_set_spacing(box, style.spacing as i32),
+        Label(label) => style_text(label, style),
         _ => {}
+    }
+}
+
+/**
+ * Gives a label the text fields of `style`: size and bold as Pango attributes
+ * (a fresh list each time, or none), dim as the theme's `dim-label` class.
+ */
+fun style_text(label: GtkWidget, style: Style) {
+    if style.size > 0 || style.bold {
+        let list = pango_attr_list_new();
+        if style.bold {
+            // PangoWeight: 700 is bold.
+            pango_attr_list_insert(list, pango_attr_weight_new(700));
+        }
+        if style.size > 0 {
+            // Pango sizes are points times PANGO_SCALE (1024).
+            pango_attr_list_insert(list, pango_attr_size_new((style.size * 1024) as i32));
+        }
+        gtk_label_set_attributes(label, Some(list));
+        // The label holds its own reference now.
+        pango_attr_list_unref(list);
+    } else {
+        gtk_label_set_attributes(label, None);
+    }
+    if style.dim {
+        gtk_widget_add_css_class(label, "dim-label");
+    } else {
+        gtk_widget_remove_css_class(label, "dim-label");
     }
 }
 

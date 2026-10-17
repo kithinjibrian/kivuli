@@ -23,7 +23,7 @@ kivuli draws nothing. Every visual comes from the user's GTK theme (Adwaita by d
 | `.bold()` | Pango weight bold (label attributes) | no CSS colour |
 | `.size(n)` | Pango size `n` pt (label attributes) | the only numeric typography input. It comes from the app, never from kivuli |
 
-Whether `bold`/`size` go through `GtkLabel` attributes or a generated CSS provider is settled in PRP-001.
+`bold` and `size` are Pango attributes on the label (a fresh `PangoAttrList` each time, or none); `dim` is the `dim-label` CSS class (session 3, the user's agreement).
 
 ### Layout (`.padding`, `.spacing`, `.expand`, `.align`, `.width`, `.height`)
 

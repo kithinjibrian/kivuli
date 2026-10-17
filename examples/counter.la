@@ -27,12 +27,12 @@ fun update(m: Model, msg: Msg): Model = match msg {
 
 fun view(m: Model): View<Msg> = column([
     input(m.name, Msg.Named),
-    text("Hello, {m.name}"),
+    text("Hello, {m.name}").bold().size(16),
     text("Clicked {m.count} times"),
     row([button("Add", Msg.Add), button("Reset", Msg.Reset)]).spacing(8),
     checkbox("Count by two", m.by_two, Msg.ByTwo),
     separator(),
-    text("Kithinji brian"),
+    text("Kithinji brian").dim(),
 ]).padding(24).spacing(8);
 
 fun main(): i32 = sandbox(

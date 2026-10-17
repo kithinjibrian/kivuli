@@ -133,9 +133,21 @@ fun every_layout_modifier_lands_in_the_style() {
         align: Align.End,
         width: 30,
         height: 40,
+        ..plain(),
     });
     assert_same(
         column([]).padding(1).spacing(2).expand().align(Align.End).width(30).height(40),
         expected,
     );
+}
+
+@test
+fun text_modifiers_land_in_the_style() {
+    let expected: View<Msg> = View.Styled(View.Text("x"), Style {
+        size: 18,
+        bold: true,
+        dim: true,
+        ..plain(),
+    });
+    assert_same(text("x").size(18).bold().dim(), expected);
 }

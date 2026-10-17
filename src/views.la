@@ -155,6 +155,12 @@ public struct Style {
     /** The smallest width and height in pixels; -1 leaves it to the widget. */
     width: i64,
     height: i64,
+    /** Text size in points; 0 keeps the theme's. Text only. */
+    size: i64,
+    /** Bold text. Text only. */
+    bold: bool,
+    /** Faded text, for secondary information. Text only. */
+    dim: bool,
 }
 
 /** The style of a node with no modifiers: what GTK does by default. */
@@ -165,6 +171,9 @@ fun plain(): Style = Style {
     align: Align.Fill,
     width: -1,
     height: -1,
+    size: 0,
+    bold: false,
+    dim: false,
 };
 
 /** `v` with its style changed by `f`: one `Styled` wrapper, however many modifiers. */
@@ -237,4 +246,31 @@ impl View<Msg> {
         self,
         fun(s: Style) = Style { height: n, ..s },
     );
+
+    /**
+     * Shows text at `n` points instead of the theme's size; ignored on other nodes.
+     *
+     * Example:
+     *     text("Total").size(18)
+     */
+    public fun size(self, n: i64): View<Msg> = restyle(
+        self,
+        fun(s: Style) = Style { size: n, ..s },
+    );
+
+    /**
+     * Shows text in bold; ignored on other nodes.
+     *
+     * Example:
+     *     text(m.title).bold()
+     */
+    public fun bold(self): View<Msg> = restyle(self, fun(s: Style) = Style { bold: true, ..s });
+
+    /**
+     * Shows text faded, for secondary information; ignored on other nodes.
+     *
+     * Example:
+     *     text("{m.count} left").dim()
+     */
+    public fun dim(self): View<Msg> = restyle(self, fun(s: Style) = Style { dim: true, ..s });
 }

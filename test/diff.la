@@ -297,3 +297,9 @@ fun a_new_kind_is_replaced_with_its_style() {
     let expected: Patch<Msg>[] = [Patch.Replace([], button("b", Msg.Add).padding(3))];
     assert_same(patches(text("a").padding(3), button("b", Msg.Add).padding(3)), expected);
 }
+
+@test
+fun making_text_bold_restyles_it() {
+    let expected: Patch<Msg>[] = [Patch.SetStyle([], Style { bold: true, ..plain() })];
+    assert_same(patches(text("a"), text("a").bold()), expected);
+}
