@@ -22,6 +22,8 @@ enum Live<Msg> {
     Box(gtk.raw.GtkWidget, Live<Msg>[]),
     /** A text field and the function turning its text into a message: its `changed` handler reads this box. */
     Input(gtk.raw.GtkWidget, Ref<fun(string): Msg>),
+    /** A check box and the function turning its state into a message: its `toggled` handler reads this box. */
+    Checkbox(gtk.raw.GtkWidget, Ref<fun(bool): Msg>),
 }
 
 /** What changes as the app runs: the model, the view it gave, and the widgets showing it. */
@@ -145,6 +147,26 @@ fun create<Msg>(v: View<Msg>, send: fun(Msg)): Live<Msg> = match v {
         );
         Live.Input(entry, current)
     }
+    Checkbox(label, checked, on_toggle) => {
+        let check = gtk.raw.gtk_check_button_new_with_label(label);
+        // Set before connecting, so the first state isn't sent as a toggle.
+        gtk.raw.gtk_check_button_set_active(check, if checked {
+            1
+        } else {
+            0
+        });
+        let current = Ref.new(on_toggle);
+        gtk.raw.connect_widget(
+            check,
+            "toggled",
+            fun(c: gtk.raw.GtkWidget) {
+                let f = current.get();
+                send(f(gtk.raw.gtk_check_button_get_active(c) != 0));
+            },
+            0,
+        );
+        Live.Checkbox(check, current)
+    }
 };
 
 /** Builds a `GtkBox` of `orientation` holding the widgets for `children`. */
@@ -171,7 +193,11 @@ fun apply<Msg>(
         live
     }
     SetLabel(path, s) => {
-        gtk.raw.gtk_button_set_label(widget(at(live, path)), s);
+        match at(live, path) {
+            Button(w, _) => gtk.raw.gtk_button_set_label(w, s),
+            Checkbox(w, _) => gtk.raw.gtk_check_button_set_label(w, s),
+            _ => panic("kivuli: a SetLabel patch points at something without a label"),
+        }
         live
     }
     SetMsg(path, msg) => {
@@ -194,6 +220,23 @@ fun apply<Msg>(
         match at(live, path) {
             Input(_, current) => current.set(on_change),
             _ => panic("kivuli: a SetOnChange patch points at something that isn't a text field"),
+        }
+        live
+    }
+    SetChecked(path, checked) => {
+        // GTK fires `toggled` only on a real change, and while patching the
+        // echo is dropped, so this needs no same-state check of its own.
+        gtk.raw.gtk_check_button_set_active(widget(at(live, path)), if checked {
+            1
+        } else {
+            0
+        });
+        live
+    }
+    SetOnToggle(path, on_toggle) => {
+        match at(live, path) {
+            Checkbox(_, current) => current.set(on_toggle),
+            _ => panic("kivuli: a SetOnToggle patch points at something that isn't a check box"),
         }
         live
     }
@@ -283,6 +326,7 @@ fun widget<Msg>(node: Live<Msg>): gtk.raw.GtkWidget = match node {
     Button(w, _) => w,
     Box(w, _) => w,
     Input(w, _) => w,
+    Checkbox(w, _) => w,
 };
 
 fun parent(path: i64[]): i64[] {

@@ -9,6 +9,7 @@ Never deleted. Older entries are never modified.
 ## [Unreleased]
 
 ### Added
+- `row`, `input(value, on_change)` and `checkbox(label, checked, on_toggle)`; typing and ticking keep the cursor and send no echo of kivuli's own changes.
 - `import kivuli;` reaches the whole public API (the package entry, `src/lib.la`).
 - `View` with `text`, `button` and `column`: a screen described as plain data.
 - `sandbox`: runs an app from `init`, `update` and `view` in a GTK window (rebuilt on every message for now).

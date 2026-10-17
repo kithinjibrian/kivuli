@@ -4,7 +4,7 @@
 import std.env;
 import gtk;
 import kivuli.live { Live, Running, State, create, dispatch, sender, widget };
-import kivuli { View, button, column, input, text };
+import kivuli { View, button, checkbox, column, input, text };
 
 enum Msg {
     Add,
@@ -42,10 +42,18 @@ fun view(m: Model): View<Msg> {
 }
 
 // What GTK shows, read back from the widgets themselves; buttons in brackets.
-fun shown(node: Live<Msg>): string = match node {
+fun shown<M>(node: Live<M>): string = match node {
     Label(w) => gtk.raw.gtk_label_get_text(w),
     Button(w, _) => "[" + gtk.raw.gtk_button_get_label(w).unwrap_or("?") + "]",
     Input(w, _) => "<" + gtk.raw.gtk_editable_get_text(w) + ">",
+    Checkbox(w, _) => {
+        let tick = if gtk.raw.gtk_check_button_get_active(w) != 0 {
+            "x"
+        } else {
+            " "
+        };
+        "[{tick}] " + gtk.raw.gtk_check_button_get_label(w).unwrap_or("?")
+    }
     Box(_, kids) => {
         let mut out = "";
         for k of kids {
@@ -209,4 +217,88 @@ fun typing_reaches_the_model_and_a_patch_does_not_echo() {
     assert_eq(after_typing.get(), "Hello, Ada");
     assert_eq(after_clear.get(), "");
     assert_eq(received.get(), ["Named(\"Ada\")", "Clear"]);
+}
+
+enum Chore {
+    Done(bool),
+    Reset,
+}
+
+struct Task {
+    done: bool,
+}
+
+fun update_task(t: Task, msg: Chore): Task = match msg {
+    Done(done) => Task { done: done },
+    Reset => Task { done: false },
+};
+
+// The label follows the state, so ticking also relabels the box (SetLabel).
+fun view_task(t: Task): View<Chore> = column([
+    checkbox(
+        if t.done {
+            "Done!"
+        } else {
+            "Done"
+        },
+        t.done,
+        Chore.Done,
+    ),
+    button("Reset", Chore.Reset),
+]);
+
+@test
+fun ticking_reaches_the_model_and_a_patch_does_not_echo() {
+    if !has_display() {
+        skip("no display");
+    }
+    let after_tick = Ref.new("");
+    let after_reset = Ref.new("");
+    // Every message `update` receives; see the input test for why.
+    let received: Ref<string[]> = Ref.new([]);
+    let application = gtk.raw.gtk_application_new("org.kivuli.test.checkbox", 0);
+    gtk.raw.connect_app(
+        application,
+        "activate",
+        fun(a: gtk.raw.GtkApplication) {
+            let window = gtk.raw.gtk_application_window_new(a);
+            let state: Ref<Option<State<Task, Chore>>> = Ref.new(None);
+            let app = Running {
+                window: window,
+                update_fn: fun(t: Task, msg: Chore): Task {
+                    received.update(fun(xs) {
+                        let mut ys = xs;
+                        ys.push("{msg}");
+                        ys
+                    });
+                    update_task(t, msg)
+                },
+                view_fn: view_task,
+                state: state,
+                patching: Ref.new(false),
+            };
+            let init = Task { done: false };
+            let tree = view_task(init);
+            let first = create(tree, sender(app));
+            gtk.raw.gtk_window_set_child(window, widget(first));
+            state.set(Some(State { model: init, tree: tree, live: first }));
+            let Box(_, kids) = first else {
+                panic("expected a column");
+            };
+            // What a user's click ends with: the box becomes ticked, outside any dispatch.
+            gtk.raw.gtk_check_button_set_active(widget(kids[0]), 1);
+            after_tick.set(shown(kids[0]));
+            // Reset unticks it through a SetChecked patch; its `toggled` echo is dropped.
+            gtk.raw.emit_widget(widget(kids[1]), "clicked");
+            after_reset.set(shown(kids[0]));
+            gtk.raw.g_application_quit(a);
+        },
+        0,
+    );
+    gtk.raw.g_application_run(application, 0, None);
+    gtk.raw.g_object_unref(application);
+
+    assert_eq(after_tick.get(), "[x] Done!");
+    assert_eq(after_reset.get(), "[ ] Done");
+    assert_eq(received.get(), ["Done(true)", "Reset"]);
 }

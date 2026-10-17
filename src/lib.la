@@ -6,7 +6,7 @@
  * Depends on: views, live
  */
 
-public import views { View, text, button, column, row, input };
+public import views { View, text, button, column, row, input, checkbox };
 import live;
 
 /**

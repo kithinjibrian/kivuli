@@ -1,5 +1,5 @@
 // Building views: what an app's `view` returns is exactly the tree it wrote.
-import kivuli { View, text, button, column, row, input };
+import kivuli { View, text, button, column, row, input, checkbox };
 
 // Views and patches can hold functions, which have no `==`: compare what they
 // print instead (functions print as `<fun>`; DECISION-008).
@@ -11,6 +11,7 @@ enum Msg {
     Add,
     Reset,
     Named(string),
+    Done(bool),
 }
 
 struct Model {
@@ -68,5 +69,17 @@ fun an_input_shows_its_value_and_turns_text_into_a_message() {
             assert_eq(on_change("Grace"), Msg.Named("Grace"));
         }
         _ => panic("expected an input"),
+    }
+}
+
+@test
+fun a_checkbox_shows_its_label_and_state_and_turns_a_toggle_into_a_message() {
+    match checkbox("Done", true, Msg.Done) {
+        Checkbox(label, checked, on_toggle) => {
+            assert_eq(label, "Done");
+            assert(checked);
+            assert_eq(on_toggle(false), Msg.Done(false));
+        }
+        _ => panic("expected a checkbox"),
     }
 }

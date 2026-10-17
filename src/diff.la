@@ -17,7 +17,7 @@ import views { View };
 enum Patch<Msg> {
     /** The label at the path shows new text. */
     SetText(i64[], string),
-    /** The button at the path shows a new label. */
+    /** The button or check box at the path shows a new label. */
     SetLabel(i64[], string),
     /** The button at the path sends a new message from now on. */
     SetMsg(i64[], Msg),
@@ -25,6 +25,10 @@ enum Patch<Msg> {
     SetValue(i64[], string),
     /** The text field at the path turns edits into messages with this function from now on. */
     SetOnChange(i64[], fun(string): Msg),
+    /** The check box at the path is ticked (or not). */
+    SetChecked(i64[], bool),
+    /** The check box at the path turns toggles into messages with this function from now on. */
+    SetOnToggle(i64[], fun(bool): Msg),
     /** The widget at the path is a different kind now: build this view in its place. */
     Replace(i64[], View<Msg>),
     /** The column or row at the path gains this view as its last child. */
@@ -36,8 +40,9 @@ enum Patch<Msg> {
 /**
  * Lists the changes that turn widgets showing `old` into widgets showing
  * `new`, in the order they must be applied. Two equal trees of text and
- * columns give no changes. Every button gives a `SetMsg` and every text
- * field a `SetOnChange`, because messages and functions can't be compared.
+ * columns give no changes. Every button gives a `SetMsg`, every text field a
+ * `SetOnChange` and every check box a `SetOnToggle`, because messages and
+ * functions can't be compared.
  */
 fun diff<Msg>(old: View<Msg>, new: View<Msg>): Patch<Msg>[] = diff_at([], old, new);
 
@@ -51,6 +56,14 @@ fun diff_at<Msg>(path: i64[], old: View<Msg>, new: View<Msg>): Patch<Msg>[] = ma
     (Column(xs), Column(ys)) => diff_children(path, xs, ys),
     (Row(xs), Row(ys)) => diff_children(path, xs, ys),
     (Input(a, _), Input(b, on_change)) => diff_input(path, a, b, on_change),
+    (Checkbox(la, ca, _), Checkbox(lb, cb, on_toggle)) => diff_checkbox(
+        path,
+        la,
+        lb,
+        ca,
+        cb,
+        on_toggle,
+    ),
     _ => [Patch.Replace(path, new)],
 };
 
@@ -76,6 +89,25 @@ fun diff_input<Msg>(
     }
     // Always re-point, as for buttons: functions can't be compared.
     out.push(Patch.SetOnChange(path, on_change));
+    out
+}
+
+fun diff_checkbox<Msg>(
+    path: i64[],
+    old_label: string,
+    label: string,
+    old_checked: bool,
+    checked: bool,
+    on_toggle: fun(bool): Msg,
+): Patch<Msg>[] {
+    let mut out: Patch<Msg>[] = [];
+    if old_label != label {
+        out.push(Patch.SetLabel(path, label));
+    }
+    if old_checked != checked {
+        out.push(Patch.SetChecked(path, checked));
+    }
+    out.push(Patch.SetOnToggle(path, on_toggle));
     out
 }
 
