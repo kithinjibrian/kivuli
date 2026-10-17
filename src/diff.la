@@ -137,6 +137,20 @@ fun resolve<Msg>(v: View<Msg>, old: Option<View<Msg>>): View<Msg> = match v {
         Some(Scroll(y)) => Some(y),
         _ => None,
     })),
+    Framed(body, start, title, end) => match counterpart(old) {
+        Some(Framed(b, s, t, e)) => View.Framed(
+            resolve(body, Some(b)),
+            resolve_children(start, s),
+            resolve(title, Some(t)),
+            resolve_children(end, e),
+        ),
+        _ => View.Framed(
+            resolve(body, None),
+            resolve_children(start, []),
+            resolve(title, None),
+            resolve_children(end, []),
+        ),
+    },
     _ => v,
 };
 
@@ -211,6 +225,21 @@ fun diff_inside<Msg>(
     // A scroll has one child, at index 0 of its path.
     (Scroll(a), Scroll(b)) => diff_at(child(path, 0), a, b),
     (Keyed(xs), Keyed(ys)) => diff_keyed(path, xs, ys),
+    // A header's parts are its children: 0 the body, 1 the title, 2 the start
+    // views and 3 the end views, each list by position.
+    (Framed(body_a, start_a, title_a, end_a), Framed(body_b, start_b, title_b, end_b)) => {
+        let mut out = diff_at(child(path, 0), body_a, body_b);
+        for p of diff_at(child(path, 1), title_a, title_b) {
+            out.push(p);
+        }
+        for p of diff_children(child(path, 2), start_a, start_b) {
+            out.push(p);
+        }
+        for p of diff_children(child(path, 3), end_a, end_b) {
+            out.push(p);
+        }
+        out
+    }
     _ => [Patch.Replace(path, styled)],
 };
 

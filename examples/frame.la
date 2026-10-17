@@ -1,0 +1,166 @@
+// A browser-like frame: the app's own colours as typed looks, a header bar
+// with back, forward, an address field filling the bar and a new-tab button,
+// a tab rail whose selected tab has a look of its own, and a window that
+// opens maximized. Its tests are at the bottom: `lughac test examples/frame.la`.
+import kivuli {
+    Align,
+    Border,
+    Surface,
+    View,
+    button,
+    column,
+    hex,
+    input,
+    row,
+    sandbox,
+    text,
+    theme,
+};
+// For the tests at the bottom; `lughac build` leaves tests out.
+import kivuli.testing { click, is_disabled, submit, texts, type_into };
+
+/** The parts of the frame the app colours. */
+enum Look {
+    Rail,
+    Tab,
+    Selected,
+    Home,
+}
+
+fun surface(l: Look): Surface = match l {
+    Rail => Surface { background: Some(hex("#242424")), ..Surface.theme() },
+    Tab => Surface { text: Some(hex("#c0c0c0")), radius: Some(6), ..Surface.theme() },
+    Selected => Surface {
+        background: Some(hex("#3a3a3a")),
+        text: Some(hex("#ffffff")),
+        border: Some(Border { width: 1, color: hex("#505050") }),
+        ..Surface.theme(),
+    },
+    Home => Surface {
+        background: Some(hex("#161616")),
+        text: Some(hex("#e0e0e0")),
+        ..Surface.theme(),
+    },
+};
+
+struct Browser {
+    /** Each tab's history of addresses; the last is shown. */
+    tabs: string[][],
+    current: i64,
+    draft: string,
+}
+
+enum Msg {
+    Draft(string),
+    Go,
+    Back,
+    Open(i64),
+    NewTab,
+}
+
+fun start(): Browser = Browser { tabs: [["home"]], current: 0, draft: "home" };
+
+fun shown(b: Browser): string {
+    let history = b.tabs[b.current];
+    history[history.len - 1]
+}
+
+fun update(b: Browser, msg: Msg): Browser = match msg {
+    Draft(s) => Browser { draft: s, ..b },
+    Go => {
+        let mut tabs = b.tabs;
+        let mut history = tabs[b.current];
+        history.push(b.draft);
+        tabs[b.current] = history;
+        Browser { tabs: tabs, ..b }
+    }
+    Back => {
+        let mut tabs = b.tabs;
+        let mut history = tabs[b.current];
+        if history.len > 1 {
+            history.pop();
+        }
+        tabs[b.current] = history;
+        let next = Browser { tabs: tabs, ..b };
+        Browser { draft: shown(next), ..next }
+    }
+    Open(i) => {
+        let next = Browser { current: i, ..b };
+        Browser { draft: shown(next), ..next }
+    }
+    NewTab => {
+        let mut tabs = b.tabs;
+        tabs.push(["home"]);
+        Browser { tabs: tabs, current: tabs.len - 1, draft: "home" }
+    }
+};
+
+fun tab(b: Browser, i: i64): View<Msg> {
+    let history = b.tabs[i];
+    let label = button(history[history.len - 1], Msg.Open(i));
+    if i == b.current { label.style([Look.Tab, Look.Selected]) } else { label.style([Look.Tab]) }
+}
+
+fun view(b: Browser): View<Msg> {
+    let mut tabs: View<Msg>[] = [];
+    let mut i = 0;
+    while i < b.tabs.len {
+        tabs.push(tab(b, i));
+        i = i + 1;
+    }
+    row([
+        column(tabs).spacing(4).padding(8).width(160).style([Look.Rail]),
+        column([
+            text("You're at {shown(b)}").size(18),
+            text("{b.tabs[b.current].len} page(s) in this tab").dim(),
+        ]).spacing(8).padding(24).expand().align(Align.Start).style([Look.Home]),
+    ]).window("{shown(b)} — Frame", 1000, 640).maximized().theme(
+        theme([Look.Rail, Look.Tab, Look.Selected, Look.Home], surface),
+    ).header(
+        [
+            button("", Msg.Back).icon("go-previous-symbolic").tooltip("Back").disabled(
+                b.tabs[b.current].len < 2,
+            ),
+        ],
+        input(b.draft, Msg.Draft).placeholder("Address").on_submit(Msg.Go).expand(),
+        [button("", Msg.NewTab).icon("tab-new-symbolic").tooltip("New tab")],
+    )
+}
+
+fun main(): i32 = sandbox("org.kivuli.frame", start(), update, view);
+
+// Tests: what a user does, worked out from the view and fed back through `update`.
+
+fun did(b: Browser, msg: Msg): Browser = update(b, msg);
+
+fun visit(b: Browser, address: string): Browser = did(
+    did(b, type_into(view(b), "Address", address).unwrap_or(Msg.Go)),
+    submit(view(b), "Address").unwrap_or(Msg.Go),
+);
+
+@test
+fun the_address_bar_in_the_header_goes_and_back_returns() {
+    let b = visit(start(), "news");
+    assert_eq(shown(b), "news");
+    assert_eq(texts(view(b))[0], "You're at news");
+    let back = did(b, click(view(b), "Back").unwrap_or(Msg.Go));
+    assert_eq(shown(back), "home");
+    assert_eq(back.draft, "home");
+}
+
+@test
+fun back_is_disabled_on_a_tabs_first_page() {
+    assert_eq(is_disabled(view(start()), "Back"), Ok(true));
+    assert_eq(is_disabled(view(visit(start(), "a")), "Back"), Ok(false));
+}
+
+@test
+fun new_tabs_open_at_home_and_tabs_switch() {
+    let b = did(
+        visit(start(), "news"),
+        click(view(visit(start(), "news")), "New tab").unwrap_or(Msg.Go),
+    );
+    assert_eq((b.tabs.len, b.current, shown(b)), (2, 1, "home"));
+    let first = did(b, click(view(b), "news").unwrap_or(Msg.Go));
+    assert_eq((first.current, first.draft), (0, "news"));
+}

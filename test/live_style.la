@@ -155,8 +155,8 @@ fun update_tally(t: Tally, msg: Tap): Tally = match msg {
 // Reset is disabled at zero (decision 6); Add is the primary action, Reset
 // the dangerous one.
 fun view_tally(t: Tally): View<Tap> = row([
-    button("Add", Tap.Add).style(ButtonStyle.Primary),
-    button("Reset", Tap.Reset).style(ButtonStyle.Danger).disabled(t.count == 0),
+    button("Add", Tap.Add).button_style(ButtonStyle.Primary),
+    button("Reset", Tap.Reset).button_style(ButtonStyle.Danger).disabled(t.count == 0),
 ]);
 
 @test

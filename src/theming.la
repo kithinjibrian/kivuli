@@ -1,0 +1,253 @@
+/**
+ * Typed styles (DECISION-012): an app's colours as data, checked when the
+ * theme is built, and the CSS kivuli generates from them. An app names its
+ * looks in its own enum and gives each a `Surface`; nodes take
+ * `.style([…])`, merged left to right here (a later look wins, field by
+ * field), so the result never depends on GTK's cascade. The CSS is atomic:
+ * one class per property and value, every one known when the window opens.
+ * Pure: no GTK. Apps reach `hex`, `rgb`, `theme`, `Surface`, `Border` and
+ * `Color` through the entry.
+ *
+ * Depends on: nothing
+ * Used by: lib, looks, views, styling, live
+ */
+
+/** A colour, each channel 0–255; `alpha` 255 is opaque. Made by `hex` or `rgb`. */
+public struct Color {
+    public red: i64,
+    public green: i64,
+    public blue: i64,
+    public alpha: i64,
+}
+
+/** A solid border around a node: its width in pixels and its colour. */
+public struct Border {
+    public width: i64,
+    public color: Color,
+}
+
+/**
+ * What one look sets on a node. Every field is optional: `None` leaves the
+ * GTK theme's value. Fonts stay the theme's; room and size stay in
+ * `.padding`, `.width` and the other modifiers.
+ *
+ * Example:
+ *     Surface { background: Some(hex("#242424")), radius: Some(6), ..Surface.theme() }
+ */
+public struct Surface {
+    /** The background colour. */
+    public background: Option<Color>,
+    /** The colour of the node's text and symbolic icons. */
+    public text: Option<Color>,
+    public border: Option<Border>,
+    /** The corner radius in pixels. */
+    public radius: Option<i64>,
+}
+
+impl Surface {
+    /** A surface that sets nothing: everything comes from the GTK theme. */
+    public fun theme(): Surface = Surface {
+        background: None,
+        text: None,
+        border: None,
+        radius: None,
+    };
+}
+
+/** An app's looks, each named after its variant and checked; given to the root with `.theme(…)`. */
+public struct Theme {
+    looks: (string, Surface)[],
+}
+
+/**
+ * Reads a colour from `#rgb`, `#rrggbb` or `#rrggbbaa` (hex digits, either
+ * case). The app stops with a message for anything else.
+ *
+ * Example:
+ *     hex("#242424")
+ */
+public fun hex(s: string): Color = match read_hex(s) {
+    Ok(c) => c,
+    Err(problem) => panic("kivuli: {problem}"),
+};
+
+/** A colour from red, green and blue, each 0–255; opaque. */
+public fun rgb(red: i64, green: i64, blue: i64): Color = Color {
+    red: red,
+    green: green,
+    blue: blue,
+    alpha: 255,
+};
+
+/**
+ * The app's theme: every look it uses, in `looks`, and what each one looks
+ * like, from `surface`. A look is named after its variant (`Look.Bar` is
+ * "Bar"), so it can't carry a value; each is listed once. The app stops with
+ * a message otherwise.
+ *
+ * Example:
+ *     theme([Look.Bar, Look.Home], surface)
+ */
+public fun theme<L>(looks: L[], surface: fun(L): Surface): Theme = match build_theme(
+    looks.map(fun(l) = "{l}"),
+    looks.map(surface),
+) {
+    Ok(t) => t,
+    Err(problem) => panic("kivuli: {problem}"),
+};
+
+/** The colour `s` spells, or what's wrong with it. */
+fun read_hex(s: string): Result<Color, string> {
+    if !s.starts_with("#") {
+        return Err("a colour starts with #: \"{s}\"");
+    }
+    let mut digits: i64[] = [];
+    let mut first = true;
+    for b of s {
+        if first {
+            // The '#'.
+            first = false;
+        } else {
+            match hex_digit(b as i64) {
+                Some(d) => digits.push(d),
+                None => {
+                    return Err("not a hex digit in \"{s}\"");
+                }
+            }
+        }
+    }
+    if digits.len == 3 {
+        // #rgb: each digit doubled, as in CSS.
+        Ok(Color { red: digits[0] * 17, green: digits[1] * 17, blue: digits[2] * 17, alpha: 255 })
+    } else if digits.len == 6 || digits.len == 8 {
+        Ok(Color {
+            red: digits[0] * 16 + digits[1],
+            green: digits[2] * 16 + digits[3],
+            blue: digits[4] * 16 + digits[5],
+            alpha: if digits.len == 8 { digits[6] * 16 + digits[7] } else { 255 },
+        })
+    } else {
+        Err("a colour has 3, 6 or 8 hex digits: \"{s}\"")
+    }
+}
+
+/** The value of one ASCII hex digit. */
+fun hex_digit(b: i64): Option<i64> = if b >= 48 && b <= 57 {
+    Some(b - 48)
+} else if b >= 97 && b <= 102 {
+    Some(b - 87)
+} else if b >= 65 && b <= 70 {
+    Some(b - 55)
+} else {
+    None
+};
+
+/** A theme from looks' names and surfaces, or what's wrong with them. */
+fun build_theme(names: string[], surfaces: Surface[]): Result<Theme, string> {
+    let mut seen: Set<string> = #{};
+    let mut looks: (string, Surface)[] = [];
+    let mut i = 0;
+    while i < names.len {
+        let name = names[i];
+        if name.contains("(") {
+            return Err("a look can't carry a value: \"{name}\"");
+        }
+        if !seen.insert(name) {
+            return Err("the look \"{name}\" is listed twice");
+        }
+        let s = surfaces[i];
+        let negative = match s.radius {
+            Some(r) => r < 0,
+            None => false,
+        } || match s.border {
+            Some(b) => b.width < 0,
+            None => false,
+        };
+        if negative {
+            return Err("the look \"{name}\" has a negative size");
+        }
+        looks.push((name, s));
+        i = i + 1;
+    }
+    Ok(Theme { looks: looks })
+}
+
+/** The surface of a node with these looks: each one's fields over the last's, left to right. */
+fun merged(t: Theme, names: string[]): Result<Surface, string> {
+    let mut out = Surface.theme();
+    for name of names {
+        let mut found: Option<Surface> = None;
+        for (n, s) of t.looks {
+            if n == name {
+                found = Some(s);
+            }
+        }
+        let Some(s) = found else {
+            return Err("the look \"{name}\" isn't in the theme");
+        };
+        out = Surface {
+            background: if s.background.is_some() { s.background } else { out.background },
+            text: if s.text.is_some() { s.text } else { out.text },
+            border: if s.border.is_some() { s.border } else { out.border },
+            radius: if s.radius.is_some() { s.radius } else { out.radius },
+        };
+    }
+    Ok(out)
+}
+
+/** The classes giving a node `s`, one per field it sets; every one is a rule in `css`. */
+fun classes(s: Surface): string[] = rules(s).map(fun(rule) = rule.0);
+
+/** The theme's stylesheet: one rule per class, in the order the looks first use them. */
+fun css(t: Theme): string {
+    let mut seen: Set<string> = #{};
+    let mut out: string[] = [];
+    for (_, s) of t.looks {
+        for (class, body) of rules(s) {
+            if seen.insert(class) {
+                out.push(".{class} {{ {body} }}");
+            }
+        }
+    }
+    out.join("\n")
+}
+
+/** Each field `s` sets, as its class and its CSS declarations. */
+fun rules(s: Surface): (string, string)[] {
+    let mut out: (string, string)[] = [];
+    match s.background {
+        // A theme's widgets (buttons) paint a background image too: cleared, so the colour shows.
+        Some(c) => out.push(
+            ("kv-bg-{digits(c)}", "background-color: #{digits(c)}; background-image: none;"),
+        ),
+        None => {}
+    }
+    match s.text {
+        Some(c) => out.push(("kv-fg-{digits(c)}", "color: #{digits(c)};")),
+        None => {}
+    }
+    match s.border {
+        Some(b) => out.push(
+            (
+                "kv-border-{b.width}-{digits(b.color)}",
+                "border: {b.width}px solid #{digits(b.color)};",
+            ),
+        ),
+        None => {}
+    }
+    match s.radius {
+        Some(r) => out.push(("kv-radius-{r}", "border-radius: {r}px;")),
+        None => {}
+    }
+    out
+}
+
+/** A colour as eight lowercase hex digits, `rrggbbaa`: CSS reads it after a `#`. */
+fun digits(c: Color): string = [c.red, c.green, c.blue, c.alpha].map(two_digits).join("");
+
+fun two_digits(n: i64): string {
+    let all = "0123456789abcdef";
+    let high = n / 16 % 16;
+    let low = n % 16;
+    all.slice(high, high + 1) + all.slice(low, low + 1)
+}

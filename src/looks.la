@@ -3,8 +3,11 @@
  * fields take. Plain data, no GTK. The modifiers that build a `Style` are
  * methods of `View`, in `views` (an `impl` must sit with its type).
  *
- * Used by: views, lib, diff, walk, testing, live, build, styling
+ * Depends on: theming
+ * Used by: views, lib, diff, walk, paint, testing, live, build, styling
  */
+
+import theming { Theme };
 
 /** The app's window, as `.window(title, width, height)` sets it. */
 public struct Window {
@@ -67,8 +70,8 @@ public struct Style {
     bold: bool,
     /** Faded text, for secondary information. Text only. */
     dim: bool,
-    /** How a button looks in the theme. Buttons only. */
-    look: ButtonStyle,
+    /** How a button looks in the theme (`.button_style`). Buttons only. */
+    button: ButtonStyle,
     /** The window's title and size, from the root of `view`. Root only. */
     window: Option<Window>,
     /** Hint text an empty text field shows; "" for none. Text fields only. */
@@ -95,6 +98,14 @@ public struct Style {
     icon: string,
     /** How a picture fills the room it's given. Images only. */
     fit: Fit,
+    /** The app's looks on this node, by name, merged left to right (`.style`). Any node. */
+    looks: string[],
+    /** The CSS classes `looks` give with the root's theme: filled in by `paint`, never by hand. */
+    classes: string[],
+    /** The app's looks and what each looks like (`.theme`). Root only. */
+    theme: Option<Theme>,
+    /** The window opens maximized (`.maximized()`). Root only. */
+    maximized: bool,
 }
 
 /** The style of a node with no modifiers: what GTK does by default. */
@@ -108,7 +119,7 @@ fun plain(): Style = Style {
     size: 0,
     bold: false,
     dim: false,
-    look: ButtonStyle.Normal,
+    button: ButtonStyle.Normal,
     window: None,
     placeholder: "",
     name: "",
@@ -122,4 +133,8 @@ fun plain(): Style = Style {
     step: 1,
     icon: "",
     fit: Fit.Contain,
+    looks: [],
+    classes: [],
+    theme: None,
+    maximized: false,
 };

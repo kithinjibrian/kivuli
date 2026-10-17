@@ -6,7 +6,7 @@ kivuli draws nothing. Every visual comes from the user's GTK theme (Adwaita by d
 
 ## Tokens: kivuli vocabulary → GTK
 
-### Button styles (`.style(ButtonStyle.…)`)
+### Button styles (`.button_style(ButtonStyle.…)`)
 
 | kivuli | GTK CSS class | Meaning |
 |--------|---------------|---------|
@@ -65,7 +65,7 @@ Disabled means no message (MEMORY decision 6), mapped to `gtk_widget_set_sensiti
 - A view's root carries `.window(title, w, h)`. Window size is the default size, not a fixed size.
 - Correct:
 
-      button("Delete", Msg.Delete).style(Danger)
+      button("Delete", Msg.Delete).button_style(ButtonStyle.Danger)
 
 - Wrong:
 
@@ -74,8 +74,24 @@ Disabled means no message (MEMORY decision 6), mapped to `gtk_widget_set_sensiti
 
 ---
 
+### An app's own colours (`.style`, `.theme`; PRP-007, DECISION-012)
+
+kivuli ships no colours. An app that paints its own frame gives its colours as typed looks: an enum of its own, a `Surface` per look (`background`, `text`, `border`, `radius`; unset fields stay the theme's), `.style([…])` on nodes and `.theme(theme(…))` on the root. kivuli generates the stylesheet: one class per property and value (`.kv-bg-242424ff`), merged per node in kivuli's code (a later look wins), loaded once for the display at application priority (600), when the window opens. Apps write no CSS and no selectors, so they can't depend on how kivuli or GTK build widgets. A background also clears the theme's background image, so it shows on themed widgets. kivuli removes only its own `kv-` classes from a widget.
+
+### Header bar (`.header`)
+
+| kivuli | GTK |
+| --- | --- |
+| `.header(start, title, end)` on the root | a `GtkHeaderBar` set as the window's titlebar, `show-title-buttons` on: GTK draws the window's controls |
+| each `start` / `end` view | packed into the bar itself (`pack_start` / `pack_end`), so the theme's spacing between them applies |
+| `title` | the bar's title widget; `.expand()` lets it take the bar's spare width |
+
+Dark mode: apps follow the desktop's preference. Forcing dark from an app is deferred (DECISION-017).
+
+---
+
 ## What Is Forbidden
 
-- No hardcoded colours, fonts, or pixel values inside kivuli. Numbers reach GTK only from app-supplied modifier arguments.
-- No custom CSS stylesheet shipped by kivuli, other than what PRP-001 approves for `size`/`bold`.
+- No hardcoded colours, fonts, or pixel values inside kivuli. Numbers reach GTK only from app-supplied modifier arguments, and colours only from an app's theme.
+- No custom CSS stylesheet shipped by kivuli, other than what PRP-001 approves for `size`/`bold`, and the stylesheet generated from an app's own theme.
 - No style that bypasses the theme (inline `background`, `color`).

@@ -30,8 +30,8 @@ fun view(m: Model): View<Msg> = column([
     text("Hello, {m.name}").bold().size(16),
     text("Clicked {m.count} times"),
     row([
-        button("Add", Msg.Add).style(ButtonStyle.Primary),
-        button("Reset", Msg.Reset).style(ButtonStyle.Danger).disabled(m.count == 0),
+        button("Add", Msg.Add).button_style(ButtonStyle.Primary),
+        button("Reset", Msg.Reset).button_style(ButtonStyle.Danger).disabled(m.count == 0),
     ]).spacing(8),
     checkbox("Count by two", m.by_two, Msg.ByTwo),
     separator(),

@@ -14,6 +14,8 @@ import kivuli {
     slider,
     icon,
     image,
+    Surface,
+    theme,
 };
 import kivuli.testing {
     Lookup,
@@ -244,4 +246,16 @@ fun is_field_disabled_finds_fields_as_type_into_does() {
         Err(Lookup.NotFound("text field \"Nowhere\"")),
     );
     assert_eq(is_field_disabled(locked(), "Twin"), Err(Lookup.Ambiguous("text field \"Twin\"", 2)));
+}
+
+fun framed_app(): View<Msg> = column([text("body")]).header(
+    [button("Clear", Msg.Clear)],
+    input("", Msg.Draft).placeholder("Address"),
+    [],
+);
+
+@test
+fun header_buttons_and_fields_are_found_like_any_others() {
+    assert_eq(click(framed_app(), "Clear"), Ok(Msg.Clear));
+    assert_eq(type_into(framed_app(), "Address", "x"), Ok(Msg.Draft("x")));
 }

@@ -68,7 +68,7 @@ fun view(c: Counts): View<Msg> = column([
     icons(64),
     heading("Buttons"),
     row([
-        button("Add", Msg.Add).icon("list-add-symbolic").style(ButtonStyle.Primary),
+        button("Add", Msg.Add).icon("list-add-symbolic").button_style(ButtonStyle.Primary),
         button("", Msg.Delete).icon("user-trash-symbolic").tooltip("Delete"),
         button("Reset", Msg.Reset).disabled(c.added == 0 && c.deleted == 0),
         spacer(),

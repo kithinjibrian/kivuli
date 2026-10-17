@@ -133,6 +133,14 @@ Decisions 1–12 were agreed in the design discussion in the lugha repository (a
 
 ---
 
+### 16. Apps style their frame with typed looks (DECISION-012)
+
+**Decision:** an app names its looks in its own enum and gives each a typed `Surface`; nodes take `.style([…])`, merged left to right (a later look wins) in kivuli's code; kivuli generates atomic CSS and loads it when the window opens. The button variant is `.button_style(ButtonStyle.…)`. Window-wide settings (`.theme`, `.maximized`, `.header`) go on the root view, next to `.window`.
+
+**Rules out:** app-written CSS or selectors, per-node colour modifiers, colours shipped by kivuli.
+
+---
+
 ## CURRENT PROJECT STATE
 
 ### Fully Working

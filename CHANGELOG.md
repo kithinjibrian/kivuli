@@ -8,6 +8,15 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-10-17
+
+### Added
+- App look (PRP-007): typed styles: an app's looks as an enum, each a `Surface` (`background`, `text`, `border`, `radius`), `.style([…])` on nodes (later looks win), `.theme(theme(looks, surface))` on the root; `hex`, `rgb`, `Border`, `Color`. kivuli generates and loads the CSS. `.maximized()` and `.header(start, title, end)` (a header bar as the titlebar) on the root. `examples/frame.la`. Needs lugha-gtk 0.1.23.
+
+### Changed
+- **Breaking:** `.style(ButtonStyle.X)` is now `.button_style(ButtonStyle.X)`; `.style` takes an app's looks. To migrate, rename each call.
+- `src/paint.la`: a pure pass before every diff fills each node's classes from its looks.
+
 ## [0.1.1] — 2026-10-17
 
 ### Added

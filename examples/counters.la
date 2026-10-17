@@ -25,9 +25,10 @@ fun counter(title: string, c: Counter): View<Step> = lazy(
     fun(): View<Step> = column([
         text(title).dim().align(Align.Center),
         text("{c.count}").size(28).bold().align(Align.Center),
-        row([button("−", Step.Down), button("+", Step.Up).style(ButtonStyle.Primary)]).spacing(
-            6,
-        ).align(Align.Center),
+        row([
+            button("−", Step.Down),
+            button("+", Step.Up).button_style(ButtonStyle.Primary),
+        ]).spacing(6).align(Align.Center),
     ]).spacing(6),
 );
 

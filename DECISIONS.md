@@ -16,6 +16,18 @@ Rules:
 
 ## DEFERRED — Acknowledged, not yet needed
 
+### DECISION-017 — How an app asks for GTK's dark variant (GTK 4.22)
+
+**Status:** deferred (the user's choice, session 6: ship PRP-007 without `.dark()`)
+**Raised:** 2026-10-17 — Session 6 (PRP-007 build)
+**Revisit when:** a small PRP of its own, after reading how GTK 4.22 picks its theme's variant (its source), or testing on a desktop that prefers light.
+
+**Question:** `gtk-application-prefer-dark-theme` is deprecated since GTK 4.20 ("use GtkCssProvider properties instead"); its replacement `gtk-interface-color-scheme` is documented as the system's preference. In tests here (desktop `prefer-dark`, theme `Yaru-dark`), neither setting, nor reloading the theme after it, nor waiting main-loop turns, changed the colours of GTK's own theme for new widgets; setting `gtk-theme-name` did take effect at once. How does an app force dark in GTK 4.22?
+
+**Notes:** kivuli apps already follow the desktop's dark preference (Rapidkoi is dark on the user's machine with no code). Rejected for now: loading GTK's built-in `Default-dark.css` over the theme, which is always dark but replaces the desktop's look (Yaru) with GTK's Default.
+
+---
+
 ### DECISION-013 — A file dialog
 
 **Status:** deferred

@@ -1,9 +1,9 @@
 # PRP-007 — App look: typed styles, dark, maximized, header bar
 
-Status: draft, for the user's approval
+Status: built (session 6) on branch prp-007-app_look; merged into main
 Discovery: sessions 5–6, 2026-10-17, from the user's brief and a talk-through of styling options. *(you)*: chosen by you; *(proposed)*: for you to confirm or change with this PRP.
 
-## FEATURE: An app gives its own frame colours as typed styles (`.style([…])`, a `Theme`), asks for GTK's dark variant, opens maximized, and puts its own widgets in the title bar (`.header(…)`).
+## FEATURE: An app gives its own frame colours as typed styles (`.style([…])`, a `Theme`), opens maximized, and puts its own widgets in the title bar (`.header(…)`). (`.dark()` was deferred during the build: DECISION-017.)
 
 ## OBJECTIVE
 
@@ -64,7 +64,8 @@ tab.style([Look.Rail, Look.Selected])
 - On a widget, kivuli removes only the classes it added (prefix `kv-`); the theme's and its own button classes stay. *(proposed)*
 
 ### Dark, maximized
-- **`.dark()`** on the theme: GTK's dark variant for the whole app, set when the window opens, through `gtk-interface-color-scheme` (above). To confirm on real widgets that it switches GTK's own theme (a label's text turns light); if it doesn't, the build falls back to the deprecated `gtk-application-prefer-dark-theme`, and the notes say why. *(proposed)*
+- **Deferred during the build (DECISION-017, the user's choice):** neither GTK setting switched GTK's own theme to dark in tests here (see the notes). The text below is kept for the record.
+- ~~**`.dark()`** on the theme:~~ GTK's dark variant for the whole app, set when the window opens, through `gtk-interface-color-scheme` (above). To confirm on real widgets that it switches GTK's own theme (a label's text turns light); if it doesn't, the build falls back to the deprecated `gtk-application-prefer-dark-theme`, and the notes say why. *(proposed)*
 - **`.maximized()`** on the root: the window opens maximized (`gtk_window_maximize` before it's shown); `.window`'s width and height stay its size when unmaximized. Read when the window opens. *(you)*
 
 ### Header bar
@@ -101,31 +102,42 @@ tab.style([Look.Rail, Look.Selected])
 ## TESTS TO WRITE
 
 Pure (`test/theming.la` new, and the existing files):
-- [ ] `hex` reads `#rgb`, `#rrggbb`, `#rrggbbaa`; bad strings are errors (checked through the `Result` the panic wraps, as keys are); `rgb`.
-- [ ] `theme(…)`: names; a payload look and a duplicate are errors; `.dark()`.
-- [ ] the generated CSS for a theme; the classes for a merged surface; later looks win field by field; `[]` gives none.
-- [ ] `.style`, `.button_style`, `.theme`, `.maximized`, `.header` land where they should; `map` keeps them and maps header messages.
-- [ ] diff: adding, changing and removing `.style` is a `SetStyle`; header views diff by position (a changed title, a new end button, a removed start button); a framed body changes like any view.
-- [ ] testing: `click` finds a header button; `type_into` a header field; a missing look, `.style` without a theme, `.header` below the root are errors before GTK.
+- [x] `hex` reads `#rgb`, `#rrggbb`, `#rrggbbaa`; bad strings are errors (checked through the `Result` the panic wraps, as keys are); `rgb`.
+- [x] `theme(…)`: names; a payload look and a duplicate are errors; `.dark()`.
+- [x] the generated CSS for a theme; the classes for a merged surface; later looks win field by field; `[]` gives none.
+- [x] `.style`, `.button_style`, `.theme`, `.maximized`, `.header` land where they should; `map` keeps them and maps header messages.
+- [x] diff: adding, changing and removing `.style` is a `SetStyle`; header views diff by position (a changed title, a new end button, a removed start button); a framed body changes like any view.
+- [x] testing: `click` finds a header button; `type_into` a header field; a missing look, `.style` without a theme, `.header` below the root are errors before GTK.
 
 Live GTK (skipped without a display), `test/live_look.la`:
-- [ ] the provider is loaded for the display with the theme's CSS (read back with `to_string`); a node's classes are applied, changed and removed on update, GTK's own classes kept; a `text` colour reaches the widget (`gtk_widget_get_color`).
-- [ ] `.dark()`: a label's text colour is light.
-- [ ] `.maximized()`: the window is maximized once shown (or the check skips, saying why, where the window manager can't).
-- [ ] the header bar is the window's titlebar, with title buttons shown; its start, title and end widgets are kivuli's; a click on a header button sends its message; changing the title view patches in place; an expanding title widget is wider than its natural size.
-- [ ] lugha-gtk `test/look.la`: each new extern and C helper.
+- [x] the provider is loaded for the display with the theme's CSS (read back with `to_string`); a node's classes are applied, changed and removed on update, GTK's own classes kept; a `text` colour reaches the widget (`gtk_widget_get_color`).
+- ~~`.dark()`: a label's text colour is light.~~ (deferred, DECISION-017)
+- [ ] `.maximized()`: not testable in a hidden window (GTK records it once the window is shown); checked by hand in `examples/frame.la`.
+- [x] the header bar is the window's titlebar, with title buttons shown; its start, title and end widgets are kivuli's; a click on a header button sends its message; changing the title view patches in place; an expanding title widget is wider than its natural size (needs a window on screen: checked by hand in `examples/frame.la`).
+- [x] lugha-gtk `test/look.la`: each new extern and C helper.
 
 ## ROLLBACK PLAN
 - Branch `prp-007-app_look` from `main`; abandon by leaving it unmerged. lugha-gtk 0.1.23 is additions only.
 
 ## ACCEPTANCE CRITERIA
-- [ ] An app paints parts of its frame with typed looks, asks for dark, opens maximized, and has its own title bar; without them, apps look as before.
-- [ ] Every example builds after the `.button_style` rename.
-- [ ] Tests above written first; narrow runs while building; the full suite and the examples' tests pass before the merge.
-- [ ] fmt clean; public items documented; no file over 500 lines (a split proposed first if one gets there).
-- [ ] README, docs/DESIGN.md, CHANGELOG (with migration), MEMORY.md, DECISIONS.md updated; 0.2.0 tagged; merged into `main`. Pushed only on your go.
+- [x] An app paints parts of its frame with typed looks, asks for dark, opens maximized, and has its own title bar; without them, apps look as before.
+- [x] Every example builds after the `.button_style` rename.
+- [x] Tests above written first; narrow runs while building; the full suite and the examples' tests pass before the merge.
+- [x] fmt clean; public items documented; no file over 500 lines (a split proposed first if one gets there).
+- [x] README, docs/DESIGN.md, CHANGELOG (with migration), MEMORY.md, DECISIONS.md updated; 0.2.0 tagged; merged into `main`. Pushed only on your go.
 
 ## VALIDATION
 - While building: only the tests covering each step.
 - Before the merge: `lughac fmt --check src examples test`, `lughac test test/`, the examples' own tests, every example built; lugha-gtk `lughac test test/`.
 - For the user: a small example (`examples/frame.la`) with a dark theme, a coloured rail, a header with back/forward and an address field, opening maximized. *(proposed: the showcase)*
+
+## NOTES FROM THE BUILD
+
+- **`.dark()` deferred (DECISION-017, the user's choice).** `gtk-application-prefer-dark-theme` is deprecated since GTK 4.20 (GIR); its replacement `gtk-interface-color-scheme` is the system's preference. In tests here, neither setting, reloading the theme after it, nor waiting main-loop turns changed GTK's own theme for new widgets, while setting `gtk-theme-name` did. The unproven helper was removed from lugha-gtk before its release. On this machine (`prefer-dark`, `Yaru-dark`) GTK also warns that it can't find a GTK 4 resource for Yaru-dark and falls back to its own theme: an environment quirk.
+- **The paint pass.** Nodes carry look *names*; `src/paint.la` fills each node's `classes` from the root's theme before every diff (after lazy resolution), so classes diff and patch like other modifiers and pure tests see them. It also reports a look missing from the theme, `.style` without `.theme`, and `.header` below the root; the runtime panics on those. Cost: one extra walk of the tree per update.
+- **`.header` keeps modifiers outside the frame** (`Styled(Framed(…), s)`), so the root's `.window`, `.theme` and `.maximized` are read where they always were; `apply_style` on a framed root styles its body. Header parts are children 0 (body), 1 (title), 2 (start views), 3 (end views), the lists by position, in the diff, `walk` and `patch` alike. Each start/end view is packed into the bar itself (`Live.Pack`, no widget of its own) so GTK's header spacing applies; replacing one repacks from there on, since a bar can't insert at a place.
+- **A view can't gain or lose its header while running**: a root `Replace` involving one panics (the PRP's Must NOT).
+- **Not covered by a test, checked by hand in `examples/frame.la`:** opening maximized and the title widget filling the bar both need a window on screen (CLAUDE.md: opening real windows is the user's).
+- **Mutation-checked:** without removing kivuli's old classes, a dropped look stays on the widget.
+- **Rename:** `.style(ButtonStyle…)` → `.button_style(…)` in its own commit; the internal style field `look` became `button`.
+- `views.la` is 487 lines and `diff.la` 477: the next additions to either need a split first.

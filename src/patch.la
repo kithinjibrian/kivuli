@@ -17,6 +17,8 @@ import gtk {
     gtk_check_button_set_active,
     gtk_editable_get_text,
     gtk_editable_set_text,
+    gtk_header_bar_remove,
+    gtk_header_bar_set_title_widget,
     g_timeout_add_full,
     gtk_label_set_text,
     gtk_picture_set_filename,
@@ -31,9 +33,9 @@ import gtk {
     lgtk_text_place_cursor,
 };
 import diff;
-import build { create, create_in, editor, picked, sync_choices, text_of };
+import build { create, create_in, editor, pack_one, picked, sync_choices, text_of };
 import styling { apply_style, flag, show_content, show_number };
-import live_tree { Choices, Live, widget };
+import live_tree { Choices, Live, titlebar, widget };
 
 /** Applies one patch to the widgets, and returns the `Live` tree that now mirrors them. */
 fun apply<Msg>(
@@ -191,7 +193,7 @@ fun apply<Msg>(
         live
     }
     SetStyle(path, style) => {
-        apply_style(at(live, path), style, axis_at(live, parent_or_root(path)));
+        apply_style(at(live, path), style, axis_of(live, path));
         live
     }
     Append(path, v) => update_at(live, path, 0, fun(node: Live<Msg>): Live<Msg> = match node {
@@ -202,6 +204,13 @@ fun apply<Msg>(
             next.push(kid);
             Live.Box(box, orientation, next)
         }
+        Pack(bar, at_end, kids) => {
+            let kid = create_in(v, 0, send);
+            pack_one(bar, at_end, widget(kid));
+            let mut next = kids;
+            next.push(kid);
+            Live.Pack(bar, at_end, next)
+        }
         _ => panic("kivuli: an Append patch points at something that isn't a column or row"),
     }),
     Remove(path) => {
@@ -210,6 +219,10 @@ fun apply<Msg>(
             Box(box, orientation, kids) => {
                 gtk_box_remove(box, widget(kids[i]));
                 Live.Box(box, orientation, diff.without(kids, i))
+            }
+            Pack(bar, at_end, kids) => {
+                gtk_header_bar_remove(bar, widget(kids[i]));
+                Live.Pack(bar, at_end, diff.without(kids, i))
             }
             _ => panic("kivuli: a Remove patch points into something that isn't a column or row"),
         })
@@ -232,6 +245,10 @@ fun apply<Msg>(
     }),
     Replace(path, v) => if path.len == 0 {
         let fresh = create(v, send);
+        // A titlebar can't be added or dropped once the window is shown (PRP-007).
+        if titlebar(live).is_some() || titlebar(fresh).is_some() {
+            panic("kivuli: a view can't gain or lose its .header(…) while the app runs");
+        }
         gtk_window_set_child(window, widget(fresh));
         fresh
     } else {
@@ -253,6 +270,34 @@ fun apply<Msg>(
                 let fresh = create_in(v, 1, send);
                 gtk_scrolled_window_set_child(scrolled, Some(widget(fresh)));
                 Live.Scroll(scrolled, fresh)
+            }
+            // A header's body is the window's child; its title the bar's title widget.
+            Framed(bar, body, title, start, end) => if i == 0 {
+                let fresh = create_in(v, 1, send);
+                gtk_window_set_child(window, widget(fresh));
+                Live.Framed(bar, fresh, title, start, end)
+            } else {
+                let fresh = create_in(v, 0, send);
+                gtk_header_bar_set_title_widget(bar, Some(widget(fresh)));
+                Live.Framed(bar, body, fresh, start, end)
+            },
+            Pack(bar, at_end, kids) => {
+                // A bar can't insert at a place: unpack from here on, then pack
+                // the new one and the rest again, in order.
+                let mut j = i;
+                while j < kids.len {
+                    gtk_header_bar_remove(bar, widget(kids[j]));
+                    j = j + 1;
+                }
+                let fresh = create_in(v, 0, send);
+                let mut next = kids;
+                next[i] = fresh;
+                j = i;
+                while j < next.len {
+                    pack_one(bar, at_end, widget(next[j]));
+                    j = j + 1;
+                }
+                Live.Pack(bar, at_end, next)
             }
             _ => panic("kivuli: a Replace patch points into something with no children"),
         })
@@ -279,18 +324,37 @@ fun update_at<Msg>(
             Live.Box(box, orientation, next)
         }
         Scroll(scrolled, kid) => Live.Scroll(scrolled, update_at(kid, path, depth + 1, f)),
+        Framed(bar, body, title, start, end) => match path[depth] {
+            0 => Live.Framed(bar, update_at(body, path, depth + 1, f), title, start, end),
+            1 => Live.Framed(bar, body, update_at(title, path, depth + 1, f), start, end),
+            2 => Live.Framed(bar, body, title, update_at(start, path, depth + 1, f), end),
+            _ => Live.Framed(bar, body, title, start, update_at(end, path, depth + 1, f)),
+        },
+        Pack(bar, at_end, kids) => {
+            let i = path[depth];
+            let mut next = kids;
+            next[i] = update_at(kids[i], path, depth + 1, f);
+            Live.Pack(bar, at_end, next)
+        }
         _ => panic("kivuli: a patch's path leads through something with no children"),
     }
 };
 
-/** The axis children of the node at `path` are laid out along: a box's orientation, else vertical. */
-fun axis_at<Msg>(live: Live<Msg>, path: i64[]): i32 = match at(live, path) {
-    Box(_, orientation, _) => orientation,
-    _ => 1,
+/**
+ * The axis the node at `path` is laid out along in its parent: a box's
+ * orientation; across in a header bar (all but the body); else vertical (the
+ * root, a scroll's child, a header's body).
+ */
+fun axis_of<Msg>(live: Live<Msg>, path: i64[]): i32 = if path.len == 0 {
+    1
+} else {
+    match at(live, parent(path)) {
+        Box(_, orientation, _) => orientation,
+        Framed(_, _, _, _, _) => if path[path.len - 1] == 0 { 1 } else { 0 },
+        Pack(_, _, _) => 0,
+        _ => 1,
+    }
 };
-
-/** The parent's path, or the root's own for the root (whose children are laid out vertically). */
-fun parent_or_root(path: i64[]): i64[] = if path.len == 0 { path } else { parent(path) };
 
 /** The node at `path`. */
 fun at<Msg>(node: Live<Msg>, path: i64[]): Live<Msg> {
@@ -299,6 +363,13 @@ fun at<Msg>(node: Live<Msg>, path: i64[]): Live<Msg> {
         here = match here {
             Box(_, _, kids) => kids[i],
             Scroll(_, kid) => kid,
+            Framed(_, body, title, start, end) => match i {
+                0 => body,
+                1 => title,
+                2 => start,
+                _ => end,
+            },
+            Pack(_, _, kids) => kids[i],
             _ => panic("kivuli: a patch's path leads through something with no children"),
         };
     }

@@ -48,7 +48,7 @@ fun view(n: Note): View<Msg> = column([
     row([
         text(count(n.body)).dim().align(Align.Center),
         spacer(),
-        button("Clear", Msg.Clear).style(ButtonStyle.Danger).disabled(
+        button("Clear", Msg.Clear).button_style(ButtonStyle.Danger).disabled(
             n.title == "" && n.body == "",
         ),
     ]),

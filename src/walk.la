@@ -37,6 +37,16 @@ fun walk<Msg>(v: View<Msg>, style: Style): (View<Msg>, Style)[] = match v {
         with_children(v, style, xs)
     }
     Scroll(x) => with_children(v, style, [x]),
+    Framed(body, start, title, end) => {
+        let mut xs = [body, title];
+        for x of start {
+            xs.push(x);
+        }
+        for x of end {
+            xs.push(x);
+        }
+        with_children(v, style, xs)
+    }
     _ => [(v, style)],
 };
 
@@ -68,6 +78,17 @@ fun find_name<Msg>(v: View<Msg>, name: string, path: i64[]): Option<i64[]> = mat
     Row(xs) => find_in(xs, name, path),
     Keyed(pairs) => find_in(pairs.map(fun(pair) = pair.1), name, path),
     Scroll(x) => find_name(x, name, with_index(path, 0)),
+    // As the diff counts a header's parts: body 0, title 1, start 2, end 3.
+    Framed(body, start, title, end) => match find_name(body, name, with_index(path, 0)) {
+        Some(found) => Some(found),
+        None => match find_name(title, name, with_index(path, 1)) {
+            Some(found) => Some(found),
+            None => match find_in(start, name, with_index(path, 2)) {
+                Some(found) => Some(found),
+                None => find_in(end, name, with_index(path, 3)),
+            },
+        },
+    },
     _ => None,
 };
 
