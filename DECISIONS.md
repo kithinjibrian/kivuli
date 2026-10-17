@@ -12,6 +12,17 @@ Rules:
 
 ## OPEN — Requires human input before implementation
 
+### DECISION-018 — Where View's modifiers go once views.la is full
+
+**Status:** open (blocks the next new modifier, not PRP-008)
+**Raised:** 2026-10-17 — Session 8 (PRP-008)
+
+**Question:** `src/views.la` reaches about 499 lines with PRP-008. Lugha attaches an `impl` only to a type in the same file, so the modifiers can't move out. Options: (A) move `View.map`'s body (about 60 lines) to a new module whose free function the method calls: `views` and that module would import each other (Lugha allows cycles; CLAUDE.md rule 2 says imports run one way), so it needs an explicit exception; (B) move the `View` enum and its `impl` into their own file and keep the rest of `views.la`; little else is left in it, so this barely helps; (C) raise the file size rule for `views.la` alone.
+
+**Recommendation:** (A), with the exception written into CLAUDE.md's architecture rule 2: the only cycle allowed is `views` ↔ the module holding `map`'s body.
+
+---
+
 ---
 
 ## DEFERRED — Acknowledged, not yet needed
@@ -23,6 +34,8 @@ Rules:
 **Revisit when:** a small PRP of its own, after reading how GTK 4.22 picks its theme's variant (its source), or testing on a desktop that prefers light.
 
 **Question:** `gtk-application-prefer-dark-theme` is deprecated since GTK 4.20 ("use GtkCssProvider properties instead"); its replacement `gtk-interface-color-scheme` is documented as the system's preference. In tests here (desktop `prefer-dark`, theme `Yaru-dark`), neither setting, nor reloading the theme after it, nor waiting main-loop turns, changed the colours of GTK's own theme for new widgets; setting `gtk-theme-name` did take effect at once. How does an app force dark in GTK 4.22?
+
+**Lead (session 8):** GTK's Default theme chooses its dark stylesheet with `@media (prefers-color-scheme: dark)` inside `gtk.css`, so the variant is decided by the colour-scheme preference of the provider that loads the theme (`GtkCssProvider:prefers-color-scheme`, GTK 4.20), not by a `GtkSettings` property an app sets.
 
 **Notes:** kivuli apps already follow the desktop's dark preference (Rapidkoi is dark on the user's machine with no code). Rejected for now: loading GTK's built-in `Default-dark.css` over the theme, which is always dark but replaces the desktop's look (Yaru) with GTK's Default.
 
