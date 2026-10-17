@@ -1,0 +1,109 @@
+// Text settings: a preview whose size follows a slider and whose weight
+// follows a drop-down, and a volume slider showing its number. Its tests are at
+// the bottom: `lughac test examples/settings.la`.
+import kivuli {
+    Align,
+    ButtonStyle,
+    View,
+    button,
+    column,
+    dropdown,
+    row,
+    sandbox,
+    slider,
+    spacer,
+    text,
+};
+// For the tests at the bottom; `lughac build` leaves tests out.
+import kivuli.testing { choose, click, is_disabled, slide, texts };
+
+struct Settings {
+    /** The preview's text size in points: 8 to 72, in steps of 2. */
+    font: i64,
+    bold: bool,
+    volume: i64,
+}
+
+enum Msg {
+    Font(i64),
+    Bold(bool),
+    Volume(i64),
+    Reset,
+}
+
+fun defaults(): Settings = Settings { font: 14, bold: false, volume: 70 };
+
+fun update(s: Settings, msg: Msg): Settings = match msg {
+    Font(n) => Settings { font: n, ..s },
+    Bold(on) => Settings { bold: on, ..s },
+    Volume(n) => Settings { volume: n, ..s },
+    Reset => defaults(),
+};
+
+fun preview(s: Settings): View<Msg> {
+    let shown: View<Msg> = text("The quick brown fox").size(s.font);
+    if s.bold { shown.bold() } else { shown }
+}
+
+fun labelled(label: string, control: View<Msg>): View<Msg> = row([
+    text(label).width(70).align(Align.Center),
+    control.expand(),
+]).spacing(8);
+
+fun view(s: Settings): View<Msg> = column([
+    preview(s).height(100),
+    labelled("Size", slider(8, 72, s.font, Msg.Font).step(2).name("size")),
+    labelled(
+        "Weight",
+        dropdown(
+            [("Normal", Msg.Bold(false)), ("Bold", Msg.Bold(true))],
+            if s.bold { "Bold" } else { "Normal" },
+        ).name("weight"),
+    ),
+    labelled("Volume", slider(0, 100, s.volume, Msg.Volume).name("volume")),
+    row([
+        text("{s.font} pt{if s.bold { ", bold" } else { "" }} · volume {s.volume}").dim().align(
+            Align.Center,
+        ),
+        spacer(),
+        button("Reset", Msg.Reset).style(ButtonStyle.Subtle).disabled(s == defaults()),
+    ]),
+]).padding(16).spacing(10).window("Settings", 420, 320);
+
+fun main(): i32 = sandbox("org.kivuli.settings", defaults(), update, view);
+
+// Tests: what a user does, worked out from the view and fed back through `update`.
+
+fun after(s: Settings, msg: Msg): Settings = update(s, msg);
+
+/** The line under the controls: the last text in the view. */
+fun summary(s: Settings): string {
+    let shown = texts(view(s));
+    shown[shown.len - 1]
+}
+
+@test
+fun the_size_slider_moves_in_steps_of_two_and_stays_in_range() {
+    let s = defaults();
+    assert_eq(slide(view(s), "size", 21), Ok(Msg.Font(22)));
+    assert_eq(slide(view(s), "size", 100), Ok(Msg.Font(72)));
+    let bigger = after(s, slide(view(s), "size", 30).unwrap_or(Msg.Reset));
+    assert_eq(summary(bigger), "30 pt · volume 70");
+}
+
+@test
+fun bold_is_picked_from_the_drop_down() {
+    let s = after(defaults(), choose(view(defaults()), "weight", "Bold").unwrap_or(Msg.Reset));
+    assert(s.bold);
+    assert_eq(summary(s), "14 pt, bold · volume 70");
+    assert_eq(choose(view(s), "weight", "Normal"), Ok(Msg.Bold(false)));
+}
+
+@test
+fun reset_restores_the_defaults_and_is_disabled_at_them() {
+    assert_eq(is_disabled(view(defaults()), "Reset"), Ok(true));
+    let s = after(defaults(), slide(view(defaults()), "volume", 15).unwrap_or(Msg.Reset));
+    assert_eq(s.volume, 15);
+    assert_eq(is_disabled(view(s), "Reset"), Ok(false));
+    assert_eq(after(s, click(view(s), "Reset").unwrap_or(Msg.Font(0))), defaults());
+}

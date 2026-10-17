@@ -174,6 +174,7 @@ Notes so far (handoff to be written at close):
 - PRP-001 built: text_area + .name; lugha-gtk 0.1.15 pushed (text views, src/c/text.c). Tests written first (pure, then GTK incl. two mutation checks); examples/notes.la with 3 tests. Merged into main.
 - PRP-002 (long text and tooltips) approved and built: builders split into src/widgets.la (impl blocks must stay with their type); lugha-gtk 0.1.16 pushed; check boxes get kivuli's own label child; the to-do app ellipsizes titles and its ✕ has tooltips. Tests run narrowly while building (the user's rule), the full suite once before the merge.
 - PRP-003 (shortcuts and focus) approved and built; lugha-gtk 0.1.17 and 0.1.18 pushed. Shortcuts use a callback action (GTK's activate action does nothing off screen). New src/keys.la, src/walk.la.
+- PRP-004 (dropdown and slider) approved and built. Styling split out of build.la into src/styling.la first. lugha-gtk 0.1.19 (drop-downs, scales), 0.1.20 (reading a list back) and 0.1.21 (gtk_widget_ref/unref) pushed. v0.1.19 was tagged with a failing test: `lughac test … | tail` in an `&&` chain hid it; fixed on main, and pushes are now gated on the real exit status (CLAUDE.md, memory). The user chose a blank first item for an unmatched `selected`. Replacing a drop-down's list inside its own notify::selected crashed GTK: synced on the next turn instead (PRP-004 notes). New test/live_choices.la; examples/settings.la.
 
 ---
 

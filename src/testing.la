@@ -207,7 +207,7 @@ public fun slide<Msg>(v: View<Msg>, name: string, value: i64): Result<Msg, Looku
  * Every line of text the view shows, in order: for checking what's on screen.
  *
  * Example:
- *     assert(kivuli.testing.texts(view(m)).contains("Clicked 3 times"));
+ *     assert_eq(kivuli.testing.texts(view(m)), ["Clicked 3 times"]);
  */
 public fun texts<Msg>(v: View<Msg>): string[] {
     let mut out: string[] = [];

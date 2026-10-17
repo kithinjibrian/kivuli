@@ -1,6 +1,6 @@
 # PRP-004 — Dropdown and slider
 
-Status: approved by the user (session 3); building on branch prp-004-dropdown_and_slider
+Status: built (session 3) on branch prp-004-dropdown_and_slider; merged into main
 Discovery: session 3, 2026-10-17. *(you)*: chosen in the interview; *(proposed)*: for you to confirm or change with this PRP.
 
 ## FEATURE: `dropdown(choices, selected)`, a list of labelled choices each sending its own message, and `slider(min, max, value, on_change)`, a whole-number slider.
@@ -68,28 +68,38 @@ fun picking_and_sliding() {
 ## TESTS TO WRITE
 
 Pure:
-- [ ] `test/lib.la`: both builders make their nodes; `.step` lands in the style (or the node, if that's where it lives).
-- [ ] `test/diff.la`: a dropdown always gives `SetChoices`; a slider gives `SetNumber` only when the value changes, `SetRange` only when the range or step does, `SetOnSlide` always; a dropdown that becomes a slider is `Replace`.
-- [ ] `test/testing.la`: `choose` by name and label, unknown name, unknown label, two of a name; `slide` in range, clamped below and above, rounded to the step.
-- [ ] `test/map.la`: mapped choices and a mapped slider send mapped messages.
+- [x] `test/lib.la`: both builders make their nodes; `.step` lands in the style (or the node, if that's where it lives).
+- [x] `test/diff.la`: a dropdown always gives `SetChoices`; a slider gives `SetNumber` only when the value changes, `SetRange` only when the range or step does, `SetOnSlide` always; a dropdown that becomes a slider is `Replace`.
+- [x] `test/testing.la`: `choose` by name and label, unknown name, unknown label, two of a name; `slide` in range, clamped below and above, rounded to the step.
+- [x] `test/map.la`: mapped choices and a mapped slider send mapped messages.
 
-Live GTK (skipped without a display), `test/live_forms.la`:
-- [ ] dropdown: labels and selection read back; picking (setting the selection outside a dispatch) sends that choice's message; an update changing the labels rebuilds them; an update changing `selected` moves the selection without an echo; an unknown `selected` shows none.
-- [ ] slider: range, step and value read back; a user change sends the rounded value once (a repeat isn't resent); an update moves the handle without an echo; `.step` rounding.
-- [ ] lugha-gtk `test/choices.la`: string list, drop-down selection and `notify::selected`; scale range, value, `value-changed`.
-- [ ] `examples/settings.la`'s own tests.
+Live GTK (skipped without a display), `test/live_choices.la` (`live_forms.la` is already over 500 lines):
+- [x] dropdown: labels and selection read back; picking (setting the selection outside a dispatch) sends that choice's message; an update changing the labels rebuilds them; an update changing `selected` moves the selection without an echo; an unknown `selected` shows none.
+- [x] slider: range, step and value read back; a user change sends the rounded value once (a repeat isn't resent); an update moves the handle without an echo; `.step` rounding.
+- [x] lugha-gtk `test/choices.la`: string list, drop-down selection and `notify::selected`; scale range, value, `value-changed`.
+- [x] `examples/settings.la`'s own tests.
 
 ## ROLLBACK PLAN
 - Branch `prp-004-dropdown_and_slider` from `main`; abandon by leaving it unmerged. lugha-gtk 0.1.19 is additions only.
 
 ## ACCEPTANCE CRITERIA
-- [ ] `dropdown` and `slider` work in an app, send their messages, and follow the model without echoes.
-- [ ] `choose` and `slide` work without GTK.
-- [ ] Tests above written first; narrow runs while building; the full suite and the examples' tests pass before the merge.
-- [ ] Every example builds; fmt clean; public items documented; no file over 500 lines.
-- [ ] CHANGELOG.md and README.md updated. Merged into `main`.
+- [x] `dropdown` and `slider` work in an app, send their messages, and follow the model without echoes.
+- [x] `choose` and `slide` work without GTK.
+- [x] Tests above written first; narrow runs while building; the full suite and the examples' tests pass before the merge.
+- [x] Every example builds; fmt clean; public items documented; no file over 500 lines.
+- [x] CHANGELOG.md and README.md updated. Merged into `main`.
 
 ## VALIDATION
 - While building: only the tests covering each step.
 - Before the merge: `lughac fmt --check src examples test`, `lughac test test/`, the examples' own tests, every example built; lugha-gtk `lughac test test/`.
 - For the user: `lughac run examples/settings.la`: drag the font slider and watch the preview grow; pick Bold; the volume shows its number.
+
+## NOTES FROM THE BUILD
+
+- **A drop-down's list can't change inside its own signal.** Picking a real choice while the blank item shows sends the pick; its update drops the blank, and replacing GTK's list from inside `notify::selected` freed it mid-signal: the test process was killed. A drop-down now keeps one shared state (`live_tree.Choices`: what the view offers, GTK's list item by item with each item's message, and `busy`). A patch arriving while a pick is being sent is synced on the main loop's next turn, from the latest state (so a stale patch can't put an old selection back), the widget held alive meanwhile (lugha-gtk 0.1.21 `gtk_widget_ref`/`unref`). The cost: in that one case the blank item leaves a turn later.
+- **No echo without the `patching` flag.** The deferred sync runs outside a dispatch, so the handler ignores signals while `busy`. Mutation-checked: without the deferral the test crashes; without the `busy` check the drop-down echoes, sending the wrong choice (`Size("Small")`) as the list shifts.
+- **`.step` is a style field**, so a change of step is a `SetStyle`, and `SetRange` carries only `min` and `max` (the Must Do was updated). One pure `widgets.snap` rounds for both the live slider and `kivuli.testing.slide`, so tests round as the widget does; it panics on `min > max`. A value off the steps is shown on the nearest step without sending a message.
+- **A slider is made on 0..1 and then given its range**: GTK refuses an empty range in `gtk_scale_new_with_range`, and `slider(5, 5, …)` is allowed.
+- **lugha-gtk 0.1.20** added reading a drop-down's list back (`gtk_drop_down_get_model`, `gtk_string_list_get_n_items`, `gtk_string_list_get_string`), for the live tests.
+- **Fixed on the way:** the doc example on `kivuli.testing.texts` used `.contains` on an array, which Lugha doesn't have.
+- **Not covered by a test:** the deferred sync on a drop-down removed from the window before the next turn (it's held by a reference, then released); the slider's arrow-key increments (no getter is bound).
