@@ -51,8 +51,7 @@ public fun row<Msg>(children: View<Msg>[]): View<Msg> = View.Row(children);
  */
 public fun input<Msg>(value: string, on_change: fun(string): Msg): View<Msg> = View.Input(
     value,
-    on_change,
-    None,
+    Some((on_change, None)),
 );
 
 /**
@@ -129,7 +128,7 @@ public fun lazy<Msg>(key: string, build: fun(): View<Msg>): View<Msg> = View.Laz
  */
 public fun text_area<Msg>(value: string, on_change: fun(string): Msg): View<Msg> = View.TextArea(
     value,
-    on_change,
+    Some(on_change),
 );
 
 /**

@@ -25,8 +25,11 @@ enum Patch<Msg> {
     SetMsg(i64[], Option<Msg>),
     /** The text field or text area at the path shows this text. */
     SetValue(i64[], string),
-    /** The text field at the path turns edits into messages with this function from now on. */
-    SetOnChange(i64[], fun(string): Msg),
+    /**
+     * The text field or text area at the path turns edits into messages with
+     * this function from now on; `None` disables it (decision 6).
+     */
+    SetOnChange(i64[], Option<fun(string): Msg>),
     /** The text field at the path sends this message on Enter from now on, or nothing for `None`. */
     SetOnSubmit(i64[], Option<Msg>),
     /** The check box at the path is ticked (or not). */
@@ -179,13 +182,11 @@ fun diff_inside<Msg>(
     (Button(a, _), Button(b, msg)) => diff_button(path, a, b, msg),
     (Column(xs), Column(ys)) => diff_children(path, xs, ys),
     (Row(xs), Row(ys)) => diff_children(path, xs, ys),
-    (Input(a, _, _), Input(b, on_change, on_submit)) => diff_input(
-        path,
-        a,
-        b,
-        on_change,
-        on_submit,
-    ),
+    (Input(a, _), Input(b, messages)) => diff_input(path, a, b, match messages {
+        Some((on_change, on_submit)) => (Some(on_change), on_submit),
+        // Disabled: no edits, no Enter.
+        None => (None, None),
+    }),
     (TextArea(a, _), TextArea(b, on_change)) => diff_text_area(path, a, b, on_change),
     (Checkbox(la, ca, _), Checkbox(lb, cb, on_toggle)) => diff_checkbox(
         path,
@@ -232,16 +233,15 @@ fun diff_input<Msg>(
     path: i64[],
     old_value: string,
     value: string,
-    on_change: fun(string): Msg,
-    on_submit: Option<Msg>,
+    messages: (Option<fun(string): Msg>, Option<Msg>),
 ): Patch<Msg>[] {
     let mut out: Patch<Msg>[] = [];
     if old_value != value {
         out.push(Patch.SetValue(path, value));
     }
     // Always re-point, as for buttons: functions and messages can't be compared.
-    out.push(Patch.SetOnChange(path, on_change));
-    out.push(Patch.SetOnSubmit(path, on_submit));
+    out.push(Patch.SetOnChange(path, messages.0));
+    out.push(Patch.SetOnSubmit(path, messages.1));
     out
 }
 
@@ -287,7 +287,7 @@ fun diff_text_area<Msg>(
     path: i64[],
     old_value: string,
     value: string,
-    on_change: fun(string): Msg,
+    on_change: Option<fun(string): Msg>,
 ): Patch<Msg>[] {
     let mut out: Patch<Msg>[] = [];
     if old_value != value {

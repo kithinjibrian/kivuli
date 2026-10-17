@@ -8,6 +8,14 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.1.1] — 2026-10-17
+
+### Added
+- Disabled text fields (PRP-006): `.disabled(true)` on `input` and `text_area` greys them out and stops their messages; the value still follows the model. `kivuli.testing.type_into` and `submit` return `Silent` for a disabled field; new `kivuli.testing.is_field_disabled(view, hint)`.
+
+### Changed
+- `View.Input` and `View.TextArea` carry their messages as an `Option` (`None`: disabled), and `Patch.SetOnChange` an `Option` of the handler. Apps using the `input` and `text_area` builders are unaffected.
+
 ## [0.1.0] — 2026-10-17
 
 ### Added

@@ -25,9 +25,10 @@ enum Live<Msg> {
     Box(GtkWidget, i32, Live<Msg>[]),
     /**
      * A text field, the function turning its text into a message, and the
-     * message Enter sends: its `changed` and `activate` handlers read these boxes.
+     * message Enter sends: its `changed` and `activate` handlers read these
+     * boxes. No function: disabled (insensitive, and it sends nothing).
      */
-    Input(GtkWidget, Ref<fun(string): Msg>, Ref<Option<Msg>>),
+    Input(GtkWidget, Ref<Option<fun(string): Msg>>, Ref<Option<Msg>>),
     /**
      * A check box, the label kivuli gave it (long-text modifiers style it), and
      * the function turning its state into a message: its `toggled` handler reads it.
@@ -35,9 +36,10 @@ enum Live<Msg> {
     Checkbox(GtkWidget, GtkWidget, Ref<fun(bool): Msg>),
     /**
      * A text area: the scrolled window holding it, its buffer, and the
-     * function turning its text into a message (its `changed` handler reads it).
+     * function turning its text into a message (its `changed` handler reads
+     * it); none when disabled.
      */
-    TextArea(GtkWidget, GtkTextBuffer, Ref<fun(string): Msg>),
+    TextArea(GtkWidget, GtkTextBuffer, Ref<Option<fun(string): Msg>>),
     /** A drop-down, and the state its `notify::selected` handler and patches share. */
     Dropdown(GtkWidget, Ref<Choices<Msg>>),
     /**

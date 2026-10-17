@@ -49,7 +49,13 @@ Icons are the theme's only. Prefer symbolic names (`…-symbolic`): they take th
 
 ### Disabled
 
-`on_click == None` maps to `gtk_widget_set_sensitive(false)`. The theme greys it out.
+Disabled means no message (MEMORY decision 6), mapped to `gtk_widget_set_sensitive(false)`; the theme greys it out.
+
+| kivuli | GTK |
+| --- | --- |
+| a button with `on_click == None` | the button insensitive |
+| an input with no messages (`.disabled(true)`) | the entry insensitive: it still shows its value, the user can't type, and Enter sends nothing |
+| a text area with no `on_change` | its editor (the text view) insensitive, not its scrolled window, so long text still scrolls |
 
 ---
 

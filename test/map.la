@@ -106,3 +106,12 @@ fun icons_and_images_pass_through_map() {
     let expected: View<App> = column([icon("list-add-symbolic"), image("a.png").fit(Fit.Cover)]);
     assert_same(mapped, expected);
 }
+
+@test
+fun mapped_fields_send_mapped_messages_and_disabled_ones_stay_silent() {
+    let on = input("", Part.Named).placeholder("p").map(App.Left);
+    assert_eq(type_into(on, "p", "x"), Ok(App.Left(Part.Named("x"))));
+    let off: View<App> = input("", Part.Named).disabled(true).map(App.Left);
+    let expected: View<App> = View.Input("", None);
+    assert_same(off, expected);
+}

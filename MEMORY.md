@@ -57,7 +57,7 @@ Decisions 1–12 were agreed in the design discussion in the lugha repository (a
 
 ### 6. Disabled = no message
 
-**Decision:** a button's `on_click` is `Option<Msg>`. `.disabled(true)` sets it to `None`, which greys the widget out.
+**Decision:** a button's `on_click` is `Option<Msg>`. `.disabled(true)` sets it to `None`, which greys the widget out. Text fields follow the same rule (PRP-006, session 5): `Input(value, Option<(on_change, on_submit)>)` and `TextArea(value, Option<on_change>)`, `None` when disabled; an input's edit and Enter messages travel together, so Enter can't send while edits can't.
 
 **Rules out:** a separate `disabled` flag.
 

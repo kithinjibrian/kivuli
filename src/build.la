@@ -121,17 +121,26 @@ fun create_in<Msg>(v: View<Msg>, axis: i32, send: fun(Msg)): Live<Msg> = match v
     // Spacing comes later as a modifier.
     Column(children) => create_box(1, children, send),
     Row(children) => create_box(0, children, send),
-    Input(value, on_change, on_submit) => {
+    Input(value, messages) => {
+        let (on_change, on_submit) = match messages {
+            Some((f, enter)) => (Some(f), enter),
+            None => (None, None),
+        };
         let entry = gtk_entry_new();
         // Set before connecting, so the first text isn't sent as an edit.
         gtk_editable_set_text(entry, value);
+        // Disabled (no messages, decision 6): greyed out, and the handlers
+        // below send nothing even if GTK delivers a signal.
+        gtk_widget_set_sensitive(entry, flag(on_change.is_some()));
         let current = Ref.new(on_change);
         connect_widget(
             entry,
             "changed",
             fun(e: GtkWidget) {
-                let f = current.get();
-                send(f(gtk_editable_get_text(e)));
+                match current.get() {
+                    Some(f) => send(f(gtk_editable_get_text(e))),
+                    None => {}
+                }
             },
             0,
         );
@@ -156,13 +165,18 @@ fun create_in<Msg>(v: View<Msg>, axis: i32, send: fun(Msg)): Live<Msg> = match v
         let buffer = gtk_text_view_get_buffer(view);
         // Set before connecting, so the first text isn't sent as an edit.
         gtk_text_buffer_set_text(buffer, value, -1);
+        // Disabled: the editor is greyed out, not the scrolled window, so
+        // long text can still be scrolled.
+        gtk_widget_set_sensitive(view, flag(on_change.is_some()));
         let current = Ref.new(on_change);
         connect_buffer(
             buffer,
             "changed",
             fun(b: GtkTextBuffer) {
-                let f = current.get();
-                send(f(text_of(b)));
+                match current.get() {
+                    Some(f) => send(f(text_of(b))),
+                    None => {}
+                }
             },
             0,
         );
@@ -332,9 +346,14 @@ fun create_box<Msg>(orientation: i32, children: View<Msg>[], send: fun(Msg)): Li
 
 /** The widget that takes keyboard focus for `node`: a text area's editor, else the node's widget. */
 fun focus_target<Msg>(node: Live<Msg>): GtkWidget = match node {
-    TextArea(scrolled, _, _) => gtk_scrolled_window_get_child(scrolled).unwrap_or(scrolled),
+    TextArea(scrolled, _, _) => editor(scrolled),
     _ => widget(node),
 };
+
+/** A text area's editor (the text view), inside its scrolled window. */
+fun editor(scrolled: GtkWidget): GtkWidget = gtk_scrolled_window_get_child(scrolled).unwrap_or(
+    scrolled,
+);
 
 /** The index of the first choice labelled `selected`, or `None` when no choice is. */
 fun picked<Msg>(choices: (string, Msg)[], selected: string): Option<i64> {
