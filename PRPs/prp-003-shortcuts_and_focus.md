@@ -1,6 +1,6 @@
 # PRP-003 — Keyboard shortcuts and focus
 
-Status: draft, for the user's approval
+Status: approved by the user (session 3); building on branch prp-003-shortcuts_and_focus
 Discovery: session 3, 2026-10-17. *(you)*: chosen in the interview; *(proposed)*: for you to confirm or change with this PRP.
 
 ## FEATURE: Keyboard shortcuts on buttons (`.shortcut("Ctrl+N")`), and focus: `.autofocus()` and `Cmd.focus(name)`.
