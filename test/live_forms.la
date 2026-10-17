@@ -17,11 +17,12 @@ import gtk {
     gtk_check_button_set_active,
     gtk_editable_get_text,
     gtk_editable_set_text,
+    gtk_entry_get_placeholder_text,
     gtk_label_get_text,
 };
 import kivuli.live { mount, live_of };
 import kivuli.effects { sandbox_app };
-import kivuli.live_tree { widget };
+import kivuli.live_tree { Live, widget };
 import kivuli { View, button, checkbox, column, input, text };
 
 fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
@@ -172,4 +173,79 @@ fun ticking_reaches_the_model_and_a_patch_does_not_echo() {
     assert_eq(after_tick.get(), "[x] Done!");
     assert_eq(after_reset.get(), "[ ] Done");
     assert_eq(received.get(), ["Done(true)", "Reset"]);
+}
+
+enum Note {
+    Typed(string),
+    Send(i64),
+}
+
+struct Outbox {
+    text: string,
+    sent: i64,
+}
+
+fun update_outbox(o: Outbox, msg: Note): Outbox = match msg {
+    Typed(t) => Outbox { text: t, ..o },
+    Send(n) => Outbox { text: "", sent: n },
+};
+
+// Enter sends the next message number; the placeholder says how many went.
+fun view_outbox(o: Outbox): View<Note> = column([
+    input(o.text, Note.Typed).placeholder("{o.sent} sent").on_submit(Note.Send(o.sent + 1)),
+]);
+
+@test
+fun enter_sends_the_current_message_and_the_placeholder_follows() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen: Ref<string[]> = Ref.new([]);
+    let received: Ref<string[]> = Ref.new([]);
+    let application = gtk_application_new("org.kivuli.test.submit", 0);
+    connect_app(
+        application,
+        "activate",
+        fun(a: GtkApplication) {
+            let window = gtk_application_window_new(a);
+            let app = mount(a, window, sandbox_app(
+                "org.kivuli.test",
+                Outbox { text: "", sent: 0 },
+                fun(o: Outbox, msg: Note): Outbox {
+                    received.update(fun(xs) {
+                        let mut ys = xs;
+                        ys.push("{msg}");
+                        ys
+                    });
+                    update_outbox(o, msg)
+                },
+                view_outbox,
+            ));
+            let Box(_, _, kids) = live_of(app) else {
+                panic("expected a column");
+            };
+            let entry = widget(kids[0]);
+            let note = fun() {
+                let hint = gtk_entry_get_placeholder_text(entry).unwrap_or("none");
+                seen.update(fun(xs) {
+                    let mut ys = xs;
+                    ys.push(hint);
+                    ys
+                });
+            };
+            note();
+            emit_widget(entry, "activate");
+            note();
+            emit_widget(entry, "activate");
+            note();
+            g_application_quit(a);
+        },
+        0,
+    );
+    g_application_run(application, 0, None);
+    g_object_unref(application);
+
+    assert_eq(seen.get(), ["0 sent", "1 sent", "2 sent"]);
+    // The second Enter sends 2: the handler was re-pointed (SetOnSubmit), not left at 1.
+    assert_eq(received.get(), ["Send(1)", "Send(2)"]);
 }

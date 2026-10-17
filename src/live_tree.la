@@ -19,8 +19,11 @@ enum Live<Msg> {
      * children added later.
      */
     Box(GtkWidget, i32, Live<Msg>[]),
-    /** A text field and the function turning its text into a message: its `changed` handler reads this box. */
-    Input(GtkWidget, Ref<fun(string): Msg>),
+    /**
+     * A text field, the function turning its text into a message, and the
+     * message Enter sends: its `changed` and `activate` handlers read these boxes.
+     */
+    Input(GtkWidget, Ref<fun(string): Msg>, Ref<Option<Msg>>),
     /** A check box and the function turning its state into a message: its `toggled` handler reads this box. */
     Checkbox(GtkWidget, Ref<fun(bool): Msg>),
     Spacer(GtkWidget),
@@ -34,7 +37,7 @@ fun widget<Msg>(node: Live<Msg>): GtkWidget = match node {
     Label(w) => w,
     Button(w, _) => w,
     Box(w, _, _) => w,
-    Input(w, _) => w,
+    Input(w, _, _) => w,
     Checkbox(w, _) => w,
     Spacer(w) => w,
     Separator(w) => w,

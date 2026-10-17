@@ -12,23 +12,6 @@ Rules:
 
 ## OPEN — Requires human input before implementation
 
-### DECISION-003 — Module path of the testing helpers
-
-**Status:** open
-**Raised:** 2026-10-16 — kickoff brief §7
-**Resolved by:** human
-**Blocks:** step 7 of kivuli v1 (the testing helpers)
-
-**Question:** Decision 10 said `ui.testing`; there is no `ui` module any more (the entry is `src/lib.la`, `import kivuli;`). `src/testing.la` is `import kivuli.testing;`. Should the entry also re-export it, so `import kivuli;` gives `kivuli.testing.click(…)`?
-
-**Options:**
-- A) Re-export from `lib.la` (`public import testing;`), so `import kivuli;` alone gives `kivuli.testing.click(…)`. Check that the spec allows this re-export form.
-- B) No re-export: apps that test write `import kivuli.testing;` beside `import kivuli;`.
-
-**Notes:** A matches the agreed API. B is simpler if re-export of a whole module doesn't behave as needed.
-
----
-
 ---
 
 ## DEFERRED — Acknowledged, not yet needed
@@ -70,6 +53,20 @@ Rules:
 ---
 
 ## RESOLVED
+
+### DECISION-003 — Module path of the testing helpers
+
+**Status:** resolved
+**Raised:** 2026-10-16 — kickoff brief §7
+**Resolved:** 2026-10-17 — Session 3
+
+**Question:** How do app tests reach the testing helpers?
+
+**Outcome:** `src/testing.la`, re-exported whole from the entry (`public import testing;` in `lib.la`): `import kivuli;` gives `kivuli.testing.click(…)`, and `import kivuli.testing { click };` works too. Text fields are found by placeholder, so `.placeholder(s)` and `.on_submit(msg)` (decision 3) are built first.
+
+**Rationale:** matches decision 10's `ui.testing`, renamed with the entry. The helpers are pure, and lughac builds only what's used.
+
+**Copied to MEMORY.md:** yes
 
 ### DECISION-002 — The shape of `lazy` (risk R1)
 

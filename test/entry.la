@@ -1,0 +1,22 @@
+// The package entry as an app sees it: `import kivuli;` alone reaches the
+// whole API, the testing helpers included (DECISION-003).
+import kivuli;
+
+enum Msg {
+    Add,
+}
+
+fun view(n: i64): kivuli.View<Msg> = kivuli.column([
+    kivuli.text("{n}"),
+    kivuli.button("Add", Msg.Add).disabled(n >= 3),
+]);
+
+@test
+fun testing_is_reached_through_the_entry() {
+    assert_eq(kivuli.testing.click(view(0), "Add"), Ok(Msg.Add));
+    assert_eq(
+        kivuli.testing.click(view(3), "Add"),
+        Err(kivuli.testing.Lookup.Silent("button \"Add\"")),
+    );
+    assert_eq(kivuli.testing.texts(view(2)), ["2"]);
+}

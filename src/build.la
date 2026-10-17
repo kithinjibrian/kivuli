@@ -21,6 +21,7 @@ import gtk {
     gtk_editable_get_text,
     gtk_editable_set_text,
     gtk_entry_new,
+    gtk_entry_set_placeholder_text,
     gtk_label_new,
     gtk_label_set_attributes,
     gtk_scrolled_window_new,
@@ -81,7 +82,7 @@ fun create_in<Msg>(v: View<Msg>, axis: i32, send: fun(Msg)): Live<Msg> = match v
     // Spacing comes later as a modifier.
     Column(children) => create_box(1, children, send),
     Row(children) => create_box(0, children, send),
-    Input(value, on_change) => {
+    Input(value, on_change, on_submit) => {
         let entry = gtk_entry_new();
         // Set before connecting, so the first text isn't sent as an edit.
         gtk_editable_set_text(entry, value);
@@ -95,7 +96,19 @@ fun create_in<Msg>(v: View<Msg>, axis: i32, send: fun(Msg)): Live<Msg> = match v
             },
             0,
         );
-        Live.Input(entry, current)
+        let submit = Ref.new(on_submit);
+        connect_widget(
+            entry,
+            "activate",
+            fun(e: GtkWidget) {
+                match submit.get() {
+                    Some(m) => send(m),
+                    None => {}
+                }
+            },
+            0,
+        );
+        Live.Input(entry, current, submit)
     }
     Checkbox(label, checked, on_toggle) => {
         let check = gtk_check_button_new_with_label(label);
@@ -200,6 +213,10 @@ fun apply_style<Msg>(node: Live<Msg>, style: Style, axis: i32) {
     match node {
         Box(box, _, _) => gtk_box_set_spacing(box, style.spacing as i32),
         Label(label) => style_text(label, style),
+        Input(entry, _, _) => gtk_entry_set_placeholder_text(
+            entry,
+            if style.placeholder == "" { None } else { Some(style.placeholder) },
+        ),
         Button(button, _) => style_button(button, style.look),
         _ => {}
     }

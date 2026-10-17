@@ -87,7 +87,7 @@ Decisions 1–12 were agreed in the design discussion in the lugha repository (a
 
 ### 10. `kivuli.testing` with no GTK
 
-**Decision:** inspect a `View` tree headlessly: `testing.find_button(v, "Reset").is_disabled()`, `testing.click(v, "Add") == Some(Msg.Add)`, `testing.type_into(v, placeholder, "text")`. Apps test with `lughac test`. The module path is DECISION-003.
+**Decision:** inspect a `View` tree headlessly: `testing.find_button(v, "Reset").is_disabled()`, `testing.click(v, "Add") == Some(Msg.Add)`, `testing.type_into(v, placeholder, "text")`. Apps test with `lughac test`. Module: `kivuli.testing`, re-exported from the entry (DECISION-003, session 3); fields are found by `.placeholder`.
 
 ---
 

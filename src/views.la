@@ -19,8 +19,8 @@ public enum View<Msg> {
     Column(View<Msg>[]),
     /** Children side by side, left to right. */
     Row(View<Msg>[]),
-    /** A one-line text field: what it shows, and the message each edit sends. */
-    Input(string, fun(string): Msg),
+    /** A one-line text field: what it shows, the message each edit sends, and the message Enter sends. */
+    Input(string, fun(string): Msg, Option<Msg>),
     /** A check box: its label, whether it's ticked, and the message each toggle sends. */
     Checkbox(string, bool, fun(bool): Msg),
     /** Empty room that grows along its column or row, pushing what follows to the end. */
@@ -83,6 +83,7 @@ public fun row<Msg>(children: View<Msg>[]): View<Msg> = View.Row(children);
 public fun input<Msg>(value: string, on_change: fun(string): Msg): View<Msg> = View.Input(
     value,
     on_change,
+    None,
 );
 
 /**
@@ -189,6 +190,8 @@ public struct Style {
     look: ButtonStyle,
     /** The window's title and size, from the root of `view`. Root only. */
     window: Option<Window>,
+    /** Hint text an empty text field shows; "" for none. Text fields only. */
+    placeholder: string,
 }
 
 /** The style of a node with no modifiers: what GTK does by default. */
@@ -204,6 +207,7 @@ fun plain(): Style = Style {
     dim: false,
     look: ButtonStyle.Normal,
     window: None,
+    placeholder: "",
 };
 
 /** `v` with its style changed by `f`: one `Styled` wrapper, however many modifiers. */
@@ -349,6 +353,30 @@ impl View<Msg> {
             ..s,
         },
     );
+
+    /**
+     * Shows `hint` in an empty text field; ignored on other nodes. Tests find
+     * text fields by it (`kivuli.testing.type_into`).
+     *
+     * Example:
+     *     input(m.name, Msg.Named).placeholder("Your name")
+     */
+    public fun placeholder(self, hint: string): View<Msg> = restyle(
+        self,
+        fun(s: Style) = Style { placeholder: hint, ..s },
+    );
+
+    /**
+     * Sends `msg` when Enter is pressed in a text field; ignored on other nodes.
+     *
+     * Example:
+     *     input(m.draft, Msg.Draft).on_submit(Msg.Add)
+     */
+    public fun on_submit(self, msg: Msg): View<Msg> = match self {
+        Input(value, on_change, _) => View.Input(value, on_change, Some(msg)),
+        Styled(inside, s) => View.Styled(inside.on_submit(msg), s),
+        _ => self,
+    };
 }
 
 /**

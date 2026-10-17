@@ -79,7 +79,7 @@ fun a_row_holds_its_children_in_order() {
 fun an_input_shows_its_value_and_turns_text_into_a_message() {
     // `Msg.Named` is a variant used as a function (lughac milestone 94).
     match input("Ada", Msg.Named) {
-        Input(value, on_change) => {
+        Input(value, on_change, _) => {
             assert_eq(value, "Ada");
             assert_eq(on_change("Grace"), Msg.Named("Grace"));
         }

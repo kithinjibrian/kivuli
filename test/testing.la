@@ -1,0 +1,69 @@
+// The testing helpers, used as an app's own tests would use them, on a small
+// to-do app, with no GTK. (test/entry.la reaches them through `import kivuli;`.)
+import kivuli { View, button, checkbox, column, input, lazy, row, text };
+import kivuli.testing { Lookup, click, is_disabled, submit, texts, toggle, type_into };
+
+enum Msg {
+    Draft(string),
+    Add,
+    Clear,
+    Done(bool),
+}
+
+struct Model {
+    draft: string,
+    items: string[],
+    done: bool,
+}
+
+fun view(m: Model): View<Msg> = column([
+    row([
+        input(m.draft, Msg.Draft).placeholder("New task").on_submit(Msg.Add),
+        button("Add", Msg.Add).disabled(m.draft == ""),
+    ]),
+    input("", Msg.Draft).placeholder("Notes"),
+    lazy("{m.items.len}", fun(): View<Msg> = text("{m.items.len} tasks")),
+    checkbox("Done", m.done, Msg.Done),
+    button("Clear", Msg.Clear),
+    button("Clear", Msg.Clear),
+]);
+
+fun empty(): Model = Model { draft: "", items: [], done: false };
+
+@test
+fun clicking_finds_the_button_by_label() {
+    let m = Model { draft: "milk", ..empty() };
+    assert_eq(click(view(m), "Add"), Ok(Msg.Add));
+    assert_eq(click(view(m), "Remove"), Err(Lookup.NotFound("button \"Remove\"")));
+    assert_eq(click(view(m), "Clear"), Err(Lookup.Ambiguous("button \"Clear\"", 2)));
+}
+
+@test
+fun a_disabled_button_sends_nothing() {
+    assert_eq(click(view(empty()), "Add"), Err(Lookup.Silent("button \"Add\"")));
+    assert_eq(is_disabled(view(empty()), "Add"), Ok(true));
+    assert_eq(is_disabled(view(Model { draft: "milk", ..empty() }), "Add"), Ok(false));
+}
+
+@test
+fun typing_and_enter_find_the_field_by_placeholder() {
+    assert_eq(type_into(view(empty()), "New task", "milk"), Ok(Msg.Draft("milk")));
+    assert_eq(submit(view(empty()), "New task"), Ok(Msg.Add));
+    assert_eq(submit(view(empty()), "Notes"), Err(Lookup.Silent("text field \"Notes\"")));
+    assert_eq(
+        type_into(view(empty()), "Search", "x"),
+        Err(Lookup.NotFound("text field \"Search\"")),
+    );
+}
+
+@test
+fun toggling_sends_the_opposite_state() {
+    assert_eq(toggle(view(empty()), "Done"), Ok(Msg.Done(true)));
+    assert_eq(toggle(view(Model { done: true, ..empty() }), "Done"), Ok(Msg.Done(false)));
+}
+
+@test
+fun texts_include_what_lazy_nodes_build() {
+    let m = Model { items: ["a", "b"], ..empty() };
+    assert_eq(texts(view(m)), ["2 tasks"]);
+}

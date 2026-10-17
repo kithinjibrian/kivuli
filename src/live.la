@@ -306,8 +306,15 @@ fun apply<Msg>(
     }
     SetOnChange(path, on_change) => {
         match at(live, path) {
-            Input(_, current) => current.set(on_change),
+            Input(_, current, _) => current.set(on_change),
             _ => panic("kivuli: a SetOnChange patch points at something that isn't a text field"),
+        }
+        live
+    }
+    SetOnSubmit(path, on_submit) => {
+        match at(live, path) {
+            Input(_, _, submit) => submit.set(on_submit),
+            _ => panic("kivuli: a SetOnSubmit patch points at something that isn't a text field"),
         }
         live
     }

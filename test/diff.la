@@ -118,13 +118,17 @@ fun a_row_that_becomes_a_column_is_replaced() {
 
 @test
 fun a_changed_input_value_is_set_and_its_handler_re_pointed() {
-    let expected: Patch<Msg>[] = [Patch.SetValue([], "Ada"), Patch.SetOnChange([], Msg.Named)];
+    let expected: Patch<Msg>[] = [
+        Patch.SetValue([], "Ada"),
+        Patch.SetOnChange([], Msg.Named),
+        Patch.SetOnSubmit([], None),
+    ];
     assert_same(patches(input("", Msg.Named), input("Ada", Msg.Named)), expected);
 }
 
 @test
 fun an_unchanged_input_value_is_left_alone() {
-    let expected: Patch<Msg>[] = [Patch.SetOnChange([], Msg.Named)];
+    let expected: Patch<Msg>[] = [Patch.SetOnChange([], Msg.Named), Patch.SetOnSubmit([], None)];
     assert_same(patches(input("Ada", Msg.Named), input("Ada", Msg.Named)), expected);
 }
 

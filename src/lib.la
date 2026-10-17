@@ -1,9 +1,10 @@
 /**
  * kivuli's public API and the package's entry: `import kivuli;` loads this
  * module. It holds the view tree (from `views`) and effects (from `effects`),
- * re-exported, and the two ways to run an app: `sandbox` and `application`.
+ * re-exported, the two ways to run an app (`sandbox` and `application`), and
+ * the testing helpers as `kivuli.testing`.
  *
- * Depends on: views, effects, live
+ * Depends on: views, effects, testing, live
  */
 
 public import views {
@@ -23,6 +24,7 @@ public import views {
     lazy,
 };
 public import effects { Cmd, Sub, App };
+public import testing;
 import live;
 
 /**
