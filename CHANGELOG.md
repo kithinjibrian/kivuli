@@ -8,6 +8,16 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.5.0] — 2026-10-18
+
+### Added
+- Images from any source (PRP-010): `Image.Icon(name) | Image.File(path) | Image.Bytes(key, bytes)`; `image(…)` shows any of them, `.image(…)` puts one on a button. PNG and JPEG, checked from their headers before GTK decodes (at most 4096 × 4096 px and 16 MB): hostile bytes show nothing and never crash. Bytes are known by their key. `.size(n)` sizes a button's image, and gives a picture an n × n box. `examples/gallery.la` shows a picture from bytes. Needs lugha-gtk 0.1.25.
+
+### Changed
+- **Breaking:** `image(path)` is now `image(Image.File(path))`. To migrate, wrap each path. Files are PNG or JPEG only now (an SVG file shows nothing).
+- `View.Icon` and `View.Image(path)` are one `View.Image(Image)`; `View.Button` holds its image (`Style.icon` is gone); patches `SetIcon`/`SetFile` are `SetImage`, and a button's image is `SetButtonImage`. Apps using the builders and modifiers only need the `image(path)` change.
+- `View.map`'s body lives in `src/mapping.la` (DECISION-018); no change for apps.
+
 ## [0.4.1] — 2026-10-17
 
 ### Fixed

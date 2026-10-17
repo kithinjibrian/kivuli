@@ -1,6 +1,6 @@
 # PRP-010 — Images from any source: theme icons, files and bytes
 
-Status: approved by the user (session 11); building on branch prp-010-images
+Status: built (session 11) on branch prp-010-images; merged into main
 Discovery: session 11, 2026-10-18. The brief asked for images from bytes; talked through first, the user wanted one image model that grows to web images. *(you)*: chosen in the talk and the interview; *(proposed)*: for you to confirm or change with this PRP.
 
 ## FEATURE: One image type, `Image.Icon(name) | Image.File(path) | Image.Bytes(key, bytes)`, shown by `image(…)` and put on buttons by `.image(…)`; PNG and JPEG decoded safely from bytes, every source size-checked before GTK decodes.
@@ -83,31 +83,43 @@ button("Counter", Msg.Open).image(Image.Bytes("tile:counter", icon)).size(48)
 Fixtures inline as bytes: a tiny valid PNG and JPEG; a PNG header claiming 5000 × 5000; a PNG with a valid header and corrupt data; truncated and empty bytes.
 
 Pure:
-- [ ] `test/pictures.la`: PNG and JPEG sizes read; not an image, truncated, over 4096, over 16 MB (a long array), empty: each refused with its reason; identity: same key equal whatever the bytes, different keys not, kinds differ.
-- [ ] `test/lib.la`: `image(Image.…)`, `icon(name)` as `Image.Icon`, `.image` and `.icon` land in the button node; `.size` on a button.
-- [ ] diff: same key → nothing; new key → `SetImage` / `SetButtonImage`; icon ↔ picture → `Replace`; a button losing its image → `SetButtonImage(None)`.
-- [ ] `test/testing.la`: a button with a bytes image found by tooltip.
-- [ ] `test/map.la`: images pass through `map` (now in `mapping.la`).
+- [x] `test/pictures.la`: PNG and JPEG sizes read; not an image, truncated, over 4096, over 16 MB (a long array), empty: each refused with its reason; identity: same key equal whatever the bytes, different keys not, kinds differ.
+- [x] `test/lib.la`: `image(Image.…)`, `icon(name)` as `Image.Icon`, `.image` and `.icon` land in the button node; `.size` on a button.
+- [x] diff: same key → nothing; new key → `SetImage` / `SetButtonImage`; icon ↔ picture → `Replace`; a button losing its image → `SetButtonImage(None)`.
+- [x] `test/testing.la`: a button with a bytes image found by tooltip.
+- [x] `test/map.la`: images pass through `map` (now in `mapping.la`).
 
 Live GTK (skipped without a display):
-- [ ] a valid PNG shows (the picture's texture reads back its width and height); a valid JPEG too.
-- [ ] corrupt, too large and empty bytes show nothing, without a crash.
-- [ ] a key change replaces the texture (a new one, the old finalized); the same key keeps the same texture.
-- [ ] a button with a bytes image shows it (its GtkImage has the texture), `.size(48)` reads back 48.
-- [ ] `test/live_health.la`: removed image widgets and replaced textures are finalized.
-- [ ] lugha-gtk `test/textures.la`: each new extern.
+- [x] a valid PNG shows (the picture's texture reads back its width and height); a valid JPEG too.
+- [x] corrupt, too large and empty bytes show nothing, without a crash.
+- [x] a key change replaces the texture (a new one, the old finalized); the same key keeps the same texture.
+- [x] a button with a bytes image shows it (its GtkImage has the texture), `.size(48)` reads back 48.
+- [x] `test/live_health.la`: removed image widgets and replaced textures are finalized.
+- [x] lugha-gtk `test/textures.la`: each new extern.
 
 ## ROLLBACK PLAN
 - Branch `prp-010-images` from `main`; abandon by leaving it unmerged. lugha-gtk 0.1.25 is additions only.
 
 ## ACCEPTANCE CRITERIA
-- [ ] Images from theme icons, files and bytes show through one type; hostile bytes never crash; nothing leaks across re-renders.
-- [ ] `views.la` has room again (DECISION-018).
-- [ ] Tests above written first; narrow runs while building; the full suite and the examples' tests pass before the merge.
-- [ ] fmt clean; public items documented; no file over 500 lines.
-- [ ] README, docs/DESIGN.md, CHANGELOG (with migration), CLAUDE.md (the import exception, new modules), DECISIONS.md updated; 0.5.0 tagged; merged. Pushed only on your go.
+- [x] Images from theme icons, files and bytes show through one type; hostile bytes never crash; nothing leaks across re-renders.
+- [x] `views.la` has room again (DECISION-018).
+- [x] Tests above written first; narrow runs while building; the full suite and the examples' tests pass before the merge.
+- [x] fmt clean; public items documented; no file over 500 lines.
+- [x] README, docs/DESIGN.md, CHANGELOG (with migration), CLAUDE.md (the import exception, new modules), DECISIONS.md updated; 0.5.0 tagged; merged. Pushed only on your go.
 
 ## VALIDATION
 - While building: only the tests covering each step.
 - Before the merge: `lughac fmt --check src examples test`, `lughac test test/`, the examples' own tests, every example built; lugha-gtk `lughac test test/`.
 - For the user: `lughac run examples/gallery.la`: the sample picture from a file and from bytes look the same; the bytes-image button shows it.
+
+## NOTES FROM THE BUILD
+
+- **DECISION-018 first:** `View.map`'s body moved to `src/mapping.la` (views.la 499 → 452; 473 after this PRP's `.image`); the import exception is written into CLAUDE.md rule 2.
+- **Two new modules:** `src/pictures.la` (pure: `Image`, `identity`, the PNG/JPEG header checks, `MAX_SIDE`, `MAX_BYTES`) and `src/textures.la` (GTK: a checked image → a texture; build.la was at 462 lines). CLAUDE.md rule 4 lists `textures.la` among the modules that call GTK.
+- **The JPEG check** walks segments by their lengths (at most 64), skipping fill bytes and the standalone markers (TEM, RST0–7), and reads the first SOF0–15 (less DHT, JPG, DAC); the scan starting first, a length under 2 or a cut header refuse it. Proven on a real JPEG (3 × 2, width and height not swappable).
+- **A genuine 4097 × 1 PNG fixture** (85 bytes) proves the check runs before decoding: GTK decodes it happily; without kivuli's check it showed. The 5000 × 5000 fixture only claims its size, so GTK's decoder refuses it anyway; it tests the pure check alone. Mutation-checked: without the check, the wide PNG shows; without dropping kivuli's texture reference, removed pictures leak every texture.
+- **`.icon("")` still takes the image away**: it meant "no icon" as a style field, and a view in the tests relied on it (it showed GTK's placeholder for a moment in the build, caught by `test/live_images.la`).
+- **The diff tests** went to `test/diff_images.la`; `test/diff.la` (at the limit) lost one duplicated test to make room for the rewritten PRP-005 ones.
+- **The gallery** reads its sample's bytes once at start (as an app holds a bundle's) and shows them in a picture and on an image-only button; its own tests caught an ambiguous "Add" label on the way.
+- **Fixtures as hex:** as byte arrays, the formatter put each byte on its own line (842 lines); `test/fixtures.la` keeps them as hex strings decoded by `from_hex` (70 lines).
+- **Recorded:** DECISION-019 (model B, resolved) and DECISION-020 (lughac: `std.fs` has no file size, so a file is read before its size is refused; deferred, reported).

@@ -141,6 +141,18 @@ Decisions 1–12 were agreed in the design discussion in the lugha repository (a
 
 ---
 
+### 17. Images show bytes they already have (session 11, PRP-010)
+
+**Decision:** one `Image` type (`Icon(name)`, `File(path)`, `Bytes(key, bytes)`) for `image(…)` and a button's `.image(…)`. kivuli never fetches from the network: an app downloads with a non-blocking command and shows the bytes (model B, DECISION-019). Every file or bytes image is header-checked in pure Lugha (PNG, JPEG; 4096 × 4096 px; 16 MB) before GTK decodes it. The diff compares an image's kind and name, path or key, never its bytes.
+
+**Rules out:** `Image.Url`, kivuli-side HTTP, decoding unchecked bytes.
+
+### 18. View.map's body lives in mapping.la (DECISION-018)
+
+**Decision:** modifiers stay in `views.la` with `View` (an `impl` must sit with its type); `map`'s body is in `src/mapping.la`, and `views` ↔ `mapping` is the one allowed import cycle.
+
+---
+
 ## CURRENT PROJECT STATE
 
 ### Fully Working

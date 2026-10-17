@@ -37,13 +37,17 @@ kivuli draws nothing. Every visual comes from the user's GTK theme (Adwaita by d
 
 Units are pixels. All numbers come from the app. kivuli has **no default spacing or padding of its own**: a fresh `column` looks exactly like a fresh `GtkBox`.
 
-### Icons and pictures (`icon`, `.icon`, `image`, `.fit`)
+### Icons and pictures (`Image`, `icon`, `image`, `.image`, `.fit`; PRPs 005, 010)
 
 | kivuli | GTK |
 | --- | --- |
-| `icon(name)` | a `GtkImage` showing the theme's icon of that name; `.size(n)` sets its pixel size, else the theme's (`-1`) |
-| `.icon(name)` on a button | kivuli's own content: an icon before a label, each hidden when empty; classes `text-button` (label), `image-button` (icon), both for both, as GTK sets them itself (its theme has no `image-text-button`) |
-| `image(path)` | a `GtkPicture` of the file; `.fit` → `content-fit`: `Contain` (default), `Cover`, `ScaleDown`, `Fill` |
+| `icon(name)`, `image(Image.Icon(name))` | a `GtkImage` showing the theme's icon of that name; `.size(n)` sets its pixel size, else the theme's (`-1`) |
+| `image(Image.File(path))`, `image(Image.Bytes(key, bytes))` | a `GtkPicture` showing a `GdkTexture` decoded from the bytes (a file is read first); `.fit` → `content-fit`; `.size(n)` an n × n size request |
+| `.image(…)` / `.icon(name)` on a button | kivuli's own content: an image before a label, each hidden when empty; a texture or theme icon in its `GtkImage`, `.size(n)` its pixel size; classes `text-button` (label), `image-button` (image), both for both, as GTK sets them itself (its theme has no `image-text-button`) |
+
+**Where images come from (DECISION-019's model B, session 11).** An image shows bytes it already has: a theme icon, a local file, or bytes in memory with a key. kivuli never fetches from the network; an app downloads with a non-blocking command (a later PRP) and shows the bytes. A view can't make kivuli open a connection.
+
+**Hostile bytes.** Every file or bytes image is checked from its header in pure Lugha (`src/pictures.la`) before GTK decodes anything: PNG (signature, IHDR) or JPEG (SOI, the first start-of-frame), at most 4096 × 4096 px and 16 MB. A small file claiming a huge image never reaches the decoder. A decode error is freed and shows nothing; nothing panics. The diff compares an image's kind and name, path or key, never its bytes.
 
 Icons are the theme's only. Prefer symbolic names (`…-symbolic`): they take the theme's text colour, so they follow light, dark and high-contrast themes. kivuli never recolours an icon or a picture, and ships no icon set: an app that wants another one (Font Awesome, Lucide …) brings it itself. A missing icon or file shows GTK's placeholder.
 
