@@ -1,22 +1,11 @@
 // A browser-like frame: the app's own colours as typed looks, a header bar
 // with back, an address field filling the bar and a new-tab button, a tab
 // rail whose selected tab has a look of its own, and a window that opens
-// maximized. The header bar and the rail share one flat look, so they read as
-// one L-shaped frame. Its tests are at the bottom: `lughac test examples/frame.la`.
-import kivuli {
-    Align,
-    Border,
-    Surface,
-    View,
-    button,
-    column,
-    hex,
-    input,
-    row,
-    sandbox,
-    text,
-    theme,
-};
+// maximized. The header bar and the rail (on the right) share one flat look,
+// so they read as one L-shaped frame, and the page curves only at its top
+// right, where the frame wraps it. Its tests are at the bottom:
+// `lughac test examples/frame.la`.
+import kivuli { Border, Surface, View, button, column, hex, input, row, sandbox, text, theme };
 // For the tests at the bottom; `lughac build` leaves tests out.
 import kivuli.testing { click, is_disabled, submit, texts, type_into };
 
@@ -41,6 +30,8 @@ fun surface(l: Look): Surface = match l {
     Home => Surface {
         background: Some(hex("#161616")),
         text: Some(hex("#e0e0e0")),
+        // The corner the frame wraps; the other three meet the window's edges.
+        radius_top_right: Some(12),
         ..Surface.theme(),
     },
 };
@@ -110,13 +101,14 @@ fun view(b: Browser): View<Msg> {
         tabs.push(tab(b, i));
         i = i + 1;
     }
+    // The row is the frame too: the page's curve shows the frame's colour.
     row([
-        column(tabs).spacing(4).padding(8).width(160).style([Look.Frame]),
         column([
             text("You're at {shown(b)}").size(18),
             text("{b.tabs[b.current].len} page(s) in this tab").dim(),
-        ]).spacing(8).padding(24).expand().align(Align.Start).style([Look.Home]),
-    ]).window("{shown(b)} — Frame", 1000, 640).maximized().theme(
+        ]).spacing(8).padding(24).expand().style([Look.Home]),
+        column(tabs).spacing(4).padding(8).width(160).style([Look.Frame]),
+    ]).style([Look.Frame]).window("{shown(b)} — Frame", 1000, 640).maximized().theme(
         theme([Look.Frame, Look.Tab, Look.Selected, Look.Home], surface),
     ).header(
         [

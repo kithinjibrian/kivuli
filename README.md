@@ -145,7 +145,7 @@ column(tabs).style([Look.Rail])          // a tab: tab.style([Look.Rail, Look.Se
     .theme(theme([Look.Rail, Look.Selected], surface))
 ```
 
-A `Surface` sets any of `background`, `text` (text and icon colour), `border` (`Border { width, color }`), `radius` and `flat` (`Some(true)` turns the theme's shadow and border line off, as under a header bar; a look's own `border` stays); unset fields stay the GTK theme's. Colours come from `hex("#rgb" | "#rrggbb" | "#rrggbbaa")` or `rgb(r, g, b)`. A bad colour, a look with a value or listed twice, a look missing from the theme, or `.style` without `.theme` stops the app with a message. The theme is read when the window opens. `examples/frame.la` shows it all.
+A `Surface` sets any of `background`, `text` (text and icon colour), `border` (`Border { width, color }`), `radius` (all four corners), `radius_top_left`, `radius_top_right`, `radius_bottom_right`, `radius_bottom_left` (one corner, over `radius`; a rounded node's content is clipped to its curve) and `flat` (`Some(true)` turns the theme's shadow and border line off, as under a header bar; a look's own `border` stays); unset fields stay the GTK theme's. Colours come from `hex("#rgb" | "#rrggbb" | "#rrggbbaa")` or `rgb(r, g, b)`. A bad colour, a look with a value or listed twice, a look missing from the theme, or `.style` without `.theme` stops the app with a message. The theme is read when the window opens. `examples/frame.la` shows it all.
 
 **Components.** A part of an app can have its own model, messages, `update` and `view`, and sit in a bigger app through `map`, which sends `f(msg)` wherever the part would send `msg`:
 

@@ -1,6 +1,6 @@
 # PRP-009 — Corner radius
 
-Status: draft, for the user's approval
+Status: built (session 9) on branch prp-009-corner_radius; merged into main
 Discovery: session 9, 2026-10-17, from the user's brief and Rapidkoi's `screenshot-4-after-header-look.png`. *(you)*: from the brief; *(proposed)*: for you to confirm or change with this PRP.
 
 ## FEATURE: A `Surface` can round each corner alone (`radius_top_left` … `radius_bottom_left`), and a rounded node's content is clipped to its curve.
@@ -59,28 +59,36 @@ So kivuli turns overflow hidden on for a node whose looks round any corner, and 
 ## TESTS TO WRITE
 
 Pure (`test/theming.la`):
-- [ ] one corner: its rule and class only (`kv-radius-tr-12`).
-- [ ] all four equal: `border-radius` as today (`kv-radius-6`); all four set but different: four corner rules.
-- [ ] `radius` with one corner: that corner overrides, the other three follow `radius`.
-- [ ] merging: a later look's corner replaces only that corner; a later `radius` replaces every corner.
-- [ ] a negative corner is refused.
-- [ ] paint: `clips` is true for a node whose looks round a corner, false otherwise.
+- [x] one corner: its rule and class only (`kv-radius-tr-12`).
+- [x] all four equal: `border-radius` as today (`kv-radius-6`); all four set but different: four corner rules.
+- [x] `radius` with one corner: that corner overrides, the other three follow `radius`.
+- [x] merging: a later look's corner replaces only that corner; a later `radius` replaces every corner.
+- [x] a negative corner is refused.
+- [x] paint: `clips` is true for a node whose looks round a corner, false otherwise.
 
 Live GTK (skipped without a display), `test/live_look.la`:
-- [ ] a node whose look rounds one corner gets that corner's class and overflow hidden; when the look goes (a message), the class goes and overflow is visible again.
-- [ ] lugha-gtk `test/look.la`: `gtk_widget_set_overflow` / `get_overflow` set and read back.
+- [x] a node whose look rounds one corner gets that corner's class and overflow hidden; when the look goes (a message), the class goes and overflow is visible again.
+- [x] lugha-gtk `test/look.la`: `gtk_widget_set_overflow` / `get_overflow` set and read back.
 - [ ] The curve itself (what's drawn) is checked by hand in `examples/frame.la`: GTK's API doesn't read a radius back.
 
 ## ROLLBACK PLAN
 - Branch `prp-009-corner_radius` from `main`; abandon by leaving it unmerged. lugha-gtk 0.1.24 is additions only.
 
 ## ACCEPTANCE CRITERIA
-- [ ] A look can round any corner alone; `radius` behaves as before; a rounded node's content is clipped to its curve.
-- [ ] Tests above written first; narrow runs while building; the full suite and the examples' tests pass before the merge.
-- [ ] fmt clean; public items documented; no file over 500 lines.
-- [ ] README, docs/DESIGN.md, CHANGELOG updated; 0.4.0 tagged; merged into `main`. Pushed only on your go.
+- [x] A look can round any corner alone; `radius` behaves as before; a rounded node's content is clipped to its curve.
+- [x] Tests above written first; narrow runs while building; the full suite and the examples' tests pass before the merge.
+- [x] fmt clean; public items documented; no file over 500 lines.
+- [x] README, docs/DESIGN.md, CHANGELOG updated; 0.4.0 tagged; merged into `main`. Pushed only on your go.
 
 ## VALIDATION
 - While building: only the tests covering each step.
 - Before the merge: `lughac fmt --check src examples test`, `lughac test test/`, the examples' own tests, every example built; lugha-gtk `lughac test test/`.
 - For the user: `lughac run examples/frame.la`: the page meets the header and the rail with one curved corner, top right; the other three are square.
+
+## NOTES FROM THE BUILD
+
+- **Every corner rule for each radius a theme uses.** A merged node can mix corners from different looks (`Round` all 6, then `Corner` top right 12 gives `kv-radius-tl-6` …), and kivuli's stylesheet is built once from the looks alone. So `css` writes, for every radius value any look uses, the `border-radius` rule and the four corner rules: 5 small rules per distinct value, and every class a node can get exists. Classes on nodes are as proposed (`kv-radius-6` when all four are equal).
+- **Overflow is undone only where kivuli set it.** Some GTK widgets clip on their own; kivuli turns `HIDDEN` on only where the widget was `VISIBLE`, marks it with a `kv-clip` class, and sets `VISIBLE` back only where that mark is. Mutation-checked: without the undo, a node keeps clipping after its rounded look goes.
+- **The probe** (C, on a private `gtk4-broadwayd` display, nothing on screen) is described in the PRP; its source stayed in the session scratchpad.
+- **`examples/frame.la`**: the rail moved to the right (as in Rapidkoi), the row behind the page takes the frame's look so the curve shows the frame colour, and the page no longer aligns to the top (it fills the row's height).
+- `src/views.la` untouched (499 lines): DECISION-018 still open.

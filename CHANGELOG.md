@@ -8,6 +8,15 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-10-17
+
+### Added
+- Corner radius (PRP-009): `Surface.radius_top_left`, `radius_top_right`, `radius_bottom_right`, `radius_bottom_left`; `radius` still rounds all four. A rounded node's content is clipped to its curve. `examples/frame.la`: the rail on the right, the page curved only at its top right. Needs lugha-gtk 0.1.24.
+
+### Changed
+- `Surface` has four new fields: a `Surface { … }` literal listing every field adds them (with `..Surface.theme()`, nothing changes).
+- A theme's stylesheet has every corner rule for each radius it uses (one `border-radius` rule and four corner rules), so any merge of looks finds its classes.
+
 ## [0.3.0] — 2026-10-17
 
 ### Added

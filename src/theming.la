@@ -42,6 +42,11 @@ public struct Surface {
     public border: Option<Border>,
     /** The corner radius in pixels. */
     public radius: Option<i64>,
+    /** One corner's radius in pixels, over `radius` for that corner. */
+    public radius_top_left: Option<i64>,
+    public radius_top_right: Option<i64>,
+    public radius_bottom_right: Option<i64>,
+    public radius_bottom_left: Option<i64>,
     /**
      * `Some(true)` turns the theme's edges off: its shadow, and its border
      * line (as themes draw under a header bar), unless this look sets its own
@@ -57,6 +62,10 @@ impl Surface {
         text: None,
         border: None,
         radius: None,
+        radius_top_left: None,
+        radius_top_right: None,
+        radius_bottom_right: None,
+        radius_bottom_left: None,
         flat: None,
     };
 }
@@ -163,10 +172,10 @@ fun build_theme(names: string[], surfaces: Surface[]): Result<Theme, string> {
             return Err("the look \"{name}\" is listed twice");
         }
         let s = surfaces[i];
-        let negative = match s.radius {
+        let negative = corners(s).any(fun(c) = match c {
             Some(r) => r < 0,
             None => false,
-        } || match s.border {
+        }) || match s.border {
             Some(b) => b.width < 0,
             None => false,
         };
@@ -192,11 +201,20 @@ fun merged(t: Theme, names: string[]): Result<Surface, string> {
         let Some(s) = found else {
             return Err("the look \"{name}\" isn't in the theme");
         };
+        // A look's `radius` stands for its four corners: a later one replaces
+        // every corner, a later single corner only itself.
+        let now = corners(s);
+        let before = corners(out);
+        let pick = fun(i: i64): Option<i64> = if now[i].is_some() { now[i] } else { before[i] };
         out = Surface {
             background: if s.background.is_some() { s.background } else { out.background },
             text: if s.text.is_some() { s.text } else { out.text },
             border: if s.border.is_some() { s.border } else { out.border },
-            radius: if s.radius.is_some() { s.radius } else { out.radius },
+            radius: None,
+            radius_top_left: pick(0),
+            radius_top_right: pick(1),
+            radius_bottom_right: pick(2),
+            radius_bottom_left: pick(3),
             flat: if s.flat.is_some() { s.flat } else { out.flat },
         };
     }
@@ -212,13 +230,56 @@ fun css(t: Theme): string {
     let mut out: string[] = [];
     for (_, s) of t.looks {
         for (class, body) of rules(s) {
-            if seen.insert(class) {
-                out.push(".{class} {{ {body} }}");
+            // A merge of looks can need any corner rule for a radius the
+            // theme uses: all five go in, so every class a node gets exists.
+            let expanded = if class.starts_with("kv-radius") {
+                let mut all: (string, string)[] = [];
+                for c of corners(s) {
+                    match c {
+                        Some(r) => {
+                            for rule of radius_rules(r) {
+                                all.push(rule);
+                            }
+                        }
+                        None => {}
+                    }
+                }
+                all
+            } else {
+                [(class, body)]
+            };
+            for (k, b) of expanded {
+                if seen.insert(k) {
+                    out.push(".{k} {{ {b} }}");
+                }
             }
         }
     }
     out.join("\n")
 }
+
+/** Every rule a radius of `r` can give: all four corners, then each alone. */
+fun radius_rules(r: i64): (string, string)[] = [
+    ("kv-radius-{r}", "border-radius: {r}px;"),
+    ("kv-radius-tl-{r}", "border-top-left-radius: {r}px;"),
+    ("kv-radius-tr-{r}", "border-top-right-radius: {r}px;"),
+    ("kv-radius-br-{r}", "border-bottom-right-radius: {r}px;"),
+    ("kv-radius-bl-{r}", "border-bottom-left-radius: {r}px;"),
+];
+
+/** Each corner's radius (top left, top right, bottom right, bottom left): its own, else `radius`. */
+fun corners(s: Surface): Option<i64>[] = [
+    s.radius_top_left,
+    s.radius_top_right,
+    s.radius_bottom_right,
+    s.radius_bottom_left,
+].map(fun(c) = if c.is_some() { c } else { s.radius });
+
+/** Whether `s` rounds any corner: its content is then clipped to the curve. */
+fun rounds(s: Surface): bool = corners(s).any(fun(c) = match c {
+    Some(r) => r > 0,
+    None => false,
+});
 
 /** Each field `s` sets, as its class and its CSS declarations. */
 fun rules(s: Surface): (string, string)[] {
@@ -243,9 +304,28 @@ fun rules(s: Surface): (string, string)[] {
         ),
         None => {}
     }
-    match s.radius {
-        Some(r) => out.push(("kv-radius-{r}", "border-radius: {r}px;")),
-        None => {}
+    // Only the corners that are set; four equal ones as one radius.
+    let c = corners(s);
+    if c[0].is_some() && c[0] == c[1] && c[1] == c[2] && c[2] == c[3] {
+        let r = c[0].unwrap_or(0);
+        out.push(("kv-radius-{r}", "border-radius: {r}px;"));
+    } else {
+        let names = [
+            ("tl", "top-left"),
+            ("tr", "top-right"),
+            ("br", "bottom-right"),
+            ("bl", "bottom-left"),
+        ];
+        let mut i = 0;
+        while i < 4 {
+            match c[i] {
+                Some(r) => out.push(
+                    ("kv-radius-{names[i].0}-{r}", "border-{names[i].1}-radius: {r}px;"),
+                ),
+                None => {}
+            }
+            i = i + 1;
+        }
     }
     if s.flat == Some(true) {
         // Decided here, not by the cascade: a look's own border stays.

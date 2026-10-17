@@ -17,6 +17,7 @@ import gtk {
     gtk_application_window_new,
     gtk_header_bar_get_show_title_buttons,
     gtk_header_bar_get_title_widget,
+    gtk_widget_get_overflow,
     gtk_widget_has_css_class,
     gtk_window_get_titlebar,
     lgtk_widget_rgba,
@@ -247,6 +248,67 @@ fun the_header_bar_takes_its_looks_and_the_apps_css_wins_there() {
         "kv-bg 1 kv-fg 1 red true titlebar 1",
         "kv-bg 0 kv-fg 0 red false titlebar 1",
         "kv-bg 1 kv-fg 1 red true titlebar 1",
+    ]);
+    assert_eq(received.get(), ["Toggle", "Toggle"]);
+}
+
+enum Shape {
+    Page,
+}
+
+enum Round {
+    Toggle,
+}
+
+fun view_round(on: bool): View<Round> = column([
+    column([text("page")]).style(if on { [Shape.Page] } else { [] }),
+    button("Toggle", Round.Toggle),
+]).theme(
+    theme(
+        [Shape.Page],
+        fun(s: Shape) = Surface {
+            background: Some(hex("#161616")),
+            radius_top_right: Some(12),
+            ..Surface.theme(),
+        },
+    ),
+);
+
+/** A node's corner class and whether it clips its content. */
+fun round_state(
+    page: GtkWidget,
+): string = "tr {gtk_widget_has_css_class(page, "kv-radius-tr-12")} all {gtk_widget_has_css_class(page, "kv-radius-12")} overflow {gtk_widget_get_overflow(page)}";
+
+@test
+fun a_rounded_corner_lands_and_clips_the_content() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen: Ref<string[]> = Ref.new([]);
+    let received: Ref<string[]> = Ref.new([]);
+    with_app("org.kivuli.test.corner", true, fun(
+        on: bool,
+        msg: Round,
+    ): bool = !on, view_round, received, fun(window: GtkWidget, root: fun(): Live<Round>) {
+        let Box(_, _, kids) = root() else {
+            panic("expected a column");
+        };
+        let page = widget(kids[0]);
+        note(seen, round_state(page));
+        emit_widget(widget(kids[1]), "clicked");
+        note(seen, round_state(page));
+        emit_widget(widget(kids[1]), "clicked");
+        note(seen, round_state(page));
+        let Box(_, _, again) = root() else {
+            panic("expected a column");
+        };
+        note(seen, "same: {widget(again[0]) == page}");
+    });
+    assert_eq(seen.get(), [
+        "tr 1 all 0 overflow 1",
+        "tr 0 all 0 overflow 0",
+        "tr 1 all 0 overflow 1",
+        "same: true",
     ]);
     assert_eq(received.get(), ["Toggle", "Toggle"]);
 }

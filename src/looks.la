@@ -102,6 +102,8 @@ public struct Style {
     looks: string[],
     /** The CSS classes `looks` give with the root's theme: filled in by `paint`, never by hand. */
     classes: string[],
+    /** Whether `looks` round a corner, so the node clips its content to the curve: filled in by `paint`. */
+    clips: bool,
     /** The app's looks and what each looks like (`.theme`). Root only. */
     theme: Option<Theme>,
     /** The window opens maximized (`.maximized()`). Root only. */
@@ -139,6 +141,7 @@ fun plain(): Style = Style {
     fit: Fit.Contain,
     looks: [],
     classes: [],
+    clips: false,
     theme: None,
     maximized: false,
     header_looks: [],
