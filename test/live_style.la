@@ -14,10 +14,17 @@ import gtk {
     gtk_application_window_new,
     gtk_box_get_spacing,
     gtk_label_get_attributes,
+    gtk_label_get_ellipsize,
+    gtk_label_get_lines,
+    gtk_label_get_max_width_chars,
+    gtk_label_get_selectable,
+    gtk_label_get_wrap,
+    gtk_label_get_wrap_mode,
     gtk_widget_get_halign,
     gtk_widget_get_margin_start,
     gtk_widget_get_margin_top,
     gtk_widget_get_sensitive,
+    gtk_widget_get_tooltip_text,
     gtk_widget_get_vexpand,
     gtk_widget_has_css_class,
     pango_attr_list_to_string,
@@ -25,7 +32,7 @@ import gtk {
 import kivuli.live { dispatch, mount, live_of };
 import kivuli.effects { sandbox_app };
 import kivuli.live_tree { Live, widget };
-import kivuli { View, Align, column, row, spacer, text, ButtonStyle, button };
+import kivuli { View, Align, column, row, spacer, text, ButtonStyle, button, checkbox };
 
 fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
 
@@ -223,4 +230,123 @@ fun a_disabled_button_is_greyed_out_and_sends_nothing() {
         "reset 0, primary 1, danger 1",
     ]);
     assert_eq(received.get(), ["Add", "Reset"]);
+}
+
+enum Long {
+    On,
+    Off,
+}
+
+struct Flags {
+    on: bool,
+}
+
+// With `on`, every long-text modifier and a tooltip; without, none: dropping
+// them must reset the widgets.
+fun view_long(f: Flags): View<Long> = if f.on {
+    column([
+        text("wrapped").wrap(),
+        text("capped").wrap_at(40),
+        text("cut").ellipsize(),
+        text("both").wrap().ellipsize(),
+        text("copy me").selectable(),
+        checkbox("a very long task title", false, fun(b: bool) = Long.On).ellipsize(),
+        button("✕", Long.Off).tooltip("Delete it"),
+    ])
+} else {
+    column([
+        text("wrapped"),
+        text("capped"),
+        text("cut"),
+        text("both"),
+        text("copy me"),
+        checkbox("a very long task title", false, fun(b: bool) = Long.On),
+        button("✕", Long.Off),
+    ])
+};
+
+// wrap/mode, ellipsize, lines, max width chars, selectable — of one label.
+fun label_state(
+    w: GtkWidget,
+): string = "{gtk_label_get_wrap(w)}/{gtk_label_get_wrap_mode(w)} {gtk_label_get_ellipsize(w)} {gtk_label_get_lines(w)} {gtk_label_get_max_width_chars(w)} {gtk_label_get_selectable(w)}";
+
+fun long_state(root: Live<Long>): string[] {
+    let Box(_, _, kids) = root else {
+        panic("expected a column");
+    };
+    let Checkbox(_, check_label, _) = kids[5] else {
+        panic("expected a check box");
+    };
+    [
+        label_state(widget(kids[0])),
+        label_state(widget(kids[1])),
+        label_state(widget(kids[2])),
+        label_state(widget(kids[3])),
+        label_state(widget(kids[4])),
+        label_state(check_label),
+        gtk_widget_get_tooltip_text(widget(kids[6])).unwrap_or("none"),
+    ]
+}
+
+@test
+fun long_text_settings_and_tooltips_apply_and_reset() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen: Ref<string[][]> = Ref.new([]);
+    let application = gtk_application_new("org.kivuli.test.long", 0);
+    connect_app(
+        application,
+        "activate",
+        fun(a: GtkApplication) {
+            let window = gtk_application_window_new(a);
+            let app = mount(a, window, sandbox_app(
+                "org.kivuli.test",
+                Flags { on: true },
+                fun(f: Flags, msg: Long): Flags = match msg {
+                    On => Flags { on: true },
+                    Off => Flags { on: false },
+                },
+                view_long,
+            ));
+            seen.update(fun(xs) {
+                let mut ys = xs;
+                ys.push(long_state(live_of(app)));
+                ys
+            });
+            dispatch(app, Long.Off);
+            seen.update(fun(xs) {
+                let mut ys = xs;
+                ys.push(long_state(live_of(app)));
+                ys
+            });
+            g_application_quit(a);
+        },
+        0,
+    );
+    g_application_run(application, 0, None);
+    g_object_unref(application);
+
+    // wrap/mode ellipsize lines max-width selectable. Wrap mode is always 2
+    // (word, else char); lines -1 and max width -1 mean no limit.
+    assert_eq(seen.get(), [
+        [
+            "1/2 0 -1 -1 0",
+            "1/2 0 -1 40 0",
+            "0/2 3 -1 -1 0",
+            "1/2 3 3 -1 0",
+            "0/2 0 -1 -1 1",
+            "0/2 3 -1 -1 0",
+            "Delete it",
+        ],
+        [
+            "0/2 0 -1 -1 0",
+            "0/2 0 -1 -1 0",
+            "0/2 0 -1 -1 0",
+            "0/2 0 -1 -1 0",
+            "0/2 0 -1 -1 0",
+            "0/2 0 -1 -1 0",
+            "none",
+        ],
+    ]);
 }

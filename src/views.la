@@ -99,6 +99,16 @@ public struct Style {
     placeholder: string,
     /** A name for tests to find the node by (`kivuli.testing`); not shown. */
     name: string,
+    /** Long text flows onto more lines. Text and check box labels. */
+    wrap: bool,
+    /** With `wrap`, the most characters of width the text asks for; 0 for no cap. */
+    wrap_at: i64,
+    /** Long text stays one line, cut with "…" (with `wrap`: at most 3 lines). Text and check box labels. */
+    ellipsize: bool,
+    /** The user can select and copy the text. Text only. */
+    selectable: bool,
+    /** Hover text; "" for none. Any node. */
+    tooltip: string,
 }
 
 /** The style of a node with no modifiers: what GTK does by default. */
@@ -116,6 +126,11 @@ fun plain(): Style = Style {
     window: None,
     placeholder: "",
     name: "",
+    wrap: false,
+    wrap_at: 0,
+    ellipsize: false,
+    selectable: false,
+    tooltip: "",
 };
 
 /** `v` with its style changed by `f`: one `Styled` wrapper, however many modifiers. */
@@ -280,6 +295,62 @@ impl View<Msg> {
      * Example:
      *     input(m.draft, Msg.Draft).on_submit(Msg.Add)
      */
+    /**
+     * Lets long text flow onto more lines, breaking at word boundaries; on
+     * text and check box labels (ignored elsewhere).
+     *
+     * Example:
+     *     text(m.description).wrap()
+     */
+    public fun wrap(self): View<Msg> = restyle(self, fun(s: Style) = Style { wrap: true, ..s });
+
+    /**
+     * Wraps long text, asking for at most `chars` characters of width so it
+     * doesn't widen the window; `chars <= 0` is plain `.wrap()`.
+     *
+     * Example:
+     *     text(m.description).wrap_at(50)
+     */
+    public fun wrap_at(self, chars: i64): View<Msg> = restyle(
+        self,
+        fun(s: Style) = Style { wrap: true, wrap_at: chars, ..s },
+    );
+
+    /**
+     * Keeps long text on one line, cut at the end with "…"; with `.wrap()`,
+     * at most three lines, the last cut. On text and check box labels.
+     *
+     * Example:
+     *     checkbox(t.title, t.done, Msg.Done).ellipsize().tooltip(t.title)
+     */
+    public fun ellipsize(self): View<Msg> = restyle(
+        self,
+        fun(s: Style) = Style { ellipsize: true, ..s },
+    );
+
+    /**
+     * Lets the user select and copy the text; text only.
+     *
+     * Example:
+     *     text(m.error).wrap().selectable()
+     */
+    public fun selectable(self): View<Msg> = restyle(
+        self,
+        fun(s: Style) = Style { selectable: true, ..s },
+    );
+
+    /**
+     * Shows `hint` when the pointer rests on the node; `""` removes it. Tests
+     * can click a button by its tooltip (`kivuli.testing.click`).
+     *
+     * Example:
+     *     button("✕", Msg.Delete(t.id)).tooltip("Delete {t.title}")
+     */
+    public fun tooltip(self, hint: string): View<Msg> = restyle(
+        self,
+        fun(s: Style) = Style { tooltip: hint, ..s },
+    );
+
     /**
      * Names the node for tests: `kivuli.testing.type_into(v, id, text)` finds
      * a text field or text area by it. Not shown on screen.

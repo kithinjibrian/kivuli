@@ -14,7 +14,6 @@ import gtk {
     gtk_application_window_new,
     gtk_button_get_label,
     gtk_check_button_get_active,
-    gtk_check_button_get_label,
     gtk_editable_get_text,
     gtk_label_get_text,
     gtk_orientable_get_orientation,
@@ -67,9 +66,9 @@ fun shown<M>(node: Live<M>): string = match node {
     Button(w, _) => "[" + gtk_button_get_label(w).unwrap_or("?") + "]",
     Input(w, _, _) => "<" + gtk_editable_get_text(w) + ">",
     TextArea(_, _, _) => "<area>",
-    Checkbox(w, _) => {
+    Checkbox(w, label, _) => {
         let tick = if gtk_check_button_get_active(w) != 0 { "x" } else { " " };
-        "[{tick}] " + gtk_check_button_get_label(w).unwrap_or("?")
+        "[{tick}] " + gtk_label_get_text(label)
     }
     Spacer(w) => {
         let grows = if gtk_widget_get_vexpand(w) != 0 { "v" } else { "h" };

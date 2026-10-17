@@ -9,6 +9,7 @@ Never deleted. Older entries are never modified.
 ## [Unreleased]
 
 ### Added
+- Long text (PRP-002): `.wrap()`, `.wrap_at(chars)`, `.ellipsize()` on text and check box labels; `.selectable()` text; `.tooltip(hint)` on any node, which `kivuli.testing.click` also finds buttons by; `kivuli.testing.tooltip`. The to-do app cuts long titles and shows them on hover.
 - `text_area(value, on_change)`: a multi-line text field that wraps, scrolls inside itself and keeps the cursor while you type (PRP-001); `examples/notes.la`.
 - `.name(id)`: a name tests find a text field or text area by.
 - `View.map(f)`, `Cmd.map(f)`, `Sub.map(f)`: components with their own messages inside a bigger app; `examples/counters.la`.

@@ -19,14 +19,21 @@ import gtk {
     gtk_box_set_spacing,
     gtk_button_new_with_label,
     gtk_check_button_get_active,
-    gtk_check_button_new_with_label,
+    gtk_check_button_new,
     gtk_check_button_set_active,
+    gtk_check_button_set_child,
     gtk_editable_get_text,
     gtk_editable_set_text,
     gtk_entry_new,
     gtk_entry_set_placeholder_text,
     gtk_label_new,
     gtk_label_set_attributes,
+    gtk_label_set_ellipsize,
+    gtk_label_set_lines,
+    gtk_label_set_max_width_chars,
+    gtk_label_set_selectable,
+    gtk_label_set_wrap,
+    gtk_label_set_wrap_mode,
     gtk_scrolled_window_new,
     gtk_scrolled_window_set_child,
     gtk_separator_new,
@@ -44,6 +51,7 @@ import gtk {
     gtk_widget_set_margin_top,
     gtk_widget_set_sensitive,
     gtk_widget_set_size_request,
+    gtk_widget_set_tooltip_text,
     gtk_widget_set_valign,
     gtk_widget_set_vexpand,
     lgtk_cstring_text,
@@ -143,7 +151,10 @@ fun create_in<Msg>(v: View<Msg>, axis: i32, send: fun(Msg)): Live<Msg> = match v
         Live.TextArea(scrolled, buffer, current)
     }
     Checkbox(label, checked, on_toggle) => {
-        let check = gtk_check_button_new_with_label(label);
+        // Its own label child, so the long-text modifiers can reach it.
+        let check = gtk_check_button_new();
+        let text = gtk_label_new(label);
+        gtk_check_button_set_child(check, Some(text));
         // Set before connecting, so the first state isn't sent as a toggle.
         gtk_check_button_set_active(check, flag(checked));
         let current = Ref.new(on_toggle);
@@ -156,7 +167,7 @@ fun create_in<Msg>(v: View<Msg>, axis: i32, send: fun(Msg)): Live<Msg> = match v
             },
             0,
         );
-        Live.Checkbox(check, current)
+        Live.Checkbox(check, text, current)
     }
     Spacer => {
         // An empty box given all the spare room along its parent's axis.
@@ -247,9 +258,15 @@ fun apply_style<Msg>(node: Live<Msg>, style: Style, axis: i32) {
         _ => style.height,
     };
     gtk_widget_set_size_request(w, style.width as i32, height as i32);
+    gtk_widget_set_tooltip_text(w, if style.tooltip == "" { None } else { Some(style.tooltip) });
     match node {
         Box(box, _, _) => gtk_box_set_spacing(box, style.spacing as i32),
-        Label(label) => style_text(label, style),
+        Label(label) => {
+            style_text(label, style);
+            style_long_text(label, style);
+            gtk_label_set_selectable(label, flag(style.selectable));
+        }
+        Checkbox(_, label, _) => style_long_text(label, style),
         Input(entry, _, _) => gtk_entry_set_placeholder_text(
             entry,
             if style.placeholder == "" { None } else { Some(style.placeholder) },
@@ -257,6 +274,24 @@ fun apply_style<Msg>(node: Live<Msg>, style: Style, axis: i32) {
         Button(button, _) => style_button(button, style.look),
         _ => {}
     }
+}
+
+/**
+ * Gives a label the long-text fields of `style`, defaults included: wrapping
+ * (at word boundaries, else characters), its width cap, and ellipsizing, which
+ * with wrapping allows three lines.
+ */
+fun style_long_text(label: GtkWidget, style: Style) {
+    gtk_label_set_wrap(label, flag(style.wrap));
+    // PangoWrapMode 2: at word boundaries, breaking a word only if it's longer than a line.
+    gtk_label_set_wrap_mode(label, 2);
+    // PangoEllipsizeMode: 3 end, 0 none.
+    gtk_label_set_ellipsize(label, if style.ellipsize { 3 } else { 0 });
+    gtk_label_set_lines(label, if style.wrap && style.ellipsize { 3 } else { -1 });
+    gtk_label_set_max_width_chars(
+        label,
+        if style.wrap && style.wrap_at > 0 { style.wrap_at as i32 } else { -1 },
+    );
 }
 
 /** Gives a button the theme's CSS class for `look`, and only that one. */

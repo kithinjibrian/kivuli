@@ -15,7 +15,6 @@ import gtk {
     gtk_application_new,
     gtk_application_window_new,
     gtk_check_button_get_active,
-    gtk_check_button_get_label,
     gtk_check_button_set_active,
     gtk_editable_get_text,
     gtk_editable_set_text,
@@ -35,10 +34,13 @@ import kivuli { View, button, checkbox, column, input, text, text_area };
 
 fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
 
-// A check box as `[x] label` or `[ ] label`, read back from GTK.
-fun ticked(w: GtkWidget): string {
+// A check box as `[x] label` or `[ ] label`, read back from GTK (its label is kivuli's own child).
+fun ticked(node: Live<Chore>): string {
+    let Checkbox(w, label, _) = node else {
+        panic("expected a check box");
+    };
     let tick = if gtk_check_button_get_active(w) != 0 { "x" } else { " " };
-    "[{tick}] " + gtk_check_button_get_label(w).unwrap_or("?")
+    "[{tick}] " + gtk_label_get_text(label)
 }
 
 enum Form {
@@ -167,10 +169,10 @@ fun ticking_reaches_the_model_and_a_patch_does_not_echo() {
             };
             // What a user's click ends with: the box becomes ticked, outside any dispatch.
             gtk_check_button_set_active(widget(kids[0]), 1);
-            after_tick.set(ticked(widget(kids[0])));
+            after_tick.set(ticked(kids[0]));
             // Reset unticks it through a SetChecked patch; its `toggled` echo is dropped.
             emit_widget(widget(kids[1]), "clicked");
-            after_reset.set(ticked(widget(kids[0])));
+            after_reset.set(ticked(kids[0]));
             g_application_quit(a);
         },
         0,

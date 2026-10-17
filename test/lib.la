@@ -195,3 +195,26 @@ fun a_name_lands_in_the_style() {
     });
     assert_same(text_area("a", Msg.Named).name("notes"), expected);
 }
+
+@test
+fun long_text_modifiers_and_tooltips_land_in_the_style() {
+    let wrapped: View<Msg> = View.Styled(View.Text("x"), Style { wrap: true, ..plain() });
+    assert_same(text("x").wrap(), wrapped);
+    let capped: View<Msg> = View.Styled(View.Text("x"), Style {
+        wrap: true,
+        wrap_at: 40,
+        ..plain(),
+    });
+    assert_same(text("x").wrap_at(40), capped);
+    let cut: View<Msg> = View.Styled(View.Text("x"), Style {
+        ellipsize: true,
+        selectable: true,
+        ..plain(),
+    });
+    assert_same(text("x").ellipsize().selectable(), cut);
+    let tipped: View<Msg> = View.Styled(View.Button("x", Some(Msg.Add)), Style {
+        tooltip: "Add one",
+        ..plain(),
+    });
+    assert_same(button("x", Msg.Add).tooltip("Add one"), tipped);
+}

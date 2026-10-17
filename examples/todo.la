@@ -20,7 +20,7 @@ import kivuli {
     text,
 };
 // For the tests at the bottom; `lughac build` leaves tests out.
-import kivuli.testing { Lookup, click, is_disabled, submit, texts, toggle, type_into };
+import kivuli.testing { Lookup, click, is_disabled, submit, texts, toggle, tooltip, type_into };
 
 struct Todo {
     id: i64,
@@ -124,8 +124,9 @@ fun list(m: Model): View<Msg> {
 fun todo_row(t: Todo): View<Msg> = lazy(
     "{t.id}:{t.done}:{t.title}",
     fun(): View<Msg> = row([
-        checkbox(t.title, t.done, fun(on: bool) = Msg.Toggle(t.id, on)).expand(),
-        button("✕", Msg.Delete(t.id)).style(ButtonStyle.Subtle),
+        // A long title is cut with "…" and shown whole on hover.
+        checkbox(t.title, t.done, fun(on: bool) = Msg.Toggle(t.id, on)).ellipsize().tooltip(t.title).expand(),
+        button("✕", Msg.Delete(t.id)).style(ButtonStyle.Subtle).tooltip("Delete {t.title}"),
     ]).spacing(8),
 );
 
@@ -191,13 +192,21 @@ fun filters_show_only_their_tasks() {
 @test
 fun deleting_a_task() {
     let m = add(add(start(), "milk"), "eggs");
-    // Each row has its own ✕; there are two, so a label alone can't pick one.
+    // Each row has its own ✕: its tooltip says which task it deletes.
     assert_eq(click(view(m), "✕"), Err(Lookup.Ambiguous("button \"✕\"", 2)));
-    let gone = update(m, Msg.Delete(1));
-    assert_eq(click(view(gone), "✕"), Ok(Msg.Delete(2)));
+    assert_eq(click(view(m), "Delete eggs"), Ok(Msg.Delete(2)));
+    let gone = update(m, click(view(m), "Delete milk").unwrap_or(Msg.Draft("")));
+    assert_eq(gone.todos.map(fun(t) = t.title), ["eggs"]);
 }
 
 @test
 fun an_empty_list_says_so() {
     assert_eq(texts(view(start())), ["To-do", "Nothing to do yet", "0 items left"]);
+}
+
+@test
+fun a_long_title_is_cut_and_shown_whole_on_hover() {
+    let long = "buy oat milk, the barista kind, from the shop on the corner";
+    let m = add(start(), long);
+    assert_eq(tooltip(view(m), "✕"), Ok("Delete {long}"));
 }
