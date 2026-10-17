@@ -1,6 +1,6 @@
 # PRP-008 — Header look
 
-Status: draft, for the user's approval
+Status: approved by the user (session 8); building on branch prp-008-header_look
 Discovery: session 8, 2026-10-17, from the user's brief, Rapidkoi's screenshot (`screenshot-3-after-amendment-2.png`) and its inspiration (`inspiration-opera-frame.png`). *(you)*: from the brief; *(proposed)*: for you to confirm or change with this PRP.
 
 ## FEATURE: The root's header bar takes the app's looks (`.header_style([…])`), and a `Surface` can turn a node's theme edges off (`flat`), so a header bar and a rail read as one frame.
