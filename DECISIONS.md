@@ -16,6 +16,46 @@ Rules:
 
 ## DEFERRED — Acknowledged, not yet needed
 
+### DECISION-013 — A file dialog
+
+**Status:** deferred
+**Raised:** 2026-10-17 — Session 6 (rapidkoi DECISION-020, item 4)
+**Revisit when:** after PRP-007; Rapidkoi's "Open a file…" uses a path field meanwhile.
+
+**Question:** How does an app ask the user for a file? Likely a command (`GtkFileDialog` is asynchronous), which overlaps DECISION-007 (non-blocking I/O).
+
+---
+
+### DECISION-014 — An overlay
+
+**Status:** deferred
+**Raised:** 2026-10-17 — Session 6 (rapidkoi DECISION-020, item 5)
+**Revisit when:** after PRP-007; Rapidkoi's info panel sits beside the app meanwhile.
+
+**Question:** How does a view put one subtree over another (`GtkOverlay`), and how are the layers diffed?
+
+---
+
+### DECISION-015 — Context menus on right-click
+
+**Status:** deferred
+**Raised:** 2026-10-17 — Session 6 (rapidkoi DECISION-020, item 6)
+**Revisit when:** after PRP-007; Rapidkoi's tab actions live in its info panel meanwhile.
+
+**Question:** How does a node get a right-click menu (a popover), and how are its items' messages sent?
+
+---
+
+### DECISION-016 — A wrapping grid
+
+**Status:** deferred
+**Raised:** 2026-10-17 — Session 6 (rapidkoi DECISION-020, item 7)
+**Revisit when:** after PRP-007; Rapidkoi's home uses fixed rows of tiles meanwhile.
+
+**Question:** A container whose children wrap onto more rows as the window narrows (`GtkFlowBox`), keyed like `keyed_column`?
+
+---
+
 ### DECISION-011 — lughac: a module's private imports can be imported through it
 
 **Status:** deferred (a lughac bug, for the lugha repository; kivuli doesn't rely on it)
@@ -65,6 +105,22 @@ Rules:
 ---
 
 ## RESOLVED
+
+### DECISION-012 — How apps style their frame
+
+**Status:** resolved
+**Raised:** 2026-10-17 — Session 5 (the "app look" brief)
+**Resolved:** 2026-10-17 — Sessions 5–6
+
+**Question:** The brief asked for an app stylesheet (a CSS string) and `.class(name)`. Plain CSS, per-widget colour modifiers (Flutter-like), or typed styles (StyleX-like)? And where do window-wide settings go?
+
+**Outcome:** typed styles: an app names its looks in its own enum, each a typed `Surface`; nodes take `.style([…])`, merged left to right (later wins) in kivuli's code; kivuli generates atomic CSS. The button variant is renamed `.button_style(ButtonStyle.…)` (breaking, 0.2.0). Theme, dark, maximized and the header go on the root view next to `.window(…)`.
+
+**Rationale:** checked by the compiler and testable without GTK; apps can't write selectors into kivuli's or GTK's internals (PRP-005 changed button internals); colours in one place, as Rapidkoi's `themes.la` already is; the header must be in the view anyway, and a theme in the view makes runtime switching a small later step.
+
+**Copied to MEMORY.md:** with PRP-007's merge.
+
+---
 
 ### DECISION-003 — Module path of the testing helpers
 
