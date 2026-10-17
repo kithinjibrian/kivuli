@@ -84,20 +84,20 @@ fun diff_node<Msg>(path: i64[], old: View<Msg>, new: View<Msg>): Patch<Msg>[] {
  */
 fun resolve<Msg>(
     v: View<Msg>,
-    cache: (string, View<Msg>)[],
-): (View<Msg>, (string, View<Msg>)[]) = resolve_with(v, cache, []);
+    cache: Map<string, View<Msg>>,
+): (View<Msg>, Map<string, View<Msg>>) = resolve_with(v, cache, #{});
 
 /** `resolve`, with `used` the cache entries this view has used so far. */
 fun resolve_with<Msg>(
     v: View<Msg>,
-    cache: (string, View<Msg>)[],
-    used: (string, View<Msg>)[],
-): (View<Msg>, (string, View<Msg>)[]) = match v {
+    cache: Map<string, View<Msg>>,
+    used: Map<string, View<Msg>>,
+): (View<Msg>, Map<string, View<Msg>>) = match v {
     Lazy(key, build, _) => {
         // Built earlier in this view (the same key twice) or by the last update.
-        let found = match lookup(used, key) {
+        let found = match used.get(key) {
             Some(b) => Some(b),
-            None => lookup(cache, key),
+            None => cache.get(key),
         };
         match found {
             // Reused whole: its own lazies stay cached too.
@@ -142,9 +142,9 @@ fun resolve_with<Msg>(
 
 fun resolve_all<Msg>(
     xs: View<Msg>[],
-    cache: (string, View<Msg>)[],
-    used: (string, View<Msg>)[],
-): (View<Msg>[], (string, View<Msg>)[]) {
+    cache: Map<string, View<Msg>>,
+    used: Map<string, View<Msg>>,
+): (View<Msg>[], Map<string, View<Msg>>) {
     let mut out: View<Msg>[] = [];
     let mut now = used;
     for x of xs {
@@ -156,7 +156,7 @@ fun resolve_all<Msg>(
 }
 
 /** `used` plus the entry of every resolved lazy inside `v`. */
-fun keep_lazies<Msg>(v: View<Msg>, used: (string, View<Msg>)[]): (string, View<Msg>)[] = match v {
+fun keep_lazies<Msg>(v: View<Msg>, used: Map<string, View<Msg>>): Map<string, View<Msg>> = match v {
     Lazy(key, _, Some(built)) => with_entry(keep_lazies(built, used), key, built),
     Column(xs) => keep_all(xs, used),
     Row(xs) => keep_all(xs, used),
@@ -172,7 +172,7 @@ fun keep_lazies<Msg>(v: View<Msg>, used: (string, View<Msg>)[]): (string, View<M
     _ => used,
 };
 
-fun keep_all<Msg>(xs: View<Msg>[], used: (string, View<Msg>)[]): (string, View<Msg>)[] {
+fun keep_all<Msg>(xs: View<Msg>[], used: Map<string, View<Msg>>): Map<string, View<Msg>> {
     let mut now = used;
     for x of xs {
         now = keep_lazies(x, now);
@@ -180,26 +180,17 @@ fun keep_all<Msg>(xs: View<Msg>[], used: (string, View<Msg>)[]): (string, View<M
     now
 }
 
-fun lookup<Msg>(entries: (string, View<Msg>)[], key: string): Option<View<Msg>> {
-    for (k, v) of entries {
-        if k == key {
-            return Some(v);
-        }
-    }
-    None
-}
-
-/** `entries` with `key` → `v`, unless `key` is already there. */
+/** `used` with `key` → `v`, unless `key` is already there (the first build of a key wins). */
 fun with_entry<Msg>(
-    entries: (string, View<Msg>)[],
+    used: Map<string, View<Msg>>,
     key: string,
     v: View<Msg>,
-): (string, View<Msg>)[] {
-    if lookup(entries, key).is_some() {
-        return entries;
+): Map<string, View<Msg>> {
+    if used.has(key) {
+        return used;
     }
-    let mut out = entries;
-    out.push((key, v));
+    let mut out = used;
+    out[key] = v;
     out
 }
 
@@ -341,18 +332,16 @@ fun diff_keyed<Msg>(
     xs: (string, View<Msg>)[],
     ys: (string, View<Msg>)[],
 ): Patch<Msg>[] {
-    let wanted = keys_of(ys);
-    let mut seen: string[] = [];
-    for k of wanted {
-        if index_of(seen, k) >= 0 {
+    let mut wanted: Set<string> = #{};
+    for (k, _) of ys {
+        if !wanted.insert(k) {
             panic("kivuli: a keyed_column has two children keyed \"{k}\"");
         }
-        seen.push(k);
     }
     let mut out: Patch<Msg>[] = [];
     let mut i = xs.len - 1;
     while i >= 0 {
-        if index_of(wanted, xs[i].0) < 0 {
+        if !wanted.has(xs[i].0) {
             out.push(Patch.Remove(child(path, i)));
         }
         i = i - 1;
@@ -360,21 +349,26 @@ fun diff_keyed<Msg>(
     // What the keyed column holds now: the kept rows, in their old order.
     let mut keys: string[] = [];
     let mut kept: View<Msg>[] = [];
+    let mut present: Set<string> = #{};
     for (k, v) of xs {
-        if index_of(wanted, k) >= 0 {
+        if wanted.has(k) {
             keys.push(k);
             kept.push(v);
+            present.insert(k);
         }
     }
     let mut at = 0;
     while at < ys.len {
         let (k, v) = ys[at];
-        let j = index_of(keys, k);
-        if j < 0 {
+        if !present.has(k) {
             out.push(Patch.Insert(path, at, v));
             keys = inserted(keys, at, k);
             kept = inserted(kept, at, v);
+            present.insert(k);
         } else {
+            // Usually the row is already in place; a moved one is searched for
+            // from here on (everything before `at` is settled).
+            let j = if keys[at] == k { at } else { position(keys, k, at + 1) };
             if j != at {
                 out.push(Patch.Move(path, j, at));
                 keys = moved(keys, j, at);
@@ -387,24 +381,13 @@ fun diff_keyed<Msg>(
     out
 }
 
-fun keys_of<Msg>(children: (string, View<Msg>)[]): string[] {
-    let mut out: string[] = [];
-    for (k, _) of children {
-        out.push(k);
-    }
-    out
-}
-
-/** Where `key` is in `keys`, or -1. */
-fun index_of(keys: string[], key: string): i64 {
-    let mut i = 0;
-    while i < keys.len {
-        if keys[i] == key {
-            return i;
-        }
+/** Where `key` is in `keys`, looking from index `from`; it must be there. */
+fun position(keys: string[], key: string, from: i64): i64 {
+    let mut i = from;
+    while keys[i] != key {
         i = i + 1;
     }
-    -1
+    i
 }
 
 /** `xs` with `x` placed at index `at`, the elements from there on shifted down one. */

@@ -71,7 +71,7 @@ struct Running<Model, Msg> {
     patching: Ref<bool>,
     timers: Ref<Ticking<Msg>[]>,
     // Subtrees lazy nodes built, by key, for the next update to reuse.
-    built: Ref<(string, View<Msg>)[]>,
+    built: Ref<Map<string, View<Msg>>>,
 }
 
 /**
@@ -106,7 +106,7 @@ fun mount<Model, Msg>(
     program: App<Model, Msg>,
 ): Running<Model, Msg> {
     let none_yet: Ticking<Msg>[] = [];
-    let nothing_built: (string, View<Msg>)[] = [];
+    let nothing_built: Map<string, View<Msg>> = #{};
     let app = Running {
         application: application,
         window: window,
@@ -217,26 +217,26 @@ fun perform<Model, Msg>(app: Running<Model, Msg>, cmd: Cmd<Msg>) {
 fun resubscribe<Model, Msg>(app: Running<Model, Msg>, model: Model) {
     let subscriptions = app.program.subscriptions;
     let wanted = timers(subscriptions(model));
-    let mut now: Ticking<Msg>[] = [];
+    let mut keys: Set<string> = #{};
+    for w of wanted {
+        keys.insert(w.key);
+    }
+    let mut kept: Map<string, Ticking<Msg>> = #{};
     for t of app.timers.get() {
-        if index_of_key(wanted, t.key) < 0 {
-            g_source_remove(t.source);
+        if keys.has(t.key) {
+            kept[t.key] = t;
         } else {
-            now.push(t);
+            g_source_remove(t.source);
         }
     }
     let mut next: Ticking<Msg>[] = [];
     for w of wanted {
-        let mut found = false;
-        for t of now {
-            if t.key == w.key {
+        match kept.get(w.key) {
+            Some(t) => {
                 t.tick.set(w.tick);
                 next.push(t);
-                found = true;
             }
-        }
-        if !found {
-            next.push(start_timer(app, w));
+            None => next.push(start_timer(app, w)),
         }
     }
     app.timers.set(next);
@@ -253,17 +253,6 @@ fun start_timer<Model, Msg>(app: Running<Model, Msg>, timer: Timer<Msg>): Tickin
         1
     });
     Ticking { key: timer.key, source: source, tick: tick }
-}
-
-fun index_of_key<Msg>(wanted: Timer<Msg>[], key: string): i64 {
-    let mut i = 0;
-    while i < wanted.len {
-        if wanted[i].key == key {
-            return i;
-        }
-        i = i + 1;
-    }
-    -1
 }
 
 /** Applies one patch to the widgets, and returns the `Live` tree that now mirrors them. */
