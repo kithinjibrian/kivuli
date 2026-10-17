@@ -36,6 +36,7 @@ import gtk {
     gtk_widget_add_css_class,
     gtk_widget_get_visible,
     gtk_widget_set_visible,
+    lgtk_remove_css_classes_with_prefix,
     gtk_widget_remove_css_class,
     gtk_widget_set_halign,
     gtk_widget_set_hexpand,
@@ -64,7 +65,20 @@ import widgets { snap };
  * `expand` grows along it and `align` places across it.
  */
 fun apply_style<Msg>(node: Live<Msg>, style: Style, axis: i32) {
+    // A header's modifiers are its body's: `.header` keeps them outside the frame.
+    match node {
+        Framed(_, body, _, _, _) => {
+            apply_style(body, style, axis);
+            return;
+        }
+        _ => {}
+    }
     let w = widget(node);
+    // The app's looks: only kivuli's own classes are replaced.
+    lgtk_remove_css_classes_with_prefix(w, "kv-");
+    for class of style.classes {
+        gtk_widget_add_css_class(w, class);
+    }
     let pad = style.padding as i32;
     gtk_widget_set_margin_top(w, pad);
     gtk_widget_set_margin_bottom(w, pad);

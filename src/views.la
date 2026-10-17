@@ -7,6 +7,7 @@
  */
 
 import looks { Style, Window, ButtonStyle, Align, Fit, plain };
+import theming { Theme };
 
 /**
  * A description of what's on screen. `Msg` is the app's message type: what a
@@ -47,6 +48,11 @@ public enum View<Msg> {
     Scroll(View<Msg>),
     /** Children stacked top to bottom, each with a key naming it across views. */
     Keyed((string, View<Msg>)[]),
+    /**
+     * The root of a view with a header bar (`.header`): the body, the views at
+     * the bar's start, its title view, and the views at its end.
+     */
+    Framed(View<Msg>, View<Msg>[], View<Msg>, View<Msg>[]),
     /** A node and its modifiers: built by the modifier methods, never by hand. */
     Styled(View<Msg>, Style),
     /**
@@ -355,6 +361,63 @@ impl View<Msg> {
         fun(s: Style) = Style { fit: how, ..s },
     );
 
+    /**
+     * Paints the node with the app's looks, from the root's `.theme(…)`: each
+     * look's fields over the last's, so a later look wins. `[]` is no look.
+     * A look the theme doesn't have stops the app with a message.
+     *
+     * Example:
+     *     tab.style([Look.Rail, Look.Selected])
+     */
+    public fun style<L>(self, chosen: L[]): View<Msg> = restyle(
+        self,
+        fun(s: Style) = Style { looks: chosen.map(fun(l) = "{l}"), ..s },
+    );
+
+    /**
+     * On the root of `view`: the app's theme, every look it uses and what
+     * each looks like (`theme(…)`). Applied when the window opens; a different
+     * theme in a later view is ignored. Ignored below the root.
+     *
+     * Example:
+     *     column([...]).theme(theme([Look.Bar, Look.Home], surface))
+     */
+    public fun theme(self, t: Theme): View<Msg> = restyle(
+        self,
+        fun(s: Style) = Style { theme: Some(t), ..s },
+    );
+
+    /**
+     * On the root of `view`: the window opens maximized; `.window`'s size is
+     * its size when unmaximized. Read when the window opens. Ignored below
+     * the root.
+     */
+    public fun maximized(self): View<Msg> = restyle(
+        self,
+        fun(s: Style) = Style { maximized: true, ..s },
+    );
+
+    /**
+     * On the root of `view`: a header bar as the window's title bar, with
+     * `start` views at its start, `title` in the middle (`.expand()` lets it
+     * fill the bar, as for an address box) and `end` views at its end. GTK
+     * draws the window's controls. Its widgets send messages like any others.
+     * Anywhere but the root, the app stops with a message.
+     *
+     * Example:
+     *     column([...]).header([back, forward], address(m).expand(), [menu])
+     */
+    public fun header(
+        self,
+        start: View<Msg>[],
+        title: View<Msg>,
+        end: View<Msg>[],
+    ): View<Msg> = match self {
+        // Modifiers stay outside the frame, where the runtime reads the root's.
+        Styled(inside, s) => View.Styled(inside.header(start, title, end), s),
+        _ => View.Framed(self, start, title, end),
+    };
+
     public fun on_submit(self, msg: Msg): View<Msg> = match self {
         Input(value, Some((on_change, _))) => View.Input(value, Some((on_change, Some(msg)))),
         // Disabled: there are no messages to add Enter's to.
@@ -408,6 +471,12 @@ impl View<Msg> {
         Scroll(x) => View.Scroll(x.map(f)),
         Keyed(pairs) => View.Keyed(pairs.map(fun(pair) = (pair.0, pair.1.map(f)))),
         Styled(x, style) => View.Styled(x.map(f), style),
+        Framed(body, start, title, end) => View.Framed(
+            body.map(f),
+            start.map(fun(x) = x.map(f)),
+            title.map(f),
+            end.map(fun(x) = x.map(f)),
+        ),
         // The key stays: what's built is the same, only its messages change.
         Lazy(key, build, built) => View.Lazy(
             key,

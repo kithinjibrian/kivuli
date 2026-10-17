@@ -5,7 +5,7 @@
  * responsible for deciding what to show (the app's `view`) or what changed
  * (`diff`).
  *
- * Depends on: views, effects, diff, live_tree, build, patch, gtk.raw
+ * Depends on: views, effects, diff, paint, theming, live_tree, build, patch, gtk.raw
  * Used by: lib
  */
 
@@ -21,11 +21,17 @@ import gtk {
     g_timeout_add_full,
     gtk_application_new,
     gtk_application_window_new,
+    gtk_css_provider_load_from_string,
+    gtk_css_provider_new,
+    gtk_style_context_add_provider_for_display,
+    gtk_widget_get_display,
     gtk_widget_grab_focus,
+    gtk_window_maximize,
     gtk_window_present,
     gtk_window_set_child,
     gtk_window_set_default_size,
     gtk_window_set_title,
+    gtk_window_set_titlebar,
 };
 import diff;
 import views { View };
@@ -35,7 +41,9 @@ import build { create, focus_target };
 import patch { apply, at };
 import keys { duplicate };
 import walk { path_of_name };
-import live_tree { Live, widget };
+import live_tree { Live, titlebar, widget };
+import paint { painted };
+import theming { css };
 
 /** What changes as the app runs: the model, the view it gave, and the widgets showing it. */
 struct State<Model, Msg> {
@@ -107,10 +115,15 @@ fun mount<Model, Msg>(
     };
     let (model, cmd) = program.init;
     let view = program.view;
-    let tree = diff.resolve(view(model), None);
+    let tree = paint_or_stop(diff.resolve(view(model), None));
     check_shortcuts(tree);
     let live = create(tree, sender(app));
     gtk_window_set_child(window, widget(live));
+    match titlebar(live) {
+        Some(bar) => gtk_window_set_titlebar(window, Some(bar)),
+        None => {}
+    }
+    show_look(window, tree);
     app.state.set(Some(State { model: model, tree: tree, live: live }));
     show_window(window, None, window_of(tree));
     perform(app, cmd);
@@ -146,7 +159,7 @@ fun dispatch<Model, Msg>(app: Running<Model, Msg>, msg: Msg) {
     let view = app.program.view;
     let (model, cmd) = update(s.model, msg);
     // Lazy nodes whose keys are unchanged at their place reuse what they built.
-    let tree = diff.resolve(view(model), Some(s.tree));
+    let tree = paint_or_stop(diff.resolve(view(model), Some(s.tree)));
     check_shortcuts(tree);
     let mut live = s.live;
     app.patching.set(true);
@@ -177,6 +190,40 @@ fun show_window(window: GtkWidget, old: Option<Window>, new: Option<Window>) {
             gtk_window_set_default_size(window, w.width as i32, w.height as i32);
         }
         None => {}
+    }
+}
+
+/** `v` with its looks' classes filled in (`paint`); what the app got wrong stops it. */
+fun paint_or_stop<Msg>(v: View<Msg>): View<Msg> = match painted(v) {
+    Ok(p) => p,
+    Err(problem) => panic("kivuli: {problem}"),
+};
+
+/**
+ * What the root asks of the window when it opens: the theme's stylesheet for
+ * its display (at application priority, 600, over the GTK theme), and
+ * maximized. Read once: later views don't change them (PRP-007).
+ */
+fun show_look<Msg>(window: GtkWidget, tree: View<Msg>) {
+    let Styled(_, style) = tree else {
+        return;
+    };
+    match style.theme {
+        Some(t) => {
+            let provider = gtk_css_provider_new();
+            gtk_css_provider_load_from_string(provider, css(t));
+            // The display keeps the provider for the app's life.
+            gtk_style_context_add_provider_for_display(
+                gtk_widget_get_display(window),
+                provider,
+                600,
+            );
+        }
+        None => {}
+    }
+    if style.maximized {
+        // Before the window is shown: it opens maximized.
+        gtk_window_maximize(window);
     }
 }
 

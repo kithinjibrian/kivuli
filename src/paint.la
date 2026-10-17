@@ -1,0 +1,70 @@
+/**
+ * Painting a view: before each diff, every node's looks (`.style`) become the
+ * CSS classes of their merged surface in the root's theme, kept in its
+ * style, so classes diff and patch like any other modifier. Also where what
+ * an app got wrong about looks and headers is found, before GTK. Pure.
+ *
+ * Depends on: views, looks, theming
+ * Used by: live
+ */
+
+import views { View };
+import looks { Style };
+import theming { Theme, classes, merged };
+
+/**
+ * `v` with every node's `classes` filled in from its looks and the root's
+ * theme; or what's wrong: a look the theme doesn't have, `.style` without a
+ * `.theme`, or a `.header` below the root.
+ */
+fun painted<Msg>(v: View<Msg>): Result<View<Msg>, string> {
+    let t = match v {
+        Styled(_, s) => s.theme,
+        _ => None,
+    };
+    paint_root(v, t)
+}
+
+/** The root, which alone may be framed by a header. */
+fun paint_root<Msg>(v: View<Msg>, t: Option<Theme>): Result<View<Msg>, string> = match v {
+    Styled(inside, s) => Ok(View.Styled(paint_root(inside, t)?, paint_style(s, t)?)),
+    Framed(body, start, title, end) => Ok(
+        View.Framed(paint(body, t)?, paint_all(start, t)?, paint(title, t)?, paint_all(end, t)?),
+    ),
+    _ => paint(v, t),
+};
+
+fun paint<Msg>(v: View<Msg>, t: Option<Theme>): Result<View<Msg>, string> = match v {
+    Styled(inside, s) => Ok(View.Styled(paint(inside, t)?, paint_style(s, t)?)),
+    Column(xs) => Ok(View.Column(paint_all(xs, t)?)),
+    Row(xs) => Ok(View.Row(paint_all(xs, t)?)),
+    Scroll(x) => Ok(View.Scroll(paint(x, t)?)),
+    Keyed(pairs) => {
+        let mut out: (string, View<Msg>)[] = [];
+        for (k, x) of pairs {
+            out.push((k, paint(x, t)?));
+        }
+        Ok(View.Keyed(out))
+    }
+    Lazy(key, build, Some(built)) => Ok(View.Lazy(key, build, Some(paint(built, t)?))),
+    Framed(_, _, _, _) => Err(".header(…) belongs on the root of the view only"),
+    _ => Ok(v),
+};
+
+fun paint_all<Msg>(xs: View<Msg>[], t: Option<Theme>): Result<View<Msg>[], string> {
+    let mut out: View<Msg>[] = [];
+    for x of xs {
+        out.push(paint(x, t)?);
+    }
+    Ok(out)
+}
+
+/** `s` with the classes of its looks. */
+fun paint_style(s: Style, t: Option<Theme>): Result<Style, string> = if s.looks.len == 0 {
+    Ok(Style { classes: [], ..s })
+} else {
+    match t {
+        Some(theme) => Ok(Style { classes: classes(merged(theme, s.looks)?), ..s }),
+        None => Err("a node has .style([…]) but the root has no .theme(…)"),
+    }
+};

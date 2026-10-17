@@ -115,3 +115,9 @@ fun mapped_fields_send_mapped_messages_and_disabled_ones_stay_silent() {
     let expected: View<App> = View.Input("", None);
     assert_same(off, expected);
 }
+
+@test
+fun a_mapped_header_sends_mapped_messages() {
+    let part: View<Part> = text("body").header([button("Go", Part.Go)], text("T"), []);
+    assert_eq(click(part.map(App.Left), "Go"), Ok(App.Left(Part.Go)));
+}

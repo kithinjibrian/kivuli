@@ -20,12 +20,19 @@ import kivuli {
     icon,
     image,
     Fit,
+    Surface,
+    theme,
 };
 
 // Views and patches can hold functions, which have no `==`: compare what they
 // print instead (functions print as `<fun>`; DECISION-008).
 fun assert_same<T>(actual: T, expected: T) {
     assert_eq("{actual}", "{expected}");
+}
+
+enum Shade {
+    Bar,
+    Selected,
 }
 
 enum Msg {
@@ -295,4 +302,36 @@ fun disabled_false_changes_nothing_on_a_field() {
     assert_same(input("Ada", Msg.Named).on_submit(Msg.Add).disabled(false), on);
     let area: View<Msg> = View.TextArea("a", Some(Msg.Named));
     assert_same(text_area("a", Msg.Named).disabled(false), area);
+}
+
+@test
+fun styles_and_window_settings_land_in_the_style() {
+    let styled: View<Msg> = View.Styled(View.Text("a"), Style {
+        looks: ["Bar", "Selected"],
+        ..plain(),
+    });
+    assert_same(text("a").style([Shade.Bar, Shade.Selected]), styled);
+    let t = theme([Shade.Bar], fun(s: Shade) = Surface.theme());
+    let rooted: View<Msg> = View.Styled(View.Text("a"), Style {
+        theme: Some(t),
+        maximized: true,
+        ..plain(),
+    });
+    assert_same(text("a").theme(t).maximized(), rooted);
+}
+
+@test
+fun a_header_frames_the_node_and_its_styles_stay_outside() {
+    let framed: View<Msg> = View.Styled(
+        View.Framed(View.Text("body"), [button("Back", Msg.Reset)], text("Title"), []),
+        Style { padding: 8, ..plain() },
+    );
+    assert_same(
+        text("body").padding(8).header([button("Back", Msg.Reset)], text("Title"), []),
+        framed,
+    );
+    assert_same(
+        text("body").header([button("Back", Msg.Reset)], text("Title"), []).padding(8),
+        framed,
+    );
 }

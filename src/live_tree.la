@@ -56,6 +56,16 @@ enum Live<Msg> {
     Separator(GtkWidget),
     /** A scrolled window and the one child it shows. */
     Scroll(GtkWidget, Live<Msg>),
+    /**
+     * The root framed by a header bar: the bar, the body (the window's child),
+     * the title widget, and the views packed at the bar's start and end.
+     */
+    Framed(GtkWidget, Live<Msg>, Live<Msg>, Live<Msg>, Live<Msg>),
+    /**
+     * The views packed at one end of a header bar (`true`: the end), in
+     * order; no widget of its own, so its widget is the bar's.
+     */
+    Pack(GtkWidget, bool, Live<Msg>[]),
 }
 
 /**
@@ -89,4 +99,13 @@ fun widget<Msg>(node: Live<Msg>): GtkWidget = match node {
     Spacer(w) => w,
     Separator(w) => w,
     Scroll(w, _) => w,
+    // The window's child; the bar is its titlebar.
+    Framed(_, body, _, _, _) => widget(body),
+    Pack(bar, _, _) => bar,
+};
+
+/** The header bar to show as the window's titlebar, if the root has one. */
+fun titlebar<Msg>(root: Live<Msg>): Option<GtkWidget> = match root {
+    Framed(bar, _, _, _, _) => Some(bar),
+    _ => None,
 };

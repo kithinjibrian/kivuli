@@ -23,6 +23,8 @@ import kivuli {
     icon,
     image,
     Fit,
+    Surface,
+    theme,
 };
 
 // Views and patches can hold functions, which have no `==`: compare what they
@@ -463,4 +465,34 @@ fun a_disabled_fields_value_still_updates() {
         patches(text_area("a", Msg.Named).disabled(true), text_area("b", Msg.Named).disabled(true)),
         area,
     );
+}
+
+fun framed(title: string, start: View<Msg>[], end: View<Msg>[]): View<Msg> = text("body").header(
+    start,
+    text(title),
+    end,
+);
+
+@test
+fun a_headers_parts_diff_in_place() {
+    let retitled: Patch<Msg>[] = [Patch.SetText([1], "New")];
+    assert_same(patches(framed("Old", [], []), framed("New", [], [])), retitled);
+    let added: Patch<Msg>[] = [Patch.Append([3], button("Menu", Msg.Add))];
+    assert_same(patches(framed("T", [], []), framed("T", [], [button("Menu", Msg.Add)])), added);
+    let removed: Patch<Msg>[] = [Patch.SetMsg([2, 0], Some(Msg.Reset)), Patch.Remove([2, 1])];
+    assert_same(
+        patches(
+            framed("T", [button("Back", Msg.Reset), button("Next", Msg.Add)], []),
+            framed("T", [button("Back", Msg.Reset)], []),
+        ),
+        removed,
+    );
+    let body: Patch<Msg>[] = [Patch.SetText([0], "other")];
+    assert_same(patches(framed("T", [], []), text("other").header([], text("T"), [])), body);
+}
+
+@test
+fun a_change_of_looks_is_a_restyle() {
+    let expected: Patch<Msg>[] = [Patch.SetStyle([], Style { looks: ["Bar"], ..plain() })];
+    assert_same(patches(text("a"), text("a").style(["Bar"])), expected);
 }

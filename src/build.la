@@ -32,6 +32,11 @@ import gtk {
     gtk_editable_get_text,
     gtk_editable_set_text,
     gtk_entry_new,
+    gtk_header_bar_new,
+    gtk_header_bar_pack_end,
+    gtk_header_bar_pack_start,
+    gtk_header_bar_set_show_title_buttons,
+    gtk_header_bar_set_title_widget,
     gtk_image_new_from_icon_name,
     gtk_label_new,
     gtk_picture_new_for_filename,
@@ -315,6 +320,21 @@ fun create_in<Msg>(v: View<Msg>, axis: i32, send: fun(Msg)): Live<Msg> = match v
         }
         create_box(1, views_of, send)
     }
+    Framed(body, start, title, end) => {
+        let bar = gtk_header_bar_new();
+        // GTK draws the window's controls, in the system's style.
+        gtk_header_bar_set_show_title_buttons(bar, 1);
+        // A header bar lays out across: its parts grow along a row.
+        let shown = create_in(title, 0, send);
+        gtk_header_bar_set_title_widget(bar, Some(widget(shown)));
+        Live.Framed(
+            bar,
+            create_in(body, axis, send),
+            shown,
+            pack(bar, false, start, send),
+            pack(bar, true, end, send),
+        )
+    }
     Styled(inside, style) => {
         let node = create_in(inside, axis, send);
         apply_style(node, style, axis);
@@ -331,6 +351,29 @@ fun create_in<Msg>(v: View<Msg>, axis: i32, send: fun(Msg)): Live<Msg> = match v
         node
     }
 };
+
+/**
+ * Builds the views for one end of a header bar and packs each into the bar
+ * itself, in order, so the theme's spacing between them applies.
+ */
+fun pack<Msg>(bar: GtkWidget, at_end: bool, views_of: View<Msg>[], send: fun(Msg)): Live<Msg> {
+    let mut kids: Live<Msg>[] = [];
+    for v of views_of {
+        let kid = create_in(v, 0, send);
+        pack_one(bar, at_end, widget(kid));
+        kids.push(kid);
+    }
+    Live.Pack(bar, at_end, kids)
+}
+
+/** Packs `w` after those already at that end of the bar (further in, at the end). */
+fun pack_one(bar: GtkWidget, at_end: bool, w: GtkWidget) {
+    if at_end {
+        gtk_header_bar_pack_end(bar, w);
+    } else {
+        gtk_header_bar_pack_start(bar, w);
+    }
+}
 
 /** Builds a `GtkBox` of `orientation` holding the widgets for `children`. */
 fun create_box<Msg>(orientation: i32, children: View<Msg>[], send: fun(Msg)): Live<Msg> {
