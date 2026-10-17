@@ -222,12 +222,21 @@ Branch: main (PRP-006 on prp-006-disabled_text_fields, merged)
 
 ---
 
-## SESSION 6 — 2026-10-17 — PRP-007: app look — open
+## SESSION 6 — 2026-10-17 — PRP-007: app look, kivuli 0.2.0 — closed
 
-Branch: main
+Branch: main (PRP-007 on prp-007-app_look, merged)
 
-Notes so far:
+### WHAT WAS DONE
 - PRP-007 written after a talk-through (typed looks via `.style`, `.button_style` rename, window settings on the root) and approved; built on prp-007-app_look. lugha-gtk 0.1.23 pushed (CSS providers, maximize, header bars, C helpers in src/c/look.c). `.dark()` deferred: neither GTK setting switched the theme in tests (DECISION-017, the user's choice). DECISIONS 012 (resolved) and 013–016 (queued features) recorded. kivuli 0.2.0.
+
+---
+
+### STILL OPEN AT CLOSE
+- Not pushed, waiting for the user's go: `main` and tags `v0.1.1`, `v0.2.0`.
+- For the user to check by hand: `lughac run examples/frame.la` opens maximized, the address field fills the header bar, the rail and selected tab show their colours.
+- DECISION-017 (forcing dark) deferred; DECISIONS 013–016 queued (file dialog, overlay, context menus, wrapping grid).
+- `views.la` 487, `diff.la` 477, `test/diff.la` 498 lines: split before adding to them. `test/live_forms.la` (562) split still awaiting the user.
+- `reports/.gitkeep` deleted in the working tree, not by Claude; left alone.
 
 ---
 
