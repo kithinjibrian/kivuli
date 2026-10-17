@@ -62,27 +62,67 @@ docs/{specs,decisions,incidents,status}/, docs/source/*/, reports/, test/ — em
 
 ---
 
-## NEXT SESSION START POINT
-
-1. Open session 2 in this file and commit it.
-2. Read CLAUDE.md, MEMORY.md, DECISIONS.md, then `docs/source/stakeholder/kickoff-2026-10-16.md` (§5 internals, §6 risks).
-3. Ask the user to resolve DECISION-001. Recommended: run PRP-001 discovery now, and decide on the prerequisites once lugha's actors milestone (92) closes.
-4. Run the discovery interview for **PRP-001: kivuli v1** (`PRPs/DISCOVERY.md`, a recommended answer on every question), then write `PRPs/prp-001-kivuli_v1.md`. Plan the build in the brief's eight steps, each ending in something that runs:
-   1. static render: `sandbox`, `text`/`button`/`column`/`row`, full rebuild per message
-   2. diff + patch + the handler-`Ref` trick
-   3. `input`, `checkbox`, `keyed_column`, `scroll`, `spacer`, `separator`
-   4. modifiers and styles
-   5. `application` with `Cmd`/`Sub`
-   6. `lazy` (DECISION-002)
-   7. `ui.testing` (DECISION-003)
-   8. examples (counter, to-do, stopwatch) and README
-5. Gotchas: kivuli uses `gtk.raw`, not `gtk.widgets`. Check every new extern against `/usr/include/gtk-4.0`. `lughac spec` before assuming any language feature.
-
-## SESSION 2 — 2026-10-17 — Step 0: a raw GTK window — open
+## SESSION 2 — 2026-10-17 — kivuli v1 steps 0–4, lughac and lugha-gtk fixes — closed
 
 Branch: main
 
-Notes so far (handoff to be written at close):
+### WHAT WAS DONE
+
+The user chose to be hands-on: small steps, code shown and walked through. Steps 0–4 of the kickoff brief's plan were built that way, without PRP-001 (the user's choice; see STILL OPEN).
+
+- Step 0: `examples/raw.la`, a counter written straight on GTK.
+- Steps 1–2: `View<Msg>` as plain data (`src/views.la`), `sandbox` (`src/lib.la`), and a live layer that first rebuilt the window per message.
+- Step 3: `src/diff.la` (pure, position-based diff into patches) and patching in `src/live.la`: a `Live` tree mirroring the widgets, signals connected once per widget with handlers reading their message or function from a `Ref`, a `patching` flag dropping echoes of kivuli's own patches.
+- Step 4: `row`, `input` (keeps the cursor: no rewrite of text the entry already shows), `checkbox`, `spacer`, `separator`, `scroll`, `keyed_column` (rows matched by key: Remove, then Insert/Move, each kept row diffed in place).
+- Public API moved to the package entry `src/lib.la` (`import kivuli { … }`) when lughac milestone 99 added it; GTK is imported as `import gtk { GtkWidget, gtk_box_new, … }` since lugha-gtk 0.1.8 globs `gtk.raw` (lughac milestone 100).
+- lugha-gtk (the user's go each time; pushed and tagged): 0.1.1 box remove/insert, 0.1.2 `emit_widget` (C wrapper), 0.1.3 entry `lib.la`, 0.1.4 entry re-exports raw, 0.1.5 check buttons, 0.1.6 expand/separator/scrolled window, 0.1.7 reorder and child walking, 0.1.8 `public import raw { * }`.
+- lughac quirks found while building were reported and fixed in lugha (m93–m100, PRs #32–#45): see the notes below. The user now installs lughac; Claude never does.
+
+### FILES CREATED OR MODIFIED
+
+```
+src/lib.la          — the entry: re-exports views, adds sandbox
+src/views.la        — View<Msg> and its builders (text, button, column, row, input, checkbox, spacer, separator, scroll, keyed_column)
+src/diff.la         — Patch<Msg>, diff (positional and keyed), list helpers
+src/live.la         — Live tree, run/dispatch, create_in (parent axis), apply, update_at
+test/lib.la, test/diff.la — pure tests, compared by printed form (assert_same)
+test/live.la, test/live_forms.la — GTK tests on hidden windows, skip("no display") without one
+examples/counter.la — counter with a name field, a row, a checkbox, a separator
+examples/raw.la     — the same counter on raw GTK, for comparison
+lugha.toml, lugha.lock — gtk = lugha-gtk 0.1.8 (one lock at the root)
+CLAUDE.md, MEMORY.md, DECISIONS.md, CHANGELOG.md, PRPs/TEMPLATE.md — kept in step with the above
+```
+
+### TESTS WRITTEN
+
+- test/lib.la — every builder makes the node it says; input/checkbox handlers called directly.
+- test/diff.la — each patch kind; rows and keyed rows (delete, insert, rotate, reverse, combined); scroll paths; kind changes give Replace.
+- test/live.la — a run of messages patches the same widgets; separators/spacers follow their parent's axis; scroll Append/Replace; keyed rows reordered on screen (read back from GTK) and kept as the same widgets.
+- test/live_forms.la — typing and ticking reach the model; kivuli's own patches send no echo (each checked to fail with the echo guard removed).
+
+41 tests: 36 pure, 5 GTK (skipped without a display).
+
+### DECISIONS MADE
+
+- DECISION-001 resolved (prerequisites landed as lugha m93/m94); DECISION-004 resolved (missing GTK bindings go into lugha-gtk); DECISION-008 resolved (tests compare views by printed form: functions make View non-Eq).
+- Public API is the package entry `src/lib.la`; private modules import `views`. GTK through `import gtk { … }` by name.
+- All tests in `test/`; GTK tests skip without a display; test files can't share helpers (E0312), so small ones are repeated (the user chose this when test/live.la passed 500 lines).
+- Never build or reinstall lughac: ask the user (saved in Claude's memory and CLAUDE.md).
+
+### PENDING DECISIONS OPENED
+
+- DECISION-008 (opened and resolved this session). DECISION-002 (`lazy`), DECISION-003 (testing helpers re-exported from the entry?) remain open.
+
+### STILL OPEN AT CLOSE
+
+- No PRP-001: steps 0–4 were built hands-on at the user's request. The user never answered whether to write PRP-001 or relax the PRP rule for this kind of work. Ask before step 5.
+- `examples/hello.la` is empty (no `main`); a stray empty `tests/` folder exists. Both the user's to decide (delete?).
+- No README, no LICENSE (the user adds LICENSE), no remote.
+- lughac quirks still to report: `lughac test`'s summary leaves out files that failed to compile (exit code is right); `lughac fmt` spreads a short `if a { 1 } else { 0 }` over five lines; inference doesn't reach a call inside a tuple literal; test files can't import each other.
+- Not covered by a test: input's same-text check (needs `gtk_editable_get_position` in lugha-gtk); duplicate keys in keyed_column panic, but lughac test can't expect a panic.
+
+### NOTES KEPT DURING THE SESSION
+
 - lughac bugs to report in the lugha repo (not fixed here, per SCOPE RULE):
   1. `lughac fmt` exits 2 ("failed verification") on a `match` where a `{ … }` arm is followed by an arm starting with `(`: it drops the comma after the block, and `} (a, _) =>` then parses as a call. Repro: `fun f(x: i64, y: i64): i64 = match (x, y) { (0, _) => { 1 }, (a, _) => a, };` — runs fine, fmt crashes. Avoided in src/diff.la by moving the block into `diff_button`.
   2. `lughac fmt` puts a lone trailing array argument on one line and splits the signature (`fun view(\n    m: Model,\n): View<Msg> = column(\n    [a, b, c],\n);`) instead of hugging `column([` … `])`. Every kivuli `view` looks like this.
@@ -99,3 +139,14 @@ Notes so far (handoff to be written at close):
 - lughac quirks (new): sibling inference doesn't reach a call inside a tuple literal (`keyed_column([("a", text("a"))])` against an annotated value is E0412; tests annotate a `let`); test files can't import one another (`import test.support;` and `import kivuli.test.support;` are E0312), so shared GTK test helpers are repeated per file.
 - lugha-gtk 0.1.7 pushed and tagged (reorder_child_after, get_first_child/get_next_sibling); kivuli requires it. keyed_column done; test/live.la split (527 lines) into live.la + live_forms.la, the user's choice.
 - lughac m100 (glob re-exports, PR #45) verified on the user's install. lugha-gtk 0.1.8 (v0.1.8, 9af15ad, pushed): `public import raw { * };` in lib.la. kivuli requires 0.1.8 and imports `gtk { GtkWidget, gtk_box_new, … }` by name, no `gtk.raw.` prefix.
+
+---
+
+## NEXT SESSION START POINT
+
+1. Open session 3 in this file (step 1, before anything else) and commit it.
+2. Read CLAUDE.md, MEMORY.md, DECISIONS.md, then this file's session 2. The user works hands-on: small steps, show and explain the code, ask before large changes. Never build lughac; ask the user to.
+3. First question for the user: write PRP-001 for the rest of v1 (steps 5–8), or keep building hands-on without one and relax the PRP rule? Attach a recommendation.
+4. Step 5 — modifiers and styles: `.padding(n)`, `.spacing(n)`, `.expand()`, `.align(Start|Center|End)`, `.width/height(n)`, `.size(n)`, `.bold()`, `.dim()`, `.style(Normal|Primary|Danger|Subtle)`, `.disabled(bool)` (button `Option<Msg>`, MEMORY decision 6). Read docs/DESIGN.md first (style vocabulary → GTK CSS classes). Each node needs a layout record; modifiers return changed copies with struct update (`..b`). GTK calls they need (margins exist; CSS classes, `gtk_widget_set_sensitive`, halign/valign, size_request, box spacing) go into lugha-gtk first, pushed only on the user's go.
+5. Then steps 6–8: `application` with Cmd/Sub, `lazy` (DECISION-002), testing helpers (DECISION-003), examples (to-do, stopwatch) and README.
+6. Gotchas: a named import binds the module name too (E0311 for a local named `live`, `views`, …); `lughac fmt` reflows multi-line text other edits expect — re-read before scripted edits; files may not exceed 500 lines.

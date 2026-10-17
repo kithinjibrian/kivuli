@@ -132,16 +132,18 @@ Decisions 1–12 were agreed in the design discussion in the lugha repository (a
 ## CURRENT PROJECT STATE
 
 ### Fully Working
-- Context system set up (session 1).
-- `lughac` installed at `~/.cargo/bin/lughac` from lugha `main` at m94 (e7abc33). GTK 4.22 dev headers installed.
-- Lugha prerequisites: struct update (m93), variants as functions (m94).
+- Context system (session 1).
+- `sandbox(id, init, update, view)` with diff-and-patch rendering (session 2).
+- Widgets: `text`, `button`, `column`, `row`, `input`, `checkbox`, `spacer`, `separator`, `scroll`, `keyed_column` (session 2).
+- 41 tests (5 GTK, skipped without a display); `examples/counter.la`, `examples/raw.la`.
+- Toolchain: lughac from lugha main (user-installed; m93–m100 in use), lugha-gtk 0.1.8, GTK 4.22.
 
 ### In Progress
-- Nothing.
+- Nothing (session 2 closed after step 4).
 
 ### Not Started
-- PRP-001: kivuli v1.
-- Examples: counter, to-do, stopwatch. README, LICENSE.
+- Step 5 modifiers and styles; step 6 `application` with Cmd/Sub; `lazy` (DECISION-002); testing helpers (DECISION-003); to-do and stopwatch examples; README; LICENSE (the user's).
+- PRP-001: not written; steps 0–4 were built hands-on at the user's request. Whether to write it is the first question of session 3.
 
 ---
 
