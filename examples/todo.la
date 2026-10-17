@@ -1,0 +1,203 @@
+// A to-do list: add with Enter or the button, tick, delete, filter, and clear
+// what's done. Rows are keyed (moves and deletes touch only those widgets)
+// and lazy (a row is rebuilt only when its title or state changes). The
+// app's own tests are at the bottom: `lughac test examples/todo.la`.
+import kivuli {
+    Align,
+    ButtonStyle,
+    View,
+    button,
+    checkbox,
+    column,
+    input,
+    keyed_column,
+    lazy,
+    row,
+    sandbox,
+    scroll,
+    separator,
+    spacer,
+    text,
+};
+// For the tests at the bottom; `lughac build` leaves tests out.
+import kivuli.testing { Lookup, click, is_disabled, submit, texts, toggle, type_into };
+
+struct Todo {
+    id: i64,
+    title: string,
+    done: bool,
+}
+
+enum Filter {
+    All,
+    Active,
+    Done,
+}
+
+struct Model {
+    todos: Todo[],
+    draft: string,
+    filter: Filter,
+    /** The id the next task gets: ids are never reused, so keys stay unique. */
+    next: i64,
+}
+
+enum Msg {
+    Draft(string),
+    Add,
+    Toggle(i64, bool),
+    Delete(i64),
+    Show(Filter),
+    ClearDone,
+}
+
+fun update(m: Model, msg: Msg): Model = match msg {
+    Draft(text) => Model { draft: text, ..m },
+    Add => {
+        let title = m.draft.trim();
+        if title == "" {
+            m
+        } else {
+            let mut todos = m.todos;
+            todos.push(Todo { id: m.next, title: title, done: false });
+            Model { todos: todos, draft: "", next: m.next + 1, ..m }
+        }
+    }
+    Toggle(id, done) => Model {
+        todos: m.todos.map(fun(t) = if t.id == id { Todo { done: done, ..t } } else { t }),
+        ..m,
+    },
+    Delete(id) => Model { todos: m.todos.filter(fun(t) = t.id != id), ..m },
+    Show(filter) => Model { filter: filter, ..m },
+    ClearDone => Model { todos: m.todos.filter(fun(t) = !t.done), ..m },
+};
+
+fun shown(t: Todo, filter: Filter): bool = match filter {
+    All => true,
+    Active => !t.done,
+    Done => t.done,
+};
+
+fun left(m: Model): i64 = m.todos.filter(fun(t) = !t.done).len;
+
+fun any_done(m: Model): bool = m.todos.any(fun(t) = t.done);
+
+fun items(n: i64): string = if n == 1 { "1 item" } else { "{n} items" };
+
+fun view(m: Model): View<Msg> = column([
+    text("To-do").size(24).bold(),
+    row([
+        input(m.draft, Msg.Draft).placeholder("What needs doing?").on_submit(Msg.Add).expand(),
+        button("Add", Msg.Add).style(ButtonStyle.Primary).disabled(m.draft.trim() == ""),
+    ]).spacing(8),
+    row([
+        tab("All", Filter.All, m.filter),
+        tab("Active", Filter.Active, m.filter),
+        tab("Done", Filter.Done, m.filter),
+    ]).spacing(4),
+    separator(),
+    list(m),
+    separator(),
+    row([
+        text("{items(left(m))} left").dim().align(Align.Center),
+        spacer(),
+        button("Clear done", Msg.ClearDone).style(ButtonStyle.Danger).disabled(!any_done(m)),
+    ]),
+]).padding(20).spacing(12).window("To-do — {left(m)} left", 420, 560);
+
+// The current filter reads as a plain button; the others as subtle ones.
+fun tab(label: string, filter: Filter, current: Filter): View<Msg> {
+    let look = if filter == current { ButtonStyle.Normal } else { ButtonStyle.Subtle };
+    button(label, Msg.Show(filter)).style(look)
+}
+
+fun list(m: Model): View<Msg> {
+    let visible = m.todos.filter(fun(t) = shown(t, m.filter));
+    if visible.len == 0 {
+        let message = if m.todos.len == 0 { "Nothing to do yet" } else { "Nothing here" };
+        return column([spacer(), text(message).dim().align(Align.Center), spacer()]).expand();
+    }
+    scroll(keyed_column(visible.map(fun(t) = ("{t.id}", todo_row(t)))).spacing(4))
+}
+
+// Lazy: rebuilt only when the key (everything the row shows) changes.
+fun todo_row(t: Todo): View<Msg> = lazy(
+    "{t.id}:{t.done}:{t.title}",
+    fun(): View<Msg> = row([
+        checkbox(t.title, t.done, fun(on: bool) = Msg.Toggle(t.id, on)).expand(),
+        button("✕", Msg.Delete(t.id)).style(ButtonStyle.Subtle),
+    ]).spacing(8),
+);
+
+fun start(): Model = Model { todos: [], draft: "", filter: Filter.All, next: 1 };
+
+fun main(): i32 = sandbox("org.kivuli.todo", start(), update, view);
+
+// Tests: what a user does, worked out from the view by kivuli.testing and fed
+// back through `update`, with no window.
+
+// The model after the user's messages.
+fun after(msgs: Msg[]): Model {
+    let mut m = start();
+    for msg of msgs {
+        m = update(m, msg);
+    }
+    m
+}
+
+// Types `title` into the new-task field and presses Enter.
+fun add(m: Model, title: string): Model {
+    let typed = update(m, type_into(view(m), "What needs doing?", title).unwrap_or(Msg.Draft("")));
+    update(typed, submit(view(typed), "What needs doing?").unwrap_or(Msg.Draft("")))
+}
+
+@test
+fun typing_and_enter_add_a_task() {
+    let m = add(start(), "  milk ");
+    assert_eq(m.todos.len, 1);
+    assert_eq(m.todos[0].title, "milk");
+    assert_eq(m.draft, "");
+    assert_eq(texts(view(m)), ["To-do", "1 item left"]);
+}
+
+@test
+fun add_is_disabled_while_the_draft_is_blank() {
+    assert_eq(is_disabled(view(start()), "Add"), Ok(true));
+    assert_eq(is_disabled(view(after([Msg.Draft("   ")])), "Add"), Ok(true));
+    assert_eq(click(view(after([Msg.Draft("eggs")])), "Add"), Ok(Msg.Add));
+}
+
+@test
+fun ticking_a_task_and_clearing_what_is_done() {
+    let m = add(add(start(), "milk"), "eggs");
+    assert_eq(is_disabled(view(m), "Clear done"), Ok(true));
+    let ticked = update(m, toggle(view(m), "milk").unwrap_or(Msg.Draft("")));
+    assert_eq(texts(view(ticked)), ["To-do", "1 item left"]);
+    let cleared = update(ticked, click(view(ticked), "Clear done").unwrap_or(Msg.Draft("")));
+    assert_eq(cleared.todos.map(fun(t) = t.title), ["eggs"]);
+}
+
+@test
+fun filters_show_only_their_tasks() {
+    let m = add(add(start(), "milk"), "eggs");
+    let ticked = update(m, Msg.Toggle(1, true));
+    let active = update(ticked, click(view(ticked), "Active").unwrap_or(Msg.Draft("")));
+    assert_eq(toggle(view(active), "milk"), Err(Lookup.NotFound("check box \"milk\"")));
+    assert_eq(toggle(view(active), "eggs"), Ok(Msg.Toggle(2, true)));
+    let done = update(active, Msg.Show(Filter.Done));
+    assert_eq(toggle(view(done), "milk"), Ok(Msg.Toggle(1, false)));
+}
+
+@test
+fun deleting_a_task() {
+    let m = add(add(start(), "milk"), "eggs");
+    // Each row has its own ✕; there are two, so a label alone can't pick one.
+    assert_eq(click(view(m), "✕"), Err(Lookup.Ambiguous("button \"✕\"", 2)));
+    let gone = update(m, Msg.Delete(1));
+    assert_eq(click(view(gone), "✕"), Ok(Msg.Delete(2)));
+}
+
+@test
+fun an_empty_list_says_so() {
+    assert_eq(texts(view(start())), ["To-do", "Nothing to do yet", "0 items left"]);
+}
