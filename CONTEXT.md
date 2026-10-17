@@ -253,6 +253,12 @@ Branch: main
 
 ---
 
+## SESSION 8 — 2026-10-17 — PRP-008: header look — open
+
+Branch: main
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
