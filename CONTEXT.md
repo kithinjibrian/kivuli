@@ -270,6 +270,12 @@ Branch: main (PRP-008 on prp-008-header_look, merged)
 
 ---
 
+## SESSION 9 — 2026-10-17 — PRP-009: corner radius — open
+
+Branch: main
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
