@@ -286,9 +286,18 @@ Branch: main (PRP-009 on prp-009-corner_radius, merged)
 
 ---
 
-## SESSION 10 — 2026-10-17 — Fix: center a button's content — open
+## SESSION 10 — 2026-10-17 — Fix: center a button's content, kivuli 0.4.1 — closed
 
-Branch: main
+Branch: main (the fix on fix-button-content-center, merged)
+
+### WHAT WAS DONE
+- Bug (rapidkoi DECISION-020 item 0): kivuli's button content box kept GTK's fill alignment, so wide or tall buttons showed their content at the start. A failing GTK test first (a `.width(200)` icon button, a stretched one, an icon+label one: content box halign/valign), then the fix in src/build.la: the box is centered both ways (`GTK_ALIGN_CENTER` = 3, gtkenums.h). Mutation-checked. No new binding (lugha-gtk had set/get halign/valign and gtk_button_get_child). kivuli 0.4.1, tagged locally.
+
+### STILL OPEN AT CLOSE
+- Not pushed, waiting for the user's go: main and tag v0.4.1.
+- For the user to check by hand: natural-size buttons look as before; wide ones (Rapidkoi's tabs and tiles) center their content.
+- DECISION-018 still blocks the next modifier; test/live_forms.la split awaiting the user.
+- `reports/.gitkeep` deleted in the working tree, not by Claude; left alone.
 
 ---
 
