@@ -20,8 +20,8 @@ enum Patch<Msg> {
     SetText(i64[], string),
     /** The button or check box at the path shows a new label. */
     SetLabel(i64[], string),
-    /** The button at the path sends a new message from now on. */
-    SetMsg(i64[], Msg),
+    /** The button at the path sends this message from now on, or nothing (disabled) for `None`. */
+    SetMsg(i64[], Option<Msg>),
     /** The text field at the path shows this text. */
     SetValue(i64[], string),
     /** The text field at the path turns edits into messages with this function from now on. */
@@ -106,7 +106,12 @@ fun diff_inside<Msg>(
     _ => [Patch.Replace(path, styled)],
 };
 
-fun diff_button<Msg>(path: i64[], old_label: string, label: string, msg: Msg): Patch<Msg>[] {
+fun diff_button<Msg>(
+    path: i64[],
+    old_label: string,
+    label: string,
+    msg: Option<Msg>,
+): Patch<Msg>[] {
     let mut out: Patch<Msg>[] = [];
     if old_label != label {
         out.push(Patch.SetLabel(path, label));

@@ -16,6 +16,7 @@ import kivuli {
     scroll,
     keyed_column,
     Align,
+    ButtonStyle,
 };
 
 // Views and patches can hold functions, which have no `==`: compare what they
@@ -55,15 +56,15 @@ fun a_counter_click_changes_one_label() {
     // changes, and both buttons are re-pointed at their (unchanged) messages.
     let expected: Patch<Msg>[] = [
         Patch.SetText([0], "Clicked 3 times"),
-        Patch.SetMsg([1], Msg.Add),
-        Patch.SetMsg([2], Msg.Reset),
+        Patch.SetMsg([1], Some(Msg.Add)),
+        Patch.SetMsg([2], Some(Msg.Reset)),
     ];
     assert_same(patches(counter(2), counter(3)), expected);
 }
 
 @test
 fun a_renamed_button_keeps_its_widget() {
-    let expected: Patch<Msg>[] = [Patch.SetLabel([], "Again"), Patch.SetMsg([], Msg.Add)];
+    let expected: Patch<Msg>[] = [Patch.SetLabel([], "Again"), Patch.SetMsg([], Some(Msg.Add))];
     assert_same(patches(button("Add", Msg.Add), button("Again", Msg.Add)), expected);
 }
 
@@ -302,4 +303,25 @@ fun a_new_kind_is_replaced_with_its_style() {
 fun making_text_bold_restyles_it() {
     let expected: Patch<Msg>[] = [Patch.SetStyle([], Style { bold: true, ..plain() })];
     assert_same(patches(text("a"), text("a").bold()), expected);
+}
+
+@test
+fun disabling_a_button_takes_its_message_away() {
+    let expected: Patch<Msg>[] = [Patch.SetMsg([], None)];
+    assert_same(
+        patches(button("Reset", Msg.Reset), button("Reset", Msg.Reset).disabled(true)),
+        expected,
+    );
+}
+
+@test
+fun a_button_style_is_a_restyle() {
+    let expected: Patch<Msg>[] = [
+        Patch.SetStyle([], Style { look: ButtonStyle.Danger, ..plain() }),
+        Patch.SetMsg([], Some(Msg.Reset)),
+    ];
+    assert_same(
+        patches(button("Reset", Msg.Reset), button("Reset", Msg.Reset).style(ButtonStyle.Danger)),
+        expected,
+    );
 }

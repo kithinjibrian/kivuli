@@ -13,6 +13,7 @@ import kivuli {
     scroll,
     keyed_column,
     Align,
+    ButtonStyle,
 };
 
 // Views and patches can hold functions, which have no `==`: compare what they
@@ -43,8 +44,8 @@ fun view(m: Model): View<Msg> = column([
 fun builds_the_tree_it_describes() {
     let expected: View<Msg> = View.Column([
         View.Text("Clicked 2 times"),
-        View.Button("Add", Msg.Add),
-        View.Button("Reset", Msg.Reset),
+        View.Button("Add", Some(Msg.Add)),
+        View.Button("Reset", Some(Msg.Reset)),
     ]);
     assert_same(view(Model { count: 2 }), expected);
 }
@@ -59,7 +60,7 @@ fun a_button_carries_its_message() {
     match button("Reset", Msg.Reset) {
         Button(label, msg) => {
             assert_eq(label, "Reset");
-            assert_eq(msg, Msg.Reset);
+            assert_eq(msg, Some(Msg.Reset));
         }
         _ => panic("expected a button"),
     }
@@ -68,8 +69,8 @@ fun a_button_carries_its_message() {
 @test
 fun a_row_holds_its_children_in_order() {
     let expected: View<Msg> = View.Row([
-        View.Button("Add", Msg.Add),
-        View.Button("Reset", Msg.Reset),
+        View.Button("Add", Some(Msg.Add)),
+        View.Button("Reset", Some(Msg.Reset)),
     ]);
     assert_same(row([button("Add", Msg.Add), button("Reset", Msg.Reset)]), expected);
 }
@@ -150,4 +151,26 @@ fun text_modifiers_land_in_the_style() {
         ..plain(),
     });
     assert_same(text("x").size(18).bold().dim(), expected);
+}
+
+@test
+fun a_disabled_button_carries_no_message() {
+    let expected: View<Msg> = View.Button("Reset", None);
+    assert_same(button("Reset", Msg.Reset).disabled(true), expected);
+}
+
+@test
+fun disabled_false_changes_nothing() {
+    assert_same(button("Reset", Msg.Reset).disabled(false), button("Reset", Msg.Reset));
+}
+
+@test
+fun disabled_reaches_a_styled_button_and_ignores_other_nodes() {
+    let expected: View<Msg> = View.Styled(View.Button("Go", None), Style {
+        look: ButtonStyle.Primary,
+        ..plain(),
+    });
+    assert_same(button("Go", Msg.Add).style(ButtonStyle.Primary).disabled(true), expected);
+    let label: View<Msg> = text("x");
+    assert_same(label.disabled(true), label);
 }

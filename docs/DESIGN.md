@@ -6,7 +6,7 @@ kivuli draws nothing. Every visual comes from the user's GTK theme (Adwaita by d
 
 ## Tokens: kivuli vocabulary → GTK
 
-### Button styles (`.style(…)`)
+### Button styles (`.style(ButtonStyle.…)`)
 
 | kivuli | GTK CSS class | Meaning |
 |--------|---------------|---------|

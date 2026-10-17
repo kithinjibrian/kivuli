@@ -28,6 +28,7 @@ import gtk {
     gtk_editable_set_text,
     gtk_label_set_text,
     gtk_scrolled_window_set_child,
+    gtk_widget_set_sensitive,
     gtk_window_present,
     gtk_window_set_child,
 };
@@ -141,7 +142,10 @@ fun apply<Msg>(
     }
     SetMsg(path, msg) => {
         match at(live, path) {
-            Button(_, current) => current.set(msg),
+            Button(button, current) => {
+                current.set(msg);
+                gtk_widget_set_sensitive(button, flag(msg.is_some()));
+            }
             _ => panic("kivuli: a SetMsg patch points at something that isn't a button"),
         }
         live

@@ -6,25 +6,27 @@ import gtk {
     GtkApplication,
     GtkWidget,
     connect_app,
+    emit_widget,
     g_application_quit,
     g_application_run,
     g_object_unref,
     gtk_application_new,
     gtk_application_window_new,
     gtk_box_get_spacing,
+    gtk_label_get_attributes,
     gtk_widget_get_halign,
     gtk_widget_get_margin_start,
     gtk_widget_get_margin_top,
+    gtk_widget_get_sensitive,
     gtk_widget_get_vexpand,
     gtk_widget_has_css_class,
-    gtk_label_get_attributes,
-    pango_attr_list_to_string,
     gtk_window_set_child,
+    pango_attr_list_to_string,
 };
 import kivuli.live { Running, State, dispatch, sender };
 import kivuli.live_tree { Live, widget };
 import kivuli.build { create };
-import kivuli { View, Align, column, row, spacer, text };
+import kivuli { View, Align, column, row, spacer, text, ButtonStyle, button };
 
 fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
 
@@ -135,4 +137,104 @@ fun styles_apply_change_and_undo_on_the_same_widgets() {
         [12, 12, 3, 8, 1, 1, 1, 1],
         [0, 0, 0, 0, 1, 0, 0, 0],
     ]);
+}
+
+enum Tap {
+    Add,
+    Reset,
+}
+
+struct Tally {
+    count: i64,
+}
+
+fun update_tally(t: Tally, msg: Tap): Tally = match msg {
+    Add => Tally { count: t.count + 1 },
+    Reset => Tally { count: 0 },
+};
+
+// Reset is disabled at zero (decision 6); Add is the primary action, Reset
+// the dangerous one.
+fun view_tally(t: Tally): View<Tap> = row([
+    button("Add", Tap.Add).style(ButtonStyle.Primary),
+    button("Reset", Tap.Reset).style(ButtonStyle.Danger).disabled(t.count == 0),
+]);
+
+@test
+fun a_disabled_button_is_greyed_out_and_sends_nothing() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen: Ref<string[]> = Ref.new([]);
+    let received: Ref<string[]> = Ref.new([]);
+    let application = gtk_application_new("org.kivuli.test.buttons", 0);
+    connect_app(
+        application,
+        "activate",
+        fun(a: GtkApplication) {
+            let window = gtk_application_window_new(a);
+            let state: Ref<Option<State<Tally, Tap>>> = Ref.new(None);
+            let app = Running {
+                window: window,
+                update_fn: fun(t: Tally, msg: Tap): Tally {
+                    received.update(fun(xs) {
+                        let mut ys = xs;
+                        ys.push("{msg}");
+                        ys
+                    });
+                    update_tally(t, msg)
+                },
+                view_fn: view_tally,
+                state: state,
+                patching: Ref.new(false),
+            };
+            let init = Tally { count: 0 };
+            let tree = view_tally(init);
+            let first = create(tree, sender(app));
+            gtk_window_set_child(window, widget(first));
+            state.set(Some(State { model: init, tree: tree, live: first }));
+            let Box(_, _, kids) = first else {
+                panic("expected a row");
+            };
+            let add = widget(kids[0]);
+            let reset = widget(kids[1]);
+            let look = fun(): string {
+                let sensitive = gtk_widget_get_sensitive(reset);
+                let primary = gtk_widget_has_css_class(add, "suggested-action");
+                let danger = gtk_widget_has_css_class(reset, "destructive-action");
+                "reset {sensitive}, primary {primary}, danger {danger}"
+            };
+            // At zero: a click on the greyed-out Reset sends nothing.
+            emit_widget(reset, "clicked");
+            seen.update(fun(xs) {
+                let mut ys = xs;
+                ys.push(look());
+                ys
+            });
+            // After Add, Reset works again, and then is disabled again.
+            emit_widget(add, "clicked");
+            seen.update(fun(xs) {
+                let mut ys = xs;
+                ys.push(look());
+                ys
+            });
+            emit_widget(reset, "clicked");
+            seen.update(fun(xs) {
+                let mut ys = xs;
+                ys.push(look());
+                ys
+            });
+            g_application_quit(a);
+        },
+        0,
+    );
+    g_application_run(application, 0, None);
+    g_object_unref(application);
+
+    assert_eq(seen.get(), [
+        "reset 0, primary 1, danger 1",
+        "reset 1, primary 1, danger 1",
+        "reset 0, primary 1, danger 1",
+    ]);
+    assert_eq(received.get(), ["Add", "Reset"]);
 }

@@ -13,8 +13,8 @@
 public enum View<Msg> {
     /** A line of text. */
     Text(string),
-    /** A button with its label and the message one click sends. */
-    Button(string, Msg),
+    /** A button with its label and the message one click sends; `None` when disabled. */
+    Button(string, Option<Msg>),
     /** Children stacked top to bottom. */
     Column(View<Msg>[]),
     /** Children side by side, left to right. */
@@ -49,7 +49,7 @@ public fun text<Msg>(s: string): View<Msg> = View.Text(s);
  * Example:
  *     button("Add", Msg.Add)
  */
-public fun button<Msg>(label: string, msg: Msg): View<Msg> = View.Button(label, msg);
+public fun button<Msg>(label: string, msg: Msg): View<Msg> = View.Button(label, Some(msg));
 
 /**
  * Stacks `children` top to bottom.
@@ -131,6 +131,17 @@ public fun scroll<Msg>(child: View<Msg>): View<Msg> = View.Scroll(child);
  */
 public fun keyed_column<Msg>(children: (string, View<Msg>)[]): View<Msg> = View.Keyed(children);
 
+/** How a button looks, from the theme (docs/DESIGN.md). */
+public enum ButtonStyle {
+    Normal,
+    /** The one main action in a view. */
+    Primary,
+    /** Deletes or discards. */
+    Danger,
+    /** Low emphasis, toolbar-like. */
+    Subtle,
+}
+
 /** Where a node sits across its column (left to right) or row (top to bottom). */
 public enum Align {
     /** Stretched across the whole width (in a column) or height (in a row): the default. */
@@ -161,6 +172,8 @@ public struct Style {
     bold: bool,
     /** Faded text, for secondary information. Text only. */
     dim: bool,
+    /** How a button looks in the theme. Buttons only. */
+    look: ButtonStyle,
 }
 
 /** The style of a node with no modifiers: what GTK does by default. */
@@ -174,6 +187,7 @@ fun plain(): Style = Style {
     size: 0,
     bold: false,
     dim: false,
+    look: ButtonStyle.Normal,
 };
 
 /** `v` with its style changed by `f`: one `Styled` wrapper, however many modifiers. */
@@ -273,4 +287,32 @@ impl View<Msg> {
      *     text("{m.count} left").dim()
      */
     public fun dim(self): View<Msg> = restyle(self, fun(s: Style) = Style { dim: true, ..s });
+
+    /**
+     * Gives a button the theme's look for its role; ignored on other nodes.
+     *
+     * Example:
+     *     button("Delete", Msg.Delete).style(ButtonStyle.Danger)
+     */
+    public fun style(self, look: ButtonStyle): View<Msg> = restyle(
+        self,
+        fun(s: Style) = Style { look: look, ..s },
+    );
+
+    /**
+     * When `off`, takes a button's message away: it's greyed out and clicks
+     * send nothing. `disabled(false)` changes nothing. Ignored on other nodes.
+     *
+     * Example:
+     *     button("Reset", Msg.Reset).disabled(m.count == 0)
+     */
+    public fun disabled(self, off: bool): View<Msg> = if !off {
+        self
+    } else {
+        match self {
+            Button(label, _) => View.Button(label, None),
+            Styled(inside, s) => View.Styled(inside.disabled(true), s),
+            _ => self,
+        }
+    };
 }

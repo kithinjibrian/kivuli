@@ -34,6 +34,7 @@ import gtk {
     gtk_widget_set_margin_end,
     gtk_widget_set_margin_start,
     gtk_widget_set_margin_top,
+    gtk_widget_set_sensitive,
     gtk_widget_set_size_request,
     gtk_widget_set_valign,
     gtk_widget_set_vexpand,
@@ -44,7 +45,7 @@ import gtk {
     pango_attr_weight_new,
 };
 import live_tree { Live, widget };
-import views { View, Style, Align };
+import views { View, Style, Align, ButtonStyle };
 
 /** Builds the GTK widgets for `v` at the top of a window; each widget sends its messages through `send`. */
 fun create<Msg>(v: View<Msg>, send: fun(Msg)): Live<Msg> = create_in(v, 1, send);
@@ -59,13 +60,19 @@ fun create_in<Msg>(v: View<Msg>, axis: i32, send: fun(Msg)): Live<Msg> = match v
     Button(label, msg) => {
         let button = gtk_button_new_with_label(label);
         let current = Ref.new(msg);
+        // No message means disabled (decision 6): greyed out, and the handler
+        // below sends nothing even if GTK delivers a click.
+        gtk_widget_set_sensitive(button, flag(msg.is_some()));
         // Connected once, for the widget's whole life: a SetMsg patch changes
         // `current`, never the connection.
         connect_widget(
             button,
             "clicked",
             fun(b: GtkWidget) {
-                send(current.get());
+                match current.get() {
+                    Some(m) => send(m),
+                    None => {}
+                }
             },
             0,
         );
@@ -184,7 +191,21 @@ fun apply_style<Msg>(node: Live<Msg>, style: Style, axis: i32) {
     match node {
         Box(box, _, _) => gtk_box_set_spacing(box, style.spacing as i32),
         Label(label) => style_text(label, style),
+        Button(button, _) => style_button(button, style.look),
         _ => {}
+    }
+}
+
+/** Gives a button the theme's CSS class for `look`, and only that one. */
+fun style_button(button: GtkWidget, look: ButtonStyle) {
+    gtk_widget_remove_css_class(button, "suggested-action");
+    gtk_widget_remove_css_class(button, "destructive-action");
+    gtk_widget_remove_css_class(button, "flat");
+    match look {
+        Normal => {}
+        Primary => gtk_widget_add_css_class(button, "suggested-action"),
+        Danger => gtk_widget_add_css_class(button, "destructive-action"),
+        Subtle => gtk_widget_add_css_class(button, "flat"),
     }
 }
 

@@ -49,13 +49,16 @@ fun update(m: Model, msg: Msg): Model = match msg {
 // and go (Append, Remove), and the last child turns from text into a button
 // and back (Replace).
 fun view(m: Model): View<Msg> {
-    let mut kids: View<Msg>[] = [View.Text("Clicked {m.count} times"), View.Button("Add", Msg.Add)];
+    let mut kids: View<Msg>[] = [
+        View.Text("Clicked {m.count} times"),
+        View.Button("Add", Some(Msg.Add)),
+    ];
     let mut i = 0;
     while i < m.rows {
         kids.push(View.Text("row {i}"));
         i = i + 1;
     }
-    kids.push(if m.count == 2 { View.Button("two!", Msg.Add) } else { View.Text("not two") });
+    kids.push(if m.count == 2 { View.Button("two!", Some(Msg.Add)) } else { View.Text("not two") });
     View.Column(kids)
 }
 
