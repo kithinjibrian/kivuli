@@ -6,7 +6,7 @@ kivuli draws nothing. Every visual comes from the user's GTK theme (Adwaita by d
 
 ## Tokens: kivuli vocabulary → GTK
 
-### Button styles (`.style(ButtonStyle.…)`)
+### Button styles (`.button_style(ButtonStyle.…)`)
 
 | kivuli | GTK CSS class | Meaning |
 |--------|---------------|---------|
@@ -65,7 +65,7 @@ Disabled means no message (MEMORY decision 6), mapped to `gtk_widget_set_sensiti
 - A view's root carries `.window(title, w, h)`. Window size is the default size, not a fixed size.
 - Correct:
 
-      button("Delete", Msg.Delete).style(Danger)
+      button("Delete", Msg.Delete).button_style(ButtonStyle.Danger)
 
 - Wrong:
 

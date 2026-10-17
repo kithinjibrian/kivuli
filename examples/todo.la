@@ -100,7 +100,7 @@ fun view(m: Model): View<Msg> = column([
         input(m.draft, Msg.Draft).placeholder("What needs doing?").on_submit(
             Msg.Add,
         ).autofocus().expand(),
-        button("Add", Msg.Add).style(ButtonStyle.Primary).shortcut("Ctrl+N").disabled(
+        button("Add", Msg.Add).button_style(ButtonStyle.Primary).shortcut("Ctrl+N").disabled(
             m.draft.trim() == "",
         ),
     ]).spacing(8),
@@ -115,7 +115,7 @@ fun view(m: Model): View<Msg> = column([
     row([
         text("{items(left(m))} left").dim().align(Align.Center),
         spacer(),
-        button("Clear done", Msg.ClearDone).style(ButtonStyle.Danger).shortcut(
+        button("Clear done", Msg.ClearDone).button_style(ButtonStyle.Danger).shortcut(
             "Ctrl+Shift+Delete",
         ).disabled(!any_done(m)),
     ]),
@@ -124,7 +124,7 @@ fun view(m: Model): View<Msg> = column([
 // The current filter reads as a plain button; the others as subtle ones.
 fun tab(label: string, filter: Filter, current: Filter): View<Msg> {
     let look = if filter == current { ButtonStyle.Normal } else { ButtonStyle.Subtle };
-    button(label, Msg.Show(filter)).style(look)
+    button(label, Msg.Show(filter)).button_style(look)
 }
 
 fun list(m: Model): View<Msg> {
@@ -142,7 +142,7 @@ fun todo_row(t: Todo): View<Msg> = lazy(
     fun(): View<Msg> = row([
         // A long title is cut with "…" and shown whole on hover.
         checkbox(t.title, t.done, fun(on: bool) = Msg.Toggle(t.id, on)).ellipsize().tooltip(t.title).expand(),
-        button("✕", Msg.Delete(t.id)).style(ButtonStyle.Subtle).tooltip("Delete {t.title}"),
+        button("✕", Msg.Delete(t.id)).button_style(ButtonStyle.Subtle).tooltip("Delete {t.title}"),
     ]).spacing(8),
 );
 

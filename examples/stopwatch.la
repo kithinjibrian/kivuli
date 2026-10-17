@@ -44,7 +44,9 @@ fun shown(elapsed: i64): string {
 fun view(m: Model): View<Msg> = column([
     text(shown(m.elapsed)).size(32).bold().align(Align.Center),
     row([
-        button(if m.running { "Stop" } else { "Start" }, Msg.Toggle).style(ButtonStyle.Primary),
+        button(if m.running { "Stop" } else { "Start" }, Msg.Toggle).button_style(
+            ButtonStyle.Primary,
+        ),
         button("Reset", Msg.Reset).disabled(m.elapsed == 0),
     ]).spacing(8).align(Align.Center),
 ]).padding(24).spacing(12).window("Stopwatch", 280, 160);

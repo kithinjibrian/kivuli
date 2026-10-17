@@ -67,8 +67,8 @@ public struct Style {
     bold: bool,
     /** Faded text, for secondary information. Text only. */
     dim: bool,
-    /** How a button looks in the theme. Buttons only. */
-    look: ButtonStyle,
+    /** How a button looks in the theme (`.button_style`). Buttons only. */
+    button: ButtonStyle,
     /** The window's title and size, from the root of `view`. Root only. */
     window: Option<Window>,
     /** Hint text an empty text field shows; "" for none. Text fields only. */
@@ -108,7 +108,7 @@ fun plain(): Style = Style {
     size: 0,
     bold: false,
     dim: false,
-    look: ButtonStyle.Normal,
+    button: ButtonStyle.Normal,
     window: None,
     placeholder: "",
     name: "",

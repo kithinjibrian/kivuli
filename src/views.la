@@ -160,11 +160,11 @@ impl View<Msg> {
      * Gives a button the theme's look for its role; ignored on other nodes.
      *
      * Example:
-     *     button("Delete", Msg.Delete).style(ButtonStyle.Danger)
+     *     button("Delete", Msg.Delete).button_style(ButtonStyle.Danger)
      */
-    public fun style(self, look: ButtonStyle): View<Msg> = restyle(
+    public fun button_style(self, look: ButtonStyle): View<Msg> = restyle(
         self,
-        fun(s: Style) = Style { look: look, ..s },
+        fun(s: Style) = Style { button: look, ..s },
     );
 
     /**

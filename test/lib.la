@@ -174,10 +174,10 @@ fun disabled_false_changes_nothing() {
 @test
 fun disabled_reaches_a_styled_button_and_ignores_other_nodes() {
     let expected: View<Msg> = View.Styled(View.Button("Go", None), Style {
-        look: ButtonStyle.Primary,
+        button: ButtonStyle.Primary,
         ..plain(),
     });
-    assert_same(button("Go", Msg.Add).style(ButtonStyle.Primary).disabled(true), expected);
+    assert_same(button("Go", Msg.Add).button_style(ButtonStyle.Primary).disabled(true), expected);
     let label: View<Msg> = text("x");
     assert_same(label.disabled(true), label);
 }

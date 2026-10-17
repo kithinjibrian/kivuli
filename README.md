@@ -29,7 +29,7 @@ fun view(m: Model): View<Msg> = column([
     text("Hello, {m.name}").bold(),
     text("Clicked {m.count} times"),
     row([
-        button("Add", Msg.Add).style(ButtonStyle.Primary),
+        button("Add", Msg.Add).button_style(ButtonStyle.Primary),
         button("Reset", Msg.Reset).disabled(m.count == 0),
     ]).spacing(8),
 ]).padding(24).spacing(8).window("Counter", 320, 240);
@@ -114,7 +114,7 @@ lughac run examples/gallery.la
 | `.tooltip(hint)` | Hover text on any node; tests can click a button by it. |
 | `.shortcut(keys)` | Keys that press a button from anywhere in the window: `"Ctrl+N"`, `"Ctrl+Shift+Delete"`, `"Escape"`. A disabled button's shortcut does nothing; unreadable keys, or two enabled buttons with the same ones, stop the app with a message. |
 | `.autofocus()` | Keyboard focus goes to the node when it's first shown. |
-| `.style(ButtonStyle.Primary \| Danger \| Subtle \| Normal)` | Buttons. |
+| `.button_style(ButtonStyle.Primary \| Danger \| Subtle \| Normal)` | Buttons. |
 | `.disabled(bool)` | Buttons, text fields and text areas: greyed out by the theme, and they send nothing. A disabled field still shows its value and follows the model. `.disabled(false)` changes nothing. |
 | `.step(n)` | Sliders: move in steps of `n`, counted from the least value. |
 | `.icon(name)` | Buttons: a theme icon before the label; with the label `""`, an icon-only button (give it a `.tooltip`, which tests find it by). |
