@@ -64,7 +64,7 @@ public struct Style {
     /** The smallest width and height in pixels; -1 leaves it to the widget. */
     width: i64,
     height: i64,
-    /** Text size in points, or an icon's size in pixels; 0 keeps the theme's. Text and icons. */
+    /** Text size in points, or an image's size in pixels (on a button: its image's); 0 keeps the theme's. */
     size: i64,
     /** Bold text. Text only. */
     bold: bool,
@@ -94,8 +94,6 @@ public struct Style {
     autofocus: bool,
     /** How far a slider's handle moves at a time, counted from its least value; 1 by default. Sliders only. */
     step: i64,
-    /** A theme icon shown on a button, before its label; "" for none. Buttons only. */
-    icon: string,
     /** How a picture fills the room it's given. Images only. */
     fit: Fit,
     /** The app's looks on this node, by name, merged left to right (`.style`). Any node. */
@@ -137,7 +135,6 @@ fun plain(): Style = Style {
     shortcut: "",
     autofocus: false,
     step: 1,
-    icon: "",
     fit: Fit.Contain,
     looks: [],
     classes: [],

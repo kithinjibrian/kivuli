@@ -28,6 +28,7 @@ import gtk {
     gtk_widget_set_sensitive,
     gtk_widget_ref,
     gtk_widget_unref,
+    gtk_widget_set_visible,
     gtk_window_set_child,
     lgtk_text_cursor,
     lgtk_text_place_cursor,
@@ -35,6 +36,7 @@ import gtk {
 import diff;
 import build { create, create_in, editor, pack_one, picked, sync_choices, text_of };
 import styling { apply_style, flag, show_content, show_number };
+import textures { show_in_image, show_picture };
 import live_tree { Choices, Live, titlebar, widget };
 
 /** Applies one patch to the widgets, and returns the `Live` tree that now mirrors them. */
@@ -178,17 +180,24 @@ fun apply<Msg>(
         }
         live
     }
-    SetIcon(path, name) => {
-        match at(live, path) {
-            Icon(image) => gtk_image_set_from_icon_name(image, name),
-            _ => panic("kivuli: a SetIcon patch points at something that isn't an icon"),
+    SetImage(path, img) => {
+        // The diff replaces an icon that becomes a picture: here they stay their kind.
+        match (at(live, path), img) {
+            (Icon(image), Icon(name)) => gtk_image_set_from_icon_name(image, name),
+            (Image(picture), _) => show_picture(picture, img),
+            _ => panic(
+                "kivuli: a SetImage patch points at something that isn't that kind of image",
+            ),
         }
         live
     }
-    SetFile(path, file) => {
+    SetButtonImage(path, img) => {
         match at(live, path) {
-            Image(picture) => gtk_picture_set_filename(picture, file),
-            _ => panic("kivuli: a SetFile patch points at something that isn't an image"),
+            Button(button, _, _, _, label, image) => {
+                gtk_widget_set_visible(image, flag(show_in_image(image, img)));
+                show_content(button, label, image);
+            }
+            _ => panic("kivuli: a SetButtonImage patch points at something that isn't a button"),
         }
         live
     }

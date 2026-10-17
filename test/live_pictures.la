@@ -1,0 +1,249 @@
+// Images from bytes on real GTK widgets: valid PNG and JPEG bytes show,
+// hostile ones show nothing without a crash, a key change replaces the
+// texture (the same key keeps it), buttons show bytes images, and removed
+// pictures free their widgets and textures. Needs a display, so it is skipped
+// without one.
+import std.env;
+import gtk {
+    GdkTexture,
+    GtkApplication,
+    GtkWidget,
+    connect_app,
+    emit_widget,
+    g_application_quit,
+    g_application_run,
+    g_object_unref,
+    gdk_texture_get_height,
+    gdk_texture_get_width,
+    gtk_application_new,
+    gtk_application_window_new,
+    gtk_image_get_paintable,
+    gtk_image_get_pixel_size,
+    gtk_picture_get_paintable,
+    gtk_widget_get_visible,
+    on_finalized,
+    on_texture_finalized,
+};
+import fixtures;
+import kivuli.live { mount, live_of };
+import kivuli.effects { sandbox_app };
+import kivuli.live_tree { Live, widget };
+import kivuli { Image, View, button, column, image };
+
+fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
+
+/** Runs `steps` on the mounted app's top column (fetched again after each message). */
+fun with_app<Model, Msg>(
+    id: string,
+    model: Model,
+    update: fun(Model, Msg): Model,
+    view: fun(Model): View<Msg>,
+    steps: fun(fun(): Live<Msg>[]),
+) {
+    let application = gtk_application_new(id, 0);
+    connect_app(
+        application,
+        "activate",
+        fun(a: GtkApplication) {
+            let window = gtk_application_window_new(a);
+            let app = mount(a, window, sandbox_app("org.kivuli.test", model, update, view));
+            steps(fun(): Live<Msg>[] = match live_of(app) {
+                Box(_, _, kids) => kids,
+                _ => panic("expected a column"),
+            });
+            g_application_quit(a);
+        },
+        0,
+    );
+    g_application_run(application, 0, None);
+    g_object_unref(application);
+}
+
+fun note(seen: Ref<string[]>, s: string) {
+    seen.update(fun(xs) {
+        let mut ys = xs;
+        ys.push(s);
+        ys
+    });
+}
+
+/** What a picture shows: its texture's size, or nothing. */
+fun shown(w: GtkWidget): string = match gtk_picture_get_paintable(w) {
+    Some(t) => "{gdk_texture_get_width(t)}x{gdk_texture_get_height(t)}",
+    None => "nothing",
+};
+
+enum Nothing {
+    Never,
+}
+
+@test
+fun valid_bytes_show_and_hostile_ones_show_nothing() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen: Ref<string[]> = Ref.new([]);
+    let empty: u8[] = [];
+    let pictures: View<Nothing> = column([
+        image(Image.Bytes("png", fixtures.png())),
+        image(Image.Bytes("jpeg", fixtures.jpeg())),
+        image(Image.Bytes("corrupt", fixtures.corrupt_png())),
+        image(Image.Bytes("huge", fixtures.huge_png())),
+        image(Image.Bytes("wide", fixtures.wide_png())),
+        image(Image.Bytes("cut", fixtures.cut(fixtures.png(), 20))),
+        image(Image.Bytes("empty", empty)),
+        image(Image.File("/nowhere/missing.png")),
+    ]);
+    with_app("org.kivuli.test.pictures_bytes", 0, fun(n: i64, msg: Nothing): i64 = n, fun(
+        n: i64,
+    ): View<Nothing> = pictures, fun(kids: fun(): Live<Nothing>[]) {
+        for kid of kids() {
+            note(seen, shown(widget(kid)));
+        }
+    });
+    assert_eq(seen.get(), [
+        "3x2",
+        "3x2",
+        "nothing",
+        "nothing",
+        "nothing",
+        "nothing",
+        "nothing",
+        "nothing",
+    ]);
+}
+
+enum Swap {
+    SameKeyNewBytes,
+    NewKey,
+}
+
+fun update_swap(key: string, msg: Swap): string = match msg {
+    SameKeyNewBytes => key,
+    NewKey => key + "!",
+};
+
+// The same key always carries the PNG here; NewKey's bytes are the JPEG.
+fun view_swap(key: string): View<Swap> = column([
+    image(Image.Bytes(key, if key == "a" { fixtures.png() } else { fixtures.jpeg() })),
+    button("Same", Swap.SameKeyNewBytes),
+    button("New", Swap.NewKey),
+]);
+
+@test
+fun the_same_key_keeps_its_texture_and_a_new_key_replaces_it() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen: Ref<string[]> = Ref.new([]);
+    with_app("org.kivuli.test.pictures_keys", "a", update_swap, view_swap, fun(
+        kids: fun(): Live<Swap>[],
+    ) {
+        let picture = widget(kids()[0]);
+        let Some(first) = gtk_picture_get_paintable(picture) else {
+            panic("expected a texture");
+        };
+        on_texture_finalized(first, fun(gone: GdkTexture) {
+            note(seen, "first texture freed");
+        });
+        emit_widget(widget(kids()[1]), "clicked");
+        note(seen, "same key, same texture: {gtk_picture_get_paintable(picture) == Some(first)}");
+        emit_widget(widget(kids()[2]), "clicked");
+        note(
+            seen,
+            "new key, new texture: {gtk_picture_get_paintable(picture) != Some(first)} {shown(picture)}",
+        );
+        note(seen, "same widget: {widget(kids()[0]) == picture}");
+    });
+    assert_eq(seen.get(), [
+        "same key, same texture: true",
+        "first texture freed",
+        "new key, new texture: true 3x2",
+        "same widget: true",
+    ]);
+}
+
+enum Press {
+    Open,
+}
+
+@test
+fun a_button_shows_an_image_from_bytes_and_hides_a_broken_one() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen: Ref<string[]> = Ref.new([]);
+    let buttons: View<Press> = column([
+        button("Open", Press.Open).image(Image.Bytes("open", fixtures.png())).size(48),
+        button("Broken", Press.Open).image(Image.Bytes("broken", fixtures.corrupt_png())),
+    ]);
+    with_app("org.kivuli.test.pictures_buttons", 0, fun(n: i64, msg: Press): i64 = n, fun(
+        n: i64,
+    ): View<Press> = buttons, fun(kids: fun(): Live<Press>[]) {
+        for kid of kids() {
+            let Button(_, _, _, _, label, picture) = kid else {
+                panic("expected a button");
+            };
+            let texture = match gtk_image_get_paintable(picture) {
+                Some(t) => "{gdk_texture_get_width(t)}x{gdk_texture_get_height(t)}",
+                None => "none",
+            };
+            note(
+                seen,
+                "image shown {gtk_widget_get_visible(picture)} {texture} size {gtk_image_get_pixel_size(picture)} label {gtk_widget_get_visible(label)}",
+            );
+        }
+    });
+    assert_eq(seen.get(), [
+        "image shown 1 3x2 size 48 label 1",
+        "image shown 0 none size -1 label 1",
+    ]);
+}
+
+enum Clear {
+    All,
+}
+
+fun view_many(shown_any: bool): View<Clear> {
+    let mut kids: View<Clear>[] = [button("Clear", Clear.All)];
+    if shown_any {
+        let mut i = 0;
+        while i < 10 {
+            kids.push(image(Image.Bytes("row {i}", fixtures.png())));
+            i = i + 1;
+        }
+    }
+    column(kids)
+}
+
+@test
+fun removed_pictures_free_their_widgets_and_textures() {
+    if !has_display() {
+        skip("no display");
+    }
+    let widgets = Ref.new(0);
+    let textures = Ref.new(0);
+    with_app("org.kivuli.test.pictures_health", true, fun(
+        on: bool,
+        msg: Clear,
+    ): bool = false, view_many, fun(kids: fun(): Live<Clear>[]) {
+        for kid of kids() {
+            match kid {
+                Image(picture) => {
+                    on_finalized(picture, fun(gone: GtkWidget) {
+                        widgets.update(fun(n) = n + 1);
+                    });
+                    match gtk_picture_get_paintable(picture) {
+                        Some(t) => on_texture_finalized(t, fun(gone: GdkTexture) {
+                            textures.update(fun(n) = n + 1);
+                        }),
+                        None => {}
+                    }
+                }
+                _ => {}
+            }
+        }
+        emit_widget(widget(kids()[0]), "clicked");
+    });
+    assert_eq((widgets.get(), textures.get()), (10, 10));
+}

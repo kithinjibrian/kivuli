@@ -20,6 +20,7 @@ import kivuli {
     icon,
     image,
     Fit,
+    Image,
     Surface,
     theme,
 };
@@ -58,8 +59,8 @@ fun view(m: Model): View<Msg> = column([
 fun builds_the_tree_it_describes() {
     let expected: View<Msg> = View.Column([
         View.Text("Clicked 2 times"),
-        View.Button("Add", Some(Msg.Add)),
-        View.Button("Reset", Some(Msg.Reset)),
+        View.Button("Add", Some(Msg.Add), None),
+        View.Button("Reset", Some(Msg.Reset), None),
     ]);
     assert_same(view(Model { count: 2 }), expected);
 }
@@ -72,7 +73,7 @@ fun the_view_follows_the_model() {
 @test
 fun a_button_carries_its_message() {
     match button("Reset", Msg.Reset) {
-        Button(label, msg) => {
+        Button(label, msg, _) => {
             assert_eq(label, "Reset");
             assert_eq(msg, Some(Msg.Reset));
         }
@@ -83,8 +84,8 @@ fun a_button_carries_its_message() {
 @test
 fun a_row_holds_its_children_in_order() {
     let expected: View<Msg> = View.Row([
-        View.Button("Add", Some(Msg.Add)),
-        View.Button("Reset", Some(Msg.Reset)),
+        View.Button("Add", Some(Msg.Add), None),
+        View.Button("Reset", Some(Msg.Reset), None),
     ]);
     assert_same(row([button("Add", Msg.Add), button("Reset", Msg.Reset)]), expected);
 }
@@ -169,7 +170,7 @@ fun text_modifiers_land_in_the_style() {
 
 @test
 fun a_disabled_button_carries_no_message() {
-    let expected: View<Msg> = View.Button("Reset", None);
+    let expected: View<Msg> = View.Button("Reset", None, None);
     assert_same(button("Reset", Msg.Reset).disabled(true), expected);
 }
 
@@ -180,7 +181,7 @@ fun disabled_false_changes_nothing() {
 
 @test
 fun disabled_reaches_a_styled_button_and_ignores_other_nodes() {
-    let expected: View<Msg> = View.Styled(View.Button("Go", None), Style {
+    let expected: View<Msg> = View.Styled(View.Button("Go", None, None), Style {
         button: ButtonStyle.Primary,
         ..plain(),
     });
@@ -225,7 +226,7 @@ fun long_text_modifiers_and_tooltips_land_in_the_style() {
         ..plain(),
     });
     assert_same(text("x").ellipsize().selectable(), cut);
-    let tipped: View<Msg> = View.Styled(View.Button("x", Some(Msg.Add)), Style {
+    let tipped: View<Msg> = View.Styled(View.Button("x", Some(Msg.Add), None), Style {
         tooltip: "Add one",
         ..plain(),
     });
@@ -234,7 +235,7 @@ fun long_text_modifiers_and_tooltips_land_in_the_style() {
 
 @test
 fun shortcut_and_autofocus_land_in_the_style() {
-    let keyed: View<Msg> = View.Styled(View.Button("Add", Some(Msg.Add)), Style {
+    let keyed: View<Msg> = View.Styled(View.Button("Add", Some(Msg.Add), None), Style {
         shortcut: "Ctrl+N",
         ..plain(),
     });
@@ -263,20 +264,21 @@ fun a_dropdown_and_a_slider_are_plain_nodes() {
 
 @test
 fun icons_and_images_are_plain_nodes_with_their_modifiers() {
-    let add: View<Msg> = View.Icon("list-add-symbolic");
+    let add: View<Msg> = View.Image(Image.Icon("list-add-symbolic"));
     assert_same(icon("list-add-symbolic"), add);
-    let big: View<Msg> = View.Styled(View.Icon("list-add-symbolic"), Style { size: 48, ..plain() });
-    assert_same(icon("list-add-symbolic").size(48), big);
-    let picture: View<Msg> = View.Image("a.png");
-    assert_same(image("a.png"), picture);
-    assert_eq(plain().fit, Fit.Contain);
-    let covered: View<Msg> = View.Styled(View.Image("a.png"), Style { fit: Fit.Cover, ..plain() });
-    assert_same(image("a.png").fit(Fit.Cover), covered);
-    let iconned: View<Msg> = View.Styled(View.Button("Add", Some(Msg.Add)), Style {
-        icon: "list-add-symbolic",
+    let big: View<Msg> = View.Styled(View.Image(Image.Icon("list-add-symbolic")), Style {
+        size: 48,
         ..plain(),
     });
-    assert_same(button("Add", Msg.Add).icon("list-add-symbolic"), iconned);
+    assert_same(icon("list-add-symbolic").size(48), big);
+    let picture: View<Msg> = View.Image(Image.File("a.png"));
+    assert_same(image(Image.File("a.png")), picture);
+    assert_eq(plain().fit, Fit.Contain);
+    let covered: View<Msg> = View.Styled(View.Image(Image.File("a.png")), Style {
+        fit: Fit.Cover,
+        ..plain(),
+    });
+    assert_same(image(Image.File("a.png")).fit(Fit.Cover), covered);
 }
 
 @test
@@ -343,4 +345,29 @@ fun header_looks_land_in_the_root_style_outside_the_frame() {
         ..plain(),
     });
     assert_same(text("body").header([], text("T"), []).header_style([Shade.Bar]), expected);
+}
+
+@test
+fun images_on_their_own_and_on_buttons_are_plain_data() {
+    let picture: View<Msg> = View.Image(Image.Bytes("k", [1, 2]));
+    assert_same(image(Image.Bytes("k", [1, 2])), picture);
+    let named: View<Msg> = View.Image(Image.Icon("list-add-symbolic"));
+    assert_same(icon("list-add-symbolic"), named);
+    let with_bytes: View<Msg> = View.Button("Add", Some(Msg.Add), Some(Image.Bytes("k", [1])));
+    assert_same(button("Add", Msg.Add).image(Image.Bytes("k", [1])), with_bytes);
+    let with_icon: View<Msg> = View.Button(
+        "Add",
+        Some(Msg.Add),
+        Some(Image.Icon("list-add-symbolic")),
+    );
+    assert_same(button("Add", Msg.Add).icon("list-add-symbolic"), with_icon);
+    // Through a style wrapper; disabling keeps the image.
+    let sized: View<Msg> = View.Styled(View.Button("", None, Some(Image.Icon("x"))), Style {
+        size: 48,
+        ..plain(),
+    });
+    assert_same(button("", Msg.Add).size(48).icon("x").disabled(true), sized);
+    // `.icon("")` takes the image away, as before.
+    let bare: View<Msg> = View.Button("Add", Some(Msg.Add), None);
+    assert_same(button("Add", Msg.Add).icon("x").icon(""), bare);
 }

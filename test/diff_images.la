@@ -1,0 +1,57 @@
+// Diffing images: by their kind and name, path or key, never their bytes.
+// (test/diff.la is at the file size limit.)
+import kivuli.diff { Patch, diff as patches };
+import kivuli { Image, View, button, icon, image };
+
+enum Msg {
+    Open,
+}
+
+fun assert_same<T>(actual: T, expected: T) {
+    assert_eq("{actual}", "{expected}");
+}
+
+@test
+fun the_same_key_gives_nothing_whatever_the_bytes() {
+    let none: Patch<Msg>[] = [];
+    assert_same(patches(image(Image.Bytes("k", [1])), image(Image.Bytes("k", [2]))), none);
+}
+
+@test
+fun a_new_key_path_or_name_sets_the_image() {
+    let rekeyed: Patch<Msg>[] = [Patch.SetImage([], Image.Bytes("j", [1]))];
+    assert_same(patches(image(Image.Bytes("k", [1])), image(Image.Bytes("j", [1]))), rekeyed);
+    let moved: Patch<Msg>[] = [Patch.SetImage([], Image.File("b.png"))];
+    assert_same(patches(image(Image.File("a.png")), image(Image.File("b.png"))), moved);
+    // A file and bytes are both pictures: set in place.
+    let to_bytes: Patch<Msg>[] = [Patch.SetImage([], Image.Bytes("k", [1]))];
+    assert_same(patches(image(Image.File("a.png")), image(Image.Bytes("k", [1]))), to_bytes);
+    let renamed: Patch<Msg>[] = [Patch.SetImage([], Image.Icon("b"))];
+    assert_same(patches(icon("a"), icon("b")), renamed);
+}
+
+@test
+fun an_icon_that_becomes_a_picture_is_replaced() {
+    let expected: Patch<Msg>[] = [Patch.Replace([], image(Image.Bytes("k", [1])))];
+    assert_same(patches(icon("a"), image(Image.Bytes("k", [1]))), expected);
+}
+
+@test
+fun a_buttons_image_changes_by_identity_too() {
+    let open = button("Open", Msg.Open);
+    let kept: Patch<Msg>[] = [Patch.SetMsg([], Some(Msg.Open))];
+    assert_same(
+        patches(open.image(Image.Bytes("k", [1])), open.image(Image.Bytes("k", [9]))),
+        kept,
+    );
+    let swapped: Patch<Msg>[] = [
+        Patch.SetButtonImage([], Some(Image.Bytes("j", [1]))),
+        Patch.SetMsg([], Some(Msg.Open)),
+    ];
+    assert_same(
+        patches(open.image(Image.Bytes("k", [1])), open.image(Image.Bytes("j", [1]))),
+        swapped,
+    );
+    let dropped: Patch<Msg>[] = [Patch.SetButtonImage([], None), Patch.SetMsg([], Some(Msg.Open))];
+    assert_same(patches(open.icon("x"), open), dropped);
+}

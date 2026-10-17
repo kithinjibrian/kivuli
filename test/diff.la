@@ -4,6 +4,7 @@
 import kivuli.diff { Patch, diff as patches };
 import kivuli.looks { Style, plain };
 import kivuli {
+    Image,
     View,
     text,
     button,
@@ -401,19 +402,19 @@ fun a_dropdown_that_becomes_a_slider_is_replaced() {
 
 @test
 fun a_renamed_icon_or_a_new_file_is_set_in_place() {
-    let renamed: Patch<Msg>[] = [Patch.SetIcon([], "user-trash-symbolic")];
+    let renamed: Patch<Msg>[] = [Patch.SetImage([], Image.Icon("user-trash-symbolic"))];
     assert_same(patches(icon("list-add-symbolic"), icon("user-trash-symbolic")), renamed);
     let none: Patch<Msg>[] = [];
     assert_same(patches(icon("list-add-symbolic"), icon("list-add-symbolic")), none);
-    let moved: Patch<Msg>[] = [Patch.SetFile([], "b.png")];
-    assert_same(patches(image("a.png"), image("b.png")), moved);
-    assert_same(patches(image("a.png"), image("a.png")), none);
+    let moved: Patch<Msg>[] = [Patch.SetImage([], Image.File("b.png"))];
+    assert_same(patches(image(Image.File("a.png")), image(Image.File("b.png"))), moved);
+    assert_same(patches(image(Image.File("a.png")), image(Image.File("a.png"))), none);
 }
 
 @test
-fun a_button_icon_or_an_image_fit_is_a_restyle() {
+fun a_button_icon_is_set_in_place_and_an_image_fit_is_a_restyle() {
     let iconned: Patch<Msg>[] = [
-        Patch.SetStyle([], Style { icon: "list-add-symbolic", ..plain() }),
+        Patch.SetButtonImage([], Some(Image.Icon("list-add-symbolic"))),
         Patch.SetMsg([], Some(Msg.Add)),
     ];
     assert_same(
@@ -421,13 +422,10 @@ fun a_button_icon_or_an_image_fit_is_a_restyle() {
         iconned,
     );
     let refit: Patch<Msg>[] = [Patch.SetStyle([], Style { fit: Fit.Cover, ..plain() })];
-    assert_same(patches(image("a.png"), image("a.png").fit(Fit.Cover)), refit);
-}
-
-@test
-fun an_icon_that_becomes_an_image_is_replaced() {
-    let expected: Patch<Msg>[] = [Patch.Replace([], image("a.png"))];
-    assert_same(patches(icon("list-add-symbolic"), image("a.png")), expected);
+    assert_same(
+        patches(image(Image.File("a.png")), image(Image.File("a.png")).fit(Fit.Cover)),
+        refit,
+    );
 }
 
 @test

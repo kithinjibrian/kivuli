@@ -1,0 +1,70 @@
+// Tiny images as bytes, for the image tests (`import fixtures;`). Made with
+// Python's imaging library: a 3 x 2 red rectangle as PNG and as JPEG, a
+// genuine 4097 x 1 PNG, and hostile variants built from them. Kept as hex,
+// one line each (as arrays, the formatter gives every byte its own line).
+
+/** A 3 x 2 PNG. */
+fun png(): u8[] = from_hex(
+    "89504e470d0a1a0a0000000d49484452000000030000000208020000001216f14d0000001549444154789c633ca1a1c1c0c0c0c0c0c0c4000300148c011ca02b9ba10000000049454e44ae426082",
+);
+
+/** A 3 x 2 JPEG. */
+fun jpeg(): u8[] = from_hex(
+    "ffd8ffe000104a46494600010100000100010000ffdb00430006040506050406060506070706080a100a0a09090a140e0f0c1017141818171416161a1d251f1a1b231c1616202c20232627292a29191f2d302d283025282928ffdb0043010707070a080a130a0a13281a161a2828282828282828282828282828282828282828282828282828282828282828282828282828282828282828282828282828ffc00011080002000303012200021101031101ffc4001f0000010501010101010100000000000000000102030405060708090a0bffc400b5100002010303020403050504040000017d01020300041105122131410613516107227114328191a1082342b1c11552d1f02433627282090a161718191a25262728292a3435363738393a434445464748494a535455565758595a636465666768696a737475767778797a838485868788898a92939495969798999aa2a3a4a5a6a7a8a9aab2b3b4b5b6b7b8b9bac2c3c4c5c6c7c8c9cad2d3d4d5d6d7d8d9dae1e2e3e4e5e6e7e8e9eaf1f2f3f4f5f6f7f8f9faffc4001f0100030101010101010101010000000000000102030405060708090a0bffc400b51100020102040403040705040400010277000102031104052131061241510761711322328108144291a1b1c109233352f0156272d10a162434e125f11718191a262728292a35363738393a434445464748494a535455565758595a636465666768696a737475767778797a82838485868788898a92939495969798999aa2a3a4a5a6a7a8a9aab2b3b4b5b6b7b8b9bac2c3c4c5c6c7c8c9cad2d3d4d5d6d7d8d9dae2e3e4e5e6e7e8e9eaf2f3f4f5f6f7f8f9faffda000c03010002110311003f00e2a8a28af00fd6cfffd9",
+);
+
+/** A genuine 4097 x 1 PNG: GTK would decode it; kivuli's check refuses it. */
+fun wide_png(): u8[] = from_hex(
+    "89504e470d0a1a0a0000000d494844520000100100000001080000000094885f9e0000001c4944415478daedc1010d00000c02a0dbfcd1ede180fc01000000f30a20fc00829c07cf870000000049454e44ae426082",
+);
+
+/** The PNG with its IHDR saying 5000 x 5000: a small file claiming a huge image. */
+fun huge_png(): u8[] {
+    let mut out = png();
+    // Width at bytes 16-19, height at 20-23, big-endian: 5000 = 0x1388.
+    out[18] = 19;
+    out[19] = 136;
+    out[22] = 19;
+    out[23] = 136;
+    out
+}
+
+/** The PNG with a sound header and its pixel data broken. */
+fun corrupt_png(): u8[] {
+    let mut out = png();
+    out[40] = 0;
+    out[41] = 0;
+    out[42] = 0;
+    out
+}
+
+/** The first `n` bytes of `bytes`. */
+fun cut(bytes: u8[], n: i64): u8[] {
+    let mut out: u8[] = [];
+    let mut i = 0;
+    while i < n {
+        out.push(bytes[i]);
+        i = i + 1;
+    }
+    out
+}
+
+/** The bytes a string of hex digits (two per byte, lowercase) spells. */
+fun from_hex(digits: string): u8[] {
+    let all = "0123456789abcdef";
+    let mut values: i64[] = [];
+    for b of digits {
+        let mut v = 0;
+        while all.slice(v, v + 1).to_bytes()[0] != b {
+            v = v + 1;
+        }
+        values.push(v);
+    }
+    let mut out: u8[] = [];
+    let mut i = 0;
+    while i + 1 < values.len {
+        out.push((values[i] * 16 + values[i + 1]) as u8);
+        i = i + 2;
+    }
+    out
+}

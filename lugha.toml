@@ -1,7 +1,7 @@
 [package]
 name = "kivuli"
-version = "0.4.1"
+version = "0.5.0"
 source = "src"
 
 [packages]
-gtk = { git = "https://github.com/kithinjibrian/lugha-gtk", version = "0.1.24" }
+gtk = { git = "https://github.com/kithinjibrian/lugha-gtk", version = "0.1.25" }

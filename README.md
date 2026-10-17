@@ -94,7 +94,7 @@ lughac run examples/frame.la
 | `checkbox(label, checked, on_toggle)` | Each toggle sends `on_toggle(ticked)`. |
 | `dropdown(choices, selected)` | A drop-down of `(label, msg)` choices; picking one sends its message. `selected` is the label shown picked; one matching no label shows a blank item. |
 | `icon(name)` | A theme icon by name (`"user-trash-symbolic"`); symbolic icons follow the light or dark theme. An unknown name shows GTK's placeholder. |
-| `image(path)` | A picture from a file (PNG, JPEG, SVG …), scaled to its room. A relative path is relative to where the app was started; a missing file shows nothing. |
+| `image(Image.File(path))`, `image(Image.Bytes(key, bytes))` | A PNG or JPEG picture, from a file or from bytes in memory, scaled to its room (`.fit`, `.width`/`.height`, or `.size(n)` for an n × n box). `image(Image.Icon(name))` is `icon(name)`. Bytes are known by their key: the same key is never decoded again, a new key replaces the picture. A relative path is relative to where the app was started. Anything that can't be shown (not PNG or JPEG, corrupt, over 4096 × 4096 px or 16 MB, a missing file) shows nothing; the app keeps running. |
 | `slider(min, max, value, on_change)` | A whole-number slider showing its number; each move to a new step sends `on_change(value)`. `.step(n)` moves it in steps of `n` from `min`. |
 | `column(children)`, `row(children)` | Children top to bottom, or left to right. |
 | `keyed_column(children)` | Like `column`, with `(key, view)` children matched by key: reordering, inserting or deleting moves, adds or removes just those widgets. |
@@ -109,7 +109,7 @@ lughac run examples/frame.la
 | `.padding(n)`, `.spacing(n)` | Room around a node; between a column's or row's children (pixels). |
 | `.expand()`, `.align(Align.Start \| Center \| End)` | Take spare room along the parent; place across it. |
 | `.width(n)`, `.height(n)` | A minimum size in pixels. |
-| `.size(points)`, `.bold()`, `.dim()` | Text. On an icon, `.size(n)` is its size in pixels. |
+| `.size(points)`, `.bold()`, `.dim()` | Text. On an icon or a button's image, `.size(n)` is its size in pixels; on a picture, an n × n box. |
 | `.wrap()`, `.wrap_at(chars)`, `.ellipsize()` | Long text on text and check box labels: onto more lines (at most `chars` wide), or cut with "…"; both: up to three lines, the last cut. |
 | `.selectable()` | Text the user can select and copy. |
 | `.tooltip(hint)` | Hover text on any node; tests can click a button by it. |
@@ -118,7 +118,7 @@ lughac run examples/frame.la
 | `.button_style(ButtonStyle.Primary \| Danger \| Subtle \| Normal)` | Buttons. |
 | `.disabled(bool)` | Buttons, text fields and text areas: greyed out by the theme, and they send nothing. A disabled field still shows its value and follows the model. `.disabled(false)` changes nothing. |
 | `.step(n)` | Sliders: move in steps of `n`, counted from the least value. |
-| `.icon(name)` | Buttons: a theme icon before the label; with the label `""`, an icon-only button (give it a `.tooltip`, which tests find it by). |
+| `.image(Image.…)`, `.icon(name)` | Buttons: an image (a theme icon, a file or bytes) before the label; with the label `""`, an image-only button (give it a `.tooltip`, which tests find it by). `.icon(name)` is `.image(Image.Icon(name))`; `.icon("")` takes the image away. |
 | `.fit(Fit.Contain \| Cover \| ScaleDown \| Fill)` | Pictures: the whole picture (default), filled and cropped, never enlarged, or stretched. |
 | `.placeholder(hint)`, `.on_submit(msg)` | Text fields: a hint while empty; the message Enter sends. |
 | `.name(id)` | A name tests find a text field, text area, drop-down or slider by (not shown). |

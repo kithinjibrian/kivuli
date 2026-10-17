@@ -16,6 +16,18 @@ Rules:
 
 ## DEFERRED — Acknowledged, not yet needed
 
+### DECISION-020 — lughac: std.fs can't tell a file's size
+
+**Status:** deferred (a lughac wish, reported; not worked around)
+**Raised:** 2026-10-18 — Session 11 (PRP-010)
+**Revisit when:** lughac's `std.fs` gains a size (`stat`); then `textures.la` checks a file's size before reading it.
+
+**Question:** `Image.File` reads the whole file with `read_bytes` before kivuli can refuse one over 16 MB, so a large local file is read into memory first. A `std.fs.size(path)` (or `stat`) would let kivuli refuse it without reading it.
+
+**Notes:** It's the app's own local file, and the bytes are still refused before GTK decodes them, so it's a memory spike, not a hole.
+
+---
+
 ### DECISION-017 — How an app asks for GTK's dark variant (GTK 4.22)
 
 **Status:** deferred (the user's choice, session 6: ship PRP-007 without `.dark()`)
@@ -119,6 +131,22 @@ Rules:
 ---
 
 ## RESOLVED
+
+### DECISION-019 — Where web images come from
+
+**Status:** resolved
+**Raised:** 2026-10-18 — Session 11 (the "images from bytes" brief)
+**Resolved:** 2026-10-18 — Session 11 (the user: model B)
+
+**Question:** Rapidkoi will need images from the web as well as bundle bytes and files. Does kivuli fetch (`Image.Url`, an HTTP stack inside kivuli), or does the app?
+
+**Outcome:** the app fetches, with a non-blocking command (a later PRP, with DECISION-007), and shows the bytes: `image(Image.Bytes(url, bytes))`. kivuli's images only ever show bytes they already have.
+
+**Rationale:** the view stays pure and testable; loading and failure are explicit in the model; no HTTP stack in a UI library; for Rapidkoi, a guest app can't make the shell open a connection by putting a URL in its view: the shell decides.
+
+**Copied to MEMORY.md:** yes (decision 17).
+
+---
 
 ### DECISION-018 — Where View's modifiers go once views.la is full
 

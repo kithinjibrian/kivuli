@@ -1,6 +1,7 @@
 // Icons, pictures and buttons' icons on real GTK widgets: what the view says
 // reaches the widgets, and changes are made in place. Needs a display, so it is
-// skipped without one. No image file is needed: a missing one shows nothing.
+// skipped without one. Pictures come from fixture bytes; a missing file shows
+// nothing. (Images from bytes in depth: test/live_pictures.la.)
 import std.env;
 import gtk {
     GtkApplication,
@@ -9,8 +10,6 @@ import gtk {
     emit_widget,
     g_application_quit,
     g_application_run,
-    g_file_get_path,
-    g_free,
     g_object_unref,
     gtk_application_new,
     gtk_application_window_new,
@@ -18,18 +17,20 @@ import gtk {
     gtk_image_get_pixel_size,
     gtk_label_get_text,
     gtk_picture_get_content_fit,
-    gtk_picture_get_file,
+    gtk_picture_get_paintable,
+    gdk_texture_get_height,
+    gdk_texture_get_width,
     gtk_widget_get_visible,
     gtk_button_get_child,
     gtk_widget_get_halign,
     gtk_widget_get_valign,
     gtk_widget_has_css_class,
-    lgtk_cstring_text,
 };
 import kivuli.live { mount, live_of };
 import kivuli.effects { sandbox_app };
 import kivuli.live_tree { Live, widget };
-import kivuli { View, Fit, button, column, icon, image };
+import fixtures;
+import kivuli { Fit, Image, View, button, column, icon, image };
 
 fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
 
@@ -92,7 +93,7 @@ enum Change {
 struct Pictures {
     name: string,
     size: i64,
-    file: string,
+    file: Image,
     fit: Fit,
 }
 
@@ -100,7 +101,7 @@ fun update_pictures(p: Pictures, msg: Change): Pictures = match msg {
     Rename => Pictures { name: "user-trash-symbolic", ..p },
     Grow => Pictures { size: 48, ..p },
     Shrink => Pictures { size: 0, ..p },
-    Refile => Pictures { file: "/nowhere/b.png", ..p },
+    Refile => Pictures { file: Image.File("/nowhere/b.png"), ..p },
     Cover => Pictures { fit: Fit.Cover, ..p },
 };
 
@@ -123,21 +124,14 @@ fun icon_of(node: Live<Change>): string {
     "{gtk_image_get_icon_name(w).unwrap_or("?")} {gtk_image_get_pixel_size(w)}"
 }
 
-/** A picture as GTK shows it: its file's path and its `GtkContentFit`. */
+/** A picture as GTK shows it: its texture's size (or nothing) and its `GtkContentFit`. */
 fun picture_of(node: Live<Change>): string {
     let w = widget(node);
-    let path = match gtk_picture_get_file(w) {
-        Some(file) => match g_file_get_path(file) {
-            Some(owned) => {
-                let text = lgtk_cstring_text(owned);
-                g_free(owned);
-                text
-            }
-            None => "no path",
-        },
-        None => "no file",
+    let shown = match gtk_picture_get_paintable(w) {
+        Some(t) => "{gdk_texture_get_width(t)}x{gdk_texture_get_height(t)}",
+        None => "nothing",
     };
-    "{path} {gtk_picture_get_content_fit(w)}"
+    "{shown} {gtk_picture_get_content_fit(w)}"
 }
 
 @test
@@ -150,7 +144,7 @@ fun icons_and_pictures_show_what_the_view_says_and_change_in_place() {
     with_app("org.kivuli.test.pictures", Pictures {
         name: "list-add-symbolic",
         size: 0,
-        file: "/nowhere/a.png",
+        file: Image.Bytes("start", fixtures.png()),
         fit: Fit.Contain,
     }, update_pictures, view_pictures, received, fun(kids: Live<Change>[]) {
         let first_icon = widget(kids[0]);
@@ -167,12 +161,13 @@ fun icons_and_pictures_show_what_the_view_says_and_change_in_place() {
         note(seen, "same: {widget(kids[0]) == first_icon && widget(kids[1]) == first_picture}");
     });
     assert_eq(seen.get(), [
-        "list-add-symbolic -1 | /nowhere/a.png 1",
-        "user-trash-symbolic -1 | /nowhere/a.png 1",
-        "user-trash-symbolic 48 | /nowhere/a.png 1",
-        "user-trash-symbolic -1 | /nowhere/a.png 1",
-        "user-trash-symbolic -1 | /nowhere/b.png 1",
-        "user-trash-symbolic -1 | /nowhere/b.png 2",
+        "list-add-symbolic -1 | 3x2 1",
+        "user-trash-symbolic -1 | 3x2 1",
+        "user-trash-symbolic 48 | 3x2 1",
+        "user-trash-symbolic -1 | 3x2 1",
+        // A missing file: nothing shown, no crash, the same widget.
+        "user-trash-symbolic -1 | nothing 1",
+        "user-trash-symbolic -1 | nothing 2",
         "same: true",
     ]);
     assert_eq(received.get(), ["Rename", "Grow", "Shrink", "Refile", "Cover"]);
