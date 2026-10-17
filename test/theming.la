@@ -85,7 +85,12 @@ fun the_css_has_one_rule_per_property_and_value() {
             ".kv-fg-eeeeeeff {{ color: #eeeeeeff; }}",
             ".kv-bg-3a3a3aff {{ background-color: #3a3a3aff; background-image: none; }}",
             ".kv-border-1-555555ff {{ border: 1px solid #555555ff; }}",
+            // Every corner rule for a radius a theme uses: merges can need any.
             ".kv-radius-6 {{ border-radius: 6px; }}",
+            ".kv-radius-tl-6 {{ border-top-left-radius: 6px; }}",
+            ".kv-radius-tr-6 {{ border-top-right-radius: 6px; }}",
+            ".kv-radius-br-6 {{ border-bottom-right-radius: 6px; }}",
+            ".kv-radius-bl-6 {{ border-bottom-left-radius: 6px; }}",
         ].join("\n"),
     );
 }
@@ -128,6 +133,8 @@ fun painting_gives_nodes_the_classes_of_their_looks() {
                     "kv-border-1-555555ff",
                     "kv-radius-6",
                 ],
+                // Selected rounds its corners: the node clips its content.
+                clips: true,
                 ..plain(),
             }),
         ]),
@@ -219,4 +226,99 @@ fun painting_gives_the_header_bar_its_looks() {
         painted(headed()).map(fun(v) = 0),
         Err("a node has .style([…]) but the root has no .theme(…)"),
     );
+}
+
+@test
+fun one_corner_rounds_alone() {
+    let page = Surface { radius_top_right: Some(12), ..Surface.theme() };
+    assert_eq(classes(page), ["kv-radius-tr-12"]);
+    assert_eq(
+        build_theme(["Page"], [page]).map(fun(t) = css(t)),
+        Ok(
+            [
+                ".kv-radius-12 {{ border-radius: 12px; }}",
+                ".kv-radius-tl-12 {{ border-top-left-radius: 12px; }}",
+                ".kv-radius-tr-12 {{ border-top-right-radius: 12px; }}",
+                ".kv-radius-br-12 {{ border-bottom-right-radius: 12px; }}",
+                ".kv-radius-bl-12 {{ border-bottom-left-radius: 12px; }}",
+            ].join("\n"),
+        ),
+    );
+}
+
+@test
+fun four_equal_corners_are_one_radius_and_different_ones_four() {
+    let same = Surface {
+        radius_top_left: Some(6),
+        radius_top_right: Some(6),
+        radius_bottom_right: Some(6),
+        radius_bottom_left: Some(6),
+        ..Surface.theme(),
+    };
+    assert_eq(classes(same), ["kv-radius-6"]);
+    assert_eq(classes(Surface { radius: Some(6), ..Surface.theme() }), ["kv-radius-6"]);
+    let mixed = Surface {
+        radius_top_left: Some(1),
+        radius_top_right: Some(2),
+        radius_bottom_right: Some(3),
+        radius_bottom_left: Some(4),
+        ..Surface.theme(),
+    };
+    assert_eq(classes(mixed), [
+        "kv-radius-tl-1",
+        "kv-radius-tr-2",
+        "kv-radius-br-3",
+        "kv-radius-bl-4",
+    ]);
+    // `radius` with one corner: that corner overrides, the rest follow `radius`.
+    let one = Surface { radius: Some(6), radius_top_right: Some(12), ..Surface.theme() };
+    assert_eq(classes(one), [
+        "kv-radius-tl-6",
+        "kv-radius-tr-12",
+        "kv-radius-br-6",
+        "kv-radius-bl-6",
+    ]);
+}
+
+@test
+fun later_corners_replace_only_themselves_and_a_later_radius_replaces_all() {
+    let round = Surface { radius: Some(6), ..Surface.theme() };
+    let corner = Surface { radius_top_right: Some(12), ..Surface.theme() };
+    let t = build_theme(["Round", "Corner"], [round, corner]);
+    assert_eq(
+        t.map(fun(x) = merged(x, ["Round", "Corner"]).map(fun(s) = classes(s))),
+        Ok(Ok(["kv-radius-tl-6", "kv-radius-tr-12", "kv-radius-br-6", "kv-radius-bl-6"])),
+    );
+    assert_eq(
+        t.map(fun(x) = merged(x, ["Corner", "Round"]).map(fun(s) = classes(s))),
+        Ok(Ok(["kv-radius-6"])),
+    );
+}
+
+@test
+fun a_negative_corner_is_refused() {
+    let bad = Surface { radius_bottom_left: Some(-2), ..Surface.theme() };
+    assert_eq(
+        build_theme(["Bad"], [bad]).map(fun(t) = t.looks.len),
+        Err("the look \"Bad\" has a negative size"),
+    );
+}
+
+fun rounded(on: bool): View<i64> = column([
+    text("page").style(if on { [Look.Selected] } else { [Look.Bar] }),
+]).theme(theme([Look.Bar, Look.Selected], surface));
+
+/** Whether the page node clips its content, as `paint` decides. */
+fun clips(v: View<i64>): Result<bool, string> = painted(v).map(fun(p) = match p {
+    Styled(Column(kids), _) => match kids[0] {
+        Styled(_, s) => s.clips,
+        _ => false,
+    },
+    _ => false,
+});
+
+@test
+fun painting_marks_rounded_nodes_to_clip_their_content() {
+    assert_eq(clips(rounded(true)), Ok(true));
+    assert_eq(clips(rounded(false)), Ok(false));
 }

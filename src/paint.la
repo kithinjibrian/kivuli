@@ -10,7 +10,7 @@
 
 import views { View };
 import looks { Style };
-import theming { Theme, classes, merged };
+import theming { Surface, Theme, classes, merged, rounds };
 
 /**
  * `v` with every node's `classes` filled in from its looks and the root's
@@ -59,19 +59,27 @@ fun paint_all<Msg>(xs: View<Msg>[], t: Option<Theme>): Result<View<Msg>[], strin
     Ok(out)
 }
 
-/** `s` with the classes of its looks, and of its header's (the root's). */
-fun paint_style(s: Style, t: Option<Theme>): Result<Style, string> = Ok(Style {
-    classes: classes_of(s.looks, t)?,
-    header_classes: classes_of(s.header_looks, t)?,
-    ..s,
-});
+/** `s` with the classes of its looks, whether they round a corner, and its header's classes (the root's). */
+fun paint_style(s: Style, t: Option<Theme>): Result<Style, string> {
+    let own = surface_of(s.looks, t)?;
+    let header = surface_of(s.header_looks, t)?;
+    Ok(Style {
+        classes: own.map(classes).unwrap_or([]),
+        clips: own.map(rounds).unwrap_or(false),
+        header_classes: header.map(classes).unwrap_or([]),
+        ..s,
+    })
+}
 
-/** The classes of these looks in the theme. */
-fun classes_of(names: string[], t: Option<Theme>): Result<string[], string> = if names.len == 0 {
-    Ok([])
+/** The merged surface of these looks in the theme; `None` for no looks. */
+fun surface_of(
+    names: string[],
+    t: Option<Theme>,
+): Result<Option<Surface>, string> = if names.len == 0 {
+    Ok(None)
 } else {
     match t {
-        Some(theme) => Ok(classes(merged(theme, names)?)),
+        Some(theme) => Ok(Some(merged(theme, names)?)),
         None => Err("a node has .style([…]) but the root has no .theme(…)"),
     }
 };
