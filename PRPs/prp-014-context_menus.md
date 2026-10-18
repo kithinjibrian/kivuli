@@ -1,6 +1,6 @@
 # PRP-014 — Context menus
 
-Status: draft, for the user's approval
+Status: approved by the user (session 15); building on branch prp-014-context_menus
 Discovery: session 15, 2026-10-18 (DECISION-015; Rapidkoi's DECISION-020, its tab actions). *(you)*: chosen in the interview; *(proposed)*: for you to confirm or change with this PRP.
 
 ## FEATURE: `.menu([item(label, msg), menu_separator(), …])` gives any node a context menu, opened by a right-click, a long press or the Menu key; picking an item sends its message.
