@@ -1,0 +1,249 @@
+// Wrapping grids on real GTK widgets: a GtkFlowBox holding the children in
+// order, no selection, its wrappers no keyboard stops, its settings read back
+// and reset; keyed changes move, insert and remove only the widgets that
+// changed, a moved one kept alive, a removed one freed. Needs a display, so it
+// is skipped without one. (The re-flow itself needs a window on screen:
+// checked by hand in examples/frame.la.)
+import std.env;
+import gtk {
+    GtkApplication,
+    GtkWidget,
+    connect_app,
+    emit_widget,
+    g_application_quit,
+    g_application_run,
+    g_object_unref,
+    gtk_application_new,
+    gtk_application_window_new,
+    gtk_flow_box_child_get_child,
+    gtk_flow_box_get_child_at_index,
+    gtk_flow_box_get_column_spacing,
+    gtk_flow_box_get_homogeneous,
+    gtk_flow_box_get_max_children_per_line,
+    gtk_flow_box_get_row_spacing,
+    gtk_flow_box_get_selection_mode,
+    gtk_label_get_text,
+    gtk_widget_get_focusable,
+    on_finalized,
+};
+import kivuli.live { mount, live_of };
+import kivuli.effects { sandbox_app };
+import kivuli.live_tree { Live, widget };
+import kivuli { View, button, column, keyed_wrap };
+
+fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
+
+/** Runs `steps` with a function giving the app's top column's children now. */
+fun with_app<Model, Msg>(
+    id: string,
+    model: Model,
+    update: fun(Model, Msg): Model,
+    view: fun(Model): View<Msg>,
+    steps: fun(fun(): Live<Msg>[]),
+) {
+    let application = gtk_application_new(id, 0);
+    connect_app(
+        application,
+        "activate",
+        fun(a: GtkApplication) {
+            let window = gtk_application_window_new(a);
+            let app = mount(a, window, sandbox_app("org.kivuli.test", model, update, view));
+            steps(fun(): Live<Msg>[] = match live_of(app) {
+                Box(_, _, kids) => kids,
+                _ => panic("expected a column"),
+            });
+            g_application_quit(a);
+        },
+        0,
+    );
+    g_application_run(application, 0, None);
+    g_object_unref(application);
+}
+
+fun note(seen: Ref<string[]>, s: string) {
+    seen.update(fun(xs) {
+        let mut ys = xs;
+        ys.push(s);
+        ys
+    });
+}
+
+enum Tiles {
+    Rotate,
+    Drop(string),
+    Front(string),
+    Plain,
+    Open(string),
+}
+
+struct Grid {
+    keys: string[],
+    styled: bool,
+}
+
+fun update_grid(g: Grid, msg: Tiles): Grid = match msg {
+    // The last tile moves to the front.
+    Rotate => {
+        let mut keys = [g.keys[g.keys.len - 1]];
+        let mut i = 0;
+        while i < g.keys.len - 1 {
+            keys.push(g.keys[i]);
+            i = i + 1;
+        }
+        Grid { keys: keys, ..g }
+    }
+    Drop(k) => Grid { keys: g.keys.filter(fun(x) = x != k), ..g },
+    Front(k) => {
+        let mut keys = [k];
+        for x of g.keys {
+            keys.push(x);
+        }
+        Grid { keys: keys, ..g }
+    }
+    Plain => Grid { styled: false, ..g },
+    Open(_) => g,
+};
+
+fun view_grid(g: Grid): View<Tiles> {
+    let tiles = keyed_wrap(g.keys.map(fun(k) = (k, button(k, Tiles.Open(k)))));
+    column([
+        if g.styled { tiles.equal().max_per_line(4).spacing(8) } else { tiles },
+        button("Rotate", Tiles.Rotate),
+        button("Drop b", Tiles.Drop("b")),
+        button("Front d", Tiles.Front("d")),
+        button("Plain", Tiles.Plain),
+    ])
+}
+
+/** The grid's flow box and its tiles, as kivuli holds them. */
+fun grid_of(kids: Live<Tiles>[]): (GtkWidget, Live<Tiles>[]) = match kids[0] {
+    Wrap(flow, tiles) => (flow, tiles),
+    _ => panic("expected a wrap"),
+};
+
+/**
+ * The tiles' labels in GTK's own order: each GtkFlowBoxChild's widget, matched
+ * to kivuli's tile holding it.
+ */
+fun order(kids: Live<Tiles>[]): string {
+    let (flow, tiles) = grid_of(kids);
+    let mut out: string[] = [];
+    let mut i = 0;
+    while i < tiles.len + 1 {
+        match gtk_flow_box_get_child_at_index(flow, i as i32) {
+            Some(wrapper) => {
+                let inside = gtk_flow_box_child_get_child(wrapper);
+                let mut name = "?";
+                for tile of tiles {
+                    match tile {
+                        Button(w, _, _, _, label, _) => if Some(w) == inside {
+                            name = gtk_label_get_text(label);
+                        },
+                        _ => {}
+                    }
+                }
+                out.push(name);
+            }
+            None => {}
+        }
+        i = i + 1;
+    }
+    out.join(" ")
+}
+
+/** The tile whose label is `name`. */
+fun tile_named(kids: Live<Tiles>[], name: string): GtkWidget {
+    let (_, tiles) = grid_of(kids);
+    let mut found: Option<GtkWidget> = None;
+    for tile of tiles {
+        match tile {
+            Button(w, _, _, _, label, _) => if gtk_label_get_text(label) == name {
+                found = Some(w);
+            },
+            _ => {}
+        }
+    }
+    found.unwrap_or(widget(tiles[0]))
+}
+
+/** The grid's settings, as GTK holds them. */
+fun settings(kids: Live<Tiles>[]): string {
+    let (flow, _) = grid_of(kids);
+    "equal {gtk_flow_box_get_homogeneous(flow)} spacing {gtk_flow_box_get_row_spacing(flow)} {gtk_flow_box_get_column_spacing(flow)} max {gtk_flow_box_get_max_children_per_line(flow)} selection {gtk_flow_box_get_selection_mode(flow)}"
+}
+
+@test
+fun a_grid_is_a_flow_box_in_order_with_its_settings() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen: Ref<string[]> = Ref.new([]);
+    let received: Ref<string[]> = Ref.new([]);
+    with_app(
+        "org.kivuli.test.wrap",
+        Grid { keys: ["a", "b", "c"], styled: true },
+        fun(g: Grid, msg: Tiles): Grid {
+            note(received, "{msg}");
+            update_grid(g, msg)
+        },
+        view_grid,
+        fun(kids: fun(): Live<Tiles>[]) {
+            note(seen, order(kids()));
+            note(seen, settings(kids()));
+            let (flow, _) = grid_of(kids());
+            match gtk_flow_box_get_child_at_index(flow, 0) {
+                Some(wrapper) => note(
+                    seen,
+                    "wrapper focusable {gtk_widget_get_focusable(wrapper)}",
+                ),
+                None => note(seen, "no wrapper"),
+            }
+            // A tile's button still sends its message.
+            emit_widget(tile_named(kids(), "b"), "clicked");
+            // Dropping the settings resets them (no cap: 65535).
+            emit_widget(widget(kids()[4]), "clicked");
+            note(seen, settings(kids()));
+        },
+    );
+    assert_eq(seen.get(), [
+        "a b c",
+        "equal 1 spacing 8 8 max 4 selection 0",
+        "wrapper focusable 0",
+        "equal 0 spacing 0 0 max 65535 selection 0",
+    ]);
+    assert_eq(received.get(), ["Open(\"b\")", "Plain"]);
+}
+
+@test
+fun keyed_changes_move_only_what_changed_and_free_what_goes() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen: Ref<string[]> = Ref.new([]);
+    let freed: Ref<string[]> = Ref.new([]);
+    with_app("org.kivuli.test.wrap_keys", Grid {
+        keys: ["a", "b", "c"],
+        styled: false,
+    }, update_grid, view_grid, fun(kids: fun(): Live<Tiles>[]) {
+        let a = tile_named(kids(), "a");
+        let c = tile_named(kids(), "c");
+        for name of ["a", "b", "c"] {
+            on_finalized(tile_named(kids(), name), fun(gone: GtkWidget) {
+                note(freed, name);
+            });
+        }
+        // Rotate: c moves to the front (out of the box and back in, held alive).
+        emit_widget(widget(kids()[1]), "clicked");
+        note(seen, order(kids()));
+        // Drop b: only b goes.
+        emit_widget(widget(kids()[2]), "clicked");
+        note(seen, order(kids()));
+        // A new tile at the front.
+        emit_widget(widget(kids()[3]), "clicked");
+        note(seen, order(kids()));
+        note(seen, "same tiles: {tile_named(kids(), "a") == a && tile_named(kids(), "c") == c}");
+    });
+    assert_eq(seen.get(), ["c a b", "c a", "d c a", "same tiles: true"]);
+    // Only the dropped tile was freed; the moved one survived its move.
+    assert_eq(freed.get(), ["b"]);
+}
