@@ -40,6 +40,7 @@ import controls { picked, sync_choices };
 import styling { apply_style, flag, show_content, show_number };
 import textures { show_in_image, show_picture };
 import live_tree { Choices, Live, titlebar, widget };
+import paths { at, axis_of, parent, sibling_before, update_at };
 
 /** Applies one patch to the widgets, and returns the `Live` tree that now mirrors them. */
 fun apply<Msg>(
@@ -347,101 +348,4 @@ fun apply<Msg>(
             _ => panic("kivuli: a Replace patch points into something with no children"),
         })
     },
-};
-
-/**
- * Rebuilds the `Live` tree with the node at `path` (from `depth` on) replaced
- * by `f(node)`. `f` also makes the matching change to the widgets.
- */
-fun update_at<Msg>(
-    node: Live<Msg>,
-    path: i64[],
-    depth: i64,
-    f: fun(Live<Msg>): Live<Msg>,
-): Live<Msg> = if depth == path.len {
-    f(node)
-} else {
-    match node {
-        Box(box, orientation, kids) => {
-            let i = path[depth];
-            let mut next = kids;
-            next[i] = update_at(kids[i], path, depth + 1, f);
-            Live.Box(box, orientation, next)
-        }
-        Scroll(scrolled, kid) => Live.Scroll(scrolled, update_at(kid, path, depth + 1, f)),
-        Wrap(flow, kids) => {
-            let i = path[depth];
-            let mut next = kids;
-            next[i] = update_at(kids[i], path, depth + 1, f);
-            Live.Wrap(flow, next)
-        }
-        Framed(bar, body, title, start, end) => match path[depth] {
-            0 => Live.Framed(bar, update_at(body, path, depth + 1, f), title, start, end),
-            1 => Live.Framed(bar, body, update_at(title, path, depth + 1, f), start, end),
-            2 => Live.Framed(bar, body, title, update_at(start, path, depth + 1, f), end),
-            _ => Live.Framed(bar, body, title, start, update_at(end, path, depth + 1, f)),
-        },
-        Pack(bar, at_end, kids) => {
-            let i = path[depth];
-            let mut next = kids;
-            next[i] = update_at(kids[i], path, depth + 1, f);
-            Live.Pack(bar, at_end, next)
-        }
-        _ => panic("kivuli: a patch's path leads through something with no children"),
-    }
-};
-
-/**
- * The axis the node at `path` is laid out along in its parent: a box's
- * orientation; across in a header bar (all but the body); else vertical (the
- * root, a scroll's child, a header's body).
- */
-fun axis_of<Msg>(live: Live<Msg>, path: i64[]): i32 = if path.len == 0 {
-    1
-} else {
-    match at(live, parent(path)) {
-        Box(_, orientation, _) => orientation,
-        Framed(_, _, _, _, _) => if path[path.len - 1] == 0 { 1 } else { 0 },
-        Pack(_, _, _) => 0,
-        Wrap(_, _) => 0,
-        _ => 1,
-    }
-};
-
-/** The node at `path`. */
-fun at<Msg>(node: Live<Msg>, path: i64[]): Live<Msg> {
-    let mut here = node;
-    for i of path {
-        here = match here {
-            Box(_, _, kids) => kids[i],
-            Scroll(_, kid) => kid,
-            Wrap(_, kids) => kids[i],
-            Framed(_, body, title, start, end) => match i {
-                0 => body,
-                1 => title,
-                2 => start,
-                _ => end,
-            },
-            Pack(_, _, kids) => kids[i],
-            _ => panic("kivuli: a patch's path leads through something with no children"),
-        };
-    }
-    here
-}
-
-fun parent(path: i64[]): i64[] {
-    let mut p: i64[] = [];
-    let mut i = 0;
-    while i < path.len - 1 {
-        p.push(path[i]);
-        i = i + 1;
-    }
-    p
-}
-
-/** The widget to place a child after so it lands at index `at`: the one before it, or `None` (first). */
-fun sibling_before<Msg>(kids: Live<Msg>[], at: i64): Option<GtkWidget> = if at == 0 {
-    None
-} else {
-    Some(widget(kids[at - 1]))
 };
