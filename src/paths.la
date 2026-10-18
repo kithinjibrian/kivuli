@@ -60,6 +60,13 @@ fun step<Msg>(
         next[i] = update_in(kids[i], path, depth + 1, f, with_menu);
         Live.Box(box, orientation, next)
     }
+    ButtonWith(button, current, controller, shortcut, kid) => Live.ButtonWith(
+        button,
+        current,
+        controller,
+        shortcut,
+        update_in(kid, path, depth + 1, f, with_menu),
+    ),
     Scroll(scrolled, kid) => Live.Scroll(scrolled, update_in(kid, path, depth + 1, f, with_menu)),
     Wrap(flow, kids) => {
         let i = path[depth];
@@ -120,6 +127,7 @@ fun at<Msg>(node: Live<Msg>, path: i64[]): Live<Msg> {
         here = bare(match here {
             Box(_, _, kids) => kids[i],
             Scroll(_, kid) => kid,
+            ButtonWith(_, _, _, _, kid) => kid,
             Wrap(_, kids) => kids[i],
             Overlay(_, base, layers) => if i == 0 { base } else { layers },
             Layers(_, kids) => kids[i],

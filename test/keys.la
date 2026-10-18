@@ -1,7 +1,8 @@
 // Shortcut keys: written "Ctrl+N", turned into GTK's form, and checked for
 // two enabled buttons sharing one. No GTK.
 import kivuli.keys { duplicate, parse };
-import kivuli { View, button, column, lazy, row };
+import kivuli { View, button, button_with, column, lazy, row, text };
+import kivuli.testing { press };
 
 enum Msg {
     Add,
@@ -69,4 +70,15 @@ fun buttons_inside_lazy_nodes_count() {
         lazy("k", fun(): View<Msg> = button("New", Msg.Add).shortcut("Ctrl+N")),
     ]);
     assert_eq(duplicate(inside), Some("Ctrl+N"));
+}
+
+@test
+fun a_button_withs_shortcut_counts_and_presses_it() {
+    let both: View<Msg> = column([
+        button("Add", Msg.Add).shortcut("Ctrl+N"),
+        button_with(row([text("New")]), Msg.Clear).shortcut("Ctrl+N"),
+    ]);
+    assert_eq(duplicate(both), Some("Ctrl+N"));
+    let one: View<Msg> = button_with(row([text("New")]), Msg.Clear).shortcut("Ctrl+N");
+    assert_eq(press(one, "Ctrl+N"), Ok(Msg.Clear));
 }

@@ -28,6 +28,11 @@ enum Live<Msg> {
      */
     Button(GtkWidget, Ref<Option<Msg>>, GtkEventController, Ref<Option<GtkShortcut>>, GtkWidget, GtkWidget),
     /**
+     * A button showing a view (`button_with`): the button, its message, its
+     * shortcut controller and the shortcut in it now, and its content (child 0).
+     */
+    ButtonWith(GtkWidget, Ref<Option<Msg>>, GtkEventController, Ref<Option<GtkShortcut>>, Live<Msg>),
+    /**
      * A column or a row: both are a `GtkBox`, and patch the same way. The
      * orientation (`GtkOrientation`: 1 vertical, 0 horizontal) lays out
      * children added later.
@@ -133,6 +138,7 @@ struct Popup<Msg> {
 fun widget<Msg>(node: Live<Msg>): GtkWidget = match node {
     Label(w) => w,
     Button(w, _, _, _, _, _) => w,
+    ButtonWith(w, _, _, _, _) => w,
     Box(w, _, _) => w,
     Input(w, _, _) => w,
     Checkbox(w, _, _) => w,

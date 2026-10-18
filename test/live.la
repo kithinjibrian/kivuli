@@ -66,6 +66,8 @@ fun shown<M>(node: Live<M>): string = match node {
     Label(w) => gtk_label_get_text(w),
     // The label is kivuli's own child of the button.
     Button(_, _, _, _, label, _) => "[" + gtk_label_get_text(label) + "]",
+    // Shown in full by test/live_button_with.la.
+    ButtonWith(_, _, _, _, content) => "[" + shown(content) + "]",
     Input(w, _, _) => "<" + gtk_editable_get_text(w) + ">",
     TextArea(_, _, _) => "<area>",
     Checkbox(w, label, _) => {

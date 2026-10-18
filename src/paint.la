@@ -9,6 +9,7 @@
  */
 
 import views { View };
+import walk { check_content };
 import looks { Style };
 import theming { Surface, Theme, classes, merged, rounds };
 
@@ -44,6 +45,10 @@ fun paint<Msg>(v: View<Msg>, t: Option<Theme>): Result<View<Msg>, string> = matc
     KeyedWrap(pairs) => Ok(View.KeyedWrap(paint_keyed(pairs, t)?)),
     Overlay(base, layers) => Ok(View.Overlay(paint(base, t)?, paint_all(layers, t)?)),
     Menu(x, entries) => Ok(View.Menu(paint(x, t)?, entries)),
+    ButtonWith(content, msg) => {
+        check_content(content)?;
+        Ok(View.ButtonWith(paint(content, t)?, msg))
+    }
     Lazy(key, build, Some(built)) => Ok(View.Lazy(key, build, Some(paint(built, t)?))),
     Framed(_, _, _, _) => Err(".header(…) belongs on the root of the view only"),
     _ => Ok(v),

@@ -4,7 +4,23 @@
 import kivuli.theming { Border, Color, Surface, build_theme, classes, css, merged, read_hex };
 import kivuli.paint { painted };
 import kivuli.looks { Style, plain };
-import kivuli { View, button, column, hex, rgb, text, theme };
+import kivuli.walk { check_content };
+import kivuli {
+    View,
+    button,
+    button_with,
+    checkbox,
+    column,
+    hex,
+    icon,
+    input,
+    lazy,
+    rgb,
+    row,
+    spacer,
+    text,
+    theme,
+};
 
 enum Look {
     Bar,
@@ -321,4 +337,27 @@ fun clips(v: View<i64>): Result<bool, string> = painted(v).map(fun(p) = match p 
 fun painting_marks_rounded_nodes_to_clip_their_content() {
     assert_eq(clips(rounded(true)), Ok(true));
     assert_eq(clips(rounded(false)), Ok(false));
+}
+
+@test
+fun a_button_withs_content_holds_nothing_interactive() {
+    let fine: View<i64> = row([text("Account").expand(), spacer(), icon("go-next-symbolic")]);
+    assert_eq(check_content(fine), Ok(()));
+    let inner: View<i64> = row([text("Account"), button("Delete", 1)]);
+    assert_eq(
+        check_content(inner),
+        Err("a button_with's content can't hold a button (\"Delete\")"),
+    );
+    let field: View<i64> = column([input("x", fun(s: string) = 1)]);
+    assert_eq(check_content(field), Err("a button_with's content can't hold a text field"));
+    let tick: View<i64> = checkbox("On", true, fun(b: bool) = 1);
+    assert_eq(check_content(tick), Err("a button_with's content can't hold a check box (\"On\")"));
+    let nested: View<i64> = lazy("k", fun(): View<i64> = button_with(text("x"), 1));
+    assert_eq(check_content(nested), Err("a button_with's content can't hold a button_with"));
+    // The paint pass refuses it, wherever the button is.
+    let bad: View<i64> = column([button_with(inner, 2)]);
+    assert_eq(
+        painted(bad).map(fun(v) = 0),
+        Err("a button_with's content can't hold a button (\"Delete\")"),
+    );
 }

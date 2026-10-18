@@ -1,0 +1,188 @@
+// Buttons showing a view, on real GTK widgets: a GtkButton whose child is the
+// content's widget; clicking sends, disabled sends nothing; a summary change
+// patches the label in place and new content keeps the button; becoming a
+// plain button rebuilds it; the button look and the shortcut apply. Needs a
+// display, so it is skipped without one. (How rows look: examples/frame.la.)
+import std.env;
+import gtk {
+    GtkApplication,
+    GtkWidget,
+    connect_app,
+    emit_widget,
+    g_application_quit,
+    g_application_run,
+    g_object_unref,
+    gtk_application_new,
+    gtk_application_window_new,
+    gtk_button_get_child,
+    gtk_label_get_text,
+    gtk_shortcut_action_activate,
+    gtk_shortcut_get_action,
+    gtk_widget_get_sensitive,
+    gtk_widget_has_css_class,
+};
+import kivuli.live { mount, live_of };
+import kivuli.effects { sandbox_app };
+import kivuli.live_tree { Live, widget };
+import kivuli { ButtonStyle, View, button, button_with, column, icon, row, text };
+
+fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
+
+/** Runs `steps` with a function giving the app's top column's children now. */
+fun with_app<Model, Msg>(
+    id: string,
+    model: Model,
+    update: fun(Model, Msg): Model,
+    view: fun(Model): View<Msg>,
+    steps: fun(fun(): Live<Msg>[]),
+) {
+    let application = gtk_application_new(id, 0);
+    connect_app(
+        application,
+        "activate",
+        fun(a: GtkApplication) {
+            let window = gtk_application_window_new(a);
+            let app = mount(a, window, sandbox_app("org.kivuli.test", model, update, view));
+            steps(fun(): Live<Msg>[] = match live_of(app) {
+                Box(_, _, kids) => kids,
+                _ => panic("expected a column"),
+            });
+            g_application_quit(a);
+        },
+        0,
+    );
+    g_application_run(application, 0, None);
+    g_object_unref(application);
+}
+
+fun note(seen: Ref<string[]>, s: string) {
+    seen.update(fun(xs) {
+        let mut ys = xs;
+        ys.push(s);
+        ys
+    });
+}
+
+enum Act {
+    Open(i64),
+    SignOut,
+    Shorten,
+    Plain,
+}
+
+struct Panel {
+    summary: string,
+    short: bool,
+    plain: bool,
+}
+
+fun update_panel(p: Panel, msg: Act): Panel = match msg {
+    Open(_) => p,
+    SignOut => Panel { summary: "Signed out", ..p },
+    Shorten => Panel { short: true, ..p },
+    Plain => Panel { plain: true, ..p },
+};
+
+fun view_panel(p: Panel): View<Act> {
+    let account: View<Act> = if p.plain {
+        button("Account", Act.Open(1))
+    } else if p.short {
+        button_with(text("Account"), Act.Open(1))
+    } else {
+        button_with(
+            row([text("Account"), text(p.summary), icon("go-next-symbolic")]),
+            Act.Open(1),
+        ).button_style(ButtonStyle.Subtle).shortcut("Ctrl+A")
+    };
+    column([
+        account,
+        button_with(text("Data"), Act.Open(2)).disabled(true),
+        button("Sign out", Act.SignOut),
+        button("Shorten", Act.Shorten),
+        button("Plain", Act.Plain),
+    ])
+}
+
+/** The button and its content, as kivuli holds them. */
+fun parts(node: Live<Act>): (GtkWidget, Live<Act>) = match node {
+    ButtonWith(button, _, _, _, content) => (button, content),
+    _ => panic("expected a button showing a view"),
+};
+
+/** The row's summary label: its second child. */
+fun summary(content: Live<Act>): GtkWidget = match content {
+    Box(_, _, kids) => widget(kids[1]),
+    _ => panic("expected a row"),
+};
+
+@test
+fun buttons_with_views_send_patch_in_place_and_look_like_buttons() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen: Ref<string[]> = Ref.new([]);
+    let update = fun(p: Panel, msg: Act): Panel {
+        match msg {
+            Open(n) => note(seen, "open {n}"),
+            _ => {}
+        }
+        update_panel(p, msg)
+    };
+    with_app("org.kivuli.test.buttonwith", Panel {
+        summary: "Signed in",
+        short: false,
+        plain: false,
+    }, update, view_panel, fun(kids: fun(): Live<Act>[]) {
+        let (button, content) = parts(kids()[0]);
+        note(seen, "child is the content: {gtk_button_get_child(button) == Some(widget(content))}");
+        note(seen, "flat: {gtk_widget_has_css_class(button, "flat")}");
+        emit_widget(button, "clicked");
+        // The shortcut presses it.
+        match kids()[0] {
+            ButtonWith(_, _, _, shortcut, _) => match shortcut.get() {
+                Some(s) => {
+                    gtk_shortcut_action_activate(gtk_shortcut_get_action(s), 0, button, None);
+                }
+                None => note(seen, "no shortcut"),
+            },
+            _ => {}
+        }
+        // Disabled: greyed out, and a click sends nothing.
+        let (data, _) = parts(kids()[1]);
+        note(seen, "data sensitive: {gtk_widget_get_sensitive(data)}");
+        emit_widget(data, "clicked");
+        // A new summary: the same button and label, the new text.
+        let label = summary(content);
+        emit_widget(widget(kids()[2]), "clicked");
+        let (same, signed_out) = parts(kids()[0]);
+        note(
+            seen,
+            "same button: {same == button}, same label: {summary(signed_out) == label}, text: {gtk_label_get_text(label)}",
+        );
+        // Other content: the same button, a new child.
+        emit_widget(widget(kids()[3]), "clicked");
+        let (kept, short) = parts(kids()[0]);
+        note(
+            seen,
+            "kept: {kept == button}, child: {gtk_button_get_child(kept) == Some(widget(short))}",
+        );
+        emit_widget(kept, "clicked");
+        // A plain button now: rebuilt.
+        emit_widget(widget(kids()[4]), "clicked");
+        match kids()[0] {
+            Button(w, _, _, _, _, _) => note(seen, "plain, new: {w != button}"),
+            _ => note(seen, "not a plain button"),
+        }
+    });
+    assert_eq(seen.get(), [
+        "child is the content: true",
+        "flat: 1",
+        "open 1",
+        "open 1",
+        "data sensitive: 0",
+        "same button: true, same label: true, text: Signed out",
+        "kept: true, child: true",
+        "open 1",
+        "plain, new: true",
+    ]);
+}

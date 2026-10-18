@@ -70,7 +70,7 @@ import gtk {
 import live_tree { Choices, Live, widget };
 import views { View };
 import looks { Style };
-import buttons { create_button };
+import buttons { create_button, create_button_with };
 import popovers { attach };
 import styling { LAYER, NO_LINE_LIMIT, apply_style, flag, show_number };
 import textures { show_picture };
@@ -88,6 +88,8 @@ fun create<Msg>(v: View<Msg>, send: fun(Msg)): Live<Msg> = create_in(v, 1, send)
 fun create_in<Msg>(v: View<Msg>, axis: i32, send: fun(Msg)): Live<Msg> = match v {
     Text(s) => Live.Label(gtk_label_new(s)),
     Button(label, msg, img) => create_button(label, msg, img, send),
+    // Its content is built as a scroll's child is: along a column.
+    ButtonWith(content, msg) => create_button_with(create_in(content, 1, send), msg, send),
     // Spacing comes later as a modifier.
     Column(children) => create_box(1, children, send),
     Row(children) => create_box(0, children, send),

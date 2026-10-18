@@ -18,6 +18,7 @@ import kivuli {
     wrap,
     keyed_wrap,
     overlay,
+    button_with,
     item,
     menu_separator,
     Surface,
@@ -319,4 +320,25 @@ fun pick_finds_a_menu_item_by_its_owner() {
     // The button itself still clicks, and by tooltip.
     assert_eq(click(tabs(), "news"), Ok(Msg.Add));
     assert_eq(click(tabs(), "Settings"), Ok(Msg.Add));
+}
+
+fun panel(): View<Msg> = column([
+    button_with(row([text("Account"), text("Signed in"), icon("go-next-symbolic")]), Msg.Add),
+    button_with(row([text("Notifications"), text("On")]), Msg.Clear).tooltip("Alerts"),
+    button_with(row([text("Access"), text("On")]), Msg.Done(true)).name("access"),
+    button_with(text("Data"), Msg.Clear).disabled(true).tooltip("Nothing saved"),
+]);
+
+@test
+fun a_button_with_is_found_by_its_text_tooltip_or_name() {
+    assert_eq(click(panel(), "Account"), Ok(Msg.Add));
+    assert_eq(click(panel(), "Signed in"), Ok(Msg.Add));
+    assert_eq(click(panel(), "Alerts"), Ok(Msg.Clear));
+    assert_eq(click(panel(), "access"), Ok(Msg.Done(true)));
+    assert_eq(click(panel(), "On"), Err(Lookup.Ambiguous("button \"On\"", 2)));
+    assert_eq(click(panel(), "Data"), Err(Lookup.Silent("button \"Data\"")));
+    assert_eq(click(panel(), "Nowhere"), Err(Lookup.NotFound("button \"Nowhere\"")));
+    assert_eq(is_disabled(panel(), "Data"), Ok(true));
+    assert_eq(is_disabled(panel(), "Account"), Ok(false));
+    assert_eq(tooltip(panel(), "Data"), Ok("Nothing saved"));
 }

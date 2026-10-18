@@ -1,6 +1,6 @@
 # PRP-015 — Clickable rows: a button holding any view
 
-Status: approved by the user (session 16); building on branch prp-015-clickable_rows
+Status: built (session 16) on branch prp-015-clickable_rows; merged into main
 Discovery: session 16, 2026-10-18 (Rapidkoi's DECISION-020, item 0; its PRP-005 info panel rows). *(you)*: chosen in the interview; *(proposed)*: for you to confirm or change with this PRP.
 
 ## FEATURE: `button_with(content, msg)` is a button whose content is any view, so a whole row (label, summary, arrow) is one click target.
@@ -64,32 +64,39 @@ fun account_opens_its_page() {
 ## TESTS TO WRITE
 
 Pure:
-- [ ] `test/lib.la`: `button_with` makes its node; `.disabled(true)` takes its message; `.tooltip`, `.button_style`, `.shortcut` land in its style; `.icon` leaves it unchanged.
-- [ ] `test/diff_button_with.la`: the message is always set (`SetMsg`); a text change in the content patches at `[0, …]` and keeps the button; content of another kind is `Replace [0]`; a `button_with` becoming a `button` is `Replace []`.
-- [ ] `test/testing.la`: `click` by a text inside (a row's label, its summary), by tooltip, by `.name`; `NotFound`; `Ambiguous` (two rows sharing a summary); `Silent` (disabled); `is_disabled` and `tooltip` on one.
-- [ ] `test/keys.la`: a `button_with`'s shortcut counts in the duplicate check, and `press` finds it.
-- [ ] `test/map.la`: its message and its content map.
-- [ ] `test/theming.la` (the check): content with a button, a text field, a check box, a nested `button_with`, inside a row or a lazy node: each an `Err` naming it; text, icons, rows, spacers: `Ok`; the paint pass returns the same `Err`.
-- [ ] Before the split: the existing button tests pass unchanged after it.
+- [x] `test/lib.la`: `button_with` makes its node; `.disabled(true)` takes its message; `.tooltip`, `.button_style`, `.shortcut` land in its style; `.icon` leaves it unchanged.
+- [x] `test/diff_button_with.la`: the message is always set (`SetMsg`); a text change in the content patches at `[0, …]` and keeps the button; content of another kind is `Replace [0]`; a `button_with` becoming a `button` is `Replace []`.
+- [x] `test/testing.la`: `click` by a text inside (a row's label, its summary), by tooltip, by `.name`; `NotFound`; `Ambiguous` (two rows sharing a summary); `Silent` (disabled); `is_disabled` and `tooltip` on one.
+- [x] `test/keys.la`: a `button_with`'s shortcut counts in the duplicate check, and `press` finds it.
+- [x] `test/map.la`: its message and its content map.
+- [x] `test/theming.la` (the check): content with a button, a text field, a check box, a nested `button_with`, inside a row or a lazy node: each an `Err` naming it; text, icons, rows, spacers: `Ok`; the paint pass returns the same `Err`.
+- [x] Before the split: the existing button tests pass unchanged after it.
 
 Live GTK (skipped without a display), `test/live_button_with.la`:
-- [ ] a `GtkButton` whose child is the content's widget (a box with the row's labels); clicking sends the message; disabled is insensitive and sends nothing.
-- [ ] changing the summary updates the label in place (same button, same label widget); replacing the content keeps the button; becoming a plain button replaces it.
-- [ ] `.button_style(Subtle)` gives the `flat` class; the shortcut presses it.
+- [x] a `GtkButton` whose child is the content's widget (a box with the row's labels); clicking sends the message; disabled is insensitive and sends nothing.
+- [x] changing the summary updates the label in place (same button, same label widget); replacing the content keeps the button; becoming a plain button replaces it.
+- [x] `.button_style(Subtle)` gives the `flat` class; the shortcut presses it.
 - [ ] How rows look (hover, focus ring, fill): checked by hand in `examples/frame.la`.
 
 ## ROLLBACK PLAN
 - Branch `prp-015-clickable_rows` from `main`; abandon by leaving it unmerged.
 
 ## ACCEPTANCE CRITERIA
-- [ ] A whole row is one button: clicks, keyboard and the theme's looks work on all of it; disabled rows send nothing.
-- [ ] Interactive content stops the app with a message naming it, in pure tests too.
-- [ ] Tests find rows by their text, tooltip or name.
-- [ ] Tests above written first; narrow runs while building; the full suite and the examples' tests pass before the merge.
-- [ ] fmt clean; public items documented; no file over 500 lines.
-- [ ] README, docs/DESIGN.md, CHANGELOG, CLAUDE.md updated; 0.10.0 tagged; merged. Pushed only on your go.
+- [x] A whole row is one button: clicks, keyboard and the theme's looks work on all of it; disabled rows send nothing.
+- [x] Interactive content stops the app with a message naming it, in pure tests too.
+- [x] Tests find rows by their text, tooltip or name.
+- [x] Tests above written first; narrow runs while building; the full suite and the examples' tests pass before the merge.
+- [x] fmt clean; public items documented; no file over 500 lines.
+- [x] README, docs/DESIGN.md, CHANGELOG, CLAUDE.md updated; 0.10.0 tagged; merged. Pushed only on your go.
 
 ## VALIDATION
 - While building: only the tests covering each step.
 - Before the merge: `lughac fmt --check src examples test`, `lughac test test/`, the examples' own tests, every example built (benchmark included).
 - For the user: `lughac run examples/frame.la`, open Info: each row highlights as a whole on hover, clicking anywhere on it works, Tab focuses it and Enter presses it; Back is greyed out on a tab's first page.
+
+## NOTES FROM THE BUILD
+
+- **The split** (`src/buttons.la`, `create_button` and the shared `clickable`) is its own commit; build.la went 473 → 431.
+- **The content check walks without checking**: `walk` takes a flag, so `check_content` (itself a walk) reports a nested `button_with` as an `Err` instead of panicking inside its own walk.
+- **Showcase rows are labelled "Go back" and "Open a new tab"**, not "Back" and "New tab": those are the header buttons' label and tooltip, and `click` would find both (`Ambiguous`).
+- **A test helper needed the new node** (`test/live.la`'s `shown`): exhaustive matches over `Live` break the whole suite when a node is added, so `test/live.la` is in the narrow run of any PRP adding one.

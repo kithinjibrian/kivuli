@@ -141,6 +141,10 @@ fun diff_inside<Msg>(
 ): Patch<Msg>[] = match (old, new) {
     (Text(a), Text(b)) => if a == b { [] } else { [Patch.SetText(path, b)] },
     (Button(a, _, img_a), Button(b, msg, img_b)) => diff_button(path, (a, img_a), (b, img_b), msg),
+    // The content is child 0; always re-point the message, as for a button.
+    (ButtonWith(a, _), ButtonWith(b, msg)) => joined(diff_at(child(path, 0), a, b), [
+        Patch.SetMsg(path, msg),
+    ]),
     (Column(xs), Column(ys)) => diff_children(path, xs, ys),
     (Row(xs), Row(ys)) => diff_children(path, xs, ys),
     (Input(a, _), Input(b, messages)) => diff_input(path, a, b, match messages {

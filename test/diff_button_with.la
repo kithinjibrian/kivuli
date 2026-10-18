@@ -1,0 +1,35 @@
+// Diffing a button holding a view: its message is always set; its content
+// diffs as child 0, so the button stays; only becoming another kind of node
+// rebuilds it. (test/diff.la is at the limit.)
+import kivuli.diff { Patch, diff as patches };
+import kivuli { View, button, button_with, icon, row, text };
+
+fun assert_same<T>(actual: T, expected: T) {
+    assert_eq("{actual}", "{expected}");
+}
+
+fun account(summary: string, msg: i64): View<i64> = button_with(
+    row([text("Account"), text(summary), icon("go-next-symbolic")]),
+    msg,
+);
+
+@test
+fun a_summary_change_patches_inside_the_button() {
+    let expected: Patch<i64>[] = [Patch.SetText([0, 1], "Signed out"), Patch.SetMsg([], Some(2))];
+    assert_same(patches(account("Signed in", 1), account("Signed out", 2)), expected);
+}
+
+@test
+fun content_of_another_kind_is_replaced_inside_the_button() {
+    let after: View<i64> = button_with(text("Account"), 1);
+    let replaced: View<i64> = text("Account");
+    let expected: Patch<i64>[] = [Patch.Replace([0], replaced), Patch.SetMsg([], Some(1))];
+    assert_same(patches(account("Signed in", 1), after), expected);
+}
+
+@test
+fun becoming_a_plain_button_rebuilds_it() {
+    let after: View<i64> = button("Account", 1);
+    let expected: Patch<i64>[] = [Patch.Replace([], after)];
+    assert_same(patches(account("Signed in", 1), after), expected);
+}

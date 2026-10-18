@@ -1,6 +1,7 @@
 /**
  * Making buttons: the GTK button for `button` (kivuli's own label and image
- * inside), with the click handler and shortcut controller every button has.
+ * inside) and for `button_with`, with the click handler and shortcut
+ * controller every button has.
  * Moved out of `build` (file size).
  *
  * Depends on: live_tree, pictures, styling, textures, gtk.raw
@@ -25,7 +26,7 @@ import gtk {
     gtk_widget_set_valign,
     gtk_widget_set_visible,
 };
-import live_tree { Live };
+import live_tree { Live, widget };
 import pictures { Image };
 import styling { flag, show_content };
 import textures { show_in_image };
@@ -58,6 +59,18 @@ fun create_button<Msg>(
     show_content(button, text, image);
     let (current, controller) = clickable(button, msg, send);
     Live.Button(button, current, controller, Ref.new(None), text, image)
+}
+
+/**
+ * A button showing `content`, already built, sending `msg` (none: disabled)
+ * through `send`. The content fills the button: GTK's default for its child.
+ */
+fun create_button_with<Msg>(content: Live<Msg>, msg: Option<Msg>, send: fun(Msg)): Live<Msg> {
+    let button = gtk_button_new_with_label("");
+    // Replaces the label GTK made (lugha-gtk binds no plain `gtk_button_new`).
+    gtk_button_set_child(button, Some(widget(content)));
+    let (current, controller) = clickable(button, msg, send);
+    Live.ButtonWith(button, current, controller, Ref.new(None), content)
 }
 
 /**

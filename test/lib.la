@@ -25,6 +25,7 @@ import kivuli {
     wrap,
     keyed_wrap,
     overlay,
+    button_with,
     item,
     menu_separator,
     Surface,
@@ -430,4 +431,27 @@ fun a_menu_wraps_its_node_inside_the_style() {
     // A second .menu replaces the first.
     let replaced: View<Msg> = View.Menu(View.Text("a"), [MenuEntry.Item("Open", Some(Msg.Add))]);
     assert_same(text("a").menu([item("x", Msg.Reset)]).menu([item("Open", Msg.Add)]), replaced);
+}
+
+@test
+fun a_button_with_holds_its_content_and_takes_button_modifiers() {
+    let content: View<Msg> = row([text("Account").expand(), text("Signed in")]);
+    let plain_one: View<Msg> = View.ButtonWith(content, Some(Msg.Add));
+    assert_same(button_with(content, Msg.Add), plain_one);
+    let off: View<Msg> = View.ButtonWith(content, None);
+    assert_same(button_with(content, Msg.Add).disabled(true), off);
+    let styled: View<Msg> = View.Styled(View.ButtonWith(content, None), Style {
+        button: ButtonStyle.Subtle,
+        tooltip: "Open",
+        shortcut: "Ctrl+O",
+        ..plain(),
+    });
+    assert_same(
+        button_with(content, Msg.Add).button_style(ButtonStyle.Subtle).tooltip("Open").shortcut(
+            "Ctrl+O",
+        ).disabled(true),
+        styled,
+    );
+    // The content is the app's: an icon doesn't go in.
+    assert_same(button_with(content, Msg.Add).icon("go-next-symbolic"), plain_one);
 }

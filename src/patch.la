@@ -12,6 +12,7 @@ import gtk {
     gtk_box_append,
     gtk_box_insert_child_after,
     gtk_box_remove,
+    gtk_button_set_child,
     gtk_box_reorder_child_after,
     gtk_image_set_from_icon_name,
     gtk_check_button_set_active,
@@ -72,6 +73,10 @@ fun apply<Msg>(
     SetMsg(path, msg) => {
         match at(live, path) {
             Button(button, current, _, _, _, _) => {
+                current.set(msg);
+                gtk_widget_set_sensitive(button, flag(msg.is_some()));
+            }
+            ButtonWith(button, current, _, _, _) => {
                 current.set(msg);
                 gtk_widget_set_sensitive(button, flag(msg.is_some()));
             }
@@ -372,6 +377,12 @@ fun apply<Msg>(
                 let mut next = kids;
                 next[i] = fresh;
                 Live.Wrap(flow, next)
+            }
+            // Setting a new child drops the old content; the button stays.
+            ButtonWith(button, current, controller, shortcut, _) => {
+                let fresh = create_in(v, 1, send);
+                gtk_button_set_child(button, Some(widget(fresh)));
+                Live.ButtonWith(button, current, controller, shortcut, fresh)
             }
             Scroll(scrolled, _) => {
                 // Setting a new child drops the old one (and the viewport GTK
