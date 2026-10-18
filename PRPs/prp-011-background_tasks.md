@@ -1,6 +1,6 @@
 # PRP-011 — Background tasks: `Cmd.task` and `Sub.receive`
 
-Status: draft, for the user's approval
+Status: approved by the user (session 12); building on branch prp-011-background_tasks
 Discovery: session 12, 2026-10-18, talked through. *(you)*: chosen in the talk; *(proposed)*: for you to confirm or change with this PRP.
 
 ## FEATURE: Lugha's green threads run while GTK's main loop runs; `Cmd.task(work, done)` runs work in the background and sends its result to `update` as one message; `Sub.receive(chan, f)` turns every value sent on a channel into a message.
