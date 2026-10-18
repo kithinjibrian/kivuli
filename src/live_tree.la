@@ -57,6 +57,11 @@ enum Live<Msg> {
     /** A scrolled window and the one child it shows. */
     Scroll(GtkWidget, Live<Msg>),
     /**
+     * A wrap or keyed wrap: a `GtkFlowBox` and its children, each inside a
+     * `GtkFlowBoxChild` the box made (the children's widgets are what's here).
+     */
+    Wrap(GtkWidget, Live<Msg>[]),
+    /**
      * The root framed by a header bar: the bar, the body (the window's child),
      * the title widget, and the views packed at the bar's start and end.
      */
@@ -99,6 +104,7 @@ fun widget<Msg>(node: Live<Msg>): GtkWidget = match node {
     Spacer(w) => w,
     Separator(w) => w,
     Scroll(w, _) => w,
+    Wrap(w, _) => w,
     // The window's child; the bar is its titlebar.
     Framed(_, body, _, _, _) => widget(body),
     Pack(bar, _, _) => bar,

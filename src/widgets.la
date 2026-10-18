@@ -107,6 +107,26 @@ public fun scroll<Msg>(child: View<Msg>): View<Msg> = View.Scroll(child);
 public fun keyed_column<Msg>(children: (string, View<Msg>)[]): View<Msg> = View.Keyed(children);
 
 /**
+ * Lays `children` side by side, moving to a new line when a line is full, so
+ * they re-flow as the window resizes. Children keep their natural widths
+ * (`.equal()` makes a tidy grid); `.max_per_line(n)` caps a line;
+ * `.spacing(n)` is the gap across and down. Children are matched by position.
+ *
+ * Example:
+ *     wrap(m.tags.map(chip)).spacing(6)
+ */
+public fun wrap<Msg>(children: View<Msg>[]): View<Msg> = View.Wrap(children);
+
+/**
+ * As `wrap`, but children are matched by key, like `keyed_column`: adding,
+ * removing or reordering one moves just that widget. Keys must be unique.
+ *
+ * Example:
+ *     keyed_wrap(m.apps.map(fun(a) = (a.id, tile(a)))).equal().max_per_line(6).spacing(12)
+ */
+public fun keyed_wrap<Msg>(children: (string, View<Msg>)[]): View<Msg> = View.KeyedWrap(children);
+
+/**
  * Builds `build()` only when `key` differs from the key this lazy node had
  * last update; otherwise kivuli reuses what it built before, and doesn't diff
  * it either. The key must cover everything the subtree shows: leave something

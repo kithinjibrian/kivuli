@@ -94,16 +94,6 @@ Rules:
 
 ---
 
-### DECISION-016 — A wrapping grid
-
-**Status:** deferred
-**Raised:** 2026-10-17 — Session 6 (rapidkoi DECISION-020, item 7)
-**Revisit when:** after PRP-007; Rapidkoi's home uses fixed rows of tiles meanwhile.
-
-**Question:** A container whose children wrap onto more rows as the window narrows (`GtkFlowBox`), keyed like `keyed_column`?
-
----
-
 ### DECISION-011 — lughac: a module's private imports can be imported through it
 
 **Status:** deferred (a lughac bug, for the lugha repository; kivuli doesn't rely on it)
@@ -153,6 +143,18 @@ Rules:
 ---
 
 ## RESOLVED
+
+### DECISION-016 — A wrapping grid
+
+**Status:** resolved
+**Raised:** 2026-10-17 — Session 6 (rapidkoi DECISION-020)
+**Resolved:** 2026-10-18 — Session 13 (PRP-012, the user's choices)
+
+**Question:** A container whose children wrap onto more lines as the window narrows (`GtkFlowBox`), keyed like `keyed_column`?
+
+**Outcome:** `wrap` (positional) and `keyed_wrap` (keyed), natural widths with `.equal()`, `.max_per_line(n)` only, no selection (focus goes straight to what's inside).
+
+---
 
 ### DECISION-019 — Where web images come from
 

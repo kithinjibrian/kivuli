@@ -1,0 +1,74 @@
+/**
+ * The drop-down's and the slider's helpers: which choice is picked, keeping a
+ * drop-down's GTK list in step with its choices, and rounding a slider's
+ * value. Moved out of `build` (file size). Calls GTK (CLAUDE.md rule 4).
+ *
+ * Depends on: live_tree, gtk.raw
+ * Used by: build, patch
+ */
+
+import gtk {
+    GtkWidget,
+    gtk_drop_down_get_selected,
+    gtk_drop_down_set_model,
+    gtk_drop_down_set_selected,
+    gtk_string_list_append,
+    gtk_string_list_new,
+    gtk_string_list_unref,
+};
+import live_tree { Choices };
+
+/** The index of the first choice labelled `selected`, or `None` when no choice is. */
+fun picked<Msg>(choices: (string, Msg)[], selected: string): Option<i64> {
+    let mut i = 0;
+    while i < choices.len {
+        if choices[i].0 == selected {
+            return Some(i);
+        }
+        i = i + 1;
+    }
+    None
+}
+
+/**
+ * Makes a drop-down show what its state asks for: the choices, after a blank
+ * item when none is picked, and the pick. GTK's list is rebuilt only when its
+ * labels change; the messages are re-pointed always. Busy meanwhile, so the
+ * handler ignores the signals this causes. Never call it from inside the
+ * drop-down's own `notify::selected` (GTK frees the old list mid-signal):
+ * `patch` defers it to the next turn then.
+ */
+fun sync_choices<Msg>(drop: GtkWidget, state: Ref<Choices<Msg>>) {
+    let now = state.get();
+    let mut want: (string, Option<Msg>)[] = [];
+    if now.pick.is_none() {
+        want.push(("", None));
+    }
+    for (label, msg) of now.offered {
+        want.push((label, Some(msg)));
+    }
+    state.set(Choices { shown: want, busy: true, ..now });
+    if labels(now.shown) != labels(want) {
+        let list = gtk_string_list_new(None);
+        for (label, _) of want {
+            gtk_string_list_append(list, label);
+        }
+        // The drop-down takes its own reference.
+        gtk_drop_down_set_model(drop, Some(list));
+        gtk_string_list_unref(list);
+    }
+    let at: u32 = match now.pick {
+        Some(i) => i as u32,
+        None => 0,
+    };
+    if gtk_drop_down_get_selected(drop) != at {
+        gtk_drop_down_set_selected(drop, at);
+    }
+    state.update(fun(s) = Choices { busy: false, ..s });
+}
+
+/** The labels of a list of items, in order. */
+fun labels<T>(items: (string, T)[]): string[] = items.map(fun(item) = item.0);
+
+/** `x` rounded to the nearest whole number, half-way away from zero. */
+fun nearest(x: f64): i64 = if x >= 0.0 { (x + 0.5) as i64 } else { -((0.5 - x) as i64) };

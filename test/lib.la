@@ -21,6 +21,8 @@ import kivuli {
     image,
     Fit,
     Image,
+    wrap,
+    keyed_wrap,
     Surface,
     theme,
 };
@@ -370,4 +372,22 @@ fun images_on_their_own_and_on_buttons_are_plain_data() {
     // `.icon("")` takes the image away, as before.
     let bare: View<Msg> = View.Button("Add", Some(Msg.Add), None);
     assert_same(button("Add", Msg.Add).icon("x").icon(""), bare);
+}
+
+@test
+fun wraps_are_plain_nodes_with_their_modifiers() {
+    let positional: View<Msg> = View.Wrap([View.Text("a"), View.Text("b")]);
+    assert_same(wrap([text("a"), text("b")]), positional);
+    let keyed: View<Msg> = View.KeyedWrap([("a", View.Text("a"))]);
+    assert_same(keyed_wrap([("a", text("a"))]), keyed);
+    let grid: View<Msg> = View.Styled(View.Wrap([]), Style {
+        equal: true,
+        max_per_line: 6,
+        spacing: 12,
+        ..plain(),
+    });
+    assert_same(wrap([]).equal().max_per_line(6).spacing(12), grid);
+    // No limit for n <= 0.
+    let unlimited: View<Msg> = View.Styled(View.Wrap([]), Style { max_per_line: 0, ..plain() });
+    assert_same(wrap([]).max_per_line(-3), unlimited);
 }

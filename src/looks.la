@@ -106,6 +106,10 @@ public struct Style {
     theme: Option<Theme>,
     /** The window opens maximized (`.maximized()`). Root only. */
     maximized: bool,
+    /** Every child as wide as the widest (`.equal()`). Wraps only. */
+    equal: bool,
+    /** At most this many children on a line, 0 for no limit (`.max_per_line`). Wraps only. */
+    max_per_line: i64,
     /** The app's looks on the header bar, by name (`.header_style`). Root only, with `.header`. */
     header_looks: string[],
     /** The CSS classes `header_looks` give: filled in by `paint`. */
@@ -141,6 +145,8 @@ fun plain(): Style = Style {
     clips: false,
     theme: None,
     maximized: false,
+    equal: false,
+    max_per_line: 0,
     header_looks: [],
     header_classes: [],
 };

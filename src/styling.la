@@ -17,6 +17,10 @@ import gtk {
     gtk_callback_action_new,
     gtk_entry_set_placeholder_text,
     gtk_image_set_from_icon_name,
+    gtk_flow_box_set_column_spacing,
+    gtk_flow_box_set_homogeneous,
+    gtk_flow_box_set_max_children_per_line,
+    gtk_flow_box_set_row_spacing,
     gtk_image_set_pixel_size,
     gtk_label_get_text,
     gtk_label_set_attributes,
@@ -127,6 +131,20 @@ fun apply_style<Msg>(node: Live<Msg>, style: Style, axis: i32) {
     gtk_widget_set_tooltip_text(w, if style.tooltip == "" { None } else { Some(style.tooltip) });
     match node {
         Box(box, _, _) => gtk_box_set_spacing(box, style.spacing as i32),
+        Wrap(flow, _) => {
+            // The gap across and down; equal widths; the cap on a line (0: none).
+            gtk_flow_box_set_row_spacing(flow, style.spacing as u32);
+            gtk_flow_box_set_column_spacing(flow, style.spacing as u32);
+            gtk_flow_box_set_homogeneous(flow, flag(style.equal));
+            gtk_flow_box_set_max_children_per_line(
+                flow,
+                if style.max_per_line > 0 {
+                    style.max_per_line as u32
+                } else {
+                    NO_LINE_LIMIT as u32
+                },
+            );
+        }
         Label(label) => {
             style_text(label, style);
             style_long_text(label, style);
@@ -321,3 +339,6 @@ fun gtk_align(a: Align): i32 = match a {
 
 /** A Lugha `bool` as a C `gboolean`. */
 fun flag(b: bool): i32 = if b { 1 } else { 0 };
+
+/** What "no limit" on a wrap's line means to GTK: more children than any line holds. */
+const NO_LINE_LIMIT: i64 = 65535;

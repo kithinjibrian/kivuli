@@ -1,6 +1,6 @@
 # PRP-012 — Wrapping grid: `wrap` and `keyed_wrap`
 
-Status: draft, for the user's approval
+Status: built (session 13) on branch prp-012-wrapping_grid; merged into main
 Discovery: session 13, 2026-10-18 (DECISION-016; Rapidkoi's DECISION-020, its home tiles). *(you)*: chosen in the interview; *(proposed)*: for you to confirm or change with this PRP.
 
 ## FEATURE: A container that lays children side by side and moves to a new line when a row runs out of room, re-flowing as the window resizes; positional (`wrap`) or keyed (`keyed_wrap`), with `.equal()` widths and `.max_per_line(n)`.
@@ -61,30 +61,40 @@ wrap(m.tags.map(chip)).spacing(6)
 ## TESTS TO WRITE
 
 Pure:
-- [ ] `test/lib.la`: `wrap`, `keyed_wrap` make their nodes; `.equal()` and `.max_per_line(n)` land in the style.
-- [ ] `test/diff_wrap.la`: positional appends and removes; keyed inserts, moves and removes (the same patches as a keyed column at that path); a wrap that becomes a column is `Replace`; a change of `.equal`/`.max_per_line` is `SetStyle`.
-- [ ] `test/testing.la`: `click` finds a button in a grid.
-- [ ] `test/map.la`: grids map their children's messages.
-- [ ] lazies: a lazy child in a keyed wrap is reused by key (as in a keyed column).
+- [x] `test/lib.la`: `wrap`, `keyed_wrap` make their nodes; `.equal()` and `.max_per_line(n)` land in the style.
+- [x] `test/diff_wrap.la`: positional appends and removes; keyed inserts, moves and removes (the same patches as a keyed column at that path); a wrap that becomes a column is `Replace`; a change of `.equal`/`.max_per_line` is `SetStyle`.
+- [x] `test/testing.la`: `click` finds a button in a grid.
+- [x] `test/map.la`: grids map their children's messages.
+- [x] lazies: a lazy child in a keyed wrap is reused by key (as in a keyed column), in `test/lazy.la`.
 
 Live GTK (skipped without a display), `test/live_wrap.la`:
-- [ ] a wrap is a `GtkFlowBox` holding the children in order (read back through `get_child_at_index`), selection none, the wrappers not focusable, a button inside still sending its message.
-- [ ] `.equal()`, `.max_per_line(4)` and `.spacing(8)` read back; dropping them resets them.
-- [ ] keyed: insert, move and remove change the order in place (the same widgets, checked by identity), nothing rebuilt; a moved child isn't finalized.
-- [ ] removed children are finalized (as `test/live_health.la` checks).
-- [ ] lugha-gtk `test/flowbox.la`: each new extern.
+- [x] a wrap is a `GtkFlowBox` holding the children in order (read back through `get_child_at_index`), selection none, the wrappers not focusable, a button inside still sending its message.
+- [x] `.equal()`, `.max_per_line(4)` and `.spacing(8)` read back; dropping them resets them.
+- [x] keyed: insert, move and remove change the order in place (the same widgets, checked by identity), nothing rebuilt; a moved child isn't finalized.
+- [x] removed children are finalized (as `test/live_health.la` checks).
+- [x] lugha-gtk `test/flowbox.la`: each new extern.
 - [ ] The re-flow itself (lines change as the window resizes) needs a window on screen: checked by hand in `examples/frame.la`.
 
 ## ROLLBACK PLAN
 - Branch `prp-012-wrapping_grid` from `main`; abandon by leaving it unmerged. lugha-gtk 0.1.26 is additions only.
 
 ## ACCEPTANCE CRITERIA
-- [ ] `wrap` and `keyed_wrap` lay children out in lines that re-flow; `.equal()`, `.max_per_line(n)`, `.spacing(n)` work; keyed changes move only the widgets that changed.
-- [ ] Tests above written first; narrow runs while building; the full suite and the examples' tests pass before the merge.
-- [ ] fmt clean; public items documented; no file over 500 lines.
-- [ ] README, docs/DESIGN.md, CHANGELOG, CLAUDE.md (new modules, rule 4), DECISIONS (016 resolved) updated; 0.7.0 tagged; merged. Pushed only on your go.
+- [x] `wrap` and `keyed_wrap` lay children out in lines that re-flow; `.equal()`, `.max_per_line(n)`, `.spacing(n)` work; keyed changes move only the widgets that changed.
+- [x] Tests above written first; narrow runs while building; the full suite and the examples' tests pass before the merge.
+- [x] fmt clean; public items documented; no file over 500 lines.
+- [x] README, docs/DESIGN.md, CHANGELOG, CLAUDE.md (new modules, rule 4), DECISIONS (016 resolved) updated; 0.7.0 tagged; merged. Pushed only on your go.
 
 ## VALIDATION
 - While building: only the tests covering each step.
 - Before the merge: `lughac fmt --check src examples test`, `lughac test test/`, the examples' own tests, every example built; lugha-gtk `lughac test test/`.
 - For the user: `lughac run examples/frame.la`: resize the window and the tiles re-flow; add and remove tiles.
+
+## NOTES FROM THE BUILD
+
+- **Splits first, as proposed:** `diff.la` 494 → 416 (lazy resolution in `src/lazies.la`), `build.la` 477 → 418 (drop-down and slider helpers in `src/controls.la`, which CLAUDE.md rule 4 now lists among the modules calling GTK).
+- **GTK caps a flow box's line at 7 children by default**: kivuli sets 65535 when no `.max_per_line` is given (and when one is dropped), so `wrap` has no surprise limit.
+- **GTK's default selection is single**: kivuli sets none; each `GtkFlowBoxChild` is made not focusable right after the insert (`gtk_widget_get_parent` finds it).
+- **Moves:** a flow box can't reorder, so a keyed move removes the child (GTK destroys its old wrapper) and inserts it at its new place, holding the widget with `gtk_widget_ref` meanwhile. Mutation-checked: without the reference, the moved tile is destroyed mid-move and drops out of the grid.
+- **The live test reads GTK's own order** (`get_child_at_index` → the wrapper's widget, matched to kivuli's tile), not just kivuli's list.
+- **Caught by the full run, not the narrow ones:** `examples/bench.la` imported `resolve` from `kivuli.diff`; it imports it from `kivuli.lazies` now.
+- **The example:** `frame.la`'s home has eight app tiles in a `keyed_wrap(…).equal().max_per_line(6)`, with Add and Remove; tile names are capitalised ("Maps") so they don't clash with tab labels in `click`.

@@ -1,8 +1,9 @@
 // Lazy subtrees: built only when their key changes at their place, reused and
 // left undiffed otherwise. Each test counts calls of the build function. No GTK.
-import kivuli.diff { Patch, diff as patches, resolve };
+import kivuli.diff { Patch, diff as patches };
+import kivuli.lazies { resolve };
 import kivuli.testing { Lookup, click };
-import kivuli { View, button, column, keyed_column, lazy, text };
+import kivuli { View, button, column, keyed_column, keyed_wrap, lazy, text };
 
 // Views can hold functions, which have no `==`: compare what they print
 // instead (DECISION-008).
@@ -124,4 +125,26 @@ fun a_lazy_next_to_a_plain_node_compares_what_it_built() {
 fun modifiers_on_a_lazy_node_are_ignored() {
     let build = fun(): View<Msg> = text("x");
     assert_same(lazy("k", build).padding(4).bold(), lazy("k", build));
+}
+
+@test
+fun a_lazy_in_a_keyed_wrap_is_reused_by_key_when_tiles_move() {
+    let builds = Ref.new(0);
+    let first = resolve(
+        keyed_wrap([
+            ("a", lazy("a", counted(builds, "A"))),
+            ("b", lazy("b", counted(builds, "B"))),
+        ]),
+        None,
+    );
+    assert_eq(builds.get(), 2);
+    // Swapped: each tile finds its own build by key.
+    resolve(
+        keyed_wrap([
+            ("b", lazy("b", counted(builds, "B"))),
+            ("a", lazy("a", counted(builds, "A"))),
+        ]),
+        Some(first),
+    );
+    assert_eq(builds.get(), 2);
 }

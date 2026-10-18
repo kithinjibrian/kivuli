@@ -17,6 +17,7 @@ import gtk {
     gtk_check_button_set_active,
     gtk_editable_get_text,
     gtk_editable_set_text,
+    gtk_flow_box_remove,
     gtk_header_bar_remove,
     gtk_header_bar_set_title_widget,
     g_timeout_add_full,
@@ -34,7 +35,8 @@ import gtk {
     lgtk_text_place_cursor,
 };
 import diff;
-import build { create, create_in, editor, pack_one, picked, sync_choices, text_of };
+import build { add_to_wrap, create, create_in, editor, pack_one, text_of };
+import controls { picked, sync_choices };
 import styling { apply_style, flag, show_content, show_number };
 import textures { show_in_image, show_picture };
 import live_tree { Choices, Live, titlebar, widget };
@@ -220,6 +222,13 @@ fun apply<Msg>(
             next.push(kid);
             Live.Pack(bar, at_end, next)
         }
+        Wrap(flow, kids) => {
+            let kid = create_in(v, 0, send);
+            add_to_wrap(flow, widget(kid), -1);
+            let mut next = kids;
+            next.push(kid);
+            Live.Wrap(flow, next)
+        }
         _ => panic("kivuli: an Append patch points at something that isn't a column or row"),
     }),
     Remove(path) => {
@@ -233,6 +242,11 @@ fun apply<Msg>(
                 gtk_header_bar_remove(bar, widget(kids[i]));
                 Live.Pack(bar, at_end, diff.without(kids, i))
             }
+            // The child's widget: GTK removes the GtkFlowBoxChild around it.
+            Wrap(flow, kids) => {
+                gtk_flow_box_remove(flow, widget(kids[i]));
+                Live.Wrap(flow, diff.without(kids, i))
+            }
             _ => panic("kivuli: a Remove patch points into something that isn't a column or row"),
         })
     }
@@ -242,6 +256,11 @@ fun apply<Msg>(
             gtk_box_insert_child_after(box, widget(kid), sibling_before(kids, at));
             Live.Box(box, orientation, diff.inserted(kids, at, kid))
         }
+        Wrap(flow, kids) => {
+            let kid = create_in(v, 0, send);
+            add_to_wrap(flow, widget(kid), at);
+            Live.Wrap(flow, diff.inserted(kids, at, kid))
+        }
         _ => panic("kivuli: an Insert patch points at something that isn't a keyed column"),
     }),
     Move(path, from, to) => update_at(live, path, 0, fun(node: Live<Msg>): Live<Msg> = match node {
@@ -249,6 +268,15 @@ fun apply<Msg>(
             let next = diff.moved(kids, from, to);
             gtk_box_reorder_child_after(box, widget(kids[from]), sibling_before(next, to));
             Live.Box(box, orientation, next)
+        }
+        Wrap(flow, kids) => {
+            // A flow box can't reorder: out and back in at the new place, the
+            // widget held alive while its old GtkFlowBoxChild goes.
+            let moving = gtk_widget_ref(widget(kids[from]));
+            gtk_flow_box_remove(flow, moving);
+            add_to_wrap(flow, moving, to);
+            gtk_widget_unref(moving);
+            Live.Wrap(flow, diff.moved(kids, from, to))
         }
         _ => panic("kivuli: a Move patch points at something that isn't a keyed column"),
     }),
@@ -272,6 +300,14 @@ fun apply<Msg>(
                 let mut next = kids;
                 next[i] = fresh;
                 Live.Box(box, orientation, next)
+            }
+            Wrap(flow, kids) => {
+                let fresh = create_in(v, 0, send);
+                gtk_flow_box_remove(flow, widget(kids[i]));
+                add_to_wrap(flow, widget(fresh), i);
+                let mut next = kids;
+                next[i] = fresh;
+                Live.Wrap(flow, next)
             }
             Scroll(scrolled, _) => {
                 // Setting a new child drops the old one (and the viewport GTK
@@ -333,6 +369,12 @@ fun update_at<Msg>(
             Live.Box(box, orientation, next)
         }
         Scroll(scrolled, kid) => Live.Scroll(scrolled, update_at(kid, path, depth + 1, f)),
+        Wrap(flow, kids) => {
+            let i = path[depth];
+            let mut next = kids;
+            next[i] = update_at(kids[i], path, depth + 1, f);
+            Live.Wrap(flow, next)
+        }
         Framed(bar, body, title, start, end) => match path[depth] {
             0 => Live.Framed(bar, update_at(body, path, depth + 1, f), title, start, end),
             1 => Live.Framed(bar, body, update_at(title, path, depth + 1, f), start, end),
@@ -361,6 +403,7 @@ fun axis_of<Msg>(live: Live<Msg>, path: i64[]): i32 = if path.len == 0 {
         Box(_, orientation, _) => orientation,
         Framed(_, _, _, _, _) => if path[path.len - 1] == 0 { 1 } else { 0 },
         Pack(_, _, _) => 0,
+        Wrap(_, _) => 0,
         _ => 1,
     }
 };
@@ -372,6 +415,7 @@ fun at<Msg>(node: Live<Msg>, path: i64[]): Live<Msg> {
         here = match here {
             Box(_, _, kids) => kids[i],
             Scroll(_, kid) => kid,
+            Wrap(_, kids) => kids[i],
             Framed(_, body, title, start, end) => match i {
                 0 => body,
                 1 => title,

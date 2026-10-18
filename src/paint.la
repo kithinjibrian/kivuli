@@ -39,17 +39,24 @@ fun paint<Msg>(v: View<Msg>, t: Option<Theme>): Result<View<Msg>, string> = matc
     Column(xs) => Ok(View.Column(paint_all(xs, t)?)),
     Row(xs) => Ok(View.Row(paint_all(xs, t)?)),
     Scroll(x) => Ok(View.Scroll(paint(x, t)?)),
-    Keyed(pairs) => {
-        let mut out: (string, View<Msg>)[] = [];
-        for (k, x) of pairs {
-            out.push((k, paint(x, t)?));
-        }
-        Ok(View.Keyed(out))
-    }
+    Keyed(pairs) => Ok(View.Keyed(paint_keyed(pairs, t)?)),
+    Wrap(xs) => Ok(View.Wrap(paint_all(xs, t)?)),
+    KeyedWrap(pairs) => Ok(View.KeyedWrap(paint_keyed(pairs, t)?)),
     Lazy(key, build, Some(built)) => Ok(View.Lazy(key, build, Some(paint(built, t)?))),
     Framed(_, _, _, _) => Err(".header(…) belongs on the root of the view only"),
     _ => Ok(v),
 };
+
+fun paint_keyed<Msg>(
+    pairs: (string, View<Msg>)[],
+    t: Option<Theme>,
+): Result<(string, View<Msg>)[], string> {
+    let mut out: (string, View<Msg>)[] = [];
+    for (k, x) of pairs {
+        out.push((k, paint(x, t)?));
+    }
+    Ok(out)
+}
 
 fun paint_all<Msg>(xs: View<Msg>[], t: Option<Theme>): Result<View<Msg>[], string> {
     let mut out: View<Msg>[] = [];

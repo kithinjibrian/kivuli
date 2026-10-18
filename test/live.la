@@ -84,6 +84,8 @@ fun shown<M>(node: Live<M>): string = match node {
     // Shown in full by test/live_look.la.
     Framed(_, body, _, _, _) => "header | " + shown(body),
     Pack(_, _, _) => "<pack>",
+    // Shown in full by test/live_wrap.la.
+    Wrap(_, kids) => "wrap({kids.len})",
     Slider(_, _, _, _) => "<slider>",
     Scroll(_, kid) => "scroll(" + shown(kid) + ")",
     Box(_, _, kids) => {

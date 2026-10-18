@@ -82,6 +82,17 @@ Disabled means no message (MEMORY decision 6), mapped to `gtk_widget_set_sensiti
 
 kivuli ships no colours. An app that paints its own frame gives its colours as typed looks: an enum of its own, a `Surface` per look (`background`, `text`, `border`, `radius`; unset fields stay the theme's), `.style([…])` on nodes and `.theme(theme(…))` on the root. kivuli generates the stylesheet: one class per property and value (`.kv-bg-242424ff`), merged per node in kivuli's code (a later look wins), loaded once for the display at application priority (600), when the window opens. Apps write no CSS and no selectors, so they can't depend on how kivuli or GTK build widgets. A background also clears the theme's background image, so it shows on themed widgets. kivuli removes only its own `kv-` classes from a widget.
 
+### Wrapping grid (`wrap`, `keyed_wrap`; PRP-012)
+
+| kivuli | GTK |
+| --- | --- |
+| `wrap`, `keyed_wrap` | a `GtkFlowBox`, selection `NONE`; each child inside a `GtkFlowBoxChild` GTK makes, set not focusable so Tab goes straight to what's inside |
+| `.spacing(n)` | row and column spacing |
+| `.equal()` | `homogeneous` |
+| `.max_per_line(n)` | `max-children-per-line`; without it, 65535 (GTK's own default caps a line at 7) |
+
+A keyed move takes a child out and puts it back at its new place (a flow box can't reorder), holding the widget alive meanwhile. "Selected" tiles are the app's model plus a look.
+
 ### Header bar (`.header`)
 
 | kivuli | GTK |

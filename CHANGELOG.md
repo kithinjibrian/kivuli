@@ -8,6 +8,14 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.7.0] — 2026-10-18
+
+### Added
+- Wrapping grid (PRP-012): `wrap(children)` and `keyed_wrap(children)` lay children out in lines that re-flow as the window resizes; `.equal()`, `.max_per_line(n)`, `.spacing(n)`. `examples/frame.la`'s home shows app tiles in one. Needs lugha-gtk 0.1.26.
+
+### Changed
+- `src/diff.la`'s lazy resolution moved to `src/lazies.la`, and `src/build.la`'s drop-down and slider helpers to `src/controls.la` (file size); no change for apps.
+
 ## [0.6.0] — 2026-10-18
 
 ### Added

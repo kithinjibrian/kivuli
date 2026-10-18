@@ -99,6 +99,7 @@ lughac run examples/download.la
 | `slider(min, max, value, on_change)` | A whole-number slider showing its number; each move to a new step sends `on_change(value)`. `.step(n)` moves it in steps of `n` from `min`. |
 | `column(children)`, `row(children)` | Children top to bottom, or left to right. |
 | `keyed_column(children)` | Like `column`, with `(key, view)` children matched by key: reordering, inserting or deleting moves, adds or removes just those widgets. |
+| `wrap(children)`, `keyed_wrap(children)` | Children side by side, moving to a new line when a line is full, so they re-flow as the window resizes (tiles, tags). `keyed_wrap` matches `(key, view)` children by key, like `keyed_column`. No selection: clicks come from the children. |
 | `scroll(child)` | Scrolls its child when it's bigger than the room it's given. |
 | `spacer()`, `separator()` | Room that grows along its column or row; a line across it. |
 | `lazy(key, build)` | Calls `build` only when `key` changes at that place; otherwise reuses the subtree and skips diffing it. The key must cover everything the subtree shows. |
@@ -107,7 +108,7 @@ lughac run examples/download.la
 
 | | |
 | --- | --- |
-| `.padding(n)`, `.spacing(n)` | Room around a node; between a column's or row's children (pixels). |
+| `.padding(n)`, `.spacing(n)` | Room around a node; between a column's or row's children, or across and down in a wrap (pixels). |
 | `.expand()`, `.align(Align.Start \| Center \| End)` | Take spare room along the parent; place across it. |
 | `.width(n)`, `.height(n)` | A minimum size in pixels. |
 | `.size(points)`, `.bold()`, `.dim()` | Text. On an icon or a button's image, `.size(n)` is its size in pixels; on a picture, an n × n box. |
@@ -119,6 +120,7 @@ lughac run examples/download.la
 | `.button_style(ButtonStyle.Primary \| Danger \| Subtle \| Normal)` | Buttons. |
 | `.disabled(bool)` | Buttons, text fields and text areas: greyed out by the theme, and they send nothing. A disabled field still shows its value and follows the model. `.disabled(false)` changes nothing. |
 | `.step(n)` | Sliders: move in steps of `n`, counted from the least value. |
+| `.equal()`, `.max_per_line(n)` | Wraps: every child as wide as the widest (a tidy grid); at most `n` children on a line (`n <= 0`: no limit, the default). |
 | `.image(Image.…)`, `.icon(name)` | Buttons: an image (a theme icon, a file or bytes) before the label; with the label `""`, an image-only button (give it a `.tooltip`, which tests find it by). `.icon(name)` is `.image(Image.Icon(name))`; `.icon("")` takes the image away. |
 | `.fit(Fit.Contain \| Cover \| ScaleDown \| Fill)` | Pictures: the whole picture (default), filled and cropped, never enlarged, or stretched. |
 | `.placeholder(hint)`, `.on_submit(msg)` | Text fields: a hint while empty; the message Enter sends. |

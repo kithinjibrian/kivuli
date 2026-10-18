@@ -1,0 +1,100 @@
+/**
+ * Lazy nodes, built or reused before each diff: a lazy whose key is the same
+ * at its place keeps what it built, without calling its build function.
+ * Moved out of `diff` (file size). Pure.
+ *
+ * Depends on: views
+ * Used by: live
+ */
+
+import views { View };
+
+/**
+ * The view with every lazy node built or reused. A lazy reuses what the lazy
+ * at the same place in `old` (the last view, resolved) built, when its key is
+ * the same, without calling its build function; otherwise it builds. Places
+ * are matched as the diff matches them: by position, and by row key in a
+ * keyed column. Per place, as in Elm: two copies of one component (`map`) with
+ * equal keys each keep their own subtree.
+ */
+fun resolve<Msg>(v: View<Msg>, old: Option<View<Msg>>): View<Msg> = match v {
+    Lazy(key, build, _) => match old {
+        Some(Lazy(k, _, Some(built))) => if k == key {
+            View.Lazy(key, build, Some(built))
+        } else {
+            // A new key at this place: build, matching what's inside against
+            // the old build, so lazies further in can still be reused.
+            View.Lazy(key, build, Some(resolve(build(), Some(built))))
+        },
+        _ => View.Lazy(key, build, Some(resolve(build(), counterpart(old)))),
+    },
+    Styled(x, style) => View.Styled(resolve(x, counterpart(old)), style),
+    Column(xs) => View.Column(resolve_children(xs, match counterpart(old) {
+        Some(Column(ys)) => ys,
+        _ => [],
+    })),
+    Row(xs) => View.Row(resolve_children(xs, match counterpart(old) {
+        Some(Row(ys)) => ys,
+        _ => [],
+    })),
+    Keyed(pairs) => View.Keyed(resolve_keyed(pairs, match counterpart(old) {
+        Some(Keyed(olds)) => olds,
+        _ => [],
+    })),
+    Wrap(xs) => View.Wrap(resolve_children(xs, match counterpart(old) {
+        Some(Wrap(ys)) => ys,
+        _ => [],
+    })),
+    KeyedWrap(pairs) => View.KeyedWrap(resolve_keyed(pairs, match counterpart(old) {
+        Some(KeyedWrap(olds)) => olds,
+        _ => [],
+    })),
+    Scroll(x) => View.Scroll(resolve(x, match counterpart(old) {
+        Some(Scroll(y)) => Some(y),
+        _ => None,
+    })),
+    Framed(body, start, title, end) => match counterpart(old) {
+        Some(Framed(b, s, t, e)) => View.Framed(
+            resolve(body, Some(b)),
+            resolve_children(start, s),
+            resolve(title, Some(t)),
+            resolve_children(end, e),
+        ),
+        _ => View.Framed(
+            resolve(body, None),
+            resolve_children(start, []),
+            resolve(title, None),
+            resolve_children(end, []),
+        ),
+    },
+    _ => v,
+};
+
+/** The old node a new one (not a lazy) is matched against: through its style and any lazy around it. */
+fun counterpart<Msg>(old: Option<View<Msg>>): Option<View<Msg>> = match old {
+    Some(Styled(x, _)) => counterpart(Some(x)),
+    Some(Lazy(_, _, Some(built))) => counterpart(Some(built)),
+    _ => old,
+};
+
+fun resolve_children<Msg>(xs: View<Msg>[], olds: View<Msg>[]): View<Msg>[] {
+    let mut out: View<Msg>[] = [];
+    let mut i = 0;
+    while i < xs.len {
+        out.push(resolve(xs[i], if i < olds.len { Some(olds[i]) } else { None }));
+        i = i + 1;
+    }
+    out
+}
+
+/** Keyed children, each matched against the old child with its key. */
+fun resolve_keyed<Msg>(
+    pairs: (string, View<Msg>)[],
+    olds: (string, View<Msg>)[],
+): (string, View<Msg>)[] {
+    let mut before: Map<string, View<Msg>> = #{};
+    for (k, x) of olds {
+        before[k] = x;
+    }
+    pairs.map(fun(pair) = (pair.0, resolve(pair.1, before.get(pair.0))))
+}

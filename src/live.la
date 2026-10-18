@@ -35,6 +35,7 @@ import gtk {
     gtk_window_set_titlebar,
 };
 import diff;
+import lazies;
 import views { View };
 import looks { Window };
 import effects { App, Cmd, Timer, commands, receivers, timers };
@@ -128,7 +129,7 @@ fun mount<Model, Msg>(
     };
     let (model, cmd) = program.init;
     let view = program.view;
-    let tree = paint_or_stop(diff.resolve(view(model), None));
+    let tree = paint_or_stop(lazies.resolve(view(model), None));
     check_shortcuts(tree);
     let live = create(tree, sender(app));
     gtk_window_set_child(window, widget(live));
@@ -172,7 +173,7 @@ fun dispatch<Model, Msg>(app: Running<Model, Msg>, msg: Msg) {
     let view = app.program.view;
     let (model, cmd) = update(s.model, msg);
     // Lazy nodes whose keys are unchanged at their place reuse what they built.
-    let tree = paint_or_stop(diff.resolve(view(model), Some(s.tree)));
+    let tree = paint_or_stop(lazies.resolve(view(model), Some(s.tree)));
     check_shortcuts(tree);
     let mut live = s.live;
     app.patching.set(true);
