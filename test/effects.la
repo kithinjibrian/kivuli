@@ -1,6 +1,6 @@
 // Effects as data: what commands and subscriptions flatten to, the app a
 // sandbox runs, and the window a view's root asks for. No GTK.
-import kivuli.effects { commands, sandbox_app, timers };
+import kivuli.effects { commands, receivers, sandbox_app, timers };
 import kivuli.diff { Patch, diff as patches };
 import kivuli.looks { Style, Window, plain };
 import kivuli { App, Cmd, Sub, View, column, text };
@@ -14,6 +14,11 @@ fun assert_same<T>(actual: T, expected: T) {
 enum Msg {
     Ping,
     Tick(i64),
+    Got(i64),
+}
+
+enum Outer {
+    Inner(Msg),
 }
 
 @test
@@ -93,4 +98,41 @@ fun focus_commands_flatten_and_map() {
     let expected: Cmd<Msg>[] = [Cmd.Focus("task")];
     assert_same(commands(cmd), expected);
     assert_same(commands(cmd.map(fun(m: Msg): Msg = m)), expected);
+}
+
+@test
+fun a_task_is_a_command_whose_work_gives_its_message() {
+    let cmd: Cmd<Msg> = Cmd.batch([Cmd.none(), Cmd.task(fun(): i64 = 6 * 7, Msg.Got)]);
+    let cs = commands(cmd);
+    assert_eq(cs.len, 1);
+    match cs[0] {
+        Task(job) => assert_eq(job(), Msg.Got(42)),
+        _ => panic("expected a task"),
+    }
+    // Mapped: the same work, its message mapped.
+    match commands(cmd.map(Outer.Inner))[0] {
+        Task(job) => assert_eq(job(), Outer.Inner(Msg.Got(42))),
+        _ => panic("expected a task"),
+    }
+}
+
+@test
+fun a_receive_turns_each_sent_value_into_a_message_in_order() {
+    let c: Chan<i64> = Chan.buffered(4);
+    c.send(1);
+    c.send(2);
+    let sub: Sub<Msg> = Sub.batch([Sub.every(10, Msg.Tick), Sub.receive(c, Msg.Got)]);
+    let polls = receivers(sub);
+    assert_eq(polls.len, 1);
+    let poll = polls[0];
+    assert_eq(poll(), Some(Msg.Got(1)));
+    assert_eq(poll(), Some(Msg.Got(2)));
+    // Nothing ready: no message, and no waiting.
+    assert_eq(poll(), None);
+    // Mapped, on the same channel.
+    c.send(3);
+    let mapped = receivers(sub.map(Outer.Inner))[0];
+    assert_eq(mapped(), Some(Outer.Inner(Msg.Got(3))));
+    // Timers don't count as receivers, and receivers aren't timers.
+    assert_eq(timers(sub).len, 1);
 }

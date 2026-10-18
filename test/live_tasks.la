@@ -1,0 +1,260 @@
+// Background tasks on GTK's main loop: green threads get turns while the
+// window runs, so a task's sleep or socket wait doesn't hold the window; CPU
+// work shares it; results arrive as exactly one message; `Sub.receive`
+// delivers a channel's values in order, and only while subscribed. Needs a
+// display, so it is skipped without one. Each test runs the main loop until
+// the app quits (a 5 s watchdog quits a stuck one).
+import std.env;
+import std.http;
+import std.net;
+import std.task;
+import gtk {
+    GtkApplication,
+    GtkWidget,
+    connect_app,
+    emit_widget,
+    g_application_quit,
+    g_application_run,
+    g_get_monotonic_time,
+    g_object_unref,
+    g_timeout_add_full,
+    gtk_application_new,
+    gtk_application_window_new,
+};
+import kivuli.live { Running, mount, live_of };
+import kivuli.live_tree { Live, widget };
+import kivuli { App, Cmd, Sub, View, button, column };
+
+fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
+
+/** Runs `program` until it quits (or 5 s pass); `steps` gets the app once it's shown. */
+fun run<Model, Msg>(id: string, program: App<Model, Msg>, steps: fun(Running<Model, Msg>)) {
+    let application = gtk_application_new(id, 0);
+    connect_app(
+        application,
+        "activate",
+        fun(a: GtkApplication) {
+            let window = gtk_application_window_new(a);
+            let app = mount(a, window, program);
+            steps(app);
+            g_timeout_add_full(0, 5000, fun(): i32 {
+                g_application_quit(a);
+                0
+            });
+        },
+        0,
+    );
+    g_application_run(application, 0, None);
+    g_object_unref(application);
+}
+
+fun note(seen: Ref<string[]>, s: string) {
+    seen.update(fun(xs) {
+        let mut ys = xs;
+        ys.push(s);
+        ys
+    });
+}
+
+/** The first child of the app's top column. */
+fun first<Model, Msg>(app: Running<Model, Msg>): GtkWidget = match live_of(app) {
+    Box(_, _, kids) => widget(kids[0]),
+    _ => panic("expected a column"),
+};
+
+enum Step {
+    Clicked,
+    Slept(i64),
+}
+
+@test
+fun the_window_answers_while_a_task_sleeps() {
+    if !has_display() {
+        skip("no display");
+    }
+    let received: Ref<string[]> = Ref.new([]);
+    // The app's own flag, read once the main loop has ended.
+    let turning: Ref<Option<Ref<bool>>> = Ref.new(None);
+    let started = g_get_monotonic_time();
+    let took = Ref.new(0);
+    let program = App {
+        id: "org.kivuli.test.task_sleep",
+        init: (0, Cmd.task(
+            fun(): i64 {
+                task.sleep(300);
+                7
+            },
+            Step.Slept,
+        )),
+        update: fun(n: i64, msg: Step): (i64, Cmd<Step>) {
+            note(received, "{msg}");
+            match msg {
+                Clicked => (n + 1, Cmd.none()),
+                Slept(_) => {
+                    took.set((g_get_monotonic_time() - started) / 1000);
+                    (n, Cmd.quit())
+                }
+            }
+        },
+        view: fun(n: i64): View<Step> = column([button("Click", Step.Clicked)]),
+        subscriptions: fun(n: i64): Sub<Step> = Sub.none(),
+    };
+    run("org.kivuli.test.task_sleep", program, fun(app: Running<i64, Step>) {
+        // A click 50 ms in: GTK handles it while the task is still asleep.
+        g_timeout_add_full(0, 50, fun(): i32 {
+            emit_widget(first(app), "clicked");
+            0
+        });
+        turning.set(Some(app.turning));
+    });
+    assert_eq(received.get(), ["Clicked", "Slept(7)"]);
+    // A 300 ms sleep is answered promptly, not only when preemption happens to yield.
+    assert(took.get() < 1500);
+    // Nothing in flight afterwards: the turn source stopped itself.
+    assert_eq(turning.get().map(fun(r) = r.get()), Some(false));
+}
+
+enum Net {
+    Served(string),
+    Fetched(string),
+}
+
+@test
+fun a_download_and_its_server_both_run_in_the_background() {
+    if !has_display() {
+        skip("no display");
+    }
+    let Ok(listener) = net.listen("127.0.0.1:0") else {
+        panic("can't listen on localhost");
+    };
+    let address = listener.addr();
+    let received: Ref<string[]> = Ref.new([]);
+    let serve = fun(): string {
+        let Ok(c) = listener.accept() else {
+            return "no connection";
+        };
+        let _ = c.read(4096);
+        let _ = c.write(
+            "HTTP/1.1 200 OK\r\nContent-Length: 5\r\nConnection: close\r\n\r\nhello".to_bytes(),
+        );
+        c.close();
+        "served"
+    };
+    let fetch = fun(): string = match http.get("http://{address}/hi") {
+        Ok(response) => "{response.status} {response.body.len}",
+        Err(why) => "failed: {why}",
+    };
+    let program = App {
+        id: "org.kivuli.test.task_net",
+        init: ((), Cmd.batch([Cmd.task(serve, Net.Served), Cmd.task(fetch, Net.Fetched)])),
+        update: fun(m: (), msg: Net): ((), Cmd<Net>) {
+            note(received, "{msg}");
+            match msg {
+                Fetched(_) => ((), Cmd.quit()),
+                Served(_) => ((), Cmd.none()),
+            }
+        },
+        view: fun(m: ()): View<Net> = column([]),
+        subscriptions: fun(m: ()): Sub<Net> = Sub.none(),
+    };
+    run("org.kivuli.test.task_net", program, fun(app: Running<(), Net>) {});
+    // The server finishes as soon as it has written; the download after it has read.
+    assert_eq(received.get(), ["Served(\"served\")", "Fetched(\"200 5\")"]);
+}
+
+enum Busy {
+    Tick(i64),
+    Counted(i64),
+}
+
+/** Enough work that one slice per turn would take far longer than the watchdog allows. */
+fun count(to: i64): i64 {
+    let mut n = 0;
+    let mut i = 0;
+    while i < to {
+        n = n + i % 7;
+        i = i + 1;
+    }
+    n
+}
+
+@test
+fun computation_shares_the_window_and_finishes() {
+    if !has_display() {
+        skip("no display");
+    }
+    let ticks = Ref.new(0);
+    let finished = Ref.new(-1);
+    let took = Ref.new(0);
+    let started = g_get_monotonic_time();
+    let program = App {
+        id: "org.kivuli.test.task_cpu",
+        init: (0, Cmd.task(fun(): i64 = count(30000000), Busy.Counted)),
+        update: fun(n: i64, msg: Busy): (i64, Cmd<Busy>) = match msg {
+            Tick(_) => {
+                ticks.update(fun(t) = t + 1);
+                (n, Cmd.none())
+            }
+            Counted(total) => {
+                finished.set(total);
+                took.set((g_get_monotonic_time() - started) / 1000);
+                (n, Cmd.quit())
+            }
+        },
+        view: fun(n: i64): View<Busy> = column([]),
+        // The window's own work: a timer every 10 ms.
+        subscriptions: fun(n: i64): Sub<Busy> = Sub.every(10, Busy.Tick),
+    };
+    run("org.kivuli.test.task_cpu", program, fun(app: Running<i64, Busy>) {});
+    assert(finished.get() > 0);
+    // The timer kept firing while the work ran: the window wasn't held.
+    assert(ticks.get() >= 5);
+    // And the work got a real share: done well before the 5 s watchdog.
+    assert(took.get() < 4000);
+}
+
+enum Rx {
+    Got(i64),
+    Sent(bool),
+    End,
+}
+
+@test
+fun receive_delivers_in_order_and_only_while_subscribed() {
+    if !has_display() {
+        skip("no display");
+    }
+    let progress: Chan<i64> = Chan.buffered(8);
+    let received: Ref<string[]> = Ref.new([]);
+    let worker = fun(): bool {
+        progress.send(1);
+        task.sleep(20);
+        progress.send(2);
+        task.sleep(150);
+        // Sent after the app stopped listening: never delivered.
+        progress.send(3);
+        true
+    };
+    let program = App {
+        id: "org.kivuli.test.receive",
+        init: (true, Cmd.task(worker, Rx.Sent)),
+        update: fun(listening: bool, msg: Rx): (bool, Cmd<Rx>) {
+            note(received, "{msg}");
+            match msg {
+                Got(2) => (false, Cmd.none()),
+                Got(_) => (listening, Cmd.none()),
+                // Time for a wrong delivery to show up before quitting.
+                Sent(_) => (listening, Cmd.after(100, Rx.End)),
+                End => (listening, Cmd.quit()),
+            }
+        },
+        view: fun(listening: bool): View<Rx> = column([]),
+        subscriptions: fun(listening: bool): Sub<Rx> = if listening {
+            Sub.receive(progress, Rx.Got)
+        } else {
+            Sub.none()
+        },
+    };
+    run("org.kivuli.test.receive", program, fun(app: Running<bool, Rx>) {});
+    assert_eq(received.get(), ["Got(1)", "Got(2)", "Sent(true)", "End"]);
+}

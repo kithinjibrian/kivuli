@@ -8,6 +8,14 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.6.0] — 2026-10-18
+
+### Added
+- Background work (PRP-011): `Cmd.task(work, done)` runs work on a green thread and sends its result as one message; `Sub.receive(chan, f)` turns a Lugha channel's values into messages. kivuli gives green threads turns while GTK runs, so downloads (`std.http`, `std.net`, `std.tls`) and sleeps don't hold the window, and Lugha computation shares it. File reads, DNS lookups, `std.crypto` and `std.process` still block (DECISION-022). `examples/download.la`.
+
+### Changed
+- `spawn`, channels and actors now work inside kivuli apps: before, green threads never ran while GTK's main loop did.
+
 ## [0.5.0] — 2026-10-18
 
 ### Added

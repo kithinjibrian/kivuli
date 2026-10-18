@@ -10,9 +10,10 @@
 import views { View };
 
 /**
- * Something for kivuli to do after an update: wait and send a message, quit,
- * or several of those. Build one with `Cmd.none()`, `Cmd.after(ms, msg)`,
- * `Cmd.quit()` or `Cmd.batch(cmds)`.
+ * Something for kivuli to do after an update: wait and send a message, run
+ * work in the background, quit, or several of those. Build one with
+ * `Cmd.none()`, `Cmd.after(ms, msg)`, `Cmd.task(work, done)`, `Cmd.quit()` or
+ * `Cmd.batch(cmds)`.
  */
 public enum Cmd<Msg> {
     Nothing,
@@ -22,6 +23,8 @@ public enum Cmd<Msg> {
     Quit,
     /** Give keyboard focus to the node with this `.name`. */
     Focus(string),
+    /** Run this on a green thread; send what it returns (its work then `done`). */
+    Task(fun(): Msg),
 }
 
 impl Cmd<Msg> {
@@ -43,6 +46,24 @@ impl Cmd<Msg> {
      *     (Model { saving: true, ..m }, Cmd.after(2000, Msg.Saved))
      */
     public fun after(ms: i64, msg: Msg): Cmd<Msg> = Cmd.After(ms, msg);
+
+    /**
+     * Runs `work` in the background, on a green thread, and sends
+     * `done(result)` to `update` when it returns: exactly one message.
+     * Downloads (`std.http`, `std.net`) and `task.sleep` wait without holding
+     * the window; Lugha computation shares it in slices; a single blocking
+     * call (reading a file, a DNS lookup, `std.crypto`, `std.process`) still
+     * holds it until it returns. `work` runs on a copy of what it captured,
+     * must not call kivuli or GTK, and can't be cancelled: ignore a result
+     * you no longer want. A panic in it ends the program.
+     *
+     * Example:
+     *     Open(url) => (Model { page: Page.Loading(url), ..m },
+     *                   Cmd.task(fun(): Result<u8[], string> = download(url), Msg.Got))
+     */
+    public fun task<T>(work: fun(): T, done: fun(T): Msg): Cmd<Msg> = Cmd.Task(
+        fun(): Msg = done(work()),
+    );
 
     /** Closes the window and ends the app; `main` returns. */
     public fun quit(): Cmd<Msg> = Cmd.Quit;
@@ -70,6 +91,7 @@ impl Cmd<Msg> {
         After(ms, msg) => Cmd.After(ms, f(msg)),
         Quit => Cmd.Quit,
         Focus(name) => Cmd.Focus(name),
+        Task(job) => Cmd.Task(fun(): B = f(job())),
     };
 }
 
@@ -83,6 +105,8 @@ public enum Sub<Msg> {
     Batch(Sub<Msg>[]),
     /** Every this many milliseconds, send `f(now)`, now in milliseconds since 1970. */
     Every(i64, fun(i64): Msg),
+    /** A channel's next value as a message, if one is ready (never waits). */
+    Receive(fun(): Option<Msg>),
 }
 
 impl Sub<Msg> {
@@ -107,6 +131,23 @@ impl Sub<Msg> {
     public fun every(ms: i64, f: fun(i64): Msg): Sub<Msg> = Sub.Every(ms, f);
 
     /**
+     * Sends `f(value)` for every value sent on `chan`, in order, for as long
+     * as `subscriptions` keeps returning it: how a worker built with Lugha's
+     * own `spawn`, channels or actors reports to `update`. Values sent while
+     * nobody listens wait in the channel.
+     *
+     * Example:
+     *     fun subscriptions(m: Model): Sub<Msg> = Sub.receive(m.progress, Msg.Progress);
+     */
+    public fun receive<T>(
+        chan: Chan<T>,
+        f: fun(T): Msg,
+    ): Sub<Msg> = Sub.Receive(fun(): Option<Msg> = match chan.try_recv() {
+        Some(value) => Some(f(value)),
+        None => None,
+    });
+
+    /**
      * The same subscription, sending `f(msg)` wherever it would send `msg`.
      *
      * Example:
@@ -116,6 +157,10 @@ impl Sub<Msg> {
         Quiet => Sub.Quiet,
         Batch(subs) => Sub.Batch(subs.map(fun(x) = x.map(f))),
         Every(ms, tick) => Sub.Every(ms, fun(now: i64): B = f(tick(now))),
+        Receive(poll) => Sub.Receive(fun(): Option<B> = match poll() {
+            Some(msg) => Some(f(msg)),
+            None => None,
+        }),
     };
 }
 
@@ -188,6 +233,21 @@ fun timers<Msg>(s: Sub<Msg>): Timer<Msg>[] {
     out
 }
 
+/** Each `Sub.receive` in `s`, in order, as the function taking its channel's next message. */
+fun receivers<Msg>(s: Sub<Msg>): (fun(): Option<Msg>)[] = match s {
+    Batch(subs) => {
+        let mut out: (fun(): Option<Msg>)[] = [];
+        for each of subs {
+            for poll of receivers(each) {
+                out.push(poll);
+            }
+        }
+        out
+    }
+    Receive(poll) => [poll],
+    _ => [],
+};
+
 fun every_of<Msg>(s: Sub<Msg>): (i64, fun(i64): Msg)[] = match s {
     Quiet => [],
     Batch(subs) => {
@@ -200,4 +260,5 @@ fun every_of<Msg>(s: Sub<Msg>): (i64, fun(i64): Msg)[] = match s {
         out
     }
     Every(ms, f) => [(ms, f)],
+    _ => [],
 };

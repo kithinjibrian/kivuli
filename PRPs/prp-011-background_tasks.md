@@ -1,6 +1,6 @@
 # PRP-011 — Background tasks: `Cmd.task` and `Sub.receive`
 
-Status: draft, for the user's approval
+Status: built (session 12) on branch prp-011-background_tasks; merged into main
 Discovery: session 12, 2026-10-18, talked through. *(you)*: chosen in the talk; *(proposed)*: for you to confirm or change with this PRP.
 
 ## FEATURE: Lugha's green threads run while GTK's main loop runs; `Cmd.task(work, done)` runs work in the background and sends its result to `update` as one message; `Sub.receive(chan, f)` turns every value sent on a channel into a message.
@@ -88,28 +88,37 @@ fun subscriptions(m: Model): Sub<Msg> = Sub.receive(m.progress, Msg.Progress);
 ## TESTS TO WRITE
 
 Pure (`test/effects.la`):
-- [ ] `Cmd.task` appears in `commands(cmd)`, through `batch` and `map` (its message mapped); running its work in the test gives the expected message.
-- [ ] `Sub.receive` appears in the subscriptions' receivers, through `batch` and `map`; values sent on a buffered channel come out as messages, in order; an empty channel gives none.
+- [x] `Cmd.task` appears in `commands(cmd)`, through `batch` and `map` (its message mapped); running its work in the test gives the expected message.
+- [x] `Sub.receive` appears in the subscriptions' receivers, through `batch` and `map`; values sent on a buffered channel come out as messages, in order; an empty channel gives none.
 
 Live GTK (skipped without a display), `test/live_tasks.la`:
-- [ ] **responsive**: a task that sleeps 300 ms; meanwhile a GTK timeout at 50 ms clicks a button: `update` gets the click before the task's message, and the task's message arrives once.
-- [ ] **sockets**: a task serving one HTTP request on localhost and another doing `std.http.get` to it, both in the background, while GTK runs: the body arrives as a message.
-- [ ] **CPU work** in a task finishes while GTK keeps handling a repeating timeout (both make progress).
-- [ ] **Sub.receive**: a worker sends three values on a channel: three messages, in order; when the subscription goes, later values aren't delivered.
-- [ ] **idle**: with no task or receive, the source isn't running (checked through kivuli's own state).
-- [ ] the example's own tests.
+- [x] **responsive**: a task that sleeps 300 ms; meanwhile a GTK timeout at 50 ms clicks a button: `update` gets the click before the task's message, and the task's message arrives once.
+- [x] **sockets**: a task serving one HTTP request on localhost and another doing `std.http.get` to it, both in the background, while GTK runs: the body arrives as a message.
+- [x] **CPU work** in a task finishes while GTK keeps handling a repeating timeout (both make progress).
+- [x] **Sub.receive**: a worker sends three values on a channel: three messages, in order; when the subscription goes, later values aren't delivered.
+- [x] **idle**: with no task or receive, the source isn't running (checked through kivuli's own state, in the sleep test).
+- [x] the example's own tests.
 
 ## ROLLBACK PLAN
 - Branch `prp-011-background_tasks` from `main`; abandon by leaving it unmerged. No lugha-gtk change.
 
 ## ACCEPTANCE CRITERIA
-- [ ] Downloads and sleeps run in the background while the window responds; CPU work in Lugha is time-sliced; results arrive as exactly one message; channels deliver as messages.
-- [ ] What still blocks (file calls, DNS, `std.crypto`, `std.process`) is documented, and DECISIONS 021–022 are recorded and reported.
-- [ ] Tests above written first; narrow runs while building; the full suite and the examples' tests pass before the merge.
-- [ ] fmt clean; public items documented; no file over 500 lines.
-- [ ] README, docs/DESIGN.md, CHANGELOG, MEMORY.md updated; 0.6.0 tagged; merged. Pushed only on your go.
+- [x] Downloads and sleeps run in the background while the window responds; CPU work in Lugha is time-sliced; results arrive as exactly one message; channels deliver as messages.
+- [x] What still blocks (file calls, DNS, `std.crypto`, `std.process`) is documented, and DECISIONS 021–022 are recorded and reported.
+- [x] Tests above written first; narrow runs while building; the full suite and the examples' tests pass before the merge.
+- [x] fmt clean; public items documented; no file over 500 lines.
+- [x] README, docs/DESIGN.md, CHANGELOG, MEMORY.md updated; 0.6.0 tagged; merged. Pushed only on your go.
 
 ## VALIDATION
 - While building: only the tests covering each step.
 - Before the merge: `lughac fmt --check src examples test`, `lughac test test/`, the examples' own tests, every example built.
 - For the user: `lughac run examples/download.la`: start a download; the spinner turns and the window scrolls and clicks while it loads; the prime counter's progress climbs.
+
+## NOTES FROM THE BUILD
+
+- **Numbers:** a turn every 4 ms (`TURN_EVERY_MS`); within it, `yield_now` again while the last call took at least 25 µs (`NOTHING_RAN_US`: a yield that found nothing only checks sleepers and sockets) and the turn is under 2 ms (`TURN_BUDGET_US`); at most 256 received values per turn. With these, 30 million loop iterations finished in about 2 s while a 10 ms GTK timer kept firing.
+- **Preemption does part of the job by itself:** with no `yield_now` in the turn at all, a sleeping task was still woken, slowly (4.3 s instead of 0.3 s), because Lugha's step budget makes the main thread's own code yield. So the sleep test bounds the time (under 1.5 s), not just the order; mutation-checked: without the yield it fails, and with a single yield per turn the computation test fails its bound.
+- **Kivuli now uses `spawn`**, so every kivuli app is compiled with Lugha's preemption countdown (the spec: programs without `spawn` compile as before).
+- **The receivers are read again after each dispatched value**, so an update that drops a `Sub.receive` gets nothing more from it in the same turn (tested: the third value isn't delivered).
+- **The example** runs its own slow HTTP server from `main` (a task accepting on a free localhost port, a green thread per connection writing 64 KB in 16 pieces), so it needs no internet.
+- **Recorded for the lugha session:** DECISION-021 (runtime hooks) and DECISION-022 (blocking calls off the one OS thread).

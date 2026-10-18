@@ -15,6 +15,7 @@ import gtk {
     connect_app,
     g_application_quit,
     g_application_run,
+    g_get_monotonic_time,
     g_get_real_time,
     g_object_unref,
     g_source_remove,
@@ -36,7 +37,8 @@ import gtk {
 import diff;
 import views { View };
 import looks { Window };
-import effects { App, Cmd, Timer, commands, timers };
+import effects { App, Cmd, Timer, commands, receivers, timers };
+import std.task;
 import build { create, focus_target };
 import patch { apply, at };
 import keys { duplicate };
@@ -71,6 +73,12 @@ struct Running<Model, Msg> {
     // text) emits its signal, and that echo must not dispatch again.
     patching: Ref<bool>,
     timers: Ref<Ticking<Msg>[]>,
+    // `Cmd.task`s not delivered yet: each sends its one message on its own channel.
+    pending: Ref<Chan<Msg>[]>,
+    // The current `Sub.receive`s, as functions taking their channel's next message.
+    receiving: Ref<(fun(): Option<Msg>)[]>,
+    // Whether the turn source (`turn`) is running.
+    turning: Ref<bool>,
 }
 
 /**
@@ -105,6 +113,8 @@ fun mount<Model, Msg>(
     program: App<Model, Msg>,
 ): Running<Model, Msg> {
     let none_yet: Ticking<Msg>[] = [];
+    let no_tasks: Chan<Msg>[] = [];
+    let no_receivers: (fun(): Option<Msg>)[] = [];
     let app = Running {
         application: application,
         window: window,
@@ -112,6 +122,9 @@ fun mount<Model, Msg>(
         state: Ref.new(None),
         patching: Ref.new(false),
         timers: Ref.new(none_yet),
+        pending: Ref.new(no_tasks),
+        receiving: Ref.new(no_receivers),
+        turning: Ref.new(false),
     };
     let (model, cmd) = program.init;
     let view = program.view;
@@ -262,6 +275,17 @@ fun perform<Model, Msg>(app: Running<Model, Msg>, cmd: Cmd<Msg>) {
             }
             Quit => g_application_quit(app.application),
             Focus(name) => focus_named(app, name),
+            Task(job) => {
+                // A green thread does the work; its one message waits on its own channel.
+                let result: Chan<Msg> = Chan.buffered(1);
+                let _ = spawn deliver(job, result);
+                app.pending.update(fun(xs) {
+                    let mut ys = xs;
+                    ys.push(result);
+                    ys
+                });
+                start_turns(app);
+            }
             _ => {}
         }
     }
@@ -298,6 +322,95 @@ fun resubscribe<Model, Msg>(app: Running<Model, Msg>, model: Model) {
         }
     }
     app.timers.set(next);
+    app.receiving.set(receivers(subscriptions(model)));
+    if app.receiving.get().len > 0 {
+        start_turns(app);
+    }
+}
+
+/** A task's green thread: the work, then its message on `result`. */
+fun deliver<Msg>(job: fun(): Msg, result: Chan<Msg>) {
+    result.send(job());
+}
+
+/**
+ * Starts the turn source if it isn't running. GTK's main loop holds the one
+ * OS thread every green thread shares (it's one `extern` call), so tasks and
+ * workers only run when kivuli hands Lugha's scheduler a turn.
+ */
+fun start_turns<Model, Msg>(app: Running<Model, Msg>) {
+    if app.turning.get() {
+        return;
+    }
+    app.turning.set(true);
+    g_timeout_add_full(0, TURN_EVERY_MS as u32, fun(): i32 = turn(app));
+}
+
+/** How often green threads get a turn while any task or `Sub.receive` is active. */
+const TURN_EVERY_MS: i64 = 4;
+
+/** The most of each turn green threads may keep, in microseconds: the window keeps the rest. */
+const TURN_BUDGET_US: i64 = 2000;
+
+/** A `yield_now` shorter than this found nothing ready (it only checked sockets and sleepers). */
+const NOTHING_RAN_US: i64 = 25;
+
+/** The most messages one turn delivers from `Sub.receive`s, so a flood can't hold the window. */
+const MAX_RECEIVED_PER_TURN: i64 = 256;
+
+/**
+ * One turn: green threads run (`yield_now` wakes sleepers, polls sockets
+ * without waiting, and runs what's ready one round) while they keep finding
+ * work, up to the budget; then finished tasks' messages and received values
+ * are dispatched, in order. The source stops when nothing is left.
+ * @returns 1 to run again (G_SOURCE_CONTINUE), 0 to stop
+ */
+fun turn<Model, Msg>(app: Running<Model, Msg>): i32 {
+    let start = g_get_monotonic_time();
+    let mut busy = true;
+    while busy {
+        let before = g_get_monotonic_time();
+        task.yield_now();
+        let after = g_get_monotonic_time();
+        busy = after - before >= NOTHING_RAN_US && after - start < TURN_BUDGET_US;
+    }
+    // Finished tasks, oldest first; each delivers exactly once.
+    let mut waiting: Chan<Msg>[] = [];
+    let mut done: Msg[] = [];
+    for result of app.pending.get() {
+        match result.try_recv() {
+            Some(msg) => done.push(msg),
+            None => waiting.push(result),
+        }
+    }
+    app.pending.set(waiting);
+    for msg of done {
+        dispatch(app, msg);
+    }
+    // Received values: the receivers are read again after each message, so a
+    // subscription an update drops gets nothing more.
+    let mut delivered = 0;
+    let mut i = 0;
+    while delivered < MAX_RECEIVED_PER_TURN && i < app.receiving.get().len {
+        let poll = app.receiving.get()[i];
+        match poll() {
+            Some(msg) => {
+                dispatch(app, msg);
+                delivered = delivered + 1;
+                i = 0;
+            }
+            None => {
+                i = i + 1;
+            }
+        }
+    }
+    if app.pending.get().len == 0 && app.receiving.get().len == 0 {
+        app.turning.set(false);
+        // G_SOURCE_REMOVE: an idle app costs nothing.
+        0
+    } else {
+        1
+    }
 }
 
 fun start_timer<Model, Msg>(app: Running<Model, Msg>, timer: Timer<Msg>): Ticking<Msg> {

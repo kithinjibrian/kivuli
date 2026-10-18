@@ -1,0 +1,248 @@
+// Background work: a download with a spinner while the window stays usable,
+// and a prime counter reporting its progress. The download comes from a small
+// server this app runs itself on localhost, answering slowly, so no internet
+// is needed. Its tests are at the bottom: `lughac test examples/download.la`.
+import std.http;
+import std.net;
+import std.task;
+import kivuli {
+    Align,
+    App,
+    ButtonStyle,
+    Cmd,
+    Sub,
+    View,
+    application,
+    button,
+    column,
+    row,
+    spacer,
+    text,
+};
+// For the tests at the bottom; `lughac build` leaves tests out.
+import kivuli.testing { click, texts };
+
+enum Fetch {
+    Idle,
+    /** Loading, with the spinner's frame. */
+    Loading(i64),
+    /** Done: how many bytes arrived. */
+    Done(i64),
+    Failed(string),
+}
+
+struct Model {
+    /** Where this app's own slow server listens. */
+    address: string,
+    fetch: Fetch,
+    clicks: i64,
+    /** The prime counter's progress, 0–100, while it counts. */
+    counted: Option<i64>,
+    primes: Option<i64>,
+    /** Where the counter sends its progress. */
+    progress: Chan<i64>,
+}
+
+enum Msg {
+    Download,
+    Spin(i64),
+    Got(Result<i64, string>),
+    Click,
+    Count,
+    Progress(i64),
+    Counted(i64),
+    ServerEnded(string),
+}
+
+fun update(m: Model, msg: Msg): (Model, Cmd<Msg>) = match msg {
+    Download => (
+        Model { fetch: Fetch.Loading(0), ..m },
+        Cmd.task(fun(): Result<i64, string> = download(m.address), Msg.Got),
+    ),
+    Spin(_) => match m.fetch {
+        Loading(frame) => (Model { fetch: Fetch.Loading(frame + 1), ..m }, Cmd.none()),
+        _ => (m, Cmd.none()),
+    },
+    Got(Ok(size)) => (Model { fetch: Fetch.Done(size), ..m }, Cmd.none()),
+    Got(Err(why)) => (Model { fetch: Fetch.Failed(why), ..m }, Cmd.none()),
+    Click => (Model { clicks: m.clicks + 1, ..m }, Cmd.none()),
+    Count => (
+        Model { counted: Some(0), primes: None, ..m },
+        Cmd.task(fun(): i64 = count_primes(300000, m.progress), Msg.Counted),
+    ),
+    Progress(percent) => (Model { counted: Some(percent), ..m }, Cmd.none()),
+    Counted(n) => (Model { counted: None, primes: Some(n), ..m }, Cmd.none()),
+    ServerEnded(_) => (m, Cmd.none()),
+};
+
+/** What the download shows: a spinner frame while it loads. */
+fun status(f: Fetch): string = match f {
+    Idle => "Not downloaded yet",
+    Loading(frame) => "{["◐", "◓", "◑", "◒"][frame % 4]} Downloading…",
+    Done(size) => "Downloaded {size} bytes",
+    Failed(why) => "Failed: {why}",
+};
+
+fun counter_status(m: Model): string = match (m.counted, m.primes) {
+    (Some(percent), _) => "Counting primes… {percent}%",
+    (None, Some(n)) => "{n} primes below 300,000",
+    _ => "Not counted yet",
+};
+
+fun view(m: Model): View<Msg> = column([
+    text("Background work").bold().size(16),
+    row([
+        button("Download", Msg.Download).button_style(ButtonStyle.Primary).disabled(
+            is_loading(m.fetch),
+        ),
+        text(status(m.fetch)).align(Align.Center),
+    ]).spacing(12),
+    row([
+        button("Count primes", Msg.Count).disabled(m.counted.is_some()),
+        text(counter_status(m)).align(Align.Center),
+    ]).spacing(12),
+    row([
+        text("The window stays usable meanwhile:").dim().align(Align.Center),
+        spacer(),
+        button("Clicked {m.clicks} times", Msg.Click),
+    ]).spacing(12),
+]).padding(16).spacing(12).window("Downloads", 520, 220);
+
+fun is_loading(f: Fetch): bool = match f {
+    Loading(_) => true,
+    _ => false,
+};
+
+fun subscriptions(m: Model): Sub<Msg> = Sub.batch([
+    // The spinner turns while the download runs.
+    if is_loading(m.fetch) { Sub.every(120, Msg.Spin) } else { Sub.none() },
+    // The counter's progress, while it counts.
+    if m.counted.is_some() { Sub.receive(m.progress, Msg.Progress) } else { Sub.none() },
+]);
+
+/** Downloads from this app's server: how many bytes came, or why not. */
+fun download(address: string): Result<i64, string> = match http.get("http://{address}/file") {
+    Ok(response) => if response.status == 200 {
+        Ok(response.body.len)
+    } else {
+        Err("status {response.status}")
+    },
+    Err(why) => Err(why),
+};
+
+/** The primes below `limit`, sending the percentage done on `progress` every 5%. */
+fun count_primes(limit: i64, progress: Chan<i64>): i64 {
+    let mut found = 0;
+    let mut n = 2;
+    let step = if limit / 20 > 0 { limit / 20 } else { 1 };
+    while n < limit {
+        let mut d = 2;
+        let mut prime = true;
+        while prime && d * d <= n {
+            if n % d == 0 {
+                prime = false;
+            }
+            d = d + 1;
+        }
+        if prime {
+            found = found + 1;
+        }
+        if n % step == 0 {
+            progress.send(n * 100 / limit);
+        }
+        n = n + 1;
+    }
+    found
+}
+
+/**
+ * This app's own server: answers every request with 64 KB, in 16 pieces a
+ * tenth of a second apart, so a download takes a moment to watch.
+ */
+fun serve_slowly(listener: net.Listener): string {
+    while true {
+        match listener.accept() {
+            Ok(c) => {
+                let _ = spawn answer(c);
+            }
+            Err(why) => {
+                return why;
+            }
+        }
+    }
+    "stopped"
+}
+
+fun answer(c: net.Conn) {
+    let _ = c.read(4096);
+    let piece: u8[] = [42; 4096];
+    let _ = c.write(
+        "HTTP/1.1 200 OK\r\nContent-Length: 65536\r\nConnection: close\r\n\r\n".to_bytes(),
+    );
+    let mut i = 0;
+    while i < 16 {
+        task.sleep(100);
+        let _ = c.write(piece);
+        i = i + 1;
+    }
+    c.close();
+}
+
+fun start(address: string): Model = Model {
+    address: address,
+    fetch: Fetch.Idle,
+    clicks: 0,
+    counted: None,
+    primes: None,
+    progress: Chan.buffered(32),
+};
+
+fun main(): i32 {
+    let Ok(listener) = net.listen("127.0.0.1:0") else {
+        println("can't listen on localhost");
+        return 1;
+    };
+    application(App {
+        id: "org.kivuli.download",
+        init: (
+            start(listener.addr()),
+            Cmd.task(fun(): string = serve_slowly(listener), Msg.ServerEnded),
+        ),
+        update: update,
+        view: view,
+        subscriptions: subscriptions,
+    })
+}
+
+// Tests: `update` only describes the work; the tests feed its results back.
+
+fun after(m: Model, msg: Msg): Model = update(m, msg).0;
+
+@test
+fun downloading_asks_for_a_task_and_spins_until_the_result() {
+    let m = start("127.0.0.1:1");
+    let (loading, cmd) = update(m, click(view(m), "Download").unwrap_or(Msg.Click));
+    match cmd {
+        Task(_) => {}
+        _ => panic("expected a background task"),
+    }
+    assert_eq(texts(view(loading))[1], "◐ Downloading…");
+    assert_eq(texts(view(after(loading, Msg.Spin(0))))[1], "◓ Downloading…");
+    let done = after(loading, Msg.Got(Ok(65536)));
+    assert_eq(texts(view(done))[1], "Downloaded 65536 bytes");
+    assert_eq(texts(view(after(loading, Msg.Got(Err("timed out")))))[1], "Failed: timed out");
+}
+
+@test
+fun the_counter_reports_progress_and_its_result() {
+    let m = after(start("127.0.0.1:1"), Msg.Count);
+    assert_eq(texts(view(after(m, Msg.Progress(40))))[2], "Counting primes… 40%");
+    assert_eq(texts(view(after(m, Msg.Counted(25))))[2], "25 primes below 300,000");
+}
+
+@test
+fun counting_primes_is_right_and_reports_as_it_goes() {
+    let progress: Chan<i64> = Chan.buffered(32);
+    assert_eq(count_primes(100, progress), 25);
+    assert_eq(progress.try_recv(), Some(5));
+}
