@@ -1,6 +1,7 @@
 // Lazy subtrees: built only when their key changes at their place, reused and
 // left undiffed otherwise. Each test counts calls of the build function. No GTK.
-import kivuli.diff { Patch, diff as patches, resolve };
+import kivuli.diff { Patch, diff as patches };
+import kivuli.lazies { resolve };
 import kivuli.testing { Lookup, click };
 import kivuli { View, button, column, keyed_column, lazy, text };
 
