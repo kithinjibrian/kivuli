@@ -349,9 +349,18 @@ Branch: main (PRP-012 on prp-012-wrapping_grid, merged)
 
 ---
 
-## SESSION 14 — 2026-10-18 — PRP-013: overlay — open
+## SESSION 14 — 2026-10-18 — PRP-013: overlay, kivuli 0.8.0 — closed
 
-Branch: main
+Branch: main (PRP-013 on prp-013-overlay, merged)
+
+### WHAT WAS DONE
+- Interview (`overlay(base, layers)`; `.place(across, down)` with Align; no built-in click-outside), PRP-013 approved and built. lugha-gtk 0.1.27 pushed (overlays). patch.la passed 500 while building: the user chose src/paths.la (committed first). test/diff_overlay.la, test/live_overlay.la (mutation-checked). Found and fixed a PRP-007 bug: replacing a header view freed a text view after it. frame.la: an Info panel over the page, a scrim layer closes it. DECISION-014 resolved. kivuli 0.8.0, tagged locally.
+
+### STILL OPEN AT CLOSE
+- Not pushed, waiting for the user's go: main and tag v0.8.0.
+- For the user to check by hand: `lughac run examples/frame.la`: Info opens a panel over the page; clicking the dimmed page closes it.
+- Queued: file dialog (013), context menus (015), Rapidkoi's clickable rows (its DECISION-020 item 0). For the lugha session: DECISIONS 020-022. test/live_forms.la split awaiting the user.
+- `reports/.gitkeep` deleted in the working tree, not by Claude; left alone.
 
 ---
 
