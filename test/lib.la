@@ -23,6 +23,7 @@ import kivuli {
     Image,
     wrap,
     keyed_wrap,
+    overlay,
     Surface,
     theme,
 };
@@ -390,4 +391,18 @@ fun wraps_are_plain_nodes_with_their_modifiers() {
     // No limit for n <= 0.
     let unlimited: View<Msg> = View.Styled(View.Wrap([]), Style { max_per_line: 0, ..plain() });
     assert_same(wrap([]).max_per_line(-3), unlimited);
+}
+
+@test
+fun an_overlay_holds_a_base_and_layers_placed_by_style() {
+    let plain_overlay: View<Msg> = View.Overlay(View.Text("page"), [View.Text("panel")]);
+    assert_same(overlay(text("page"), [text("panel")]), plain_overlay);
+    let placed: View<Msg> = View.Styled(View.Text("panel"), Style {
+        place_across: Align.End,
+        place_down: Align.Fill,
+        ..plain(),
+    });
+    assert_same(text("panel").place(Align.End, Align.Fill), placed);
+    // Without .place a layer covers the base.
+    assert_eq((plain().place_across, plain().place_down), (Align.Fill, Align.Fill));
 }

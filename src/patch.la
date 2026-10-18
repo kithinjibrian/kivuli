@@ -22,6 +22,9 @@ import gtk {
     gtk_header_bar_set_title_widget,
     g_timeout_add_full,
     gtk_label_set_text,
+    gtk_overlay_add_overlay,
+    gtk_overlay_remove_overlay,
+    gtk_overlay_set_child,
     gtk_picture_set_filename,
     gtk_range_set_range,
     gtk_scrolled_window_set_child,
@@ -37,7 +40,7 @@ import gtk {
 import diff;
 import build { add_to_wrap, create, create_in, editor, pack_one, text_of };
 import controls { picked, sync_choices };
-import styling { apply_style, flag, show_content, show_number };
+import styling { LAYER, apply_style, flag, show_content, show_number };
 import textures { show_in_image, show_picture };
 import live_tree { Choices, Live, titlebar, widget };
 import paths { at, axis_of, parent, sibling_before, update_at };
@@ -230,6 +233,14 @@ fun apply<Msg>(
             next.push(kid);
             Live.Wrap(flow, next)
         }
+        // A new layer goes on top.
+        Layers(over, kids) => {
+            let kid = create_in(v, LAYER, send);
+            gtk_overlay_add_overlay(over, widget(kid));
+            let mut next = kids;
+            next.push(kid);
+            Live.Layers(over, next)
+        }
         _ => panic("kivuli: an Append patch points at something that isn't a column or row"),
     }),
     Remove(path) => {
@@ -247,6 +258,10 @@ fun apply<Msg>(
             Wrap(flow, kids) => {
                 gtk_flow_box_remove(flow, widget(kids[i]));
                 Live.Wrap(flow, diff.without(kids, i))
+            }
+            Layers(over, kids) => {
+                gtk_overlay_remove_overlay(over, widget(kids[i]));
+                Live.Layers(over, diff.without(kids, i))
             }
             _ => panic("kivuli: a Remove patch points into something that isn't a column or row"),
         })
@@ -301,6 +316,38 @@ fun apply<Msg>(
                 let mut next = kids;
                 next[i] = fresh;
                 Live.Box(box, orientation, next)
+            }
+            // An overlay's base is its child; replacing it drops the old one.
+            Overlay(over, _, layers) => {
+                let fresh = create_in(v, 1, send);
+                gtk_overlay_set_child(over, Some(widget(fresh)));
+                Live.Overlay(over, fresh, layers)
+            }
+            Layers(over, kids) => {
+                // An overlay only adds on top: take this layer and those above it
+                // off (the ones above held alive), then add the new one and them back.
+                let mut held: GtkWidget[] = [];
+                let mut j = i;
+                while j < kids.len {
+                    let w = widget(kids[j]);
+                    if j > i {
+                        held.push(gtk_widget_ref(w));
+                    }
+                    gtk_overlay_remove_overlay(over, w);
+                    j = j + 1;
+                }
+                let fresh = create_in(v, LAYER, send);
+                let mut next = kids;
+                next[i] = fresh;
+                j = i;
+                while j < next.len {
+                    gtk_overlay_add_overlay(over, widget(next[j]));
+                    j = j + 1;
+                }
+                for w of held {
+                    gtk_widget_unref(w);
+                }
+                Live.Layers(over, next)
             }
             Wrap(flow, kids) => {
                 let fresh = create_in(v, 0, send);

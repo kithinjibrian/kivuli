@@ -115,7 +115,11 @@ fun apply_style<Msg>(node: Live<Msg>, style: Style, axis: i32) {
         Scroll(_, _) => true,
         _ => false,
     };
-    if axis == 1 {
+    if axis == LAYER {
+        // An overlay's layer: `.place` sets both ways; it never grows the overlay.
+        gtk_widget_set_halign(w, gtk_align(style.place_across));
+        gtk_widget_set_valign(w, gtk_align(style.place_down));
+    } else if axis == 1 {
         gtk_widget_set_vexpand(w, flag(grows));
         gtk_widget_set_halign(w, gtk_align(style.align));
     } else {
@@ -342,3 +346,6 @@ fun flag(b: bool): i32 = if b { 1 } else { 0 };
 
 /** What "no limit" on a wrap's line means to GTK: more children than any line holds. */
 const NO_LINE_LIMIT: i64 = 65535;
+
+/** The "axis" an overlay's layer is built and styled with: placed both ways by `.place`. */
+const LAYER: i32 = 2;

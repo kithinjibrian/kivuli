@@ -86,6 +86,8 @@ fun shown<M>(node: Live<M>): string = match node {
     Pack(_, _, _) => "<pack>",
     // Shown in full by test/live_wrap.la.
     Wrap(_, kids) => "wrap({kids.len})",
+    Overlay(_, base, _) => "overlay(" + shown(base) + ")",
+    Layers(_, kids) => "layers({kids.len})",
     Slider(_, _, _, _) => "<slider>",
     Scroll(_, kid) => "scroll(" + shown(kid) + ")",
     Box(_, _, kids) => {

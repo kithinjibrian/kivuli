@@ -56,6 +56,8 @@ public enum View<Msg> {
     Wrap(View<Msg>[]),
     /** As `Wrap`, each child with a key naming it across views. */
     KeyedWrap((string, View<Msg>)[]),
+    /** A base view with layers drawn on top of it, in order (later on top). */
+    Overlay(View<Msg>, View<Msg>[]),
     /**
      * The root of a view with a header bar (`.header`): the body, the views at
      * the bar's start, its title view, and the views at its end.
@@ -464,6 +466,12 @@ impl View<Msg> {
     public fun max_per_line(self, n: i64): View<Msg> = restyle(
         self,
         fun(s: Style) = Style { max_per_line: if n < 0 { 0 } else { n }, ..s },
+    );
+
+    /** In an `overlay`'s layers: where it sits on the base, across and down (`Fill`: all that way). */
+    public fun place(self, across: Align, down: Align): View<Msg> = restyle(
+        self,
+        fun(s: Style) = Style { place_across: across, place_down: down, ..s },
     );
 
     public fun on_submit(self, msg: Msg): View<Msg> = match self {

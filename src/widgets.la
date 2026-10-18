@@ -127,6 +127,21 @@ public fun wrap<Msg>(children: View<Msg>[]): View<Msg> = View.Wrap(children);
 public fun keyed_wrap<Msg>(children: (string, View<Msg>)[]): View<Msg> = View.KeyedWrap(children);
 
 /**
+ * Draws `layers` on top of `base`, in order (a later one above an earlier
+ * one); `[]` shows only the base. Each layer sits where `.place(across, down)`
+ * says, covering the whole base without it. The base takes the size; layers
+ * never grow the window. A layer takes the clicks in its own area; for "click
+ * outside to close", put a full-size layer under it that sends a message.
+ *
+ * Example:
+ *     overlay(page(m), if m.panel_open { [info(m).place(Align.End, Align.Fill)] } else { [] })
+ */
+public fun overlay<Msg>(base: View<Msg>, layers: View<Msg>[]): View<Msg> = View.Overlay(
+    base,
+    layers,
+);
+
+/**
  * Builds `build()` only when `key` differs from the key this lazy node had
  * last update; otherwise kivuli reuses what it built before, and doesn't diff
  * it either. The key must cover everything the subtree shows: leave something

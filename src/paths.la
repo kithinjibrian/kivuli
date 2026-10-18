@@ -4,12 +4,13 @@
  * out along, and a child's place among its siblings. No GTK calls. Moved out
  * of `patch` (file size).
  *
- * Depends on: live_tree, gtk.raw (the `GtkWidget` type)
+ * Depends on: live_tree, styling (`LAYER`), gtk.raw (the `GtkWidget` type)
  * Used by: patch, live
  */
 
 import gtk { GtkWidget };
 import live_tree { Live, widget };
+import styling { LAYER };
 
 /**
  * Rebuilds the `Live` tree with the node at `path` (from `depth` on) replaced
@@ -36,6 +37,17 @@ fun update_at<Msg>(
             let mut next = kids;
             next[i] = update_at(kids[i], path, depth + 1, f);
             Live.Wrap(flow, next)
+        }
+        Overlay(over, base, layers) => if path[depth] == 0 {
+            Live.Overlay(over, update_at(base, path, depth + 1, f), layers)
+        } else {
+            Live.Overlay(over, base, update_at(layers, path, depth + 1, f))
+        },
+        Layers(over, kids) => {
+            let i = path[depth];
+            let mut next = kids;
+            next[i] = update_at(kids[i], path, depth + 1, f);
+            Live.Layers(over, next)
         }
         Framed(bar, body, title, start, end) => match path[depth] {
             0 => Live.Framed(bar, update_at(body, path, depth + 1, f), title, start, end),
@@ -66,6 +78,9 @@ fun axis_of<Msg>(live: Live<Msg>, path: i64[]): i32 = if path.len == 0 {
         Framed(_, _, _, _, _) => if path[path.len - 1] == 0 { 1 } else { 0 },
         Pack(_, _, _) => 0,
         Wrap(_, _) => 0,
+        // An overlay's base fills it; its layers are placed by `.place`.
+        Overlay(_, _, _) => 1,
+        Layers(_, _) => LAYER,
         _ => 1,
     }
 };
@@ -78,6 +93,8 @@ fun at<Msg>(node: Live<Msg>, path: i64[]): Live<Msg> {
             Box(_, _, kids) => kids[i],
             Scroll(_, kid) => kid,
             Wrap(_, kids) => kids[i],
+            Overlay(_, base, layers) => if i == 0 { base } else { layers },
+            Layers(_, kids) => kids[i],
             Framed(_, body, title, start, end) => match i {
                 0 => body,
                 1 => title,

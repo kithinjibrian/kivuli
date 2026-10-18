@@ -25,6 +25,7 @@ public import widgets {
     keyed_column,
     wrap,
     keyed_wrap,
+    overlay,
     lazy,
     text_area,
     dropdown,

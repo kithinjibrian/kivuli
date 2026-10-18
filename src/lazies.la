@@ -49,6 +49,10 @@ fun resolve<Msg>(v: View<Msg>, old: Option<View<Msg>>): View<Msg> = match v {
         Some(KeyedWrap(olds)) => olds,
         _ => [],
     })),
+    Overlay(base, layers) => match counterpart(old) {
+        Some(Overlay(b, ls)) => View.Overlay(resolve(base, Some(b)), resolve_children(layers, ls)),
+        _ => View.Overlay(resolve(base, None), resolve_children(layers, [])),
+    },
     Scroll(x) => View.Scroll(resolve(x, match counterpart(old) {
         Some(Scroll(y)) => Some(y),
         _ => None,

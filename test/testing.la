@@ -17,6 +17,7 @@ import kivuli {
     Image,
     wrap,
     keyed_wrap,
+    overlay,
     Surface,
     theme,
 };
@@ -279,4 +280,11 @@ fun buttons_in_a_grid_are_found_like_any_others() {
     ]);
     assert_eq(click(v, "Clear"), Ok(Msg.Clear));
     assert_eq(click(v, "Add"), Ok(Msg.Add));
+}
+
+@test
+fun buttons_in_a_layer_and_in_the_base_are_found() {
+    let v: View<Msg> = overlay(button("Add", Msg.Add), [button("Clear", Msg.Clear)]);
+    assert_eq(click(v, "Add"), Ok(Msg.Add));
+    assert_eq(click(v, "Clear"), Ok(Msg.Clear));
 }

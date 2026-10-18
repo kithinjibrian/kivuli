@@ -61,6 +61,10 @@ enum Live<Msg> {
      * `GtkFlowBoxChild` the box made (the children's widgets are what's here).
      */
     Wrap(GtkWidget, Live<Msg>[]),
+    /** An overlay: the `GtkOverlay`, its base (child 0), and its layers (child 1). */
+    Overlay(GtkWidget, Live<Msg>, Live<Msg>),
+    /** An overlay's layers, bottom to top; no widget of their own, so their widget is the overlay's. */
+    Layers(GtkWidget, Live<Msg>[]),
     /**
      * The root framed by a header bar: the bar, the body (the window's child),
      * the title widget, and the views packed at the bar's start and end.
@@ -105,6 +109,8 @@ fun widget<Msg>(node: Live<Msg>): GtkWidget = match node {
     Separator(w) => w,
     Scroll(w, _) => w,
     Wrap(w, _) => w,
+    Overlay(w, _, _) => w,
+    Layers(w, _) => w,
     // The window's child; the bar is its titlebar.
     Framed(_, body, _, _, _) => widget(body),
     Pack(bar, _, _) => bar,

@@ -156,6 +156,11 @@ fun diff_inside<Msg>(
     (Keyed(xs), Keyed(ys)) => diff_keyed(path, xs, ys),
     (Wrap(xs), Wrap(ys)) => diff_children(path, xs, ys),
     (KeyedWrap(xs), KeyedWrap(ys)) => diff_keyed(path, xs, ys),
+    // The base is child 0, the layers child 1 (then each by position).
+    (Overlay(base_a, layers_a), Overlay(base_b, layers_b)) => joined(
+        diff_at(child(path, 0), base_a, base_b),
+        diff_children(child(path, 1), layers_a, layers_b),
+    ),
     // A header's parts are its children: 0 the body, 1 the title, 2 the start
     // views and 3 the end views, each list by position.
     (Framed(body_a, start_a, title_a, end_a), Framed(body_b, start_b, title_b, end_b)) => {
