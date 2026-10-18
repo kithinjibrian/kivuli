@@ -37,18 +37,18 @@ fun resolve<Msg>(v: View<Msg>, old: Option<View<Msg>>): View<Msg> = match v {
         Some(Row(ys)) => ys,
         _ => [],
     })),
-    Keyed(pairs) => {
-        let mut before: Map<string, View<Msg>> = #{};
-        match counterpart(old) {
-            Some(Keyed(olds)) => {
-                for (k, x) of olds {
-                    before[k] = x;
-                }
-            }
-            _ => {}
-        }
-        View.Keyed(pairs.map(fun(pair) = (pair.0, resolve(pair.1, before.get(pair.0)))))
-    }
+    Keyed(pairs) => View.Keyed(resolve_keyed(pairs, match counterpart(old) {
+        Some(Keyed(olds)) => olds,
+        _ => [],
+    })),
+    Wrap(xs) => View.Wrap(resolve_children(xs, match counterpart(old) {
+        Some(Wrap(ys)) => ys,
+        _ => [],
+    })),
+    KeyedWrap(pairs) => View.KeyedWrap(resolve_keyed(pairs, match counterpart(old) {
+        Some(KeyedWrap(olds)) => olds,
+        _ => [],
+    })),
     Scroll(x) => View.Scroll(resolve(x, match counterpart(old) {
         Some(Scroll(y)) => Some(y),
         _ => None,
@@ -85,4 +85,16 @@ fun resolve_children<Msg>(xs: View<Msg>[], olds: View<Msg>[]): View<Msg>[] {
         i = i + 1;
     }
     out
+}
+
+/** Keyed children, each matched against the old child with its key. */
+fun resolve_keyed<Msg>(
+    pairs: (string, View<Msg>)[],
+    olds: (string, View<Msg>)[],
+): (string, View<Msg>)[] {
+    let mut before: Map<string, View<Msg>> = #{};
+    for (k, x) of olds {
+        before[k] = x;
+    }
+    pairs.map(fun(pair) = (pair.0, resolve(pair.1, before.get(pair.0))))
 }

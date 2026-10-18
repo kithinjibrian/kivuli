@@ -23,6 +23,8 @@ public import widgets {
     separator,
     scroll,
     keyed_column,
+    wrap,
+    keyed_wrap,
     lazy,
     text_area,
     dropdown,

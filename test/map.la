@@ -19,6 +19,8 @@ import kivuli {
     icon,
     image,
     Image,
+    wrap,
+    keyed_wrap,
     Fit,
 };
 
@@ -138,4 +140,12 @@ fun images_pass_through_map_and_their_buttons_send_mapped_messages() {
         "Go",
     );
     assert_same(mapped, expected);
+}
+
+@test
+fun grids_map_their_childrens_messages() {
+    let part: View<Part> = keyed_wrap([("g", button("Go", Part.Go))]);
+    assert_eq(click(part.map(App.Left), "Go"), Ok(App.Left(Part.Go)));
+    let flat: View<Part> = wrap([button("Inc", Part.Inc)]);
+    assert_eq(click(flat.map(App.Right), "Inc"), Ok(App.Right(Part.Inc)));
 }

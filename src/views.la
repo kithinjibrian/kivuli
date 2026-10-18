@@ -52,6 +52,10 @@ public enum View<Msg> {
     Scroll(View<Msg>),
     /** Children stacked top to bottom, each with a key naming it across views. */
     Keyed((string, View<Msg>)[]),
+    /** Children side by side, moving to a new line when a line is full. */
+    Wrap(View<Msg>[]),
+    /** As `Wrap`, each child with a key naming it across views. */
+    KeyedWrap((string, View<Msg>)[]),
     /**
      * The root of a view with a header bar (`.header`): the body, the views at
      * the bar's start, its title view, and the views at its end.
@@ -451,6 +455,15 @@ impl View<Msg> {
     public fun header_style<L>(self, chosen: L[]): View<Msg> = restyle(
         self,
         fun(s: Style) = Style { header_looks: chosen.map(fun(l) = "{l}"), ..s },
+    );
+
+    /** In a `wrap`: every child as wide as the widest, a tidy grid. Ignored elsewhere. */
+    public fun equal(self): View<Msg> = restyle(self, fun(s: Style) = Style { equal: true, ..s });
+
+    /** In a `wrap`: at most `n` children on a line (`n <= 0`: no limit). Ignored elsewhere. */
+    public fun max_per_line(self, n: i64): View<Msg> = restyle(
+        self,
+        fun(s: Style) = Style { max_per_line: if n < 0 { 0 } else { n }, ..s },
     );
 
     public fun on_submit(self, msg: Msg): View<Msg> = match self {

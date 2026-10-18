@@ -15,6 +15,8 @@ import kivuli {
     icon,
     image,
     Image,
+    wrap,
+    keyed_wrap,
     Surface,
     theme,
 };
@@ -267,4 +269,14 @@ fun a_button_with_an_image_is_found_by_its_tooltip() {
         button("", Msg.Add).image(Image.Bytes("app:icon", [1, 2, 3])).tooltip("Open the app"),
     ]);
     assert_eq(click(v, "Open the app"), Ok(Msg.Add));
+}
+
+@test
+fun buttons_in_a_grid_are_found_like_any_others() {
+    let v: View<Msg> = keyed_wrap([
+        ("x", button("Clear", Msg.Clear)),
+        ("y", wrap([button("Add", Msg.Add)])),
+    ]);
+    assert_eq(click(v, "Clear"), Ok(Msg.Clear));
+    assert_eq(click(v, "Add"), Ok(Msg.Add));
 }

@@ -1,0 +1,42 @@
+// Diffing wrapping grids: by position like a row, by key like a keyed
+// column; a grid's settings are its style. (test/diff.la is at the limit.)
+import kivuli.diff { Patch, diff as patches };
+import kivuli.looks { Style, plain };
+import kivuli { View, column, keyed_wrap, text, wrap };
+
+fun assert_same<T>(actual: T, expected: T) {
+    assert_eq("{actual}", "{expected}");
+}
+
+@test
+fun a_wrap_appends_and_removes_by_position() {
+    let added: Patch<i64>[] = [Patch.Append([], text("b"))];
+    assert_same(patches(wrap([text("a")]), wrap([text("a"), text("b")])), added);
+    let removed: Patch<i64>[] = [Patch.Remove([1])];
+    assert_same(patches(wrap([text("a"), text("b")]), wrap([text("a")])), removed);
+    let changed: Patch<i64>[] = [Patch.SetText([0], "z")];
+    assert_same(patches(wrap([text("a")]), wrap([text("z")])), changed);
+}
+
+@test
+fun a_keyed_wrap_inserts_moves_and_removes_by_key() {
+    let a: (string, View<i64>) = ("a", text("A"));
+    let b: (string, View<i64>) = ("b", text("B"));
+    let c: (string, View<i64>) = ("c", text("C"));
+    let inserted: Patch<i64>[] = [Patch.Insert([], 0, text("C"))];
+    assert_same(patches(keyed_wrap([a, b]), keyed_wrap([c, a, b])), inserted);
+    let moved: Patch<i64>[] = [Patch.Move([], 1, 0)];
+    assert_same(patches(keyed_wrap([a, b]), keyed_wrap([b, a])), moved);
+    let removed: Patch<i64>[] = [Patch.Remove([0])];
+    assert_same(patches(keyed_wrap([a, b]), keyed_wrap([b])), removed);
+}
+
+@test
+fun a_wrap_that_becomes_a_column_is_replaced_and_settings_restyle() {
+    let replaced: Patch<i64>[] = [Patch.Replace([], column([text("a")]))];
+    assert_same(patches(wrap([text("a")]), column([text("a")])), replaced);
+    let restyled: Patch<i64>[] = [
+        Patch.SetStyle([], Style { equal: true, max_per_line: 4, ..plain() }),
+    ];
+    assert_same(patches(wrap([]), wrap([]).equal().max_per_line(4)), restyled);
+}

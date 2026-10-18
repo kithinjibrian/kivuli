@@ -154,6 +154,8 @@ fun diff_inside<Msg>(
     // A scroll has one child, at index 0 of its path.
     (Scroll(a), Scroll(b)) => diff_at(child(path, 0), a, b),
     (Keyed(xs), Keyed(ys)) => diff_keyed(path, xs, ys),
+    (Wrap(xs), Wrap(ys)) => diff_children(path, xs, ys),
+    (KeyedWrap(xs), KeyedWrap(ys)) => diff_keyed(path, xs, ys),
     // A header's parts are its children: 0 the body, 1 the title, 2 the start
     // views and 3 the end views, each list by position.
     (Framed(body_a, start_a, title_a, end_a), Framed(body_b, start_b, title_b, end_b)) => {
@@ -305,7 +307,7 @@ fun diff_keyed<Msg>(
     let mut wanted: Set<string> = #{};
     for (k, _) of ys {
         if !wanted.insert(k) {
-            panic("kivuli: a keyed_column has two children keyed \"{k}\"");
+            panic("kivuli: a keyed_column or keyed_wrap has two children keyed \"{k}\"");
         }
     }
     let mut out: Patch<Msg>[] = [];

@@ -30,6 +30,10 @@ import gtk {
     gtk_editable_get_text,
     gtk_editable_set_text,
     gtk_entry_new,
+    gtk_flow_box_insert,
+    gtk_flow_box_new,
+    gtk_flow_box_set_max_children_per_line,
+    gtk_flow_box_set_selection_mode,
     gtk_header_bar_new,
     gtk_header_bar_pack_end,
     gtk_header_bar_pack_start,
@@ -56,6 +60,8 @@ import gtk {
     gtk_text_view_set_wrap_mode,
     gtk_widget_add_controller,
     gtk_widget_grab_focus,
+    gtk_widget_get_parent,
+    gtk_widget_set_focusable,
     gtk_widget_set_halign,
     gtk_widget_set_hexpand,
     gtk_widget_set_sensitive,
@@ -69,7 +75,7 @@ import gtk {
 import live_tree { Choices, Live, widget };
 import views { View };
 import looks { Style };
-import styling { apply_style, flag, show_content, show_number };
+import styling { NO_LINE_LIMIT, apply_style, flag, show_content, show_number };
 import textures { show_in_image, show_picture };
 import widgets { snap };
 import controls { nearest, picked, sync_choices };
@@ -324,13 +330,10 @@ fun create_in<Msg>(v: View<Msg>, axis: i32, send: fun(Msg)): Live<Msg> = match v
         axis,
         send,
     ),
-    Keyed(children) => {
-        let mut views_of: View<Msg>[] = [];
-        for (_, v) of children {
-            views_of.push(v);
-        }
-        create_box(1, views_of, send)
-    }
+    Keyed(children) => create_box(1, children.map(fun(pair) = pair.1), send),
+    // On screen a keyed wrap is a wrap: the keys matter only to the diff.
+    Wrap(children) => create_wrap(children, send),
+    KeyedWrap(children) => create_wrap(children.map(fun(pair) = pair.1), send),
     Framed(body, start, title, end) => {
         let bar = gtk_header_bar_new();
         // GTK draws the window's controls, in the system's style.
@@ -383,6 +386,35 @@ fun pack_one(bar: GtkWidget, at_end: bool, w: GtkWidget) {
         gtk_header_bar_pack_end(bar, w);
     } else {
         gtk_header_bar_pack_start(bar, w);
+    }
+}
+
+/** A flow box holding the widgets for `children`, children laid out across. */
+fun create_wrap<Msg>(children: View<Msg>[], send: fun(Msg)): Live<Msg> {
+    let flow = gtk_flow_box_new();
+    // It only lays out: no selection (clicks come from the children).
+    gtk_flow_box_set_selection_mode(flow, 0);
+    // GTK caps a line at 7 children by default; kivuli's default is no cap.
+    gtk_flow_box_set_max_children_per_line(flow, NO_LINE_LIMIT as u32);
+    let mut kids: Live<Msg>[] = [];
+    for child of children {
+        let kid = create_in(child, 0, send);
+        add_to_wrap(flow, widget(kid), -1);
+        kids.push(kid);
+    }
+    Live.Wrap(flow, kids)
+}
+
+/**
+ * Puts `w` in a flow box at `position` (-1: the end). GTK wraps it in a
+ * `GtkFlowBoxChild`, which kivuli makes no keyboard stop: Tab goes straight
+ * to what's inside.
+ */
+fun add_to_wrap(flow: GtkWidget, w: GtkWidget, position: i64) {
+    gtk_flow_box_insert(flow, w, position as i32);
+    match gtk_widget_get_parent(w) {
+        Some(wrapper) => gtk_widget_set_focusable(wrapper, 0),
+        None => {}
     }
 }
 
