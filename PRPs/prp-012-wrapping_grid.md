@@ -1,6 +1,6 @@
 # PRP-012 — Wrapping grid: `wrap` and `keyed_wrap`
 
-Status: draft, for the user's approval
+Status: approved by the user (session 13); building on branch prp-012-wrapping_grid
 Discovery: session 13, 2026-10-18 (DECISION-016; Rapidkoi's DECISION-020, its home tiles). *(you)*: chosen in the interview; *(proposed)*: for you to confirm or change with this PRP.
 
 ## FEATURE: A container that lays children side by side and moves to a new line when a row runs out of room, re-flowing as the window resizes; positional (`wrap`) or keyed (`keyed_wrap`), with `.equal()` widths and `.max_per_line(n)`.
