@@ -1,6 +1,6 @@
 # PRP-015 — Clickable rows: a button holding any view
 
-Status: draft, for the user's approval (session 16)
+Status: approved by the user (session 16); building on branch prp-015-clickable_rows
 Discovery: session 16, 2026-10-18 (Rapidkoi's DECISION-020, item 0; its PRP-005 info panel rows). *(you)*: chosen in the interview; *(proposed)*: for you to confirm or change with this PRP.
 
 ## FEATURE: `button_with(content, msg)` is a button whose content is any view, so a whole row (label, summary, arrow) is one click target.
