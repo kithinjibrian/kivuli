@@ -375,11 +375,17 @@ fun apply<Msg>(
                 Live.Framed(bar, body, fresh, start, end)
             },
             Pack(bar, at_end, kids) => {
-                // A bar can't insert at a place: unpack from here on, then pack
-                // the new one and the rest again, in order.
+                // A bar can't insert at a place: unpack from here on (the views
+                // after this one held alive: unpacking drops the bar's reference,
+                // which freed a text view), then pack the new one and the rest again.
+                let mut held: GtkWidget[] = [];
                 let mut j = i;
                 while j < kids.len {
-                    gtk_header_bar_remove(bar, widget(kids[j]));
+                    let w = widget(kids[j]);
+                    if j > i {
+                        held.push(gtk_widget_ref(w));
+                    }
+                    gtk_header_bar_remove(bar, w);
                     j = j + 1;
                 }
                 let fresh = create_in(v, 0, send);
@@ -389,6 +395,9 @@ fun apply<Msg>(
                 while j < next.len {
                     pack_one(bar, at_end, widget(next[j]));
                     j = j + 1;
+                }
+                for w of held {
+                    gtk_widget_unref(w);
                 }
                 Live.Pack(bar, at_end, next)
             }
