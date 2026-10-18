@@ -317,13 +317,20 @@ Branch: main (PRP-010 on prp-010-images, merged)
 
 ---
 
-## SESSION 12 — 2026-10-18 — PRP-011: background tasks — open
+## SESSION 12 — 2026-10-18 — PRP-011: background tasks, kivuli 0.6.0 — closed
 
-Branch: main
+Branch: main (PRP-011 on prp-011-background_tasks, merged)
 
-Notes so far:
+### WHAT WAS DONE
 - Read Lugha's spec and runtime (read only): one OS thread for all green threads; GTK's main loop is one extern call, so spawned threads never run in a kivuli app today; `task.yield_now()` is non-blocking (wakes sleepers, polls sockets with epoll_wait 0, runs ready threads one round). So a GLib source driving yield_now; OS threads impossible. File calls, DNS, std.crypto, std.process still block (one extern call each).
 - Talked through with the user: build now (option 1), Cmd.task (spawn + channel), and Sub.receive(chan, f) in this PRP so apps use Lugha's spawn, channels and actors. PRP-011 drafted.
+- PRP-011 approved and built: Cmd.task, Sub.receive, a turn source in live.la (4 ms tick, yield while work is found, up to 2 ms). test/live_tasks.la (sleep answered promptly, HTTP download + server, CPU sharing, receive in order and only while subscribed; mutation-checked). examples/download.la (its own slow localhost server, spinner, prime counter). kivuli 0.6.0, tagged locally. Resolves Rapidkoi's DECISION-021 (option A) in that repo.
+
+### STILL OPEN AT CLOSE
+- Not pushed, waiting for the user's go: main and tag v0.6.0.
+- For the lugha session: DECISION-020 (std.fs file size), DECISION-021 (runtime hooks), DECISION-022 (blocking calls off the one thread).
+- For the user to check by hand: `lughac run examples/download.la`.
+- test/live_forms.la split still awaiting the user. `reports/.gitkeep` deleted in the working tree, not by Claude; left alone.
 
 ---
 
