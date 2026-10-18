@@ -349,6 +349,12 @@ Branch: main (PRP-012 on prp-012-wrapping_grid, merged)
 
 ---
 
+## SESSION 14 — 2026-10-18 — PRP-013: overlay — open
+
+Branch: main
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
