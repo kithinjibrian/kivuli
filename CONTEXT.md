@@ -334,9 +334,18 @@ Branch: main (PRP-011 on prp-011-background_tasks, merged)
 
 ---
 
-## SESSION 13 — 2026-10-18 — PRP-012: wrapping grid — open
+## SESSION 13 — 2026-10-18 — PRP-012: wrapping grid, kivuli 0.7.0 — closed
 
-Branch: main
+Branch: main (PRP-012 on prp-012-wrapping_grid, merged)
+
+### WHAT WAS DONE
+- Interview (keys: both; widths: natural with `.equal()`; `.max_per_line` only; no selection, focus inside), PRP-012 approved and built: two file splits first (lazies.la, controls.la); `wrap`, `keyed_wrap` on a GtkFlowBox; lugha-gtk 0.1.26 pushed (flow boxes, focusable, parent). test/diff_wrap.la, test/live_wrap.la (GTK order, settings, keyed moves keep widgets; mutation-checked). frame.la home tiles. DECISION-016 resolved. kivuli 0.7.0, tagged locally.
+
+### STILL OPEN AT CLOSE
+- Not pushed, waiting for the user's go: main and tag v0.7.0.
+- For the user to check by hand: `lughac run examples/frame.la`: resize and the tiles re-flow.
+- Queued: file dialog (013), overlay (014), context menus (015). For the lugha session: DECISIONS 020-022. test/live_forms.la split awaiting the user.
+- `reports/.gitkeep` deleted in the working tree, not by Claude; left alone.
 
 ---
 
