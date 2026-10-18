@@ -364,6 +364,12 @@ Branch: main (PRP-013 on prp-013-overlay, merged)
 
 ---
 
+## SESSION 15 — 2026-10-18 — PRP-014: context menus — open
+
+Branch: main
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
