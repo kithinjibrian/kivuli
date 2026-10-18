@@ -317,6 +317,12 @@ Branch: main (PRP-010 on prp-010-images, merged)
 
 ---
 
+## SESSION 12 — 2026-10-18 — PRP-011: background tasks — open
+
+Branch: main
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
