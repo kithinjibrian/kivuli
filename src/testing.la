@@ -57,6 +57,7 @@ public fun pick<Msg>(v: View<Msg>, owner: string, item: string): Result<Msg, Loo
         match node {
             Menu(inside, entries) => if style.name == owner || match inside {
                 Button(label, _, _) => label == owner || style.tooltip == owner,
+                ButtonWith(content, _) => finds(content, style, owner),
                 _ => false,
             } {
                 owners.push(entries);
@@ -113,9 +114,9 @@ public fun press<Msg>(v: View<Msg>, shortcut: string): Result<Msg, Lookup> {
     let mut disabled = 0;
     for (node, style) of nodes(v) {
         match node {
-            Button(_, msg, _) => if style.shortcut != "" && keys.parse(style.shortcut) == Ok(
-                wanted,
-            ) {
+            Button(_, msg, _) | ButtonWith(_, msg) => if style.shortcut != "" && keys.parse(
+                style.shortcut,
+            ) == Ok(wanted) {
                 match msg {
                     Some(m) => enabled.push(m),
                     None => {
@@ -144,6 +145,9 @@ public fun tooltip<Msg>(v: View<Msg>, label: string): Result<string, Lookup> {
     for (node, style) of nodes(v) {
         match node {
             Button(l, _, _) => if l == label {
+                found.push(style.tooltip);
+            },
+            ButtonWith(content, _) => if finds(content, style, label) {
                 found.push(style.tooltip);
             },
             _ => {}
@@ -290,13 +294,35 @@ fun only<T>(found: T[], what: string): Result<T, Lookup> = if found.len == 0 {
     Ok(found[0])
 };
 
-/** The messages of the buttons whose label or tooltip is `s` (`None` for a disabled one). */
+/** Whether a `button_with` showing `content`, with `style`, is found by `s`: its tooltip, its name, or a text inside. */
+fun finds<Msg>(content: View<Msg>, style: Style, s: string): bool {
+    if style.tooltip == s || style.name == s {
+        return true;
+    }
+    for (node, _) of nodes(content) {
+        match node {
+            Text(t) => if t == s {
+                return true;
+            },
+            _ => {}
+        }
+    }
+    false
+}
+
+/**
+ * The messages of the buttons whose label or tooltip is `s` (`None` for a
+ * disabled one); a `button_with` by its tooltip, name or a text inside.
+ */
 fun buttons<Msg>(v: View<Msg>, s: string): Option<Msg>[] {
     let mut out: Option<Msg>[] = [];
     for (node, style) of nodes(v) {
         match node {
             // One button whose label and tooltip both match is still one match.
             Button(l, msg, _) => if l == s || style.tooltip == s {
+                out.push(msg);
+            },
+            ButtonWith(content, msg) => if finds(content, style, s) {
                 out.push(msg);
             },
             _ => {}

@@ -4,7 +4,7 @@
  * nodes; not responsible for running the app or deciding what changed
  * (`live`, `diff`).
  *
- * Depends on: views, widgets, pictures, textures, live_tree, styling, gtk.raw
+ * Depends on: views, widgets, pictures, textures, live_tree, styling, buttons, popovers, gtk.raw
  * Used by: live
  */
 
@@ -19,8 +19,6 @@ import gtk {
     g_timeout_add_full,
     gtk_box_append,
     gtk_box_new,
-    gtk_button_set_child,
-    gtk_button_new_with_label,
     gtk_check_button_get_active,
     gtk_check_button_new,
     gtk_check_button_set_active,
@@ -55,32 +53,27 @@ import gtk {
     gtk_scrolled_window_new,
     gtk_scrolled_window_set_child,
     gtk_separator_new,
-    gtk_shortcut_controller_new,
-    gtk_shortcut_controller_set_scope,
     gtk_text_buffer_set_text,
     gtk_text_view_get_buffer,
     gtk_text_view_new,
     gtk_text_view_set_wrap_mode,
-    gtk_widget_add_controller,
     gtk_widget_grab_focus,
     gtk_widget_get_parent,
     gtk_widget_set_focusable,
-    gtk_widget_set_halign,
     gtk_widget_set_hexpand,
     gtk_widget_set_sensitive,
     gtk_widget_set_size_request,
-    gtk_widget_set_valign,
     gtk_widget_set_vexpand,
-    gtk_widget_set_visible,
     lgtk_cstring_text,
     lgtk_text_get,
 };
 import live_tree { Choices, Live, widget };
 import views { View };
 import looks { Style };
+import buttons { create_button, create_button_with };
 import popovers { attach };
-import styling { LAYER, NO_LINE_LIMIT, apply_style, flag, show_content, show_number };
-import textures { show_in_image, show_picture };
+import styling { LAYER, NO_LINE_LIMIT, apply_style, flag, show_number };
+import textures { show_picture };
 import widgets { snap };
 import controls { nearest, picked, sync_choices };
 
@@ -94,50 +87,9 @@ fun create<Msg>(v: View<Msg>, send: fun(Msg)): Live<Msg> = create_in(v, 1, send)
  */
 fun create_in<Msg>(v: View<Msg>, axis: i32, send: fun(Msg)): Live<Msg> = match v {
     Text(s) => Live.Label(gtk_label_new(s)),
-    Button(label, msg, img) => {
-        // kivuli's own content, an image and a label, so both can come and go
-        // through one path (`show_content`). The label GTK makes here is
-        // replaced by it (lugha-gtk binds no plain `gtk_button_new`).
-        let button = gtk_button_new_with_label("");
-        let text = gtk_label_new(label);
-        // Hidden unless the button has an image that can be shown.
-        let image = gtk_image_new_from_icon_name("");
-        gtk_widget_set_visible(image, flag(show_in_image(image, img)));
-        let content = gtk_box_new(0, 0);
-        // Centered in the button both ways (`GTK_ALIGN_CENTER`), as GTK's own
-        // button content is: a button wider or taller than its content (a
-        // `.width`, a stretched one, a tile) shows it in the middle, not at
-        // the start. At natural size, nothing moves.
-        gtk_widget_set_halign(content, 3);
-        gtk_widget_set_valign(content, 3);
-        gtk_box_append(content, image);
-        gtk_box_append(content, text);
-        gtk_button_set_child(button, Some(content));
-        show_content(button, text, image);
-        let current = Ref.new(msg);
-        // No message means disabled (decision 6): greyed out, and the handler
-        // below sends nothing even if GTK delivers a click.
-        gtk_widget_set_sensitive(button, flag(msg.is_some()));
-        // Connected once, for the widget's whole life: a SetMsg patch changes
-        // `current`, never the connection.
-        connect_widget(
-            button,
-            "clicked",
-            fun(b: GtkWidget) {
-                match current.get() {
-                    Some(m) => send(m),
-                    None => {}
-                }
-            },
-            0,
-        );
-        // One shortcut controller per button, global: its keys work anywhere in
-        // the window. `apply_style` puts the button's shortcut in it.
-        let controller = gtk_shortcut_controller_new();
-        gtk_shortcut_controller_set_scope(controller, 2);
-        gtk_widget_add_controller(button, controller);
-        Live.Button(button, current, controller, Ref.new(None), text, image)
-    }
+    Button(label, msg, img) => create_button(label, msg, img, send),
+    // Its content is built as a scroll's child is: along a column.
+    ButtonWith(content, msg) => create_button_with(create_in(content, 1, send), msg, send),
     // Spacing comes later as a modifier.
     Column(children) => create_box(1, children, send),
     Row(children) => create_box(0, children, send),

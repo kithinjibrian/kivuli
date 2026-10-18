@@ -25,6 +25,11 @@ public enum View<Msg> {
      * disabled), and the image before its label, if any.
      */
     Button(string, Option<Msg>, Option<Image>),
+    /**
+     * A button showing any view (`button_with`): its content, and the message
+     * one click sends (`None` when disabled). Nothing in the content is interactive.
+     */
+    ButtonWith(View<Msg>, Option<Msg>),
     /** Children stacked top to bottom. */
     Column(View<Msg>[]),
     /** Children side by side, left to right. */

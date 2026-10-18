@@ -6,7 +6,7 @@
 // right, where the frame wraps it. Home shows app tiles in a wrapping grid:
 // resize the window and they re-flow; add or remove one and only that tile
 // moves. Info opens a panel over the page's right edge, an overlay; clicking
-// outside it closes it. Right-click a tab (or long-press it, or press
+// outside it closes it; its rows are whole buttons. Right-click a tab (or long-press it, or press
 // Shift+F10 on it) for its menu: duplicate, close, close the others. Its tests are at the bottom: `lughac test examples/frame.la`.
 import kivuli {
     Align,
@@ -15,10 +15,12 @@ import kivuli {
     Surface,
     View,
     button,
+    button_with,
     column,
     item,
     menu_separator,
     hex,
+    icon,
     input,
     keyed_wrap,
     overlay,
@@ -193,8 +195,25 @@ fun info_panel(b: Browser): View<Msg> = column([
     text("About this tab").bold(),
     text("Tab {b.current + 1} of {b.tabs.len}"),
     text("{b.tabs[b.current].len} page(s), now at {shown(b)}").dim(),
+    // Whole rows are buttons: a click anywhere on one, or Enter on it.
+    column([
+        panel_row("Go back", "to {previous(b)}", Msg.Back).disabled(b.tabs[b.current].len < 2),
+        panel_row("Open a new tab", "home", Msg.NewTab),
+    ]),
     button("Close", Msg.CloseInfo),
 ]).spacing(10).padding(20).width(300).style([Look.Panel]);
+
+/** One row of the info panel: a label, a summary and an arrow, all one flat button. */
+fun panel_row(label: string, summary: string, msg: Msg): View<Msg> = button_with(
+    row([text(label).expand(), text(summary).dim(), icon("go-next-symbolic")]).spacing(8),
+    msg,
+).button_style(ButtonStyle.Subtle);
+
+/** The page before this tab's current one, or "nothing". */
+fun previous(b: Browser): string {
+    let history = b.tabs[b.current];
+    if history.len < 2 { "nothing" } else { history[history.len - 2] }
+}
 
 fun tab(b: Browser, i: i64): View<Msg> {
     let history = b.tabs[i];
@@ -331,4 +350,17 @@ fun a_tabs_menu_duplicates_and_closes_tabs() {
     // The last tab closed leaves a fresh one.
     let fresh = did(b, pick(view(b), "news", "Close tab").unwrap_or(Msg.Go));
     assert_eq((fresh.tabs.len, shown(fresh), fresh.draft), (1, "home", "home"));
+}
+
+@test
+fun the_info_panels_rows_are_whole_buttons() {
+    let open = did(start(), click(view(start()), "Info").unwrap_or(Msg.Go));
+    // On a tab's first page there's nowhere to go back to.
+    assert_eq(is_disabled(view(open), "Go back"), Ok(true));
+    let two = did(open, click(view(open), "Open a new tab").unwrap_or(Msg.Go));
+    assert_eq(two.tabs.len, 2);
+    let b = did(visit(start(), "news"), Msg.ToggleInfo);
+    // A row is found by any text in it, the summary too.
+    let back = did(b, click(view(b), "to home").unwrap_or(Msg.Go));
+    assert_eq(shown(back), "home");
 }

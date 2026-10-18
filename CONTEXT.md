@@ -380,9 +380,19 @@ Branch: main (PRP-014 on prp-014-context_menus, merged)
 
 ---
 
-## SESSION 16 — 2026-10-18 — Clickable rows: discovery — open
+## SESSION 16 — 2026-10-18 — PRP-015: clickable rows, kivuli 0.10.0 — closed
 
-Branch: main
+Branch: main (PRP-015 on prp-015-clickable_rows, merged)
+
+### WHAT WAS DONE
+- Interview (`button_with(content, msg)`, a real GtkButton; tests find it by tooltip, `.name` or text inside; interactive content stops the app), PRP-015 approved and built. Split first: src/buttons.la (button making, from build.la). `View.ButtonWith`, `Live.ButtonWith` (content is child 0), `walk.check_content` (checked by the paint pass and every walk). Tests: test/lib.la, test/diff_button_with.la, test/testing.la, test/map.la, test/keys.la, test/theming.la, test/live_button_with.la. frame.la: two Info panel rows. kivuli 0.10.0, tagged locally. No lugha-gtk change.
+
+### STILL OPEN AT CLOSE
+- Not pushed, waiting for the user's go: main and tag v0.10.0.
+- For the user to check by hand: `lughac run examples/frame.la`, Info: each row highlights as a whole, clicking anywhere on it works, Tab focuses it and Enter presses it; Go back is greyed out on a tab's first page.
+- Rapidkoi can now replace its arrow-only rows (its DECISION-020 item 0; not touched from here).
+- Queued: file dialog (013). For the lugha session: DECISIONS 020-022. test/live_forms.la split awaiting the user.
+- `reports/.gitkeep` deleted in the working tree, not by Claude; left alone.
 
 ---
 

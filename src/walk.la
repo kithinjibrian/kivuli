@@ -15,10 +15,13 @@ import looks { Style, plain };
  * Every node of `v` in order, without its `Styled` wrapper but with the style
  * it carries; lazy nodes are built and looked through.
  */
-fun nodes<Msg>(v: View<Msg>): (View<Msg>, Style)[] = walk(v, plain());
+fun nodes<Msg>(v: View<Msg>): (View<Msg>, Style)[] = walk(v, plain(), true);
 
-fun walk<Msg>(v: View<Msg>, style: Style): (View<Msg>, Style)[] = match v {
-    Styled(inside, s) => walk(inside, s),
+/** As `nodes`, without checking buttons' content: what the check itself walks. */
+fun nodes_unchecked<Msg>(v: View<Msg>): (View<Msg>, Style)[] = walk(v, plain(), false);
+
+fun walk<Msg>(v: View<Msg>, style: Style, check: bool): (View<Msg>, Style)[] = match v {
+    Styled(inside, s) => walk(inside, s, check),
     // Modifiers on a lazy node are ignored; what it builds carries its own.
     Lazy(_, build, built) => walk(
         match built {
@@ -26,25 +29,36 @@ fun walk<Msg>(v: View<Msg>, style: Style): (View<Msg>, Style)[] = match v {
             None => build(),
         },
         plain(),
+        check,
     ),
-    Column(xs) => with_children(v, style, xs),
-    Row(xs) => with_children(v, style, xs),
-    Keyed(pairs) => with_children(v, style, pairs.map(fun(pair) = pair.1)),
-    Wrap(xs) => with_children(v, style, xs),
-    KeyedWrap(pairs) => with_children(v, style, pairs.map(fun(pair) = pair.1)),
+    Column(xs) => with_children(v, style, xs, check),
+    Row(xs) => with_children(v, style, xs, check),
+    Keyed(pairs) => with_children(v, style, pairs.map(fun(pair) = pair.1), check),
+    Wrap(xs) => with_children(v, style, xs, check),
+    KeyedWrap(pairs) => with_children(v, style, pairs.map(fun(pair) = pair.1), check),
     Overlay(base, layers) => {
         let mut xs = [base];
         for x of layers {
             xs.push(x);
         }
-        with_children(v, style, xs)
+        with_children(v, style, xs, check)
     }
-    Scroll(x) => with_children(v, style, [x]),
+    Scroll(x) => with_children(v, style, [x], check),
+    // Every walk checks a button's content, so an app's pure tests stop on it too.
+    ButtonWith(content, _) => {
+        if check {
+            match check_content(content) {
+                Ok(_) => {}
+                Err(problem) => panic("kivuli: {problem}"),
+            }
+        }
+        with_children(v, style, [content], check)
+    }
     // The menu, then its node with the same style: a button with a menu is
     // still found by its label or tooltip.
     Menu(inside, _) => {
         let mut out = [(v, style)];
-        for pair of walk(inside, style) {
+        for pair of walk(inside, style, check) {
             out.push(pair);
         }
         out
@@ -57,15 +71,20 @@ fun walk<Msg>(v: View<Msg>, style: Style): (View<Msg>, Style)[] = match v {
         for x of end {
             xs.push(x);
         }
-        with_children(v, style, xs)
+        with_children(v, style, xs, check)
     }
     _ => [(v, style)],
 };
 
-fun with_children<Msg>(v: View<Msg>, style: Style, xs: View<Msg>[]): (View<Msg>, Style)[] {
+fun with_children<Msg>(
+    v: View<Msg>,
+    style: Style,
+    xs: View<Msg>[],
+    check: bool,
+): (View<Msg>, Style)[] {
     let mut out: (View<Msg>, Style)[] = [(v, style)];
     for x of xs {
-        for pair of walk(x, plain()) {
+        for pair of walk(x, plain(), check) {
             out.push(pair);
         }
     }
@@ -98,6 +117,7 @@ fun find_name<Msg>(v: View<Msg>, name: string, path: i64[]): Option<i64[]> = mat
         None => find_in(layers, name, with_index(path, 1)),
     },
     Scroll(x) => find_name(x, name, with_index(path, 0)),
+    ButtonWith(content, _) => find_name(content, name, with_index(path, 0)),
     // As the diff counts a header's parts: body 0, title 1, start 2, end 3.
     Framed(body, start, title, end) => match find_name(body, name, with_index(path, 0)) {
         Some(found) => Some(found),
@@ -130,4 +150,31 @@ fun with_index(path: i64[], i: i64): i64[] {
     let mut out = path;
     out.push(i);
     out
+}
+
+/**
+ * Whether `content` can sit in a `button_with`: nothing in it may be
+ * interactive (a button in a button fights it for clicks and focus).
+ * @returns `Err` naming the first thing that is
+ */
+fun check_content<Msg>(content: View<Msg>): Result<(), string> {
+    for (node, _) of nodes_unchecked(content) {
+        let found = match node {
+            Button(label, _, _) => Some("a button (\"{label}\")"),
+            ButtonWith(_, _) => Some("a button_with"),
+            Input(_, _) => Some("a text field"),
+            TextArea(_, _) => Some("a text area"),
+            Checkbox(label, _, _) => Some("a check box (\"{label}\")"),
+            Dropdown(_, _) => Some("a drop-down"),
+            Slider(_, _, _, _) => Some("a slider"),
+            _ => None,
+        };
+        match found {
+            Some(what) => {
+                return Err("a button_with's content can't hold {what}");
+            }
+            None => {}
+        }
+    }
+    Ok(())
 }

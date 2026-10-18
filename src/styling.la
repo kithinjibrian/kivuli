@@ -170,6 +170,10 @@ fun apply_style<Msg>(node: Live<Msg>, style: Style, axis: i32) {
             gtk_image_set_pixel_size(image, if style.size > 0 { style.size as i32 } else { -1 });
             show_content(button, label, image);
         }
+        ButtonWith(button, _, controller, shortcut, _) => {
+            style_button(button, style.button);
+            style_shortcut(controller, shortcut, style.shortcut);
+        }
         // Pixels on an icon; -1 is the theme's size.
         Icon(image) => gtk_image_set_pixel_size(
             image,

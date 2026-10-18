@@ -91,6 +91,14 @@ kivuli ships no colours. An app that paints its own frame gives its colours as t
 
 The overlay takes the base's size (`measure-overlay` off). A `GtkOverlay` only adds on top, so replacing a middle layer takes it and those above off (holding the ones above alive) and adds them back in order. Click-outside-to-close is a full-size layer the app adds, not a feature.
 
+### Buttons showing a view (`button_with`; PRP-015)
+
+| kivuli | GTK |
+| --- | --- |
+| `button_with(content, msg)` | a `GtkButton` whose child is the content's widget (`gtk_button_set_child`), filling it (GTK's default for a button's child) |
+
+Everything else is a plain button's: the theme's button look, hover and pressed states and focus ring; `clicked` connected once, reading the message from a `Ref`; the same shortcut controller; `.button_style` as the theme's classes. New content of another kind replaces the button's child, not the button. Interactive content is refused before anything is built (the paint pass), since a GTK button inside a GTK button fights it for clicks and focus.
+
 ### Context menus (`.menu`; PRP-014)
 
 | kivuli | GTK |

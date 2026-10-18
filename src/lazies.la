@@ -29,6 +29,13 @@ fun resolve<Msg>(v: View<Msg>, old: Option<View<Msg>>): View<Msg> = match v {
         _ => View.Lazy(key, build, Some(resolve(build(), counterpart(old)))),
     },
     Styled(x, style) => View.Styled(resolve(x, counterpart(old)), style),
+    ButtonWith(content, msg) => View.ButtonWith(
+        resolve(content, match counterpart(old) {
+            Some(ButtonWith(c, _)) => Some(c),
+            _ => None,
+        }),
+        msg,
+    ),
     Menu(x, entries) => View.Menu(resolve(x, counterpart(old)), entries),
     Column(xs) => View.Column(resolve_children(xs, match counterpart(old) {
         Some(Column(ys)) => ys,

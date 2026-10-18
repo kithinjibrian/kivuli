@@ -16,6 +16,7 @@ import menus { MenuEntry };
 fun mapped<Msg, B>(v: View<Msg>, f: fun(Msg): B): View<B> = match v {
     Text(s) => View.Text(s),
     Button(label, msg, img) => View.Button(label, msg.map(f), img),
+    ButtonWith(content, msg) => View.ButtonWith(content.map(f), msg.map(f)),
     Column(xs) => View.Column(xs.map(fun(x) = x.map(f))),
     Row(xs) => View.Row(xs.map(fun(x) = x.map(f))),
     TextArea(value, on_change) => View.TextArea(value, match on_change {
@@ -73,6 +74,7 @@ fun disabled_node<Msg>(v: View<Msg>, off: bool): View<Msg> = if !off {
 } else {
     match v {
         Button(label, _, img) => View.Button(label, None, img),
+        ButtonWith(content, _) => View.ButtonWith(content, None),
         Input(value, _) => View.Input(value, None),
         TextArea(value, _) => View.TextArea(value, None),
         Styled(inside, s) => View.Styled(disabled_node(inside, true), s),

@@ -8,6 +8,14 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.10.0] — 2026-10-18
+
+### Added
+- Clickable rows (PRP-015): `button_with(content, msg)` is a button showing any view, so a whole row (label, summary, arrow) is one click target with the theme's button looks, keyboard focus and Enter. Button modifiers work on it; content holding anything interactive stops the app with a message. Tests find it by its tooltip, `.name` or any text inside it. `examples/frame.la`'s Info panel has two rows.
+
+### Changed
+- Making buttons moved from `src/build.la` to `src/buttons.la` (file size); no change for apps.
+
 ## [0.9.0] — 2026-10-18
 
 ### Added

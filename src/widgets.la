@@ -27,6 +27,23 @@ public fun text<Msg>(s: string): View<Msg> = View.Text(s);
 public fun button<Msg>(label: string, msg: Msg): View<Msg> = View.Button(label, Some(msg), None);
 
 /**
+ * Builds a button showing `content`, any view, that sends `msg` each time it's
+ * clicked: a whole row (label, summary, arrow) as one click target. The theme
+ * draws it as a button; `.button_style`, `.disabled`, `.tooltip`, `.shortcut`
+ * and `.menu` work as on `button`. The content fills the button and holds
+ * nothing interactive (no buttons, fields, check boxes, drop-downs or
+ * sliders): kivuli stops with a message naming what it found. Tests find it
+ * by its tooltip, its `.name`, or any text inside it.
+ *
+ * Example:
+ *     button_with(row([text("Account").expand(), text(summary).dim(), icon("go-next-symbolic")]), Msg.Open(Page.Account))
+ */
+public fun button_with<Msg>(content: View<Msg>, msg: Msg): View<Msg> = View.ButtonWith(
+    content,
+    Some(msg),
+);
+
+/**
  * Stacks `children` top to bottom.
  *
  * Example:

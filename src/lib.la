@@ -16,6 +16,7 @@ public import menus { MenuEntry, item, menu_separator };
 public import widgets {
     text,
     button,
+    button_with,
     column,
     row,
     input,

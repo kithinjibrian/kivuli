@@ -22,6 +22,7 @@ import kivuli {
     wrap,
     keyed_wrap,
     overlay,
+    button_with,
     item,
     Fit,
 };
@@ -163,4 +164,11 @@ fun an_overlay_maps_its_base_and_layers() {
 fun a_menus_messages_map() {
     let part: View<Part> = button("Go", Part.Go).menu([item("Inc", Part.Inc)]);
     assert_eq(kivuli.testing.pick(part.map(App.Left), "Go", "Inc"), Ok(App.Left(Part.Inc)));
+}
+
+@test
+fun a_button_withs_message_and_content_map() {
+    let part: View<Part> = button_with(row([text("Go"), text("on")]), Part.Inc);
+    let mapped = part.map(App.Left);
+    assert_eq(click(mapped, "Go"), Ok(App.Left(Part.Inc)));
 }
