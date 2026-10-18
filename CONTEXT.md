@@ -380,6 +380,12 @@ Branch: main (PRP-014 on prp-014-context_menus, merged)
 
 ---
 
+## SESSION 16 — 2026-10-18 — Clickable rows: discovery — open
+
+Branch: main
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
