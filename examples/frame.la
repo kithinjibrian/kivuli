@@ -5,9 +5,12 @@
 // so they read as one L-shaped frame, and the page curves only at its top
 // right, where the frame wraps it. Home shows app tiles in a wrapping grid:
 // resize the window and they re-flow; add or remove one and only that tile
-// moves. Its tests are at the bottom: `lughac test examples/frame.la`.
+// moves. Info opens a panel over the page's right edge, an overlay; clicking
+// outside it closes it. Its tests are at the bottom: `lughac test examples/frame.la`.
 import kivuli {
+    Align,
     Border,
+    ButtonStyle,
     Surface,
     View,
     button,
@@ -15,6 +18,7 @@ import kivuli {
     hex,
     input,
     keyed_wrap,
+    overlay,
     row,
     sandbox,
     text,
@@ -29,6 +33,8 @@ enum Look {
     Frame,
     Tab,
     Selected,
+    Panel,
+    Scrim,
     Home,
 }
 
@@ -41,6 +47,17 @@ fun surface(l: Look): Surface = match l {
         border: Some(Border { width: 1, color: hex("#505050") }),
         ..Surface.theme(),
     },
+    /** The info panel over the page, its left corners rounded. */
+    Panel => Surface {
+        background: Some(hex("#202020")),
+        text: Some(hex("#e0e0e0")),
+        radius_top_left: Some(12),
+        radius_bottom_left: Some(12),
+        flat: Some(true),
+        ..Surface.theme(),
+    },
+    /** Behind the panel: dims the page, and a click on it closes the panel. */
+    Scrim => Surface { background: Some(hex("#00000060")), flat: Some(true), ..Surface.theme() },
     Home => Surface {
         background: Some(hex("#161616")),
         text: Some(hex("#e0e0e0")),
@@ -59,6 +76,8 @@ struct Browser {
     tiles: string[],
     /** How many tiles have been added, to name the next. */
     added: i64,
+    /** Whether the info panel is open. */
+    info: bool,
 }
 
 enum Msg {
@@ -70,6 +89,8 @@ enum Msg {
     Visit(string),
     AddTile,
     RemoveTile,
+    ToggleInfo,
+    CloseInfo,
 }
 
 fun start(): Browser = Browser {
@@ -78,6 +99,7 @@ fun start(): Browser = Browser {
     draft: "home",
     tiles: ["News", "Mail", "Maps", "Music", "Notes", "Photos", "Weather", "Chess"],
     added: 0,
+    info: false,
 };
 
 fun shown(b: Browser): string {
@@ -122,7 +144,17 @@ fun update(b: Browser, msg: Msg): Browser = match msg {
     }
     // The first tile goes: the rest move up, nothing is rebuilt.
     RemoveTile => Browser { tiles: b.tiles.filter(fun(t) = t != b.tiles[0]), ..b },
+    ToggleInfo => Browser { info: !b.info, ..b },
+    CloseInfo => Browser { info: false, ..b },
 };
+
+/** The info panel: what this tab holds. */
+fun info_panel(b: Browser): View<Msg> = column([
+    text("About this tab").bold(),
+    text("Tab {b.current + 1} of {b.tabs.len}"),
+    text("{b.tabs[b.current].len} page(s), now at {shown(b)}").dim(),
+    button("Close", Msg.CloseInfo),
+]).spacing(10).padding(20).width(300).style([Look.Panel]);
 
 fun tab(b: Browser, i: i64): View<Msg> {
     let history = b.tabs[i];
@@ -137,9 +169,7 @@ fun view(b: Browser): View<Msg> {
         tabs.push(tab(b, i));
         i = i + 1;
     }
-    // The row is the frame too: the page's curve shows the frame's colour.
-    row([
-        column([
+    let page = column([
             text("You're at {shown(b)}").size(18),
             text("{b.tabs[b.current].len} page(s) in this tab").dim(),
             row([
@@ -148,10 +178,22 @@ fun view(b: Browser): View<Msg> {
             ]).spacing(8),
             // Equal tiles, at most six across; fewer on a narrow window.
             keyed_wrap(b.tiles.map(fun(t) = (t, button(t, Msg.Visit(t)).width(120).height(72)))).equal().max_per_line(6).spacing(12),
-        ]).spacing(8).padding(24).expand().style([Look.Home]),
+        ]).spacing(8).padding(24).style([Look.Home]);
+    // The panel goes over the page; under it, a full-size layer that closes it.
+    let layers: View<Msg>[] = if b.info {
+        [
+            button("", Msg.CloseInfo).style([Look.Scrim]).tooltip("Close the panel"),
+            info_panel(b).place(Align.End, Align.Fill),
+        ]
+    } else {
+        []
+    };
+    // The row is the frame too: the page's curve shows the frame's colour.
+    row([
+        overlay(page, layers).expand(),
         column(tabs).spacing(4).padding(8).width(160).style([Look.Frame]),
     ]).style([Look.Frame]).window("{shown(b)} — Frame", 1000, 640).maximized().theme(
-        theme([Look.Frame, Look.Tab, Look.Selected, Look.Home], surface),
+        theme([Look.Frame, Look.Tab, Look.Selected, Look.Panel, Look.Scrim, Look.Home], surface),
     ).header(
         [
             button("", Msg.Back).icon("go-previous-symbolic").tooltip("Back").disabled(
@@ -159,7 +201,10 @@ fun view(b: Browser): View<Msg> {
             ),
         ],
         input(b.draft, Msg.Draft).placeholder("Address").on_submit(Msg.Go).expand(),
-        [button("", Msg.NewTab).icon("tab-new-symbolic").tooltip("New tab")],
+        [
+            button("", Msg.NewTab).icon("tab-new-symbolic").tooltip("New tab"),
+            button("", Msg.ToggleInfo).icon("dialog-information-symbolic").tooltip("Info"),
+        ],
     ).header_style([Look.Frame])
 }
 
@@ -209,4 +254,15 @@ fun tiles_open_their_page_and_come_and_go() {
     assert_eq(more.tiles[more.tiles.len - 1], "App 1");
     let fewer = did(more, click(view(more), "Remove a tile").unwrap_or(Msg.Go));
     assert_eq((fewer.tiles.len, fewer.tiles[0]), (more.tiles.len - 1, "Mail"));
+}
+
+@test
+fun info_opens_a_panel_over_the_page_and_a_click_outside_closes_it() {
+    let open = did(start(), click(view(start()), "Info").unwrap_or(Msg.Go));
+    assert(open.info);
+    assert_eq(texts(view(open)).filter(fun(t) = t == "About this tab").len, 1);
+    let outside = did(open, click(view(open), "Close the panel").unwrap_or(Msg.Go));
+    assert(!outside.info);
+    let closed = did(open, click(view(open), "Close").unwrap_or(Msg.Go));
+    assert(!closed.info);
 }

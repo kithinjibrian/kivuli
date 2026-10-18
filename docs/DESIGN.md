@@ -82,6 +82,15 @@ Disabled means no message (MEMORY decision 6), mapped to `gtk_widget_set_sensiti
 
 kivuli ships no colours. An app that paints its own frame gives its colours as typed looks: an enum of its own, a `Surface` per look (`background`, `text`, `border`, `radius`; unset fields stay the theme's), `.style([…])` on nodes and `.theme(theme(…))` on the root. kivuli generates the stylesheet: one class per property and value (`.kv-bg-242424ff`), merged per node in kivuli's code (a later look wins), loaded once for the display at application priority (600), when the window opens. Apps write no CSS and no selectors, so they can't depend on how kivuli or GTK build widgets. A background also clears the theme's background image, so it shows on themed widgets. kivuli removes only its own `kv-` classes from a widget.
 
+### Overlay (`overlay`, `.place`; PRP-013)
+
+| kivuli | GTK |
+| --- | --- |
+| `overlay(base, layers)` | a `GtkOverlay`: the base as its child, each layer added on top with `add_overlay`, in order |
+| `.place(across, down)` | the layer's `halign` / `valign` (a layer is styled with its own axis, so `.align` and `.expand` don't apply) |
+
+The overlay takes the base's size (`measure-overlay` off). A `GtkOverlay` only adds on top, so replacing a middle layer takes it and those above off (holding the ones above alive) and adds them back in order. Click-outside-to-close is a full-size layer the app adds, not a feature.
+
 ### Wrapping grid (`wrap`, `keyed_wrap`; PRP-012)
 
 | kivuli | GTK |

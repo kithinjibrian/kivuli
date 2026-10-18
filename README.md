@@ -100,6 +100,7 @@ lughac run examples/download.la
 | `column(children)`, `row(children)` | Children top to bottom, or left to right. |
 | `keyed_column(children)` | Like `column`, with `(key, view)` children matched by key: reordering, inserting or deleting moves, adds or removes just those widgets. |
 | `wrap(children)`, `keyed_wrap(children)` | Children side by side, moving to a new line when a line is full, so they re-flow as the window resizes (tiles, tags). `keyed_wrap` matches `(key, view)` children by key, like `keyed_column`. No selection: clicks come from the children. |
+| `overlay(base, layers)` | `layers` drawn on top of `base`, in order (a later one above). `[]` shows only the base, so opening and closing a panel is just the list changing; the base is never rebuilt. The overlay takes the base's size. |
 | `scroll(child)` | Scrolls its child when it's bigger than the room it's given. |
 | `spacer()`, `separator()` | Room that grows along its column or row; a line across it. |
 | `lazy(key, build)` | Calls `build` only when `key` changes at that place; otherwise reuses the subtree and skips diffing it. The key must cover everything the subtree shows. |
@@ -121,6 +122,7 @@ lughac run examples/download.la
 | `.disabled(bool)` | Buttons, text fields and text areas: greyed out by the theme, and they send nothing. A disabled field still shows its value and follows the model. `.disabled(false)` changes nothing. |
 | `.step(n)` | Sliders: move in steps of `n`, counted from the least value. |
 | `.equal()`, `.max_per_line(n)` | Wraps: every child as wide as the widest (a tidy grid); at most `n` children on a line (`n <= 0`: no limit, the default). |
+| `.place(across, down)` | An overlay's layer: where it sits on the base, each way an `Align` (`Fill` covers that whole way). Without it a layer covers the base. |
 | `.image(Image.…)`, `.icon(name)` | Buttons: an image (a theme icon, a file or bytes) before the label; with the label `""`, an image-only button (give it a `.tooltip`, which tests find it by). `.icon(name)` is `.image(Image.Icon(name))`; `.icon("")` takes the image away. |
 | `.fit(Fit.Contain \| Cover \| ScaleDown \| Fill)` | Pictures: the whole picture (default), filled and cropped, never enlarged, or stretched. |
 | `.placeholder(hint)`, `.on_submit(msg)` | Text fields: a hint while empty; the message Enter sends. |
@@ -133,6 +135,14 @@ lughac run examples/download.la
 | `.header_style([Look.Frame, …])` | On the root, with `.header`: the header bar's looks (its window controls stay GTK's). |
 
 Everything visual comes from the GTK theme (button styles are the theme's `suggested-action`, `destructive-action` and `flat`), and apps follow the user's light or dark theme. kivuli ships no colours.
+
+**Click outside to close.** A layer takes the clicks in its own area and the base gets the rest. For a panel that closes when you click beside it, put a full-size layer under it that sends a message (`examples/frame.la`'s Info panel):
+
+```
+overlay(page(m), if m.panel_open {
+    [button("", Msg.Close).style([Look.Scrim]).tooltip("Close the panel"), panel(m).place(Align.End, Align.Fill)]
+} else { [] })
+```
 
 **An app's own colours.** An app that paints its own frame names its looks in its own enum, says what each looks like as a typed `Surface`, and puts them on nodes with `.style([…])`. kivuli checks every value, generates the CSS itself (apps write none), and loads it when the window opens:
 
