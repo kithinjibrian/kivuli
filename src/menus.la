@@ -1,0 +1,74 @@
+/**
+ * Context menu entries: the items and separators `.menu` takes, and the
+ * functions that build them. Plain data: no GTK (`popovers` shows them).
+ *
+ * Used by: views, mapping, diff, testing, popovers; lib re-exports it
+ */
+
+/** One line of a context menu. */
+public enum MenuEntry<Msg> {
+    /** An item: its label, and the message picking it sends (`None`: disabled, greyed out). */
+    Item(string, Option<Msg>),
+    /** A line between groups of items. */
+    Separator,
+}
+
+impl MenuEntry<Msg> {
+    /**
+     * When `off`, the item is greyed out and picking it sends nothing (no
+     * message, decision 6). `disabled(false)` changes nothing; ignored on a
+     * separator.
+     *
+     * Example:
+     *     item("Close other tabs", Msg.CloseOthers(t.id)).disabled(m.tabs.len == 1)
+     */
+    public fun disabled(self, off: bool): MenuEntry<Msg> = match self {
+        Item(label, _) => if off { MenuEntry.Item(label, None) } else { self },
+        Separator => self,
+    };
+
+    /** The same entry, sending `f(msg)` instead of `msg`. */
+    public fun map<B>(self, f: fun(Msg): B): MenuEntry<B> = match self {
+        Item(label, msg) => MenuEntry.Item(label, msg.map(f)),
+        Separator => MenuEntry.Separator,
+    };
+}
+
+/**
+ * A menu item labelled `label`; picking it sends `msg`.
+ *
+ * Example:
+ *     item("Close tab", Msg.Close(t.id))
+ */
+public fun item<Msg>(label: string, msg: Msg): MenuEntry<Msg> = MenuEntry.Item(label, Some(msg));
+
+/**
+ * A line between groups of menu items. (`separator()` is the line between views.)
+ *
+ * Example:
+ *     .menu([item("Duplicate", Msg.Duplicate), menu_separator(), item("Close", Msg.Close)])
+ */
+public fun menu_separator<Msg>(): MenuEntry<Msg> = MenuEntry.Separator;
+
+/** The message of the item at `index` among the items (separators not counted), if it has one. */
+fun message_of<Msg>(entries: MenuEntry<Msg>[], index: i64): Option<Msg> {
+    let mut i = 0;
+    for e of entries {
+        match e {
+            Item(_, msg) => {
+                if i == index {
+                    return msg;
+                }
+                i = i + 1;
+            }
+            Separator => {}
+        }
+    }
+    None
+}
+
+/** What GTK's menu model shows for `entries`: each item's label, `|` for a separator. */
+fun layout<Msg>(entries: MenuEntry<Msg>[]): string[] = entries.map(fun(e) = match e {
+    Item(label, _) => "item {label}",
+    Separator => "|",
+});

@@ -9,6 +9,7 @@
  */
 
 import views { View };
+import menus { MenuEntry };
 import looks { Style };
 import walk { nodes };
 import keys;
@@ -36,6 +37,45 @@ public fun click<Msg>(v: View<Msg>, label: string): Result<Msg, Lookup> {
     let what = "button \"{label}\"";
     let found = only(buttons(v, label), what)?;
     match found {
+        Some(msg) => Ok(msg),
+        None => Err(Lookup.Silent(what)),
+    }
+}
+
+/**
+ * The message picking the item labelled `item` in the context menu of the node
+ * found by `owner`: a button's label or tooltip, or a node's `.name`.
+ * @returns `Ok(msg)`; `Err(NotFound)` (no such node or item), `Err(Ambiguous)`
+ * (two nodes or two items), or `Err(Silent)` when the item is disabled
+ *
+ * Example:
+ *     assert_eq(kivuli.testing.pick(view(m), "news", "Close tab"), Ok(Msg.Close(1)));
+ */
+public fun pick<Msg>(v: View<Msg>, owner: string, item: string): Result<Msg, Lookup> {
+    let mut owners: MenuEntry<Msg>[][] = [];
+    for (node, style) of nodes(v) {
+        match node {
+            Menu(inside, entries) => if style.name == owner || match inside {
+                Button(label, _, _) => label == owner || style.tooltip == owner,
+                _ => false,
+            } {
+                owners.push(entries);
+            },
+            _ => {}
+        }
+    }
+    let entries = only(owners, "menu on \"{owner}\"")?;
+    let what = "menu item \"{item}\"";
+    let mut found: Option<Msg>[] = [];
+    for entry of entries {
+        match entry {
+            Item(label, msg) => if label == item {
+                found.push(msg);
+            },
+            Separator => {}
+        }
+    }
+    match only(found, what)? {
         Some(msg) => Ok(msg),
         None => Err(Lookup.Silent(what)),
     }

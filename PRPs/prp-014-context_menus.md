@@ -1,6 +1,6 @@
 # PRP-014 — Context menus
 
-Status: approved by the user (session 15); building on branch prp-014-context_menus
+Status: built (session 15) on branch prp-014-context_menus; merged into main
 Discovery: session 15, 2026-10-18 (DECISION-015; Rapidkoi's DECISION-020, its tab actions). *(you)*: chosen in the interview; *(proposed)*: for you to confirm or change with this PRP.
 
 ## FEATURE: `.menu([item(label, msg), menu_separator(), …])` gives any node a context menu, opened by a right-click, a long press or the Menu key; picking an item sends its message.
@@ -26,7 +26,7 @@ fun closing_a_tab_from_its_menu() {
 ## CONTEXT
 
 - Starting state: kivuli 0.8.0. Buttons' `Option<Msg>` (disabled = no message, rule 6); node-rewriting modifiers (`.disabled`, `.on_submit`, `.image`) living in `src/views.la` (494 lines); `src/mapping.la` (`View.map`'s body, the one module allowed to import `views` back, DECISION-018); `kivuli.testing` (`click`, `Lookup`); lugha-gtk 0.1.27.
-- Ending state: room made in `views.la` first (Must Do); a new pure `src/menus.la` (`MenuEntry`, `item`, `menu_separator`); `View.Menu`; `Live.Menu`; `kivuli.testing.pick`; tests in `test/menus.la` (new, pure), `test/lib.la`, `test/diff_menu.la` (new), `test/testing.la`, `test/map.la`, `test/live_menu.la` (new); `examples/frame.la`'s tabs; lugha-gtk 0.1.28; kivuli 0.9.0.
+- Ending state: room made in `views.la` first (Must Do); a new pure `src/menus.la` (`MenuEntry`, `item`, `menu_separator`); `View.Menu`; `Live.Menu`; `kivuli.testing.pick`; tests in `test/menus.la` (new, pure), `test/lib.la`, `test/diff_menu.la` (new), `test/testing.la`, `test/map.la`, `test/live_menu.la` (new); `examples/frame.la`'s tabs; lugha-gtk 0.1.28 (and 0.1.29); kivuli 0.9.0.
 - GTK/GIO functions needed (checked against `/usr/include/gtk-4.0` and `gio/*.h` when declared), new in lugha-gtk 0.1.28: `GMenu` (`g_menu_new`, `g_menu_append` with a detailed action name, `g_menu_append_section`), `GSimpleActionGroup` (`g_simple_action_group_new`), `GSimpleAction` (`g_simple_action_new` without a parameter, `g_simple_action_set_enabled`, its `activate` signal), `g_action_map_add_action`, `gtk_widget_insert_action_group`; `GtkPopoverMenu` (`gtk_popover_menu_new_from_model`, `set_menu_model`), `gtk_popover_set_pointing_to` (a `GdkRectangle`), `set_has_arrow`, `gtk_popover_popup`, `gtk_widget_set_parent` / `unparent`; gestures (`gtk_gesture_click_new` with `gtk_gesture_single_set_button` 3, `gtk_gesture_long_press_new`, their `pressed` signals carrying the position: a C helper if the signal's `double` arguments need one); a shortcut for the Menu key and Shift+F10 on the node.
 - Open decisions that must be resolved first: none (this resolves DECISION-015).
 
@@ -64,32 +64,41 @@ fun closing_a_tab_from_its_menu() {
 ## TESTS TO WRITE
 
 Pure:
-- [ ] `test/menus.la`: `item`, `menu_separator`, `.disabled` make their entries.
-- [ ] `test/lib.la`: `.menu` wraps a node; through a style wrapper.
-- [ ] `test/diff_menu.la`: a menu always gives `SetMenu`; the wrapped node's own changes still diff at its path; gaining or losing a menu is `SetMenu`, not `Replace`.
-- [ ] `test/testing.la`: `pick` by a button's label, by tooltip, by `.name`; unknown owner, unknown item, two owners, a disabled item.
-- [ ] `test/map.la`: a menu's messages map.
-- [ ] Before the split: the existing modifier tests pass unchanged after it.
+- [x] `test/menus.la`: `item`, `menu_separator`, `.disabled` make their entries.
+- [x] `test/lib.la`: `.menu` wraps a node; through a style wrapper.
+- [x] `test/diff_menu.la`: a menu always gives `SetMenu`; the wrapped node's own changes still diff at its path; gaining or losing a menu is `SetMenu`, not `Replace`.
+- [x] `test/testing.la`: `pick` by a button's label, by tooltip, by `.name`; unknown owner, unknown item, two owners, a disabled item.
+- [x] `test/map.la`: a menu's messages map.
+- [x] Before the split: the existing modifier tests pass unchanged after it.
 
 Live GTK (skipped without a display), `test/live_menu.la`:
-- [ ] a node with a menu has the action group and a popover menu whose model lists the labels (and a section for each separator); activating an item's action sends its message; a disabled item's action is disabled and sends nothing.
-- [ ] an update re-points the messages (activating sends the new one) without rebuilding the menu model when labels are the same; new labels rebuild it.
-- [ ] the gestures and the shortcut are on the node; emitting a right-click press pops the menu up (the popover is visible), and so does activating the Menu-key shortcut.
-- [ ] removing the node frees its popover and actions (finalizations counted).
-- [ ] lugha-gtk `test/menu.la`: each new extern.
+- [x] a node with a menu has the action group and a popover menu whose model lists the labels (and a section for each separator); activating an item's action sends its message; a disabled item's action is disabled and sends nothing.
+- [x] an update re-points the messages (activating sends the new one) without rebuilding the menu model when labels are the same; new labels rebuild it.
+- [x] the gestures and the shortcut are on the node; emitting a right-click press pops the menu up (the popover is visible), and so does activating the Menu-key shortcut.
+- [x] removing the node frees its popover and actions (finalizations counted).
+- [x] lugha-gtk `test/menu.la`: each new extern.
 - [ ] How the menu looks and where it opens: checked by hand in `examples/frame.la`.
 
 ## ROLLBACK PLAN
 - Branch `prp-014-context_menus` from `main`; abandon by leaving it unmerged. lugha-gtk 0.1.28 is additions only.
 
 ## ACCEPTANCE CRITERIA
-- [ ] Any node can have a context menu opened by right-click, long press or the Menu key; items send messages, disabled ones send nothing.
-- [ ] `pick` works without GTK.
-- [ ] Tests above written first; narrow runs while building; the full suite and the examples' tests pass before the merge.
-- [ ] fmt clean; public items documented; no file over 500 lines.
-- [ ] README, docs/DESIGN.md, CHANGELOG, CLAUDE.md, DECISIONS (015 resolved) updated; 0.9.0 tagged; merged. Pushed only on your go.
+- [x] Any node can have a context menu opened by right-click, long press or the Menu key; items send messages, disabled ones send nothing.
+- [x] `pick` works without GTK.
+- [x] Tests above written first; narrow runs while building; the full suite and the examples' tests pass before the merge.
+- [x] fmt clean; public items documented; no file over 500 lines.
+- [x] README, docs/DESIGN.md, CHANGELOG, CLAUDE.md, DECISIONS (015 resolved) updated; 0.9.0 tagged; merged. Pushed only on your go.
 
 ## VALIDATION
 - While building: only the tests covering each step.
 - Before the merge: `lughac fmt --check src examples test`, `lughac test test/`, the examples' own tests, every example built (benchmark included); lugha-gtk `lughac test test/`.
 - For the user: `lughac run examples/frame.la`: right-click a tab: Duplicate, Close, Close others; with one tab, Close others is greyed out; Shift+F10 on a focused tab opens it too.
+
+## NOTES FROM THE BUILD
+
+- **lugha-gtk 0.1.29**: 0.1.28's `GdkRectangle` had no `public` fields, so no other package could build one (lugha-gtk's own test, inside the package, didn't catch it). Released with the fields public.
+- **A menu takes no place in a path.** `Live.Menu(node, popup)` wraps the node; `paths.at` and `update_at` look through it, and only `SetMenu` (through `update_menu_at`) and the parent's `Replace`/`Remove` see it.
+- **A menu taken away (`[]`) keeps its parts**: lugha-gtk binds no `gtk_widget_remove_controller`, and none is needed: the gestures and the shortcut then open nothing, and the popover closes.
+- **Freeing**: the node's `destroy` unparents its popover, so both go together (finalizations counted in `test/live_menu.la`). The test moves focus off the tab before removing it: closing a popover gives focus back to its node, and a hidden window keeps its focus widget alive even once removed. Checked in C on GTK 4.22: a plain focused button with no menu stays alive the same way, and with the window shown both are freed.
+- **Not handled**: nested menus (a node with a menu inside another): both gestures fire; the gestures don't claim the event. Not in the PRP; if it matters, a later PRP (lugha-gtk would need `gtk_gesture_set_state`).
+- **Where the menu opens on screen** is the hand check in `examples/frame.la` (the popover isn't re-presented by its parent's size allocation on widgets without a layout manager, such as labels; first show is positioned by the popover itself).

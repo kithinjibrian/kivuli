@@ -9,8 +9,9 @@
 import looks { Style, Window, ButtonStyle, Align, Fit, plain };
 import theming { Theme };
 import pictures { Image };
+import menus { MenuEntry };
 // The one import cycle kivuli allows (DECISION-018): mapping maps views.
-import mapping { button_image, disabled_node, mapped, with_submit };
+import mapping { button_image, disabled_node, mapped, with_menu, with_submit };
 
 /**
  * A description of what's on screen. `Msg` is the app's message type: what a
@@ -58,6 +59,8 @@ public enum View<Msg> {
     KeyedWrap((string, View<Msg>)[]),
     /** A base view with layers drawn on top of it, in order (later on top). */
     Overlay(View<Msg>, View<Msg>[]),
+    /** A node with a context menu (`.menu`): the node, and the menu's entries. */
+    Menu(View<Msg>, MenuEntry<Msg>[]),
     /**
      * The root of a view with a header bar (`.header`): the body, the views at
      * the bar's start, its title view, and the views at its end.
@@ -456,6 +459,16 @@ impl View<Msg> {
     );
 
     public fun on_submit(self, msg: Msg): View<Msg> = with_submit(self, msg);
+
+    /**
+     * Gives the node a context menu, opened by a right-click, a long press or
+     * the Menu key (Shift+F10); picking an item sends its message. Applied
+     * again, the new entries replace the old; `[]` takes the menu away.
+     *
+     * Example:
+     *     tab(t).menu([item("Close tab", Msg.Close(t.id)), menu_separator(), item("Close others", Msg.CloseOthers(t.id))])
+     */
+    public fun menu(self, entries: MenuEntry<Msg>[]): View<Msg> = with_menu(self, entries);
 
     /**
      * The same view, sending `f(msg)` wherever it would send `msg`: how a

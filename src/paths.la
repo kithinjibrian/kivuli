@@ -14,55 +14,83 @@ import styling { LAYER };
 
 /**
  * Rebuilds the `Live` tree with the node at `path` (from `depth` on) replaced
- * by `f(node)`. `f` also makes the matching change to the widgets.
+ * by `f(node)`. `f` also makes the matching change to the widgets. A node's
+ * menu is looked through: `f` gets the node itself, and its menu stays.
  */
 fun update_at<Msg>(
     node: Live<Msg>,
     path: i64[],
     depth: i64,
     f: fun(Live<Msg>): Live<Msg>,
-): Live<Msg> = if depth == path.len {
-    f(node)
-} else {
-    match node {
-        Box(box, orientation, kids) => {
-            let i = path[depth];
-            let mut next = kids;
-            next[i] = update_at(kids[i], path, depth + 1, f);
-            Live.Box(box, orientation, next)
-        }
-        Scroll(scrolled, kid) => Live.Scroll(scrolled, update_at(kid, path, depth + 1, f)),
-        Wrap(flow, kids) => {
-            let i = path[depth];
-            let mut next = kids;
-            next[i] = update_at(kids[i], path, depth + 1, f);
-            Live.Wrap(flow, next)
-        }
-        Overlay(over, base, layers) => if path[depth] == 0 {
-            Live.Overlay(over, update_at(base, path, depth + 1, f), layers)
-        } else {
-            Live.Overlay(over, base, update_at(layers, path, depth + 1, f))
-        },
-        Layers(over, kids) => {
-            let i = path[depth];
-            let mut next = kids;
-            next[i] = update_at(kids[i], path, depth + 1, f);
-            Live.Layers(over, next)
-        }
-        Framed(bar, body, title, start, end) => match path[depth] {
-            0 => Live.Framed(bar, update_at(body, path, depth + 1, f), title, start, end),
-            1 => Live.Framed(bar, body, update_at(title, path, depth + 1, f), start, end),
-            2 => Live.Framed(bar, body, title, update_at(start, path, depth + 1, f), end),
-            _ => Live.Framed(bar, body, title, start, update_at(end, path, depth + 1, f)),
-        },
-        Pack(bar, at_end, kids) => {
-            let i = path[depth];
-            let mut next = kids;
-            next[i] = update_at(kids[i], path, depth + 1, f);
-            Live.Pack(bar, at_end, next)
-        }
-        _ => panic("kivuli: a patch's path leads through something with no children"),
+): Live<Msg> = update_in(node, path, depth, f, false);
+
+/** As `update_at` from the root, but `f` gets the node with its menu (`Live.Menu`), if it has one. */
+fun update_menu_at<Msg>(
+    node: Live<Msg>,
+    path: i64[],
+    f: fun(Live<Msg>): Live<Msg>,
+): Live<Msg> = update_in(node, path, 0, f, true);
+
+fun update_in<Msg>(
+    node: Live<Msg>,
+    path: i64[],
+    depth: i64,
+    f: fun(Live<Msg>): Live<Msg>,
+    with_menu: bool,
+): Live<Msg> = match node {
+    // A menu takes no place in a path: its node is at the same one.
+    Menu(inner, popup) => if with_menu && depth == path.len {
+        f(node)
+    } else {
+        Live.Menu(update_in(inner, path, depth, f, with_menu), popup)
+    },
+    _ => if depth == path.len { f(node) } else { step(node, path, depth, f, with_menu) },
+};
+
+fun step<Msg>(
+    node: Live<Msg>,
+    path: i64[],
+    depth: i64,
+    f: fun(Live<Msg>): Live<Msg>,
+    with_menu: bool,
+): Live<Msg> = match node {
+    Box(box, orientation, kids) => {
+        let i = path[depth];
+        let mut next = kids;
+        next[i] = update_in(kids[i], path, depth + 1, f, with_menu);
+        Live.Box(box, orientation, next)
     }
+    Scroll(scrolled, kid) => Live.Scroll(scrolled, update_in(kid, path, depth + 1, f, with_menu)),
+    Wrap(flow, kids) => {
+        let i = path[depth];
+        let mut next = kids;
+        next[i] = update_in(kids[i], path, depth + 1, f, with_menu);
+        Live.Wrap(flow, next)
+    }
+    Overlay(over, base, layers) => if path[depth] == 0 {
+        Live.Overlay(over, update_in(base, path, depth + 1, f, with_menu), layers)
+    } else {
+        Live.Overlay(over, base, update_in(layers, path, depth + 1, f, with_menu))
+    },
+    Layers(over, kids) => {
+        let i = path[depth];
+        let mut next = kids;
+        next[i] = update_in(kids[i], path, depth + 1, f, with_menu);
+        Live.Layers(over, next)
+    }
+    Framed(bar, body, title, start, end) => match path[depth] {
+        0 => Live.Framed(bar, update_in(body, path, depth + 1, f, with_menu), title, start, end),
+        1 => Live.Framed(bar, body, update_in(title, path, depth + 1, f, with_menu), start, end),
+        2 => Live.Framed(bar, body, title, update_in(start, path, depth + 1, f, with_menu), end),
+        _ => Live.Framed(bar, body, title, start, update_in(end, path, depth + 1, f, with_menu)),
+    },
+    Pack(bar, at_end, kids) => {
+        let i = path[depth];
+        let mut next = kids;
+        next[i] = update_in(kids[i], path, depth + 1, f, with_menu);
+        Live.Pack(bar, at_end, next)
+    }
+    _ => panic("kivuli: a patch's path leads through something with no children"),
 };
 
 /**
@@ -85,11 +113,11 @@ fun axis_of<Msg>(live: Live<Msg>, path: i64[]): i32 = if path.len == 0 {
     }
 };
 
-/** The node at `path`. */
+/** The node at `path`, without its menu (`Live.Menu`), if it has one. */
 fun at<Msg>(node: Live<Msg>, path: i64[]): Live<Msg> {
-    let mut here = node;
+    let mut here = bare(node);
     for i of path {
-        here = match here {
+        here = bare(match here {
             Box(_, _, kids) => kids[i],
             Scroll(_, kid) => kid,
             Wrap(_, kids) => kids[i],
@@ -103,10 +131,16 @@ fun at<Msg>(node: Live<Msg>, path: i64[]): Live<Msg> {
             },
             Pack(_, _, kids) => kids[i],
             _ => panic("kivuli: a patch's path leads through something with no children"),
-        };
+        });
     }
     here
 }
+
+/** `node` without its menu: a menu takes no place in a path. */
+fun bare<Msg>(node: Live<Msg>): Live<Msg> = match node {
+    Menu(inner, _) => bare(inner),
+    _ => node,
+};
 
 fun parent(path: i64[]): i64[] {
     let mut p: i64[] = [];

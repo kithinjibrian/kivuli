@@ -43,7 +43,8 @@ import controls { picked, sync_choices };
 import styling { LAYER, apply_style, flag, show_content, show_number };
 import textures { show_in_image, show_picture };
 import live_tree { Choices, Live, titlebar, widget };
-import paths { at, axis_of, parent, sibling_before, update_at };
+import paths { at, axis_of, parent, sibling_before, update_at, update_menu_at };
+import popovers { attach, refresh };
 
 /** Applies one patch to the widgets, and returns the `Live` tree that now mirrors them. */
 fun apply<Msg>(
@@ -207,6 +208,21 @@ fun apply<Msg>(
         }
         live
     }
+    // A node's first menu is attached to its widget; later ones refresh it,
+    // `[]` included (its gestures then open nothing).
+    SetMenu(path, entries) => update_menu_at(live, path, fun(
+        node: Live<Msg>,
+    ): Live<Msg> = match node {
+        Menu(_, popup) => {
+            refresh(popup, entries, send);
+            node
+        }
+        _ => if entries.len == 0 {
+            node
+        } else {
+            Live.Menu(node, attach(widget(node), entries, send))
+        },
+    }),
     SetStyle(path, style) => {
         apply_style(at(live, path), style, axis_of(live, path));
         live

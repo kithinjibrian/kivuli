@@ -1,5 +1,6 @@
 // Building views: what an app's `view` returns is exactly the tree it wrote.
 import kivuli.looks { Style, plain };
+import kivuli.menus { MenuEntry };
 import kivuli {
     View,
     text,
@@ -24,6 +25,8 @@ import kivuli {
     wrap,
     keyed_wrap,
     overlay,
+    item,
+    menu_separator,
     Surface,
     theme,
 };
@@ -405,4 +408,26 @@ fun an_overlay_holds_a_base_and_layers_placed_by_style() {
     assert_same(text("panel").place(Align.End, Align.Fill), placed);
     // Without .place a layer covers the base.
     assert_eq((plain().place_across, plain().place_down), (Align.Fill, Align.Fill));
+}
+
+@test
+fun a_menu_wraps_its_node_inside_the_style() {
+    let entries = [
+        item("Open", Msg.Add),
+        menu_separator(),
+        item("Reset", Msg.Reset).disabled(true),
+    ];
+    let expected: View<Msg> = View.Styled(
+        View.Menu(View.Text("a"), [
+            MenuEntry.Item("Open", Some(Msg.Add)),
+            MenuEntry.Separator,
+            MenuEntry.Item("Reset", None),
+        ]),
+        Style { padding: 4, ..plain() },
+    );
+    assert_same(text("a").padding(4).menu(entries), expected);
+    assert_same(text("a").menu(entries).padding(4), expected);
+    // A second .menu replaces the first.
+    let replaced: View<Msg> = View.Menu(View.Text("a"), [MenuEntry.Item("Open", Some(Msg.Add))]);
+    assert_same(text("a").menu([item("x", Msg.Reset)]).menu([item("Open", Msg.Add)]), replaced);
 }

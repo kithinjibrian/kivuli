@@ -6,7 +6,17 @@
  * Used by: build, live
  */
 
-import gtk { GtkEventController, GtkShortcut, GtkTextBuffer, GtkWidget };
+import gtk {
+    GMenu,
+    GSimpleAction,
+    GSimpleActionGroup,
+    GtkEventController,
+    GtkShortcut,
+    GtkShortcutAction,
+    GtkTextBuffer,
+    GtkWidget,
+};
+import menus { MenuEntry };
 
 /** The widgets on screen, shaped exactly like the `View` they show. */
 enum Live<Msg> {
@@ -63,6 +73,11 @@ enum Live<Msg> {
     Wrap(GtkWidget, Live<Msg>[]),
     /** An overlay: the `GtkOverlay`, its base (child 0), and its layers (child 1). */
     Overlay(GtkWidget, Live<Msg>, Live<Msg>),
+    /**
+     * A node with a context menu, and the menu's parts. Paths look through it
+     * (`paths`): only `SetMenu` and the patches replacing or removing the node see it.
+     */
+    Menu(Live<Msg>, Popup<Msg>),
     /** An overlay's layers, bottom to top; no widget of their own, so their widget is the overlay's. */
     Layers(GtkWidget, Live<Msg>[]),
     /**
@@ -93,6 +108,27 @@ struct Choices<Msg> {
     busy: bool,
 }
 
+/** A node's context menu on screen (`popovers`). */
+struct Popup<Msg> {
+    /** The `GtkPopoverMenu`, parented to the node's widget. */
+    popover: GtkWidget,
+    /** The actions the items name (`kv.item0`, …), inserted on the node's widget. */
+    group: GSimpleActionGroup,
+    /** One action per item, by its place among the items; extra ones (the menu shrank) are disabled. */
+    actions: Ref<GSimpleAction[]>,
+    /** The entries now: the actions read their messages here. */
+    entries: Ref<MenuEntry<Msg>[]>,
+    /** The menu model the popover shows, rebuilt only when `shown` changes. */
+    model: Ref<GMenu>,
+    /** What the model shows (`menus.layout`). */
+    shown: Ref<string[]>,
+    /** The right-click and long-press gestures (tests emit their `pressed`). */
+    click: GtkEventController,
+    hold: GtkEventController,
+    /** What the Menu key and Shift+F10 run (tests run it). */
+    keys: GtkShortcutAction,
+}
+
 /** The GTK widget showing `node`. */
 fun widget<Msg>(node: Live<Msg>): GtkWidget = match node {
     Label(w) => w,
@@ -111,6 +147,7 @@ fun widget<Msg>(node: Live<Msg>): GtkWidget = match node {
     Wrap(w, _) => w,
     Overlay(w, _, _) => w,
     Layers(w, _) => w,
+    Menu(node, _) => widget(node),
     // The window's child; the bar is its titlebar.
     Framed(_, body, _, _, _) => widget(body),
     Pack(bar, _, _) => bar,
@@ -119,5 +156,6 @@ fun widget<Msg>(node: Live<Msg>): GtkWidget = match node {
 /** The header bar to show as the window's titlebar, if the root has one. */
 fun titlebar<Msg>(root: Live<Msg>): Option<GtkWidget> = match root {
     Framed(bar, _, _, _, _) => Some(bar),
+    Menu(node, _) => titlebar(node),
     _ => None,
 };

@@ -18,6 +18,8 @@ import kivuli {
     wrap,
     keyed_wrap,
     overlay,
+    item,
+    menu_separator,
     Surface,
     theme,
 };
@@ -27,6 +29,7 @@ import kivuli.testing {
     click,
     is_disabled,
     is_field_disabled,
+    pick,
     press,
     slide,
     submit,
@@ -287,4 +290,33 @@ fun buttons_in_a_layer_and_in_the_base_are_found() {
     let v: View<Msg> = overlay(button("Add", Msg.Add), [button("Clear", Msg.Clear)]);
     assert_eq(click(v, "Add"), Ok(Msg.Add));
     assert_eq(click(v, "Clear"), Ok(Msg.Clear));
+}
+
+fun tabs(): View<Msg> = column([
+    button("news", Msg.Add).menu([
+        item("Close tab", Msg.Clear),
+        menu_separator(),
+        item("Close others", Msg.Add).disabled(true),
+    ]),
+    button("", Msg.Add).tooltip("Settings").menu([item("Reset", Msg.Clear)]),
+    text("notes").name("notes").menu([item("Clear", Msg.Clear)]),
+    button("twin", Msg.Add).menu([item("Close tab", Msg.Clear)]),
+    button("twin", Msg.Add).menu([item("Close tab", Msg.Clear)]),
+]);
+
+@test
+fun pick_finds_a_menu_item_by_its_owner() {
+    assert_eq(pick(tabs(), "news", "Close tab"), Ok(Msg.Clear));
+    assert_eq(pick(tabs(), "Settings", "Reset"), Ok(Msg.Clear));
+    assert_eq(pick(tabs(), "notes", "Clear"), Ok(Msg.Clear));
+    assert_eq(
+        pick(tabs(), "news", "Close others"),
+        Err(Lookup.Silent("menu item \"Close others\"")),
+    );
+    assert_eq(pick(tabs(), "news", "Nope"), Err(Lookup.NotFound("menu item \"Nope\"")));
+    assert_eq(pick(tabs(), "nowhere", "Close tab"), Err(Lookup.NotFound("menu on \"nowhere\"")));
+    assert_eq(pick(tabs(), "twin", "Close tab"), Err(Lookup.Ambiguous("menu on \"twin\"", 2)));
+    // The button itself still clicks, and by tooltip.
+    assert_eq(click(tabs(), "news"), Ok(Msg.Add));
+    assert_eq(click(tabs(), "Settings"), Ok(Msg.Add));
 }

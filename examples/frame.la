@@ -6,7 +6,8 @@
 // right, where the frame wraps it. Home shows app tiles in a wrapping grid:
 // resize the window and they re-flow; add or remove one and only that tile
 // moves. Info opens a panel over the page's right edge, an overlay; clicking
-// outside it closes it. Its tests are at the bottom: `lughac test examples/frame.la`.
+// outside it closes it. Right-click a tab (or long-press it, or press
+// Shift+F10 on it) for its menu: duplicate, close, close the others. Its tests are at the bottom: `lughac test examples/frame.la`.
 import kivuli {
     Align,
     Border,
@@ -15,6 +16,8 @@ import kivuli {
     View,
     button,
     column,
+    item,
+    menu_separator,
     hex,
     input,
     keyed_wrap,
@@ -25,7 +28,7 @@ import kivuli {
     theme,
 };
 // For the tests at the bottom; `lughac build` leaves tests out.
-import kivuli.testing { click, is_disabled, submit, texts, type_into };
+import kivuli.testing { Lookup, click, is_disabled, pick, submit, texts, type_into };
 
 /** The parts of the frame the app colours. */
 enum Look {
@@ -86,6 +89,10 @@ enum Msg {
     Back,
     Open(i64),
     NewTab,
+    /** From a tab's menu: a copy of the tab after it, selected. */
+    Duplicate(i64),
+    CloseTab(i64),
+    CloseOthers(i64),
     Visit(string),
     AddTile,
     RemoveTile,
@@ -135,6 +142,39 @@ fun update(b: Browser, msg: Msg): Browser = match msg {
         tabs.push(["home"]);
         Browser { tabs: tabs, current: tabs.len - 1, draft: "home", ..b }
     }
+    Duplicate(i) => {
+        let mut tabs: string[][] = [];
+        let mut j = 0;
+        while j < b.tabs.len {
+            tabs.push(b.tabs[j]);
+            if j == i {
+                tabs.push(b.tabs[i]);
+            }
+            j = j + 1;
+        }
+        update(Browser { tabs: tabs, ..b }, Msg.Open(i + 1))
+    }
+    // The last tab closed leaves a fresh one; the selected tab closed selects
+    // the one taking its place (or the new last).
+    CloseTab(i) => if b.tabs.len == 1 {
+        update(Browser { tabs: [["home"]], ..b }, Msg.Open(0))
+    } else {
+        let mut tabs: string[][] = [];
+        let mut j = 0;
+        while j < b.tabs.len {
+            if j != i {
+                tabs.push(b.tabs[j]);
+            }
+            j = j + 1;
+        }
+        let current = if b.current > i || b.current == tabs.len {
+            b.current - 1
+        } else {
+            b.current
+        };
+        update(Browser { tabs: tabs, ..b }, Msg.Open(current))
+    },
+    CloseOthers(i) => update(Browser { tabs: [b.tabs[i]], ..b }, Msg.Open(0)),
     // A tile opens its page in this tab, as typing its name would.
     Visit(name) => update(Browser { draft: name, ..b }, Msg.Go),
     AddTile => {
@@ -158,7 +198,12 @@ fun info_panel(b: Browser): View<Msg> = column([
 
 fun tab(b: Browser, i: i64): View<Msg> {
     let history = b.tabs[i];
-    let label = button(history[history.len - 1], Msg.Open(i));
+    let label = button(history[history.len - 1], Msg.Open(i)).menu([
+        item("Duplicate tab", Msg.Duplicate(i)),
+        item("Close tab", Msg.CloseTab(i)),
+        menu_separator(),
+        item("Close other tabs", Msg.CloseOthers(i)).disabled(b.tabs.len == 1),
+    ]);
     if i == b.current { label.style([Look.Tab, Look.Selected]) } else { label.style([Look.Tab]) }
 }
 
@@ -265,4 +310,25 @@ fun info_opens_a_panel_over_the_page_and_a_click_outside_closes_it() {
     assert(!outside.info);
     let closed = did(open, click(view(open), "Close").unwrap_or(Msg.Go));
     assert(!closed.info);
+}
+
+@test
+fun a_tabs_menu_duplicates_and_closes_tabs() {
+    // One tab: closing the others is greyed out.
+    assert_eq(
+        pick(view(start()), "home", "Close other tabs"),
+        Err(Lookup.Silent("menu item \"Close other tabs\"")),
+    );
+    let b = visit(start(), "news");
+    let two = did(b, pick(view(b), "news", "Duplicate tab").unwrap_or(Msg.Go));
+    assert_eq((two.tabs.len, two.current, shown(two)), (2, 1, "news"));
+    let three = did(two, click(view(two), "New tab").unwrap_or(Msg.Go));
+    // Closing the selected tab selects the one that takes its place.
+    let closed = did(three, pick(view(three), "home", "Close tab").unwrap_or(Msg.Go));
+    assert_eq((closed.tabs.len, closed.current, closed.draft), (2, 1, "news"));
+    let alone = did(three, pick(view(three), "home", "Close other tabs").unwrap_or(Msg.Go));
+    assert_eq((alone.tabs.len, alone.current, shown(alone)), (1, 0, "home"));
+    // The last tab closed leaves a fresh one.
+    let fresh = did(b, pick(view(b), "news", "Close tab").unwrap_or(Msg.Go));
+    assert_eq((fresh.tabs.len, shown(fresh), fresh.draft), (1, "home", "home"));
 }

@@ -78,6 +78,7 @@ import gtk {
 import live_tree { Choices, Live, widget };
 import views { View };
 import looks { Style };
+import popovers { attach };
 import styling { LAYER, NO_LINE_LIMIT, apply_style, flag, show_content, show_number };
 import textures { show_in_image, show_picture };
 import widgets { snap };
@@ -366,6 +367,10 @@ fun create_in<Msg>(v: View<Msg>, axis: i32, send: fun(Msg)): Live<Msg> = match v
             pack(bar, true, end, send),
         )
     }
+    Menu(inside, entries) => {
+        let node = create_in(inside, axis, send);
+        Live.Menu(node, attach(widget(node), entries, send))
+    }
     Styled(inside, style) => {
         let node = create_in(inside, axis, send);
         apply_style(node, style, axis);
@@ -450,6 +455,7 @@ fun create_box<Msg>(orientation: i32, children: View<Msg>[], send: fun(Msg)): Li
 /** The widget that takes keyboard focus for `node`: a text area's editor, else the node's widget. */
 fun focus_target<Msg>(node: Live<Msg>): GtkWidget = match node {
     TextArea(scrolled, _, _) => editor(scrolled),
+    Menu(inner, _) => focus_target(inner),
     _ => widget(node),
 };
 
