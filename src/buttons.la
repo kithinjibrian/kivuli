@@ -1,0 +1,95 @@
+/**
+ * Making buttons: the GTK button for `button` (kivuli's own label and image
+ * inside), with the click handler and shortcut controller every button has.
+ * Moved out of `build` (file size).
+ *
+ * Depends on: live_tree, pictures, styling, textures, gtk.raw
+ * Used by: build
+ */
+
+import gtk {
+    GtkEventController,
+    GtkWidget,
+    connect_widget,
+    gtk_box_append,
+    gtk_box_new,
+    gtk_button_new_with_label,
+    gtk_button_set_child,
+    gtk_image_new_from_icon_name,
+    gtk_label_new,
+    gtk_shortcut_controller_new,
+    gtk_shortcut_controller_set_scope,
+    gtk_widget_add_controller,
+    gtk_widget_set_halign,
+    gtk_widget_set_sensitive,
+    gtk_widget_set_valign,
+    gtk_widget_set_visible,
+};
+import live_tree { Live };
+import pictures { Image };
+import styling { flag, show_content };
+import textures { show_in_image };
+
+/** A button labelled `label`, with `img` before the label, sending `msg` (none: disabled) through `send`. */
+fun create_button<Msg>(
+    label: string,
+    msg: Option<Msg>,
+    img: Option<Image>,
+    send: fun(Msg),
+): Live<Msg> {
+    // kivuli's own content, an image and a label, so both can come and go
+    // through one path (`show_content`). The label GTK makes here is
+    // replaced by it (lugha-gtk binds no plain `gtk_button_new`).
+    let button = gtk_button_new_with_label("");
+    let text = gtk_label_new(label);
+    // Hidden unless the button has an image that can be shown.
+    let image = gtk_image_new_from_icon_name("");
+    gtk_widget_set_visible(image, flag(show_in_image(image, img)));
+    let content = gtk_box_new(0, 0);
+    // Centered in the button both ways (`GTK_ALIGN_CENTER`), as GTK's own
+    // button content is: a button wider or taller than its content (a
+    // `.width`, a stretched one, a tile) shows it in the middle, not at
+    // the start. At natural size, nothing moves.
+    gtk_widget_set_halign(content, 3);
+    gtk_widget_set_valign(content, 3);
+    gtk_box_append(content, image);
+    gtk_box_append(content, text);
+    gtk_button_set_child(button, Some(content));
+    show_content(button, text, image);
+    let (current, controller) = clickable(button, msg, send);
+    Live.Button(button, current, controller, Ref.new(None), text, image)
+}
+
+/**
+ * Makes `button` send its message when clicked: the message's `Ref` (patches
+ * re-point it) and the button's shortcut controller (`apply_style` fills it).
+ */
+fun clickable<Msg>(
+    button: GtkWidget,
+    msg: Option<Msg>,
+    send: fun(Msg),
+): (Ref<Option<Msg>>, GtkEventController) {
+    let current = Ref.new(msg);
+    // No message means disabled (decision 6): greyed out, and the handler
+    // below sends nothing even if GTK delivers a click.
+    gtk_widget_set_sensitive(button, flag(msg.is_some()));
+    // Connected once, for the widget's whole life: a SetMsg patch changes
+    // `current`, never the connection.
+    connect_widget(
+        button,
+        "clicked",
+        fun(b: GtkWidget) {
+            match current.get() {
+                Some(m) => send(m),
+                None => {}
+            }
+        },
+        0,
+    );
+    // One shortcut controller per button, global: its keys work anywhere in
+    // the window. `apply_style` puts the button's shortcut in it.
+    let controller = gtk_shortcut_controller_new();
+    gtk_shortcut_controller_set_scope(controller, 2);
+    gtk_widget_add_controller(button, controller);
+    (current, controller)
+}
