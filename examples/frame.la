@@ -3,9 +3,23 @@
 // rail whose selected tab has a look of its own, and a window that opens
 // maximized. The header bar and the rail (on the right) share one flat look,
 // so they read as one L-shaped frame, and the page curves only at its top
-// right, where the frame wraps it. Its tests are at the bottom:
-// `lughac test examples/frame.la`.
-import kivuli { Border, Surface, View, button, column, hex, input, row, sandbox, text, theme };
+// right, where the frame wraps it. Home shows app tiles in a wrapping grid:
+// resize the window and they re-flow; add or remove one and only that tile
+// moves. Its tests are at the bottom: `lughac test examples/frame.la`.
+import kivuli {
+    Border,
+    Surface,
+    View,
+    button,
+    column,
+    hex,
+    input,
+    keyed_wrap,
+    row,
+    sandbox,
+    text,
+    theme,
+};
 // For the tests at the bottom; `lughac build` leaves tests out.
 import kivuli.testing { click, is_disabled, submit, texts, type_into };
 
@@ -41,6 +55,10 @@ struct Browser {
     tabs: string[][],
     current: i64,
     draft: string,
+    /** Home's tiles, by name (each name is its key). */
+    tiles: string[],
+    /** How many tiles have been added, to name the next. */
+    added: i64,
 }
 
 enum Msg {
@@ -49,9 +67,18 @@ enum Msg {
     Back,
     Open(i64),
     NewTab,
+    Visit(string),
+    AddTile,
+    RemoveTile,
 }
 
-fun start(): Browser = Browser { tabs: [["home"]], current: 0, draft: "home" };
+fun start(): Browser = Browser {
+    tabs: [["home"]],
+    current: 0,
+    draft: "home",
+    tiles: ["News", "Mail", "Maps", "Music", "Notes", "Photos", "Weather", "Chess"],
+    added: 0,
+};
 
 fun shown(b: Browser): string {
     let history = b.tabs[b.current];
@@ -84,8 +111,17 @@ fun update(b: Browser, msg: Msg): Browser = match msg {
     NewTab => {
         let mut tabs = b.tabs;
         tabs.push(["home"]);
-        Browser { tabs: tabs, current: tabs.len - 1, draft: "home" }
+        Browser { tabs: tabs, current: tabs.len - 1, draft: "home", ..b }
     }
+    // A tile opens its page in this tab, as typing its name would.
+    Visit(name) => update(Browser { draft: name, ..b }, Msg.Go),
+    AddTile => {
+        let mut tiles = b.tiles;
+        tiles.push("App {b.added + 1}");
+        Browser { tiles: tiles, added: b.added + 1, ..b }
+    }
+    // The first tile goes: the rest move up, nothing is rebuilt.
+    RemoveTile => Browser { tiles: b.tiles.filter(fun(t) = t != b.tiles[0]), ..b },
 };
 
 fun tab(b: Browser, i: i64): View<Msg> {
@@ -106,6 +142,12 @@ fun view(b: Browser): View<Msg> {
         column([
             text("You're at {shown(b)}").size(18),
             text("{b.tabs[b.current].len} page(s) in this tab").dim(),
+            row([
+                button("Add a tile", Msg.AddTile),
+                button("Remove a tile", Msg.RemoveTile).disabled(b.tiles.len == 0),
+            ]).spacing(8),
+            // Equal tiles, at most six across; fewer on a narrow window.
+            keyed_wrap(b.tiles.map(fun(t) = (t, button(t, Msg.Visit(t)).width(120).height(72)))).equal().max_per_line(6).spacing(12),
         ]).spacing(8).padding(24).expand().style([Look.Home]),
         column(tabs).spacing(4).padding(8).width(160).style([Look.Frame]),
     ]).style([Look.Frame]).window("{shown(b)} — Frame", 1000, 640).maximized().theme(
@@ -157,4 +199,14 @@ fun new_tabs_open_at_home_and_tabs_switch() {
     assert_eq((b.tabs.len, b.current, shown(b)), (2, 1, "home"));
     let first = did(b, click(view(b), "news").unwrap_or(Msg.Go));
     assert_eq((first.current, first.draft), (0, "news"));
+}
+
+@test
+fun tiles_open_their_page_and_come_and_go() {
+    let b = did(start(), click(view(start()), "Maps").unwrap_or(Msg.Go));
+    assert_eq(shown(b), "Maps");
+    let more = did(b, click(view(b), "Add a tile").unwrap_or(Msg.Go));
+    assert_eq(more.tiles[more.tiles.len - 1], "App 1");
+    let fewer = did(more, click(view(more), "Remove a tile").unwrap_or(Msg.Go));
+    assert_eq((fewer.tiles.len, fewer.tiles[0]), (more.tiles.len - 1, "Mail"));
 }

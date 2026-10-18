@@ -3,7 +3,8 @@
 // Build it optimised and run it: lughac build examples/bench.la -O2 -o
 // examples/bench && examples/bench
 import gtk { g_get_monotonic_time };
-import kivuli.diff { diff as patches_of, resolve };
+import kivuli.diff { diff as patches_of };
+import kivuli.lazies { resolve };
 import kivuli { View, checkbox, keyed_column, lazy, row, text, button };
 
 enum Msg {
