@@ -321,6 +321,10 @@ Branch: main (PRP-010 on prp-010-images, merged)
 
 Branch: main
 
+Notes so far:
+- Read Lugha's spec and runtime (read only): one OS thread for all green threads; GTK's main loop is one extern call, so spawned threads never run in a kivuli app today; `task.yield_now()` is non-blocking (wakes sleepers, polls sockets with epoll_wait 0, runs ready threads one round). So a GLib source driving yield_now; OS threads impossible. File calls, DNS, std.crypto, std.process still block (one extern call each).
+- Talked through with the user: build now (option 1), Cmd.task (spawn + channel), and Sub.receive(chan, f) in this PRP so apps use Lugha's spawn, channels and actors. PRP-011 drafted.
+
 ---
 
 ## NEXT SESSION START POINT
