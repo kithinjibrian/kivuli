@@ -1,14 +1,16 @@
 /**
- * `View.map`'s body: the same view, sending `f(msg)` wherever it would send
- * `msg`. Moved out of `views.la` (DECISION-018), where every modifier must
- * stay with `View`; `views` and `mapping` import each other, the one import
- * cycle kivuli allows.
+ * The bodies of `View`'s methods that rewrite nodes rather than their style:
+ * `map`, `.disabled`, `.image`/`.icon`, `.on_submit`, `.menu`. Moved out of `views.la`
+ * (DECISION-018, file size), where every method must stay with `View`;
+ * `views` and `mapping` import each other, the one import cycle kivuli allows.
  *
  * Depends on: views
  * Used by: views (`View.map`)
  */
 
 import views { View };
+import pictures { Image };
+import menus { MenuEntry };
 
 /** `v` sending `f(msg)` wherever it would send `msg`; what's shown is unchanged. */
 fun mapped<Msg, B>(v: View<Msg>, f: fun(Msg): B): View<B> = match v {
@@ -49,6 +51,7 @@ fun mapped<Msg, B>(v: View<Msg>, f: fun(Msg): B): View<B> = match v {
     Wrap(xs) => View.Wrap(xs.map(fun(x) = x.map(f))),
     KeyedWrap(pairs) => View.KeyedWrap(pairs.map(fun(pair) = (pair.0, pair.1.map(f)))),
     Overlay(base, layers) => View.Overlay(base.map(f), layers.map(fun(x) = x.map(f))),
+    Menu(x, entries) => View.Menu(x.map(f), entries.map(fun(e) = e.map(f))),
     Styled(x, style) => View.Styled(x.map(f), style),
     Framed(body, start, title, end) => View.Framed(
         body.map(f),
@@ -62,4 +65,48 @@ fun mapped<Msg, B>(v: View<Msg>, f: fun(Msg): B): View<B> = match v {
         fun(): View<B> = build().map(f),
         built.map(fun(b) = b.map(f)),
     ),
+};
+
+/** `.disabled`: when `off`, a button's, field's or text area's messages taken away. */
+fun disabled_node<Msg>(v: View<Msg>, off: bool): View<Msg> = if !off {
+    v
+} else {
+    match v {
+        Button(label, _, img) => View.Button(label, None, img),
+        Input(value, _) => View.Input(value, None),
+        TextArea(value, _) => View.TextArea(value, None),
+        Styled(inside, s) => View.Styled(disabled_node(inside, true), s),
+        Menu(inside, entries) => View.Menu(disabled_node(inside, true), entries),
+        _ => v,
+    }
+};
+
+/** `.image` / `.icon`: a button's image set, or taken away with `None`. */
+fun button_image<Msg>(v: View<Msg>, img: Option<Image>): View<Msg> = match v {
+    Button(label, msg, _) => View.Button(label, msg, img),
+    Styled(inside, s) => View.Styled(button_image(inside, img), s),
+    Menu(inside, entries) => View.Menu(button_image(inside, img), entries),
+    _ => v,
+};
+
+/** `.on_submit`: the message Enter sends, on an input that isn't disabled. */
+fun with_submit<Msg>(v: View<Msg>, msg: Msg): View<Msg> = match v {
+    Input(value, Some((on_change, _))) => View.Input(value, Some((on_change, Some(msg)))),
+    // Disabled: there are no messages to add Enter's to.
+    Input(_, None) => v,
+    Styled(inside, s) => View.Styled(with_submit(inside, msg), s),
+    Menu(inside, entries) => View.Menu(with_submit(inside, msg), entries),
+    _ => v,
+};
+
+/**
+ * `.menu`: the node's context menu set, inside its style so modifiers keep one
+ * wrapper; `[]` takes it away.
+ */
+fun with_menu<Msg>(v: View<Msg>, entries: MenuEntry<Msg>[]): View<Msg> = match v {
+    Styled(inside, s) => View.Styled(with_menu(inside, entries), s),
+    Menu(inside, _) => with_menu(inside, entries),
+    // As for styles (DECISION-002): a lazy subtree is what `build` gives it.
+    Lazy(_, _, _) => v,
+    _ => if entries.len == 0 { v } else { View.Menu(v, entries) },
 };

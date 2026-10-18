@@ -1,0 +1,36 @@
+// Diffing context menus: a menu always gives SetMenu (messages can't be
+// compared); its node diffs as itself at the same path; gaining or losing a
+// menu is a SetMenu, not a rebuild. (test/diff.la is at the limit.)
+import kivuli.diff { Patch, diff as patches };
+import kivuli.menus { MenuEntry };
+import kivuli { View, button, column, item, text };
+
+fun assert_same<T>(actual: T, expected: T) {
+    assert_eq("{actual}", "{expected}");
+}
+
+@test
+fun a_menu_always_sets_its_entries_after_its_nodes_own_patches() {
+    let before: View<i64> = text("a").menu([item("Open", 1)]);
+    let expected: Patch<i64>[] = [
+        Patch.SetText([], "b"),
+        Patch.SetMenu([], [MenuEntry.Item("Open", Some(2))]),
+    ];
+    assert_same(patches(before, text("b").menu([item("Open", 2)])), expected);
+}
+
+@test
+fun gaining_or_losing_a_menu_keeps_the_widget() {
+    let plain: View<i64> = text("a");
+    let gained: Patch<i64>[] = [Patch.SetMenu([], [MenuEntry.Item("Open", Some(1))])];
+    assert_same(patches(plain, text("a").menu([item("Open", 1)])), gained);
+    let lost: Patch<i64>[] = [Patch.SetMenu([], [])];
+    assert_same(patches(text("a").menu([item("Open", 1)]), plain), lost);
+}
+
+@test
+fun a_menu_node_that_changes_kind_is_rebuilt_whole() {
+    let after: View<i64> = column([]).menu([item("Open", 1)]);
+    let expected: Patch<i64>[] = [Patch.Replace([], after)];
+    assert_same(patches(text("a").menu([item("Open", 1)]), after), expected);
+}

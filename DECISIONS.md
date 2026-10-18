@@ -76,11 +76,13 @@ Rules:
 
 ### DECISION-015 — Context menus on right-click
 
-**Status:** deferred
+**Status:** resolved
 **Raised:** 2026-10-17 — Session 6 (rapidkoi DECISION-020, item 6)
-**Revisit when:** after PRP-007; Rapidkoi's tab actions live in its info panel meanwhile.
+**Resolved:** 2026-10-18 — Session 15 (PRP-014, the user's choices)
 
 **Question:** How does a node get a right-click menu (a popover), and how are its items' messages sent?
+
+**Outcome:** `.menu([item(label, msg), menu_separator(), …])` on any node, items disabled with `.disabled(true)`; opened by right-click, long press and the Menu key / Shift+F10; a `GtkPopoverMenu` over a `GMenu` whose items are actions reading their messages from a `Ref`; tests use `kivuli.testing.pick(view, owner, item)`.
 
 ---
 

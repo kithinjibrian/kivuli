@@ -91,6 +91,18 @@ kivuli ships no colours. An app that paints its own frame gives its colours as t
 
 The overlay takes the base's size (`measure-overlay` off). A `GtkOverlay` only adds on top, so replacing a middle layer takes it and those above off (holding the ones above alive) and adds them back in order. Click-outside-to-close is a full-size layer the app adds, not a feature.
 
+### Context menus (`.menu`; PRP-014)
+
+| kivuli | GTK |
+| --- | --- |
+| `.menu(entries)` | a `GtkPopoverMenu` parented to the node's widget (no arrow), showing a `GMenu` |
+| `item(label, msg)` | a menu item naming an action `kv.itemN` in a `GSimpleActionGroup` inserted on the node's widget as `kv`; the action's `activate` sends the message |
+| `.disabled(true)` on an item | the action disabled: the theme greys the item out |
+| `menu_separator()` | a new section of the `GMenu` (the theme draws the line) |
+| opening | a `GtkGestureClick` on button 3 and a `GtkGestureLongPress` (pointing at the press), and a local `GtkShortcutController` for `Menu\|<Shift>F10` (pointing at the whole node) |
+
+Everything is made once per widget: an update re-points the actions' messages (one `Ref`), enables or disables them, and rebuilds the `GMenu` only when labels or separators change. A menu taken away (`[]`) keeps its parts and opens nothing. The node's `destroy` unparents the popover, so both are freed together. A menu takes no place in a patch path.
+
 ### Wrapping grid (`wrap`, `keyed_wrap`; PRP-012)
 
 | kivuli | GTK |

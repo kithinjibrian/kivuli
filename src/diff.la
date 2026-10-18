@@ -11,6 +11,7 @@
 import views { View };
 import looks { Style, plain };
 import pictures { Image, identity };
+import menus { MenuEntry };
 
 /**
  * One change to the live widgets. A path is the list of child indexes from
@@ -51,6 +52,11 @@ enum Patch<Msg> {
     SetButtonImage(i64[], Option<Image>),
     /** The widget at the path takes this whole style (every modifier, defaults included). */
     SetStyle(i64[], Style),
+    /**
+     * The widget at the path has this context menu from now on (`[]`: none).
+     * Every update: its messages can't be compared.
+     */
+    SetMenu(i64[], MenuEntry<Msg>[]),
     /** The widget at the path is a different kind now: build this view in its place. */
     Replace(i64[], View<Msg>),
     /** The column or row at the path gains this view as its last child. */
@@ -86,13 +92,31 @@ fun diff_at<Msg>(path: i64[], old: View<Msg>, new: View<Msg>): Patch<Msg>[] = ma
 fun diff_node<Msg>(path: i64[], old: View<Msg>, new: View<Msg>): Patch<Msg>[] {
     let (old_inside, old_style) = split(old);
     let (new_inside, new_style) = split(new);
-    let inside = diff_inside(path, old_inside, new_inside, new);
-    // A different kind is rebuilt whole, its style with it: nothing to restyle.
+    let (old_node, old_menu) = unmenu(old_inside);
+    let (new_node, new_menu) = unmenu(new_inside);
+    let inside = diff_inside(path, old_node, new_node, new);
+    // A different kind is rebuilt whole, its style and menu with it.
     if inside.len > 0 && replaces(inside[0], path) {
         return inside;
     }
-    if old_style == new_style { inside } else { joined([Patch.SetStyle(path, new_style)], inside) }
+    let mut out: Patch<Msg>[] = if old_style == new_style {
+        inside
+    } else {
+        joined([Patch.SetStyle(path, new_style)], inside)
+    };
+    // A menu gained or lost is set on the same widget, not rebuilt with it.
+    if old_menu.is_some() || new_menu.is_some() {
+        let none: MenuEntry<Msg>[] = [];
+        out.push(Patch.SetMenu(path, new_menu.unwrap_or(none)));
+    }
+    out
 }
+
+/** A node without its `Menu` wrapper, and the menu's entries, if it has one. */
+fun unmenu<Msg>(v: View<Msg>): (View<Msg>, Option<MenuEntry<Msg>[]>) = match v {
+    Menu(inside, entries) => (inside, Some(entries)),
+    _ => (v, None),
+};
 
 /** A node without its `Styled` wrapper, and its style (`plain()` when it has none). */
 fun split<Msg>(v: View<Msg>): (View<Msg>, Style) = match v {

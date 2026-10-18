@@ -1,0 +1,18 @@
+// Menu entries, without GTK: items, separators, disabled items.
+import kivuli.menus { MenuEntry };
+import kivuli { item, menu_separator };
+
+fun assert_same<T>(actual: T, expected: T) {
+    assert_eq("{actual}", "{expected}");
+}
+
+@test
+fun entries_are_items_separators_and_disabled_items() {
+    let open: MenuEntry<i64> = MenuEntry.Item("Open", Some(1));
+    assert_same(item("Open", 1), open);
+    let line: MenuEntry<i64> = MenuEntry.Separator;
+    assert_same(menu_separator(), line);
+    let off: MenuEntry<i64> = MenuEntry.Item("Open", None);
+    assert_same(item("Open", 1).disabled(true), off);
+    assert_same(item("Open", 1).disabled(false), open);
+}

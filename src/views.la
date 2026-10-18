@@ -9,8 +9,9 @@
 import looks { Style, Window, ButtonStyle, Align, Fit, plain };
 import theming { Theme };
 import pictures { Image };
+import menus { MenuEntry };
 // The one import cycle kivuli allows (DECISION-018): mapping maps views.
-import mapping { mapped };
+import mapping { button_image, disabled_node, mapped, with_menu, with_submit };
 
 /**
  * A description of what's on screen. `Msg` is the app's message type: what a
@@ -58,6 +59,8 @@ public enum View<Msg> {
     KeyedWrap((string, View<Msg>)[]),
     /** A base view with layers drawn on top of it, in order (later on top). */
     Overlay(View<Msg>, View<Msg>[]),
+    /** A node with a context menu (`.menu`): the node, and the menu's entries. */
+    Menu(View<Msg>, MenuEntry<Msg>[]),
     /**
      * The root of a view with a header bar (`.header`): the body, the views at
      * the bar's start, its title view, and the views at its end.
@@ -193,17 +196,7 @@ impl View<Msg> {
      *     button("Reset", Msg.Reset).disabled(m.count == 0)
      *     input(m.title, Msg.Title).disabled(m.locked)
      */
-    public fun disabled(self, off: bool): View<Msg> = if !off {
-        self
-    } else {
-        match self {
-            Button(label, _, img) => View.Button(label, None, img),
-            Input(value, _) => View.Input(value, None),
-            TextArea(value, _) => View.TextArea(value, None),
-            Styled(inside, s) => View.Styled(inside.disabled(true), s),
-            _ => self,
-        }
-    };
+    public fun disabled(self, off: bool): View<Msg> = disabled_node(self, off);
 
     /**
      * Titles the app's window and sets the size it opens at, in pixels. On
@@ -353,15 +346,10 @@ impl View<Msg> {
      * Example:
      *     button("", Msg.Delete(t.id)).icon("user-trash-symbolic").tooltip("Delete {t.title}")
      */
-    public fun icon(self, name: string): View<Msg> = if name == "" {
-        match self {
-            Button(label, msg, _) => View.Button(label, msg, None),
-            Styled(inside, s) => View.Styled(inside.icon(""), s),
-            _ => self,
-        }
-    } else {
-        self.image(Image.Icon(name))
-    };
+    public fun icon(self, name: string): View<Msg> = button_image(
+        self,
+        if name == "" { None } else { Some(Image.Icon(name)) },
+    );
 
     /**
      * Shows an image on a button, before its label; with the label `""`, an
@@ -372,11 +360,7 @@ impl View<Msg> {
      * Example:
      *     button("", Msg.Tab(id)).image(Image.Bytes("tab:{id}", icon)).tooltip(name)
      */
-    public fun image(self, img: Image): View<Msg> = match self {
-        Button(label, msg, _) => View.Button(label, msg, Some(img)),
-        Styled(inside, s) => View.Styled(inside.image(img), s),
-        _ => self,
-    };
+    public fun image(self, img: Image): View<Msg> = button_image(self, Some(img));
 
     /**
      * How a picture fills the room it's given (`Fit.Contain` by default).
@@ -474,13 +458,17 @@ impl View<Msg> {
         fun(s: Style) = Style { place_across: across, place_down: down, ..s },
     );
 
-    public fun on_submit(self, msg: Msg): View<Msg> = match self {
-        Input(value, Some((on_change, _))) => View.Input(value, Some((on_change, Some(msg)))),
-        // Disabled: there are no messages to add Enter's to.
-        Input(_, None) => self,
-        Styled(inside, s) => View.Styled(inside.on_submit(msg), s),
-        _ => self,
-    };
+    public fun on_submit(self, msg: Msg): View<Msg> = with_submit(self, msg);
+
+    /**
+     * Gives the node a context menu, opened by a right-click, a long press or
+     * the Menu key (Shift+F10); picking an item sends its message. Applied
+     * again, the new entries replace the old; `[]` takes the menu away.
+     *
+     * Example:
+     *     tab(t).menu([item("Close tab", Msg.Close(t.id)), menu_separator(), item("Close others", Msg.CloseOthers(t.id))])
+     */
+    public fun menu(self, entries: MenuEntry<Msg>[]): View<Msg> = with_menu(self, entries);
 
     /**
      * The same view, sending `f(msg)` wherever it would send `msg`: how a

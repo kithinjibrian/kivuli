@@ -364,9 +364,19 @@ Branch: main (PRP-013 on prp-013-overlay, merged)
 
 ---
 
-## SESSION 15 — 2026-10-18 — PRP-014: context menus — open
+## SESSION 15 — 2026-10-18 — PRP-014: context menus, kivuli 0.9.0 — closed
 
-Branch: main
+Branch: main (PRP-014 on prp-014-context_menus, merged)
+
+### WHAT WAS DONE
+- Interview (`.menu([item(…), menu_separator(), …])`, `.disabled(true)` on items; right-click, long press, Menu key / Shift+F10; `pick(view, owner, item)`), PRP-014 approved and built. Room made first: the node-rewriting modifiers' bodies moved to mapping.la (own commit). lugha-gtk 0.1.28 (menus, actions, popovers, gestures) and 0.1.29 (`GdkRectangle`'s fields public) pushed. New src/menus.la (pure), src/popovers.la (GTK); `View.Menu`, `Live.Menu` (looked through by paths), `SetMenu`. Tests: test/menus.la, test/diff_menu.la, test/lib.la, test/testing.la, test/map.la, test/live_menu.la. frame.la: tab menus (Duplicate, Close, Close other tabs). DECISION-015 resolved. kivuli 0.9.0, tagged locally.
+- Found while testing: a hidden window keeps its focus widget alive after removal (checked in C, GTK 4.22; not a kivuli leak); the live test moves focus first.
+
+### STILL OPEN AT CLOSE
+- Not pushed, waiting for the user's go: main and tag v0.9.0.
+- For the user to check by hand: `lughac run examples/frame.la`: right-click a tab (and Shift+F10 on a focused tab): Duplicate, Close, Close others (greyed out with one tab); the menu opens at the pointer.
+- Queued: file dialog (013), Rapidkoi's clickable rows (its DECISION-020 item 0). For the lugha session: DECISIONS 020-022. test/live_forms.la split awaiting the user.
+- `reports/.gitkeep` deleted in the working tree, not by Claude; left alone.
 
 ---
 

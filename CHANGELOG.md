@@ -8,6 +8,14 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.9.0] — 2026-10-18
+
+### Added
+- Context menus (PRP-014): `.menu([item(label, msg), menu_separator(), …])` on any node, opened by a right-click, a long press or the Menu key (Shift+F10); `item(…).disabled(true)` greys an item out. `kivuli.testing.pick(view, owner, item)` finds an item's message without GTK. `examples/frame.la`'s tabs have Duplicate, Close and Close other tabs. Needs lugha-gtk 0.1.29.
+
+### Changed
+- The bodies of `.disabled`, `.image`/`.icon` and `.on_submit` moved from `src/views.la` to `src/mapping.la` (file size); no change for apps.
+
 ## [0.8.0] — 2026-10-18
 
 ### Added

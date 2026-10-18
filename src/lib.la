@@ -12,6 +12,7 @@ public import views { View };
 public import looks { Align, ButtonStyle, Fit };
 public import theming { Border, Color, Surface, Theme, hex, rgb, theme };
 public import pictures { Image };
+public import menus { MenuEntry, item, menu_separator };
 public import widgets {
     text,
     button,

@@ -40,6 +40,15 @@ fun walk<Msg>(v: View<Msg>, style: Style): (View<Msg>, Style)[] = match v {
         with_children(v, style, xs)
     }
     Scroll(x) => with_children(v, style, [x]),
+    // The menu, then its node with the same style: a button with a menu is
+    // still found by its label or tooltip.
+    Menu(inside, _) => {
+        let mut out = [(v, style)];
+        for pair of walk(inside, style) {
+            out.push(pair);
+        }
+        out
+    }
     Framed(body, start, title, end) => {
         let mut xs = [body, title];
         for x of start {
@@ -77,6 +86,7 @@ fun find_name<Msg>(v: View<Msg>, name: string, path: i64[]): Option<i64[]> = mat
         find_name(inside, name, path)
     },
     Lazy(_, _, Some(built)) => find_name(built, name, path),
+    Menu(inside, _) => find_name(inside, name, path),
     Column(xs) => find_in(xs, name, path),
     Row(xs) => find_in(xs, name, path),
     Keyed(pairs) => find_in(pairs.map(fun(pair) = pair.1), name, path),

@@ -74,6 +74,10 @@ import widgets { snap };
 fun apply_style<Msg>(node: Live<Msg>, style: Style, axis: i32) {
     // A header's modifiers are its body's: `.header` keeps them outside the frame.
     match node {
+        Menu(inner, _) => {
+            apply_style(inner, style, axis);
+            return;
+        }
         Framed(bar, body, _, _, _) => {
             apply_style(body, style, axis);
             // `.header_style`'s looks: on the bar only, its window controls untouched.

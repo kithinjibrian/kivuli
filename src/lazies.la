@@ -29,6 +29,7 @@ fun resolve<Msg>(v: View<Msg>, old: Option<View<Msg>>): View<Msg> = match v {
         _ => View.Lazy(key, build, Some(resolve(build(), counterpart(old)))),
     },
     Styled(x, style) => View.Styled(resolve(x, counterpart(old)), style),
+    Menu(x, entries) => View.Menu(resolve(x, counterpart(old)), entries),
     Column(xs) => View.Column(resolve_children(xs, match counterpart(old) {
         Some(Column(ys)) => ys,
         _ => [],
@@ -77,6 +78,8 @@ fun resolve<Msg>(v: View<Msg>, old: Option<View<Msg>>): View<Msg> = match v {
 /** The old node a new one (not a lazy) is matched against: through its style and any lazy around it. */
 fun counterpart<Msg>(old: Option<View<Msg>>): Option<View<Msg>> = match old {
     Some(Styled(x, _)) => counterpart(Some(x)),
+    // A node gaining or losing a menu is diffed against itself.
+    Some(Menu(x, _)) => counterpart(Some(x)),
     Some(Lazy(_, _, Some(built))) => counterpart(Some(built)),
     _ => old,
 };

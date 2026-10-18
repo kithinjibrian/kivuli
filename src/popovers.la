@@ -1,0 +1,239 @@
+/**
+ * Context menus on real widgets: a `GtkPopoverMenu` parented to the node's
+ * widget, showing a `GMenu` whose items name actions (`kv.item0`, …) in an
+ * action group on the widget; a right-click, a long press and the Menu key
+ * (Shift+F10) open it. Not responsible for what the entries are (`menus`) or
+ * when they change (`diff`).
+ *
+ * Depends on: menus, live_tree, styling (`flag`), gtk.raw
+ * Used by: build, patch
+ */
+
+import gtk {
+    GMenu,
+    GSimpleAction,
+    GVariant,
+    GdkRectangle,
+    GtkEventController,
+    GtkWidget,
+    connect_action,
+    connect_click,
+    connect_long_press,
+    connect_widget,
+    g_action_map_add_action,
+    g_menu_append,
+    g_menu_append_section,
+    g_menu_new,
+    g_menu_unref,
+    g_simple_action_group_new,
+    g_simple_action_group_unref,
+    g_simple_action_new,
+    g_simple_action_set_enabled,
+    g_simple_action_unref,
+    gtk_callback_action_new,
+    gtk_gesture_click_new,
+    gtk_gesture_long_press_new,
+    gtk_gesture_single_set_button,
+    gtk_popover_menu_new_from_model,
+    gtk_popover_menu_set_menu_model,
+    gtk_popover_popdown,
+    gtk_popover_popup,
+    gtk_popover_set_has_arrow,
+    gtk_popover_set_pointing_to,
+    gtk_shortcut_action_ref,
+    gtk_shortcut_controller_add_shortcut,
+    gtk_shortcut_controller_new,
+    gtk_shortcut_controller_set_scope,
+    gtk_shortcut_new,
+    gtk_shortcut_trigger_parse_string,
+    gtk_widget_add_controller,
+    gtk_widget_get_height,
+    gtk_widget_get_width,
+    gtk_widget_insert_action_group,
+    gtk_widget_set_parent,
+    gtk_widget_unparent,
+};
+import menus { MenuEntry, layout, message_of };
+import live_tree { Popup };
+import styling { flag };
+
+/**
+ * Gives `w` a context menu showing `entries`: the popover, the action group,
+ * the gestures and the shortcut, each made and connected once for the
+ * widget's whole life (`refresh` changes what they show and send).
+ */
+fun attach<Msg>(w: GtkWidget, entries: MenuEntry<Msg>[], send: fun(Msg)): Popup<Msg> {
+    let group = g_simple_action_group_new();
+    gtk_widget_insert_action_group(w, "kv", Some(group));
+    // The widget holds the group now; ours is dropped, and the group lives as long as it.
+    g_simple_action_group_unref(group);
+    let empty = g_menu_new();
+    let popover = gtk_popover_menu_new_from_model(Some(empty));
+    gtk_widget_set_parent(popover, w);
+    // A context menu opens where it was asked for, without an arrow.
+    gtk_popover_set_has_arrow(popover, 0);
+    // A widget must not be freed with a popover still parented to it (GTK warns,
+    // and the popover leaks): it goes when the widget does.
+    connect_widget(
+        w,
+        "destroy",
+        fun(gone: GtkWidget) {
+            gtk_widget_unparent(popover);
+        },
+        0,
+    );
+    let current: Ref<MenuEntry<Msg>[]> = Ref.new([]);
+    // Opens the menu pointing at a rectangle of `w`, if it has an item: a node
+    // whose menu was taken away (`[]`) keeps its gestures, which then do nothing.
+    let open = fun(x: i32, y: i32, wide: i32, high: i32): bool {
+        if layout(current.get()).len == 0 {
+            return false;
+        }
+        gtk_popover_set_pointing_to(
+            popover,
+            ptr GdkRectangle { x: x, y: y, width: wide, height: high },
+        );
+        gtk_popover_popup(popover);
+        true
+    };
+    let click = gtk_gesture_click_new();
+    // The secondary button: the primary is the node's own (a button's click).
+    gtk_gesture_single_set_button(click, 3);
+    connect_click(
+        click,
+        "pressed",
+        fun(g: GtkEventController, n: i32, x: f64, y: f64) {
+            open(x as i32, y as i32, 1, 1);
+        },
+        0,
+    );
+    gtk_widget_add_controller(w, click);
+    let hold = gtk_gesture_long_press_new();
+    connect_long_press(
+        hold,
+        "pressed",
+        fun(g: GtkEventController, x: f64, y: f64) {
+            open(x as i32, y as i32, 1, 1);
+        },
+        0,
+    );
+    gtk_widget_add_controller(w, hold);
+    // Local scope: the keys work while the node or something inside it has focus.
+    let controller = gtk_shortcut_controller_new();
+    gtk_shortcut_controller_set_scope(controller, 0);
+    let keys = gtk_callback_action_new(
+        fun(owner: GtkWidget, args: Option<GVariant>): i32 = flag(
+            open(0, 0, gtk_widget_get_width(owner), gtk_widget_get_height(owner)),
+        ),
+    );
+    let trigger = gtk_shortcut_trigger_parse_string("Menu|<Shift>F10").expect(
+        "GTK reads the Menu key and Shift+F10",
+    );
+    // The shortcut takes the action; ours is kept for tests to run it.
+    gtk_shortcut_controller_add_shortcut(
+        controller,
+        gtk_shortcut_new(trigger, gtk_shortcut_action_ref(keys)),
+    );
+    gtk_widget_add_controller(w, controller);
+    let popup = Popup {
+        popover: popover,
+        group: group,
+        actions: Ref.new([]),
+        entries: current,
+        model: Ref.new(empty),
+        shown: Ref.new([]),
+        click: click,
+        hold: hold,
+        keys: keys,
+    };
+    g_menu_unref(empty);
+    refresh(popup, entries, send);
+    popup
+}
+
+/**
+ * Shows `entries` from now on: the messages re-pointed always, the menu
+ * model rebuilt only when labels or separators changed, and each item's
+ * action enabled when it has a message. An open menu stays open.
+ */
+fun refresh<Msg>(p: Popup<Msg>, entries: MenuEntry<Msg>[], send: fun(Msg)) {
+    p.entries.set(entries);
+    let shape = layout(entries);
+    if shape != p.shown.get() {
+        let model = model_of(entries);
+        gtk_popover_menu_set_menu_model(p.popover, Some(model));
+        p.model.set(model);
+        // The popover holds the model now.
+        g_menu_unref(model);
+        p.shown.set(shape);
+    }
+    // One action per item, by its place among the items, connected once;
+    // each reads its message from `p.entries` when picked.
+    let mut actions = p.actions.get();
+    let mut i = actions.len;
+    while i < items_in(entries) {
+        let index = i;
+        let action = g_simple_action_new("item{index}", None);
+        connect_action(
+            action,
+            "activate",
+            fun(a: GSimpleAction, param: Option<GVariant>) {
+                match message_of(p.entries.get(), index) {
+                    Some(msg) => send(msg),
+                    None => {}
+                }
+            },
+            0,
+        );
+        g_action_map_add_action(p.group, action);
+        // The group holds it; the pointer stays valid as long as the group.
+        g_simple_action_unref(action);
+        actions.push(action);
+        i = i + 1;
+    }
+    p.actions.set(actions);
+    let mut j = 0;
+    while j < actions.len {
+        g_simple_action_set_enabled(actions[j], flag(message_of(entries, j).is_some()));
+        j = j + 1;
+    }
+    if items_in(entries) == 0 {
+        gtk_popover_popdown(p.popover);
+    }
+}
+
+fun items_in<Msg>(entries: MenuEntry<Msg>[]): i64 {
+    let mut n = 0;
+    for e of entries {
+        match e {
+            Item(_, _) => {
+                n = n + 1;
+            }
+            Separator => {}
+        }
+    }
+    n
+}
+
+/** The menu model: items in sections, a new section after each separator. */
+fun model_of<Msg>(entries: MenuEntry<Msg>[]): GMenu {
+    let menu = g_menu_new();
+    let mut section = g_menu_new();
+    let mut i = 0;
+    for e of entries {
+        match e {
+            Item(label, _) => {
+                g_menu_append(section, Some(label), Some("kv.item{i}"));
+                i = i + 1;
+            }
+            Separator => {
+                g_menu_append_section(menu, None, section);
+                g_menu_unref(section);
+                section = g_menu_new();
+            }
+        }
+    }
+    g_menu_append_section(menu, None, section);
+    g_menu_unref(section);
+    menu
+}
