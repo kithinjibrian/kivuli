@@ -98,6 +98,14 @@ Dark mode: apps follow the desktop's preference. Forcing dark from an app is def
 
 ---
 
+## Background work (`Cmd.task`, `Sub.receive`; PRP-011)
+
+Lugha runs every green thread on the program's one OS thread, and GTK's main loop holds that thread inside one `extern` call (`g_application_run`). So kivuli hands Lugha's scheduler turns: while any task or `Sub.receive` is active, a GLib timeout (every 4 ms) calls `task.yield_now()`, which never blocks (it wakes due sleepers, polls sockets with `epoll_wait(…, 0)`, and runs ready threads one round, Lugha's preemption cutting a busy one off every 4,096 steps). It keeps yielding while yields find work, up to 2 ms of the 4 ms, then dispatches finished tasks' messages and received values on GTK's thread, one `update` at a time. With nothing in flight the source removes itself. An OS thread per task is impossible in Lugha (one OS thread; callbacks only on the thread that registered them).
+
+Requests for the lugha session (not worked around): runtime hooks so GLib waits exactly instead of a timer (DECISION-021), and blocking calls off the one thread (DECISION-022).
+
+---
+
 ## What Is Forbidden
 
 - No hardcoded colours, fonts, or pixel values inside kivuli. Numbers reach GTK only from app-supplied modifier arguments, and colours only from an app's theme.

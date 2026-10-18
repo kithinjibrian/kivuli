@@ -16,6 +16,28 @@ Rules:
 
 ## DEFERRED — Acknowledged, not yet needed
 
+### DECISION-021 — lughac: runtime hooks for a GUI's main loop
+
+**Status:** deferred (a lughac request, reported; kivuli polls meanwhile)
+**Raised:** 2026-10-18 — Session 12 (PRP-011)
+**Revisit when:** the lugha runtime exposes them; then kivuli waits exactly instead of a 4 ms timer.
+
+**Question:** kivuli drives Lugha's scheduler from a GLib timeout calling `task.yield_now()` every 4 ms while work is in flight, and guesses from how long a yield took whether more is ready. Hooks would make it exact: the runtime's `epoll` descriptor (GLib watches it), the next sleeper's deadline (GLib's timeout), and whether any green thread is ready.
+
+**Notes:** Costs today: a result can arrive up to a tick late, and the 2 ms budget per tick is a heuristic (`NOTHING_RAN_US`). Read for reference in `../lugha/runtime/spawn.c`, `tasks.c`, `net.c`.
+
+---
+
+### DECISION-022 — lughac: blocking calls off the one OS thread
+
+**Status:** deferred (a lughac request, reported; documented as a limit)
+**Raised:** 2026-10-18 — Session 12 (PRP-011)
+**Revisit when:** the lugha runtime can run a blocking call without holding every green thread (e.g. a worker pool that parks only the calling green thread).
+
+**Question:** Reading files (`read_bytes` and the like), DNS lookups (at a connection's start), `std.crypto` (OpenSSL) and `std.process` each hold Lugha's one OS thread until they return, so inside a kivuli app they pause the window even in a `Cmd.task`. Rapidkoi's brief named reading files and hashing as background work.
+
+---
+
 ### DECISION-020 — lughac: std.fs can't tell a file's size
 
 **Status:** deferred (a lughac wish, reported; not worked around)

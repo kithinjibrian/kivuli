@@ -72,6 +72,7 @@ lughac run examples/notes.la
 lughac run examples/settings.la
 lughac run examples/gallery.la
 lughac run examples/frame.la
+lughac run examples/download.la
 ```
 
 ## What's there
@@ -163,8 +164,20 @@ row([counter(m.left).map(Msg.Left), counter(m.right).map(Msg.Right)])
 | `Cmd.after(ms, msg)` | Send `msg` once, `ms` milliseconds from now. |
 | `Cmd.quit()` | End the app. |
 | `Cmd.focus(name)` | Move keyboard focus to the node named `name` (`.name(name)`). |
+| `Cmd.task(work, done)` | Run `work` (a function taking nothing) in the background, on a green thread, and send `done(result)` when it returns: exactly one message. `update` stays fast and testable: it only describes the work. |
 | `Sub.none()`, `Sub.batch(subs)` | Nothing; several subscriptions. |
 | `Sub.every(ms, f)` | Send `f(now)` every `ms` milliseconds (`now` in milliseconds since 1970) while `subscriptions` keeps returning it. |
+| `Sub.receive(chan, f)` | Send `f(value)` for every value sent on a Lugha channel, in order, while `subscriptions` keeps returning it: how a worker built with `spawn`, channels or actors reports progress. |
+
+**Background work** (`Cmd.task`, `Sub.receive`). Lugha's green threads share the program's one OS thread with GTK, and kivuli gives them turns while the window runs. What that means in practice:
+
+| Work | |
+| --- | --- |
+| Downloads and sockets (`std.http`, `std.net`, `std.tls`), `task.sleep` | in the background: the window stays responsive |
+| Computation written in Lugha | shares the window in slices: the window stays responsive, the work runs slower than alone |
+| A single blocking call: reading a file, a DNS lookup (at a connection's start), `std.crypto`, `std.process` | still holds the window until it returns, task or not (a Lugha runtime change, DECISION-022) |
+
+A task runs on a copy of what it captured, must not call kivuli or GTK, and can't be cancelled (ignore a result you no longer want); a panic in it ends the program. `examples/download.la` shows a download with a spinner and a counter reporting progress.
 
 ## Testing an app
 

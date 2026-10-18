@@ -153,6 +153,14 @@ Decisions 1–12 were agreed in the design discussion in the lugha repository (a
 
 ---
 
+### 19. Background work: kivuli hands Lugha's scheduler turns (PRP-011)
+
+**Decision:** `Cmd.task(work, done)` (spawn + a channel) and `Sub.receive(chan, f)`. While either is in flight, a GLib timeout calls `task.yield_now()` (non-blocking) up to a budget each tick; results reach `update` on GTK's thread. `update` stays pure: it describes work, kivuli runs it.
+
+**Rules out:** OS threads (Lugha has one), kivuli-side networking (decision 17), cancellation in v1. Blocking calls (files, DNS, `std.crypto`, `std.process`) still hold the window until Lugha changes (DECISION-022).
+
+---
+
 ## CURRENT PROJECT STATE
 
 ### Fully Working
