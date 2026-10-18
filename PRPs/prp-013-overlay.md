@@ -1,6 +1,6 @@
 # PRP-013 — Overlay: layers on top of a view
 
-Status: draft, for the user's approval
+Status: approved by the user (session 14); building on branch prp-013-overlay
 Discovery: session 14, 2026-10-18 (DECISION-014; Rapidkoi's DECISION-020, its info panel over the app). *(you)*: chosen in the interview; *(proposed)*: for you to confirm or change with this PRP.
 
 ## FEATURE: `overlay(base, layers)` draws views on top of a base view; each layer sits where `.place(across, down)` says.
