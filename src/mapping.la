@@ -48,6 +48,7 @@ fun mapped<Msg, B>(v: View<Msg>, f: fun(Msg): B): View<B> = match v {
     Keyed(pairs) => View.Keyed(pairs.map(fun(pair) = (pair.0, pair.1.map(f)))),
     Wrap(xs) => View.Wrap(xs.map(fun(x) = x.map(f))),
     KeyedWrap(pairs) => View.KeyedWrap(pairs.map(fun(pair) = (pair.0, pair.1.map(f)))),
+    Overlay(base, layers) => View.Overlay(base.map(f), layers.map(fun(x) = x.map(f))),
     Styled(x, style) => View.Styled(x.map(f), style),
     Framed(body, start, title, end) => View.Framed(
         body.map(f),

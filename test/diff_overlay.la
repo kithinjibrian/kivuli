@@ -1,0 +1,46 @@
+// Diffing overlays: the base at path 0, the layers at path 1 by position, so
+// layers coming and going never touch the base. (test/diff.la is at the limit.)
+import kivuli.diff { Patch, diff as patches };
+import kivuli.looks { Style, plain };
+import kivuli { Align, View, column, overlay, text };
+
+fun assert_same<T>(actual: T, expected: T) {
+    assert_eq("{actual}", "{expected}");
+}
+
+@test
+fun layers_come_and_go_without_touching_the_base() {
+    let shut: View<i64> = overlay(text("page"), []);
+    let open: View<i64> = overlay(text("page"), [text("panel")]);
+    let opened: Patch<i64>[] = [Patch.Append([1], text("panel"))];
+    assert_same(patches(shut, open), opened);
+    let closed: Patch<i64>[] = [Patch.Remove([1, 0])];
+    assert_same(patches(open, shut), closed);
+    let changed: Patch<i64>[] = [Patch.SetText([1, 0], "info")];
+    assert_same(patches(open, overlay(text("page"), [text("info")])), changed);
+}
+
+@test
+fun the_base_changes_alone_at_path_zero() {
+    let expected: Patch<i64>[] = [Patch.SetText([0], "other")];
+    assert_same(
+        patches(overlay(text("page"), [text("panel")]), overlay(text("other"), [text("panel")])),
+        expected,
+    );
+}
+
+@test
+fun an_overlay_that_becomes_a_column_is_replaced_and_place_restyles() {
+    let replaced: Patch<i64>[] = [Patch.Replace([], column([text("page")]))];
+    assert_same(patches(overlay(text("page"), []), column([text("page")])), replaced);
+    let moved: Patch<i64>[] = [
+        Patch.SetStyle([1, 0], Style { place_across: Align.End, ..plain() }),
+    ];
+    assert_same(
+        patches(
+            overlay(text("page"), [text("panel")]),
+            overlay(text("page"), [text("panel").place(Align.End, Align.Fill)]),
+        ),
+        moved,
+    );
+}

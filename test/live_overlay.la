@@ -1,0 +1,193 @@
+// Overlays on real GTK widgets: a GtkOverlay whose child is the base and
+// whose layers follow it in order, each placed by `.place`; opening and
+// closing a panel never touches the base; a removed layer is freed; replacing
+// a middle layer keeps the one above it, alive and in place. Needs a display,
+// so it is skipped without one. (How it looks on screen: examples/frame.la.)
+import std.env;
+import gtk {
+    GtkApplication,
+    GtkWidget,
+    connect_app,
+    emit_widget,
+    g_application_quit,
+    g_application_run,
+    g_object_unref,
+    gtk_application_new,
+    gtk_application_window_new,
+    gtk_overlay_get_child,
+    gtk_widget_get_first_child,
+    gtk_widget_get_halign,
+    gtk_widget_get_next_sibling,
+    gtk_widget_get_valign,
+    on_finalized,
+};
+import kivuli.live { mount, live_of };
+import kivuli.effects { sandbox_app };
+import kivuli.live_tree { Live, widget };
+import kivuli { Align, View, button, column, overlay, text };
+
+fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
+
+/** Runs `steps` with a function giving the app's top column's children now. */
+fun with_app<Model, Msg>(
+    id: string,
+    model: Model,
+    update: fun(Model, Msg): Model,
+    view: fun(Model): View<Msg>,
+    steps: fun(fun(): Live<Msg>[]),
+) {
+    let application = gtk_application_new(id, 0);
+    connect_app(
+        application,
+        "activate",
+        fun(a: GtkApplication) {
+            let window = gtk_application_window_new(a);
+            let app = mount(a, window, sandbox_app("org.kivuli.test", model, update, view));
+            steps(fun(): Live<Msg>[] = match live_of(app) {
+                Box(_, _, kids) => kids,
+                _ => panic("expected a column"),
+            });
+            g_application_quit(a);
+        },
+        0,
+    );
+    g_application_run(application, 0, None);
+    g_object_unref(application);
+}
+
+fun note(seen: Ref<string[]>, s: string) {
+    seen.update(fun(xs) {
+        let mut ys = xs;
+        ys.push(s);
+        ys
+    });
+}
+
+enum Panel {
+    Open,
+    Close,
+    Swap,
+}
+
+struct Page {
+    open: bool,
+    /** The panel shown as a button instead of text: a different kind, so it's replaced. */
+    swapped: bool,
+}
+
+fun update_page(p: Page, msg: Panel): Page = match msg {
+    Open => Page { open: true, ..p },
+    Close => Page { open: false, swapped: false },
+    Swap => Page { swapped: true, ..p },
+};
+
+fun view_page(p: Page): View<Panel> {
+    let panel: View<Panel> = if p.swapped { button("Panel", Panel.Close) } else { text("panel") };
+    let layers: View<Panel>[] = if p.open {
+        [panel.place(Align.End, Align.Fill), text("toast").place(Align.Center, Align.End)]
+    } else {
+        []
+    };
+    column([
+        overlay(text("page"), layers),
+        button("Open", Panel.Open),
+        button("Close", Panel.Close),
+        button("Swap", Panel.Swap),
+    ])
+}
+
+/** The overlay, its base and its layers, as kivuli holds them. */
+fun parts(kids: Live<Panel>[]): (GtkWidget, Live<Panel>, Live<Panel>[]) = match kids[0] {
+    Overlay(over, base, Layers(_, layers)) => (over, base, layers),
+    _ => panic("expected an overlay"),
+};
+
+/** A node's name in GTK's order: its text, a button's label in brackets. */
+fun name_of(w: GtkWidget, base: Live<Panel>, layers: Live<Panel>[]): string {
+    let mut named = "?";
+    let mut nodes = [base];
+    for l of layers {
+        nodes.push(l);
+    }
+    for n of nodes {
+        if widget(n) == w {
+            named = match n {
+                Label(_) => if widget(n) == widget(base) { "base" } else { "text" },
+                Button(_, _, _, _, _, _) => "button",
+                _ => "other",
+            };
+        }
+    }
+    named
+}
+
+/** The overlay's children in GTK's own order, each with its alignment (h/v). */
+fun stack(kids: Live<Panel>[]): string {
+    let (over, base, layers) = parts(kids);
+    let mut out: string[] = [];
+    let mut next = gtk_widget_get_first_child(over);
+    let mut guard = 0;
+    while guard < 10 {
+        match next {
+            Some(w) => {
+                out.push(
+                    "{name_of(w, base, layers)} {gtk_widget_get_halign(w)}/{gtk_widget_get_valign(w)}",
+                );
+                next = gtk_widget_get_next_sibling(w);
+            }
+            None => {
+                guard = 10;
+            }
+        }
+        guard = guard + 1;
+    }
+    out.join(", ")
+}
+
+@test
+fun layers_open_and_close_over_an_untouched_base() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen: Ref<string[]> = Ref.new([]);
+    let freed: Ref<string[]> = Ref.new([]);
+    with_app("org.kivuli.test.overlay", Page {
+        open: false,
+        swapped: false,
+    }, update_page, view_page, fun(kids: fun(): Live<Panel>[]) {
+        let (over, base, _) = parts(kids());
+        let page = widget(base);
+        note(seen, stack(kids()));
+        note(seen, "child is the base: {gtk_overlay_get_child(over) == Some(page)}");
+        // Open: two layers on top, placed by .place (End=2/Fill=0, Center=3/End=2).
+        emit_widget(widget(kids()[1]), "clicked");
+        note(seen, stack(kids()));
+        let (_, _, layers) = parts(kids());
+        let toast = widget(layers[1]);
+        on_finalized(toast, fun(gone: GtkWidget) {
+            note(freed, "toast");
+        });
+        // Swap the panel (the middle layer) for a button: the toast stays on top, alive.
+        emit_widget(widget(kids()[3]), "clicked");
+        note(seen, stack(kids()));
+        let (_, _, swapped) = parts(kids());
+        note(seen, "toast kept: {widget(swapped[1]) == toast}");
+        note(seen, "freed so far: {freed.get().len}");
+        // Close: the layers go, the base stays.
+        emit_widget(widget(kids()[2]), "clicked");
+        note(seen, stack(kids()));
+        let (_, still, _) = parts(kids());
+        note(seen, "same base: {widget(still) == page}");
+    });
+    assert_eq(seen.get(), [
+        "base 0/0",
+        "child is the base: true",
+        "base 0/0, text 2/0, text 3/2",
+        "base 0/0, button 2/0, text 3/2",
+        "toast kept: true",
+        "freed so far: 0",
+        "base 0/0",
+        "same base: true",
+    ]);
+    assert_eq(freed.get(), ["toast"]);
+}

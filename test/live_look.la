@@ -19,6 +19,7 @@ import gtk {
     gtk_header_bar_get_title_widget,
     gtk_widget_get_overflow,
     gtk_widget_has_css_class,
+    gtk_widget_get_parent,
     gtk_window_get_titlebar,
     lgtk_widget_rgba,
 };
@@ -311,4 +312,46 @@ fun a_rounded_corner_lands_and_clips_the_content() {
         "same: true",
     ]);
     assert_eq(received.get(), ["Toggle", "Toggle"]);
+}
+
+enum Repack {
+    Swap,
+}
+
+// The header's first start view changes kind (text to button): it's replaced,
+// and the view after it is taken off and packed again.
+fun view_repack(swapped: bool): View<Repack> = column([button("Swap", Repack.Swap)]).header(
+    [if swapped { button("first", Repack.Swap) } else { text("first") }, text("second")],
+    text("Title"),
+    [],
+);
+
+@test
+fun replacing_a_header_view_keeps_the_ones_after_it() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen: Ref<string[]> = Ref.new([]);
+    let received: Ref<string[]> = Ref.new([]);
+    with_app("org.kivuli.test.repack", false, fun(
+        s: bool,
+        msg: Repack,
+    ): bool = true, view_repack, received, fun(window: GtkWidget, root: fun(): Live<Repack>) {
+        let Framed(_, body, _, Pack(_, _, before), _) = root() else {
+            panic("expected a header");
+        };
+        let second = widget(before[1]);
+        let Box(_, _, kids) = body else {
+            panic("expected a column");
+        };
+        emit_widget(widget(kids[0]), "clicked");
+        let Framed(_, _, _, Pack(_, _, after), _) = root() else {
+            panic("expected a header");
+        };
+        note(
+            seen,
+            "views {after.len}, second kept: {widget(after[1]) == second}, still in the bar: {gtk_widget_get_parent(second).is_some()}",
+        );
+    });
+    assert_eq(seen.get(), ["views 2, second kept: true, still in the bar: true"]);
 }

@@ -21,6 +21,7 @@ import kivuli {
     Image,
     wrap,
     keyed_wrap,
+    overlay,
     Fit,
 };
 
@@ -148,4 +149,11 @@ fun grids_map_their_childrens_messages() {
     assert_eq(click(part.map(App.Left), "Go"), Ok(App.Left(Part.Go)));
     let flat: View<Part> = wrap([button("Inc", Part.Inc)]);
     assert_eq(click(flat.map(App.Right), "Inc"), Ok(App.Right(Part.Inc)));
+}
+
+@test
+fun an_overlay_maps_its_base_and_layers() {
+    let part: View<Part> = overlay(button("Go", Part.Go), [button("Inc", Part.Inc)]);
+    assert_eq(click(part.map(App.Left), "Go"), Ok(App.Left(Part.Go)));
+    assert_eq(click(part.map(App.Left), "Inc"), Ok(App.Left(Part.Inc)));
 }

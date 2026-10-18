@@ -74,16 +74,6 @@ Rules:
 
 ---
 
-### DECISION-014 — An overlay
-
-**Status:** deferred
-**Raised:** 2026-10-17 — Session 6 (rapidkoi DECISION-020, item 5)
-**Revisit when:** after PRP-007; Rapidkoi's info panel sits beside the app meanwhile.
-
-**Question:** How does a view put one subtree over another (`GtkOverlay`), and how are the layers diffed?
-
----
-
 ### DECISION-015 — Context menus on right-click
 
 **Status:** deferred
@@ -143,6 +133,18 @@ Rules:
 ---
 
 ## RESOLVED
+
+### DECISION-014 — An overlay
+
+**Status:** resolved
+**Raised:** 2026-10-17 — Session 6 (rapidkoi DECISION-020)
+**Resolved:** 2026-10-18 — Session 14 (PRP-013, the user's choices)
+
+**Question:** How does a view put one subtree over another (`GtkOverlay`), and how are the layers diffed?
+
+**Outcome:** `overlay(base, layers)`, layers by position (later on top), placed with `.place(across, down)` using `Align`; no built-in click-outside (the app adds a full-size layer).
+
+---
 
 ### DECISION-016 — A wrapping grid
 

@@ -1,6 +1,6 @@
 # PRP-013 — Overlay: layers on top of a view
 
-Status: draft, for the user's approval
+Status: built (session 14) on branch prp-013-overlay; merged into main
 Discovery: session 14, 2026-10-18 (DECISION-014; Rapidkoi's DECISION-020, its info panel over the app). *(you)*: chosen in the interview; *(proposed)*: for you to confirm or change with this PRP.
 
 ## FEATURE: `overlay(base, layers)` draws views on top of a base view; each layer sits where `.place(across, down)` says.
@@ -61,28 +61,36 @@ overlay(page(m), if m.panel_open {
 ## TESTS TO WRITE
 
 Pure:
-- [ ] `test/lib.la`: `overlay` makes its node; `.place` lands in the style; a layer without `.place` is `Fill`, `Fill`.
-- [ ] `test/diff_overlay.la`: a layer added (`Append` at `[1]`), removed (`Remove [1, i]`), changed in place; the base changing alone touches only path `[0]`; an overlay that becomes a column is `Replace`; a change of `.place` is `SetStyle`.
-- [ ] `test/testing.la`: `click` finds a button in a layer and in the base.
-- [ ] `test/map.la`: an overlay maps its base's and layers' messages.
+- [x] `test/lib.la`: `overlay` makes its node; `.place` lands in the style; a layer without `.place` is `Fill`, `Fill`.
+- [x] `test/diff_overlay.la`: a layer added (`Append` at `[1]`), removed (`Remove [1, i]`), changed in place; the base changing alone touches only path `[0]`; an overlay that becomes a column is `Replace`; a change of `.place` is `SetStyle`.
+- [x] `test/testing.la`: `click` finds a button in a layer and in the base.
+- [x] `test/map.la`: an overlay maps its base's and layers' messages.
 
 Live GTK (skipped without a display), `test/live_overlay.la`:
-- [ ] an overlay is a `GtkOverlay` whose child is the base and whose layers follow it in order (first child, next siblings); a layer's `halign`/`valign` follow `.place`; a button in a layer sends its message.
-- [ ] opening a panel (a message adds a layer) and closing it: the base is the same widget throughout; a removed layer is finalized.
-- [ ] replacing a middle layer keeps the order of the others.
-- [ ] lugha-gtk `test/overlay.la`: each new extern.
+- [x] an overlay is a `GtkOverlay` whose child is the base and whose layers follow it in order (first child, next siblings); a layer's `halign`/`valign` follow `.place`; a button in a layer sends its message.
+- [x] opening a panel (a message adds a layer) and closing it: the base is the same widget throughout; a removed layer is finalized.
+- [x] replacing a middle layer keeps the order of the others.
+- [x] lugha-gtk `test/overlay.la`: each new extern.
 - [ ] How it looks on screen (a panel over the page) is checked by hand in `examples/frame.la`.
 
 ## ROLLBACK PLAN
 - Branch `prp-013-overlay` from `main`; abandon by leaving it unmerged. lugha-gtk 0.1.27 is additions only.
 
 ## ACCEPTANCE CRITERIA
-- [ ] Layers draw over a base where `.place` says; opening and closing them never rebuilds the base.
-- [ ] Tests above written first; narrow runs while building; the full suite and the examples' tests pass before the merge.
-- [ ] fmt clean; public items documented; no file over 500 lines (`views.la` ≈ 498 and `patch.la` ≈ 490 after this: a split is proposed first if either would pass 500).
-- [ ] README, docs/DESIGN.md, CHANGELOG, CLAUDE.md, DECISIONS (014 resolved) updated; 0.8.0 tagged; merged. Pushed only on your go.
+- [x] Layers draw over a base where `.place` says; opening and closing them never rebuilds the base.
+- [x] Tests above written first; narrow runs while building; the full suite and the examples' tests pass before the merge.
+- [x] fmt clean; public items documented; no file over 500 lines (`views.la` ≈ 498 and `patch.la` ≈ 490 after this: a split is proposed first if either would pass 500).
+- [x] README, docs/DESIGN.md, CHANGELOG, CLAUDE.md, DECISIONS (014 resolved) updated; 0.8.0 tagged; merged. Pushed only on your go.
 
 ## VALIDATION
 - While building: only the tests covering each step.
 - Before the merge: `lughac fmt --check src examples test`, `lughac test test/`, the examples' own tests, every example built (benchmark included); lugha-gtk `lughac test test/`.
 - For the user: `lughac run examples/frame.la`: Info opens a panel over the page's right edge; clicking outside it closes it.
+
+## NOTES FROM THE BUILD
+
+- **`patch.la` passed 500 lines (510) while building**: stopped and asked; the user chose moving the live-tree path helpers (`at`, `update_at`, `axis_of`, `parent`, `sibling_before`) to `src/paths.la`, committed on its own first (patch.la 447 → 351; 407 after this PRP).
+- **Layers are built and styled with their own axis** (`LAYER` = 2 in `styling.la`): `.place` sets `halign` and `valign`; a separator in a layer is horizontal (its orientation no longer computed as `1 - axis`).
+- **Replacing a middle layer** holds the layers above alive while they're taken off and added back. Mutation-checked: without that, the toast above a replaced panel was freed and fell out of the overlay.
+- **The same repack in PRP-007's header bar was a real bug**, found by writing this one: a text view after a replaced header view was freed (a button survived, something else holding it). Fixed the same way, with a test (`test/live_look.la`); in the CHANGELOG under Fixed.
+- **The example's click-outside layer** is a flat button with a `Scrim` look (`#00000060`), which also overrides the theme's hover highlight (kivuli's rules outrank the theme's).

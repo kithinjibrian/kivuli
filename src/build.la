@@ -41,6 +41,9 @@ import gtk {
     gtk_header_bar_set_title_widget,
     gtk_image_new_from_icon_name,
     gtk_label_new,
+    gtk_overlay_add_overlay,
+    gtk_overlay_new,
+    gtk_overlay_set_child,
     gtk_picture_new,
     gtk_range_get_value,
     gtk_range_set_range,
@@ -75,7 +78,7 @@ import gtk {
 import live_tree { Choices, Live, widget };
 import views { View };
 import looks { Style };
-import styling { NO_LINE_LIMIT, apply_style, flag, show_content, show_number };
+import styling { LAYER, NO_LINE_LIMIT, apply_style, flag, show_content, show_number };
 import textures { show_in_image, show_picture };
 import widgets { snap };
 import controls { nearest, picked, sync_choices };
@@ -309,7 +312,8 @@ fun create_in<Msg>(v: View<Msg>, axis: i32, send: fun(Msg)): Live<Msg> = match v
         Live.Spacer(room)
     }
     // Across the axis: a horizontal line in a column, a vertical one in a row.
-    Separator => Live.Separator(gtk_separator_new(1 - axis)),
+    // Across the axis: a horizontal line in a column (or a layer), a vertical one in a row.
+    Separator => Live.Separator(gtk_separator_new(if axis == 0 { 1 } else { 0 })),
     Scroll(child) => {
         let scrolled = gtk_scrolled_window_new();
         // A scrolled window asks for almost no room of its own: let it take
@@ -331,6 +335,19 @@ fun create_in<Msg>(v: View<Msg>, axis: i32, send: fun(Msg)): Live<Msg> = match v
         send,
     ),
     Keyed(children) => create_box(1, children.map(fun(pair) = pair.1), send),
+    Overlay(base, layers) => {
+        let over = gtk_overlay_new();
+        let shown = create_in(base, 1, send);
+        gtk_overlay_set_child(over, Some(widget(shown)));
+        let mut kids: Live<Msg>[] = [];
+        for layer of layers {
+            // A layer is placed by `.place`, both ways (LAYER).
+            let kid = create_in(layer, LAYER, send);
+            gtk_overlay_add_overlay(over, widget(kid));
+            kids.push(kid);
+        }
+        Live.Overlay(over, shown, Live.Layers(over, kids))
+    }
     // On screen a keyed wrap is a wrap: the keys matter only to the diff.
     Wrap(children) => create_wrap(children, send),
     KeyedWrap(children) => create_wrap(children.map(fun(pair) = pair.1), send),

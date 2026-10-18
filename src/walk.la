@@ -32,6 +32,13 @@ fun walk<Msg>(v: View<Msg>, style: Style): (View<Msg>, Style)[] = match v {
     Keyed(pairs) => with_children(v, style, pairs.map(fun(pair) = pair.1)),
     Wrap(xs) => with_children(v, style, xs),
     KeyedWrap(pairs) => with_children(v, style, pairs.map(fun(pair) = pair.1)),
+    Overlay(base, layers) => {
+        let mut xs = [base];
+        for x of layers {
+            xs.push(x);
+        }
+        with_children(v, style, xs)
+    }
     Scroll(x) => with_children(v, style, [x]),
     Framed(body, start, title, end) => {
         let mut xs = [body, title];
@@ -75,6 +82,11 @@ fun find_name<Msg>(v: View<Msg>, name: string, path: i64[]): Option<i64[]> = mat
     Keyed(pairs) => find_in(pairs.map(fun(pair) = pair.1), name, path),
     Wrap(xs) => find_in(xs, name, path),
     KeyedWrap(pairs) => find_in(pairs.map(fun(pair) = pair.1), name, path),
+    // As the diff counts an overlay: the base 0, the layers 1 (then each by index).
+    Overlay(base, layers) => match find_name(base, name, with_index(path, 0)) {
+        Some(found) => Some(found),
+        None => find_in(layers, name, with_index(path, 1)),
+    },
     Scroll(x) => find_name(x, name, with_index(path, 0)),
     // As the diff counts a header's parts: body 0, title 1, start 2, end 3.
     Framed(body, start, title, end) => match find_name(body, name, with_index(path, 0)) {

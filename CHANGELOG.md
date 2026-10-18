@@ -8,6 +8,17 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.8.0] — 2026-10-18
+
+### Added
+- Overlay (PRP-013): `overlay(base, layers)` draws layers on top of a view; `.place(across, down)` puts a layer where it goes. Opening and closing layers never rebuilds the base. `examples/frame.la`'s Info button opens a panel over the page. Needs lugha-gtk 0.1.27.
+
+### Fixed
+- Replacing a view in a header bar's start or end list could drop a text view after it from the bar (its last reference went while it was repacked). Later views are held alive while repacked.
+
+### Changed
+- `src/patch.la`'s path helpers moved to `src/paths.la` (file size); no change for apps.
+
 ## [0.7.0] — 2026-10-18
 
 ### Added

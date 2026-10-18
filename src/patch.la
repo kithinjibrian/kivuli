@@ -22,6 +22,9 @@ import gtk {
     gtk_header_bar_set_title_widget,
     g_timeout_add_full,
     gtk_label_set_text,
+    gtk_overlay_add_overlay,
+    gtk_overlay_remove_overlay,
+    gtk_overlay_set_child,
     gtk_picture_set_filename,
     gtk_range_set_range,
     gtk_scrolled_window_set_child,
@@ -37,9 +40,10 @@ import gtk {
 import diff;
 import build { add_to_wrap, create, create_in, editor, pack_one, text_of };
 import controls { picked, sync_choices };
-import styling { apply_style, flag, show_content, show_number };
+import styling { LAYER, apply_style, flag, show_content, show_number };
 import textures { show_in_image, show_picture };
 import live_tree { Choices, Live, titlebar, widget };
+import paths { at, axis_of, parent, sibling_before, update_at };
 
 /** Applies one patch to the widgets, and returns the `Live` tree that now mirrors them. */
 fun apply<Msg>(
@@ -229,6 +233,14 @@ fun apply<Msg>(
             next.push(kid);
             Live.Wrap(flow, next)
         }
+        // A new layer goes on top.
+        Layers(over, kids) => {
+            let kid = create_in(v, LAYER, send);
+            gtk_overlay_add_overlay(over, widget(kid));
+            let mut next = kids;
+            next.push(kid);
+            Live.Layers(over, next)
+        }
         _ => panic("kivuli: an Append patch points at something that isn't a column or row"),
     }),
     Remove(path) => {
@@ -246,6 +258,10 @@ fun apply<Msg>(
             Wrap(flow, kids) => {
                 gtk_flow_box_remove(flow, widget(kids[i]));
                 Live.Wrap(flow, diff.without(kids, i))
+            }
+            Layers(over, kids) => {
+                gtk_overlay_remove_overlay(over, widget(kids[i]));
+                Live.Layers(over, diff.without(kids, i))
             }
             _ => panic("kivuli: a Remove patch points into something that isn't a column or row"),
         })
@@ -301,6 +317,38 @@ fun apply<Msg>(
                 next[i] = fresh;
                 Live.Box(box, orientation, next)
             }
+            // An overlay's base is its child; replacing it drops the old one.
+            Overlay(over, _, layers) => {
+                let fresh = create_in(v, 1, send);
+                gtk_overlay_set_child(over, Some(widget(fresh)));
+                Live.Overlay(over, fresh, layers)
+            }
+            Layers(over, kids) => {
+                // An overlay only adds on top: take this layer and those above it
+                // off (the ones above held alive), then add the new one and them back.
+                let mut held: GtkWidget[] = [];
+                let mut j = i;
+                while j < kids.len {
+                    let w = widget(kids[j]);
+                    if j > i {
+                        held.push(gtk_widget_ref(w));
+                    }
+                    gtk_overlay_remove_overlay(over, w);
+                    j = j + 1;
+                }
+                let fresh = create_in(v, LAYER, send);
+                let mut next = kids;
+                next[i] = fresh;
+                j = i;
+                while j < next.len {
+                    gtk_overlay_add_overlay(over, widget(next[j]));
+                    j = j + 1;
+                }
+                for w of held {
+                    gtk_widget_unref(w);
+                }
+                Live.Layers(over, next)
+            }
             Wrap(flow, kids) => {
                 let fresh = create_in(v, 0, send);
                 gtk_flow_box_remove(flow, widget(kids[i]));
@@ -327,11 +375,17 @@ fun apply<Msg>(
                 Live.Framed(bar, body, fresh, start, end)
             },
             Pack(bar, at_end, kids) => {
-                // A bar can't insert at a place: unpack from here on, then pack
-                // the new one and the rest again, in order.
+                // A bar can't insert at a place: unpack from here on (the views
+                // after this one held alive: unpacking drops the bar's reference,
+                // which freed a text view), then pack the new one and the rest again.
+                let mut held: GtkWidget[] = [];
                 let mut j = i;
                 while j < kids.len {
-                    gtk_header_bar_remove(bar, widget(kids[j]));
+                    let w = widget(kids[j]);
+                    if j > i {
+                        held.push(gtk_widget_ref(w));
+                    }
+                    gtk_header_bar_remove(bar, w);
                     j = j + 1;
                 }
                 let fresh = create_in(v, 0, send);
@@ -342,106 +396,12 @@ fun apply<Msg>(
                     pack_one(bar, at_end, widget(next[j]));
                     j = j + 1;
                 }
+                for w of held {
+                    gtk_widget_unref(w);
+                }
                 Live.Pack(bar, at_end, next)
             }
             _ => panic("kivuli: a Replace patch points into something with no children"),
         })
     },
-};
-
-/**
- * Rebuilds the `Live` tree with the node at `path` (from `depth` on) replaced
- * by `f(node)`. `f` also makes the matching change to the widgets.
- */
-fun update_at<Msg>(
-    node: Live<Msg>,
-    path: i64[],
-    depth: i64,
-    f: fun(Live<Msg>): Live<Msg>,
-): Live<Msg> = if depth == path.len {
-    f(node)
-} else {
-    match node {
-        Box(box, orientation, kids) => {
-            let i = path[depth];
-            let mut next = kids;
-            next[i] = update_at(kids[i], path, depth + 1, f);
-            Live.Box(box, orientation, next)
-        }
-        Scroll(scrolled, kid) => Live.Scroll(scrolled, update_at(kid, path, depth + 1, f)),
-        Wrap(flow, kids) => {
-            let i = path[depth];
-            let mut next = kids;
-            next[i] = update_at(kids[i], path, depth + 1, f);
-            Live.Wrap(flow, next)
-        }
-        Framed(bar, body, title, start, end) => match path[depth] {
-            0 => Live.Framed(bar, update_at(body, path, depth + 1, f), title, start, end),
-            1 => Live.Framed(bar, body, update_at(title, path, depth + 1, f), start, end),
-            2 => Live.Framed(bar, body, title, update_at(start, path, depth + 1, f), end),
-            _ => Live.Framed(bar, body, title, start, update_at(end, path, depth + 1, f)),
-        },
-        Pack(bar, at_end, kids) => {
-            let i = path[depth];
-            let mut next = kids;
-            next[i] = update_at(kids[i], path, depth + 1, f);
-            Live.Pack(bar, at_end, next)
-        }
-        _ => panic("kivuli: a patch's path leads through something with no children"),
-    }
-};
-
-/**
- * The axis the node at `path` is laid out along in its parent: a box's
- * orientation; across in a header bar (all but the body); else vertical (the
- * root, a scroll's child, a header's body).
- */
-fun axis_of<Msg>(live: Live<Msg>, path: i64[]): i32 = if path.len == 0 {
-    1
-} else {
-    match at(live, parent(path)) {
-        Box(_, orientation, _) => orientation,
-        Framed(_, _, _, _, _) => if path[path.len - 1] == 0 { 1 } else { 0 },
-        Pack(_, _, _) => 0,
-        Wrap(_, _) => 0,
-        _ => 1,
-    }
-};
-
-/** The node at `path`. */
-fun at<Msg>(node: Live<Msg>, path: i64[]): Live<Msg> {
-    let mut here = node;
-    for i of path {
-        here = match here {
-            Box(_, _, kids) => kids[i],
-            Scroll(_, kid) => kid,
-            Wrap(_, kids) => kids[i],
-            Framed(_, body, title, start, end) => match i {
-                0 => body,
-                1 => title,
-                2 => start,
-                _ => end,
-            },
-            Pack(_, _, kids) => kids[i],
-            _ => panic("kivuli: a patch's path leads through something with no children"),
-        };
-    }
-    here
-}
-
-fun parent(path: i64[]): i64[] {
-    let mut p: i64[] = [];
-    let mut i = 0;
-    while i < path.len - 1 {
-        p.push(path[i]);
-        i = i + 1;
-    }
-    p
-}
-
-/** The widget to place a child after so it lands at index `at`: the one before it, or `None` (first). */
-fun sibling_before<Msg>(kids: Live<Msg>[], at: i64): Option<GtkWidget> = if at == 0 {
-    None
-} else {
-    Some(widget(kids[at - 1]))
 };

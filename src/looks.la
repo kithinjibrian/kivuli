@@ -110,6 +110,9 @@ public struct Style {
     equal: bool,
     /** At most this many children on a line, 0 for no limit (`.max_per_line`). Wraps only. */
     max_per_line: i64,
+    /** Where an overlay's layer sits on its base, across and down (`.place`). Layers only. */
+    place_across: Align,
+    place_down: Align,
     /** The app's looks on the header bar, by name (`.header_style`). Root only, with `.header`. */
     header_looks: string[],
     /** The CSS classes `header_looks` give: filled in by `paint`. */
@@ -147,6 +150,8 @@ fun plain(): Style = Style {
     maximized: false,
     equal: false,
     max_per_line: 0,
+    place_across: Align.Fill,
+    place_down: Align.Fill,
     header_looks: [],
     header_classes: [],
 };
