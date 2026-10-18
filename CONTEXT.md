@@ -334,6 +334,12 @@ Branch: main (PRP-011 on prp-011-background_tasks, merged)
 
 ---
 
+## SESSION 13 — 2026-10-18 — PRP-012: wrapping grid — open
+
+Branch: main
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
