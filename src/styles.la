@@ -47,6 +47,8 @@ public struct Sheet {
     /** Padding, margin (each side resolved) and the gap between children. */
     public spacing: Spacing,
     public sizing: Sizing,
+    /** Each state's own values (`When`), merged over these while it's on; in the order first given. */
+    public states: (State, Sheet)[],
 }
 
 impl Sheet {
@@ -59,6 +61,7 @@ impl Sheet {
         outline: Outline.theme(),
         spacing: Spacing.theme(),
         sizing: Sizing.theme(),
+        states: [],
     };
 }
 
@@ -374,3 +377,55 @@ impl Sizing {
         }
     }
 }
+
+/**
+ * A state a node can be in, as GTK's CSS names it. When two are on at once,
+ * the later in this order wins: `Hover` < `Focus` < `Press` < `Checked` < `Disabled`.
+ */
+public enum State {
+    /** The pointer is over it (`:hover`). */
+    Hover,
+    /** It's being pressed (`:active`). */
+    Press,
+    /** It has keyboard focus (`:focus-visible`). */
+    Focus,
+    /** It sends nothing: greyed out (`:disabled`). */
+    Disabled,
+    /** A check box that's ticked (`:checked`). */
+    Checked,
+}
+
+/** Style values for one state: made by `When`. */
+public struct StateStyle {
+    public state: State,
+    public items: Styling[],
+}
+
+impl StateStyle {
+    /** `s` with these values merged into its sheet for this state (a second `When` of it merges into the first). */
+    public fun apply(self, s: Sheet): Sheet {
+        let mut states = s.states;
+        let mut i = 0;
+        while i < states.len {
+            if states[i].0 == self.state {
+                states[i] = (self.state, applied(states[i].1, self.items));
+                return Sheet { states: states, ..s };
+            }
+            i = i + 1;
+        }
+        states.push((self.state, applied(Sheet.theme(), self.items)));
+        Sheet { states: states, ..s }
+    }
+}
+
+/**
+ * Style values that apply only while the node is in `state`, merged over its
+ * own: a hovered button keeps its border and changes what this sets.
+ *
+ * Example:
+ *     button("Save", Msg.Save).style([When(State.Hover, [Background { color: Paint.Color(hex("#3a62a8")), ..Background.theme() }])])
+ */
+public fun When(state: State, items: Styling[]): StateStyle = StateStyle {
+    state: state,
+    items: items,
+};

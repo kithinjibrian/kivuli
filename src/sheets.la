@@ -8,7 +8,7 @@
  * Used by: paint
  */
 
-import styles { Sheet, Background, Border };
+import styles { Sheet, Background, Border, State };
 import style_values {
     Family,
     Size,
@@ -28,7 +28,7 @@ import style_values {
 };
 import pictures { Image, data_url, identity };
 import theming { Paint, digits, permille, two_digits };
-import box_rules { box_css, sides };
+import box_rules { box_css, needs_clamp, sides };
 
 /**
  * Whether every value in `s` can be shown.
@@ -143,6 +143,21 @@ fun check(s: Sheet): Result<(), string> {
             );
         },
         _ => {}
+    }
+    for (state, sub) of s.states {
+        let named = "When(State.{state}, …)";
+        if sub.states.len > 0 {
+            return Err("{named}: states can't nest");
+        }
+        // A state is a CSS rule under a pseudo-class: what isn't a plain rule can't switch.
+        if sub.background.image.is_some() || needs_clamp(
+            sub.sizing,
+        ) || sub.spacing.gap != Width.Theme {
+            return Err(
+                "{named}: a state can't change a background image, an exact or maximum size, or the gap",
+            );
+        }
+        check(sub)?;
     }
     Ok(())
 }
@@ -276,7 +291,41 @@ fun rules(s: Sheet): (string, string)[] {
     for rule of box_css(s) {
         out.push(rule);
     }
+    for (state, sub) of s.states {
+        for rule of state_rules(state, rules(sub)) {
+            out.push(rule);
+        }
+    }
     out
+}
+
+/**
+ * `rules` for one state: each class gets the state's prefix, and its rule the
+ * state's pseudo-class, its class repeated to the state's rank so a later
+ * state in the order (Hover < Focus < Press < Checked < Disabled) wins.
+ */
+fun state_rules(state: State, base: (string, string)[]): (string, string)[] {
+    let (code, pseudo, rank) = match state {
+        Hover => ("hover", ":hover", 1),
+        Focus => ("focus", ":focus-visible", 2),
+        Press => ("press", ":active", 3),
+        Checked => ("checked", ":checked", 4),
+        Disabled => ("disabled", ":disabled", 5),
+    };
+    base.map(fun(rule) {
+        let class = rule.0.split(":")[0];
+        // An outline steps aside for the focus ring (`:not(:focus-visible)`),
+        // except in the focus state, where it is the app's focus ring.
+        let tail = if state == State.Focus { "" } else { rule.0.slice(class.len, rule.0.len) };
+        let named = "kv-{code}-{class.slice(3, class.len)}";
+        let mut selector = named;
+        let mut i = 1;
+        while i < rank {
+            selector = selector + ".{named}";
+            i = i + 1;
+        }
+        ("{selector}{tail}{pseudo}", rule.1)
+    })
 }
 
 /**
