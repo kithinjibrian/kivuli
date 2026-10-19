@@ -1,0 +1,174 @@
+// Styles as values (PRP-016): `.style`'s merge rule: the last value that sets
+// a field wins; `Theme` sets nothing; two `.style` calls are one longer
+// list. No GTK.
+import kivuli.typography { Sheet };
+import kivuli {
+    View,
+    Styling,
+    Font,
+    Text,
+    Size,
+    Weight,
+    Family,
+    FontStyle,
+    LineHeight,
+    Decoration,
+    Transform,
+    Paint,
+    button,
+    column,
+    row,
+    spacer,
+    text,
+    hex,
+};
+
+fun sheet_of<Msg>(v: View<Msg>): Sheet = match v {
+    Styled(_, s) => s.sheet,
+    _ => panic("expected a styled node"),
+};
+
+// One-field values, written in full: what an app would write.
+fun weight(w: Weight): Font = Font { weight: w, ..Font.theme() };
+
+fun big(): Font = Font { weight: Weight.Black, size: Size.Scale(2.0), ..Font.theme() };
+
+@test
+fun the_theme_values_set_nothing() {
+    assert_eq(Font.theme(), Font {
+        family: Family.Theme,
+        size: Size.Theme,
+        weight: Weight.Theme,
+        style: FontStyle.Theme,
+        tabular: false,
+    });
+    assert_eq(Text.theme(), Text {
+        color: Paint.Theme,
+        line_height: LineHeight.Theme,
+        letter_spacing: 0,
+        decoration: Decoration.Theme,
+        transform: Transform.Theme,
+    });
+    assert_eq(Sheet.theme(), Sheet { font: Font.theme(), text: Text.theme() });
+}
+
+@test
+fun the_last_value_that_sets_a_field_wins() {
+    let a: View<i64> = text("x").style([big(), weight(Weight.Thin), weight(Weight.Bold)]);
+    assert_eq(
+        sheet_of(a).font,
+        Font { size: Size.Scale(2.0), weight: Weight.Bold, ..Font.theme() },
+    );
+    let b: View<i64> = text("x").style([weight(Weight.Bold), big()]);
+    assert_eq(sheet_of(b).font, big());
+}
+
+@test
+fun theme_fields_are_skipped() {
+    // The later value sets only the weight: the size stays.
+    let v: View<i64> = text("x").style([big(), Font { weight: Weight.Thin, ..Font.theme() }]);
+    assert_eq(sheet_of(v).font, Font { size: Size.Scale(2.0), weight: Weight.Thin, ..Font.theme() });
+    // A whole theme value changes nothing.
+    let same: View<i64> = text("x").style([big(), Font.theme(), Text.theme()]);
+    assert_eq(sheet_of(same).font, big());
+}
+
+@test
+fun fonts_and_text_merge_separately_in_one_list() {
+    let v: View<i64> = text("x").style([
+        Font { family: Family.Monospace, ..Font.theme() },
+        Text { transform: Transform.Uppercase, ..Text.theme() },
+        Font { tabular: true, ..Font.theme() },
+        Text { color: Paint.Faded(0.55), letter_spacing: 2, ..Text.theme() },
+    ]);
+    assert_eq(sheet_of(v), Sheet {
+        font: Font { family: Family.Monospace, tabular: true, ..Font.theme() },
+        text: Text {
+            transform: Transform.Uppercase,
+            color: Paint.Faded(0.55),
+            letter_spacing: 2,
+            ..Text.theme(),
+        },
+    });
+}
+
+@test
+fun two_style_calls_are_one_longer_list() {
+    let wide = Text { letter_spacing: 1, ..Text.theme() };
+    let split: View<i64> = text("x").style([big(), wide]).style([weight(Weight.Thin)]).padding(4);
+    let whole: View<i64> = text("x").padding(4).style([big(), wide, weight(Weight.Thin)]);
+    assert_eq(sheet_of(split), sheet_of(whole));
+    // Nothing set: the theme's.
+    let none: View<i64> = text("x").padding(4);
+    assert_eq(sheet_of(none), Sheet.theme());
+}
+
+// The PRP's OBJECTIVE, as written there.
+struct Model {
+    folder: string,
+    total: string,
+}
+
+enum Msg {
+    Clear,
+}
+
+/** Reused, so named: a plain function returning values. */
+fun section(): Styling[] = [
+    Font { size: Size.Scale(0.875), weight: Weight.Semibold, ..Font.theme() },
+    Text { transform: Transform.Uppercase, letter_spacing: 1, color: Paint.Faded(0.55), ..Text.theme() },
+];
+
+fun view(m: Model): View<Msg> = column([
+    text("Storage").style([Font { size: Size.Pt(22), weight: Weight.Bold, ..Font.theme() }]),
+    text("DOWNLOADS").style(section()),
+    row([
+        text("Folder"),
+        spacer(),
+        text(m.folder).style([Font { family: Family.Monospace, tabular: true, ..Font.theme() }]),
+    ]),
+    text("Pictures are kept until you clear them.").wrap().style([
+        Text { color: Paint.Faded(0.55), line_height: LineHeight.Times(1.6), ..Text.theme() },
+    ]),
+    text("Price").style([
+        Font { weight: Weight.Medium, ..Font.theme() },
+        Text { decoration: Decoration.Strikethrough, ..Text.theme() },
+    ]),
+    text(m.total).style([Text { color: Paint.Color(hex("#e0e0e0")), ..Text.theme() }]),
+    button("Clear cache", Msg.Clear).style([Font { weight: Weight.Bold, ..Font.theme() }]),
+]).spacing(10).padding(24);
+
+fun kids(v: View<Msg>): View<Msg>[] = match v {
+    Styled(Column(xs), _) => xs,
+    _ => panic("expected a styled column"),
+};
+
+@test
+fun the_objective_reads_as_written() {
+    let k = kids(view(Model { folder: "~/Downloads", total: "12 MB" }));
+    assert_eq(sheet_of(k[0]).font, Font { size: Size.Pt(22), weight: Weight.Bold, ..Font.theme() });
+    assert_eq(sheet_of(k[1]), Sheet {
+        font: Font { size: Size.Scale(0.875), weight: Weight.Semibold, ..Font.theme() },
+        text: Text {
+            transform: Transform.Uppercase,
+            letter_spacing: 1,
+            color: Paint.Faded(0.55),
+            ..Text.theme(),
+        },
+    });
+    let folder = match k[2] {
+        Row(xs) => xs[2],
+        _ => panic("expected a row"),
+    };
+    assert_eq(sheet_of(folder).font, Font { family: Family.Monospace, tabular: true, ..Font.theme() });
+    assert_eq(
+        sheet_of(k[3]).text,
+        Text { color: Paint.Faded(0.55), line_height: LineHeight.Times(1.6), ..Text.theme() },
+    );
+    assert_eq(sheet_of(k[4]), Sheet {
+        font: Font { weight: Weight.Medium, ..Font.theme() },
+        text: Text { decoration: Decoration.Strikethrough, ..Text.theme() },
+    });
+    assert_eq(sheet_of(k[5]).text.color, Paint.Color(hex("#e0e0e0")));
+    assert_eq(sheet_of(k[6]).font, Font { weight: Weight.Bold, ..Font.theme() });
+}

@@ -1,0 +1,124 @@
+// A style's values, checked and turned into CSS: one class per property and
+// value, so nodes sharing a value share a class. No GTK.
+import kivuli.typography { Sheet };
+import kivuli.sheets { check, rules };
+import kivuli { Font, Text, Size, Weight, Family, FontStyle, LineHeight, Decoration, Transform, Paint, hex };
+
+fun named(name: string, fallback: Family): Font = Font { family: Family.Named(name, fallback), ..Font.theme() };
+
+fun sheet(f: Font, t: Text): Sheet = Sheet { font: f, text: t };
+
+fun css(s: Sheet): string[] = rules(s).map(fun(rule) = ".{rule.0} {{ {rule.1} }}");
+
+@test
+fun the_theme_sheet_needs_no_css() {
+    assert_eq(css(sheet(Font.theme(), Text.theme())), []);
+}
+
+@test
+fun font_values_become_rules() {
+    assert_eq(css(sheet(Font { weight: Weight.Thin, ..Font.theme() }, Text.theme())), [".kv-fw-100 {{ font-weight: 100; }}"]);
+    assert_eq(css(sheet(Font { weight: Weight.Black, ..Font.theme() }, Text.theme())), [".kv-fw-900 {{ font-weight: 900; }}"]);
+    assert_eq(css(sheet(Font { size: Size.Pt(22), ..Font.theme() }, Text.theme())), [".kv-fs-22pt {{ font-size: 22pt; }}"]);
+    assert_eq(
+        css(sheet(Font { weight: Weight.Bold, size: Size.Scale(1.1), ..Font.theme() }, Text.theme())),
+        [".kv-fs-s1100 {{ font-size: 110.0%; }}", ".kv-fw-700 {{ font-weight: 700; }}"],
+    );
+    assert_eq(css(sheet(Font { size: Size.Scale(0.875), ..Font.theme() }, Text.theme())), [".kv-fs-s875 {{ font-size: 87.5%; }}"]);
+    assert_eq(css(sheet(Font { family: Family.Monospace, ..Font.theme() }, Text.theme())), [".kv-ff-mono {{ font-family: monospace; }}"]);
+    assert_eq(
+        css(sheet(named("Inter", Family.Sans), Text.theme())),
+        [".kv-ff-496e746572-sans {{ font-family: \"Inter\", sans-serif; }}"],
+    );
+    assert_eq(css(sheet(Font { style: FontStyle.Italic, ..Font.theme() }, Text.theme())), [".kv-fst-italic {{ font-style: italic; }}"]);
+    assert_eq(
+        css(sheet(Font { tabular: true, ..Font.theme() }, Text.theme())),
+        [".kv-tnum {{ font-variant-numeric: tabular-nums; }}"],
+    );
+}
+
+@test
+fun text_values_become_rules() {
+    assert_eq(css(sheet(Font.theme(), Text { line_height: LineHeight.Times(1.6), ..Text.theme() })), [".kv-lh-1600 {{ line-height: 1.6; }}"]);
+    assert_eq(css(sheet(Font.theme(), Text { letter_spacing: 1, ..Text.theme() })), [".kv-ls-1 {{ letter-spacing: 1px; }}"]);
+    assert_eq(css(sheet(Font.theme(), Text { letter_spacing: -1, ..Text.theme() })), [".kv-ls-m1 {{ letter-spacing: -1px; }}"]);
+    assert_eq(
+        css(sheet(Font.theme(), Text { decoration: Decoration.Strikethrough, ..Text.theme() })),
+        [".kv-td-strike {{ text-decoration-line: line-through; }}"],
+    );
+    assert_eq(
+        css(sheet(Font.theme(), Text { transform: Transform.Uppercase, ..Text.theme() })),
+        [".kv-tt-upper {{ text-transform: uppercase; }}"],
+    );
+    assert_eq(
+        css(sheet(Font.theme(), Text { color: Paint.Faded(0.55), ..Text.theme() })),
+        [".kv-fade-550 {{ color: alpha(currentColor, 0.55); }}"],
+    );
+    assert_eq(
+        css(sheet(Font.theme(), Text { color: Paint.Color(hex("#e0e0e0")), ..Text.theme() })),
+        [".kv-fg-e0e0e0ff {{ color: #e0e0e0ff; }}"],
+    );
+}
+
+@test
+fun every_field_gives_its_own_class() {
+    let s = sheet(
+        Font { size: Size.Pt(12), weight: Weight.Bold, style: FontStyle.Italic, ..Font.theme() },
+        Text { line_height: LineHeight.Times(1.2), transform: Transform.Uppercase, ..Text.theme() },
+    );
+    assert_eq(rules(s).map(fun(rule) = rule.0), [
+        "kv-fs-12pt",
+        "kv-fw-700",
+        "kv-fst-italic",
+        "kv-lh-1200",
+        "kv-tt-upper",
+    ]);
+}
+
+@test
+fun good_values_pass_the_check() {
+    assert_eq(check(sheet(Font { weight: Weight.Black, size: Size.Scale(2.0), ..Font.theme() }, Text { color: Paint.Faded(0.55), ..Text.theme() })), Ok(()));
+    assert_eq(check(sheet(named("Fira Code", Family.Monospace), Text.theme())), Ok(()));
+}
+
+@test
+fun bad_values_say_what_is_wrong() {
+    assert_eq(
+        check(sheet(Font { size: Size.Pt(0), ..Font.theme() }, Text.theme())),
+        Err("Size.Pt(0): a font size must be positive"),
+    );
+    assert_eq(
+        check(sheet(Font { size: Size.Scale(0.0), ..Font.theme() }, Text.theme())),
+        Err("Size.Scale(0.0): a font scale must be positive"),
+    );
+    assert_eq(
+        check(sheet(Font.theme(), Text { line_height: LineHeight.Times(-1.0), ..Text.theme() })),
+        Err("LineHeight.Times(-1.0): a line height must be positive"),
+    );
+    assert_eq(
+        check(sheet(named("", Family.Sans), Text.theme())),
+        Err("Family.Named(\"\"): a font needs a name"),
+    );
+    assert_eq(
+        check(sheet(named("Inter", Family.Named("Roboto", Family.Sans)), Text.theme())),
+        Err("Family.Named(\"Inter\"): a font's fallback must be Sans, Serif or Monospace"),
+    );
+    assert_eq(
+        check(sheet(named("Inter", Family.Theme), Text.theme())),
+        Err("Family.Named(\"Inter\"): a font's fallback must be Sans, Serif or Monospace"),
+    );
+    assert_eq(
+        check(sheet(Font.theme(), Text { color: Paint.Faded(1.5), ..Text.theme() })),
+        Err("Paint.Faded(1.5): an opacity is between 0 and 1"),
+    );
+}
+
+@test
+fun a_font_name_cant_break_out_of_its_css_string() {
+    for name of ["a\"b", "a\\b", "a;b", "a{{b", "a}}b", "a\nb"] {
+        assert_eq(
+            check(sheet(named(name, Family.Sans), Text.theme())),
+            Err("Family.Named(\"{name}\"): a font name can't hold quotes, backslashes, ; {{ }} or line breaks"),
+        );
+    }
+}
