@@ -396,9 +396,19 @@ Branch: main (PRP-015 on prp-015-clickable_rows, merged)
 
 ---
 
-## SESSION 17 — 2026-10-19 — Styling through one door: discovery — open
+## SESSION 17 — 2026-10-19 — PRP-016: styles as values (blocked on lughac) — closed
 
-Branch: main
+Branch: prp-016-style_values (not merged)
+
+### WHAT WAS DONE
+- The user chose one door for styling (DECISION-023): `.style([...])` of typed values; named looks, `.bold`, `.dim`, text `.size`, `.button_style` deleted (breaking, only what was discussed). Interview in conversation: `Font` and `Text` groups (kept apart), `Theme` variants meaning "not set", the last setter wins, no registry (values on the node, reuse through functions). Utilities deferred: their names clash with the fields (E0310).
+- PRP-016 approved and narrowed (bedrock only; old examples to be deleted, new ones written). Built so far: src/typography.la (Styling, Sheet, Font, Text, enums), src/sheets.la (checks, atomic CSS, font names guarded against CSS injection), theming.la cut to Color/Paint, Style holds a Sheet, paint and styling rewritten, live keeps one growing stylesheet. test/sheets.la passes (7).
+- Blocked: lughac doesn't convert a struct update literal (`S { f: e, ..base }`) to an interface value where one is expected (DECISION-024). Every `.style([Font { …, ..Font.theme() }])` hits it.
+
+### STILL OPEN AT CLOSE
+- DECISION-024: fix in ../lugha (not from a kivuli session), then the user reinstalls lughac.
+- Then on the branch: test/typography.la and test/theming.la should compile; migrate the other tests (lib, diff, lazy, live_style, live_look); write test/live_type.la; delete the old examples, write the new ones; docs; 0.11.0.
+- `reports/.gitkeep` deleted in the working tree, not by Claude; left alone.
 
 ---
 

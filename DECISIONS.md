@@ -12,6 +12,30 @@ Rules:
 
 ## OPEN — Requires human input before implementation
 
+### DECISION-024 — lughac: a struct update literal isn't converted to an interface value
+
+**Status:** open (a lughac bug, for the lugha repository; blocks PRP-016)
+**Raised:** 2026-10-19 — Session 17
+
+**Question:** Where an interface type is expected, lughac 0.1.0 converts a plain struct literal and a call's result into an interface value, but not a struct literal with `..base` (E0403, "expected Shape, found Sq"). PRP-016's whole style API is that shape: `.style([Font { weight: Weight.Bold, ..Font.theme() }])`.
+
+```
+interface Shape { fun area(self): i64; }
+struct Sq { side: i64, tag: i64 }
+impl Sq {
+    fun base(): Sq = Sq { side: 1, tag: 0 };
+    fun area(self): i64 = self.side * self.side;
+}
+fun main() {
+    let plain: Shape = Sq { side: 2, tag: 0 };          // ok
+    let call: Shape = Sq.base();                        // ok
+    let updated: Shape = Sq { side: 3, ..Sq.base() };   // E0403: expected Shape, found Sq
+    let listed: Shape[] = [Sq { side: 4, ..Sq.base() }];   // E0403
+}
+```
+
+**Needed:** the same conversion for `S { f: e, ..base }` as for `S { … }` (milestone 93's struct update, with v5's interface values). Fixed in `../lugha` with its own PR; kivuli waits (no workaround: apps would have to bind every value to a typed `let` first).
+
 ### DECISION-023 — Styling has one door
 
 **Status:** open (direction chosen; details in a PRP)

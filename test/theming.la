@@ -48,20 +48,37 @@ fun classes_of(v: View<i64>): string[] = match painted(v) {
 
 @test
 fun painting_gives_each_node_the_classes_of_its_values() {
-    assert_eq(classes_of(text("a").style([Font { weight: Weight.Bold, ..Font.theme() }, Text { transform: Transform.Uppercase, ..Text.theme() }])), [
-        "kv-fw-700",
-        "kv-tt-upper",
-    ]);
+    assert_eq(
+        classes_of(
+            text("a").style([
+                Font { weight: Weight.Bold, ..Font.theme() },
+                Text { transform: Transform.Uppercase, ..Text.theme() },
+            ]),
+        ),
+        ["kv-fw-700", "kv-tt-upper"],
+    );
     assert_eq(classes_of(text("a").padding(4)), []);
     // A value changed by a later `.style` call gives the new class only.
-    assert_eq(classes_of(text("a").style([Font { weight: Weight.Bold, ..Font.theme() }]).style([Font { weight: Weight.Thin, ..Font.theme() }])), ["kv-fw-100"]);
+    assert_eq(
+        classes_of(
+            text("a").style([Font { weight: Weight.Bold, ..Font.theme() }]).style([
+                Font { weight: Weight.Thin, ..Font.theme() },
+            ]),
+        ),
+        ["kv-fw-100"],
+    );
 }
 
 @test
 fun the_stylesheet_has_every_rule_the_view_uses_once() {
     let v: View<i64> = column([
         text("a").style([Font { weight: Weight.Bold, ..Font.theme() }]),
-        row([text("b").style([Font { weight: Weight.Bold, ..Font.theme() }, Font { style: FontStyle.Italic, ..Font.theme() }])]),
+        row([
+            text("b").style([
+                Font { weight: Weight.Bold, ..Font.theme() },
+                Font { style: FontStyle.Italic, ..Font.theme() },
+            ]),
+        ]),
         lazy("k", fun(): View<i64> = text("c").style([Text { letter_spacing: 1, ..Text.theme() }])),
     ]);
     let painted_view = match painted(v) {

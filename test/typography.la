@@ -23,7 +23,7 @@ import kivuli {
     hex,
 };
 
-fun sheet_of<Msg>(v: View<Msg>): Sheet = match v {
+fun sheet_of<M>(v: View<M>): Sheet = match v {
     Styled(_, s) => s.sheet,
     _ => panic("expected a styled node"),
 };
@@ -55,10 +55,11 @@ fun the_theme_values_set_nothing() {
 @test
 fun the_last_value_that_sets_a_field_wins() {
     let a: View<i64> = text("x").style([big(), weight(Weight.Thin), weight(Weight.Bold)]);
-    assert_eq(
-        sheet_of(a).font,
-        Font { size: Size.Scale(2.0), weight: Weight.Bold, ..Font.theme() },
-    );
+    assert_eq(sheet_of(a).font, Font {
+        size: Size.Scale(2.0),
+        weight: Weight.Bold,
+        ..Font.theme(),
+    });
     let b: View<i64> = text("x").style([weight(Weight.Bold), big()]);
     assert_eq(sheet_of(b).font, big());
 }
@@ -67,7 +68,11 @@ fun the_last_value_that_sets_a_field_wins() {
 fun theme_fields_are_skipped() {
     // The later value sets only the weight: the size stays.
     let v: View<i64> = text("x").style([big(), Font { weight: Weight.Thin, ..Font.theme() }]);
-    assert_eq(sheet_of(v).font, Font { size: Size.Scale(2.0), weight: Weight.Thin, ..Font.theme() });
+    assert_eq(sheet_of(v).font, Font {
+        size: Size.Scale(2.0),
+        weight: Weight.Thin,
+        ..Font.theme(),
+    });
     // A whole theme value changes nothing.
     let same: View<i64> = text("x").style([big(), Font.theme(), Text.theme()]);
     assert_eq(sheet_of(same).font, big());
@@ -116,7 +121,12 @@ enum Msg {
 /** Reused, so named: a plain function returning values. */
 fun section(): Styling[] = [
     Font { size: Size.Scale(0.875), weight: Weight.Semibold, ..Font.theme() },
-    Text { transform: Transform.Uppercase, letter_spacing: 1, color: Paint.Faded(0.55), ..Text.theme() },
+    Text {
+        transform: Transform.Uppercase,
+        letter_spacing: 1,
+        color: Paint.Faded(0.55),
+        ..Text.theme(),
+    },
 ];
 
 fun view(m: Model): View<Msg> = column([
@@ -160,11 +170,16 @@ fun the_objective_reads_as_written() {
         Row(xs) => xs[2],
         _ => panic("expected a row"),
     };
-    assert_eq(sheet_of(folder).font, Font { family: Family.Monospace, tabular: true, ..Font.theme() });
-    assert_eq(
-        sheet_of(k[3]).text,
-        Text { color: Paint.Faded(0.55), line_height: LineHeight.Times(1.6), ..Text.theme() },
-    );
+    assert_eq(sheet_of(folder).font, Font {
+        family: Family.Monospace,
+        tabular: true,
+        ..Font.theme(),
+    });
+    assert_eq(sheet_of(k[3]).text, Text {
+        color: Paint.Faded(0.55),
+        line_height: LineHeight.Times(1.6),
+        ..Text.theme(),
+    });
     assert_eq(sheet_of(k[4]), Sheet {
         font: Font { weight: Weight.Medium, ..Font.theme() },
         text: Text { decoration: Decoration.Strikethrough, ..Text.theme() },
