@@ -1,6 +1,6 @@
 # PRP-019 — Spacing through `.style`: padding, margin, gap
 
-Status: draft, for the user's approval (session 21)
+Status: approved by the user (session 21); building on branch prp-019-spacing
 Discovery: session 21, 2026-10-19 (DECISION-023's next group). *(you)*: chosen in the interview; *(proposed)*: for you to confirm or change with this PRP.
 
 ## FEATURE: a `Spacing` value in `.style([...])`: padding inside the border, margin outside it, and the gap between a box's children; `.padding(n)` and `.spacing(n)` go.
