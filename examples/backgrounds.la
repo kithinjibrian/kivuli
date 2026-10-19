@@ -1,0 +1,130 @@
+// A specimen of backgrounds: colours, a tint that follows light and dark,
+// linear and radial gradients, a picture in each fill, a theme icon tiled,
+// and all three layers on one node, each labelled with the value it shows.
+// Run it from the repository's root (`lughac run examples/backgrounds.la`):
+// the picture's path is relative to where the app starts.
+import kivuli {
+    View,
+    Background,
+    Gradient,
+    Stop,
+    Fill,
+    Image,
+    Font,
+    Text,
+    Size,
+    Weight,
+    Paint,
+    column,
+    hex,
+    row,
+    sandbox,
+    scroll,
+    text,
+    wrap,
+};
+
+fun heading(s: string): View<()> = text(s).style([
+    Font { size: Size.Pt(16), weight: Weight.Bold, ..Font.theme() },
+]);
+
+/** A tile showing `b`, its label under it. */
+fun swatch(label: string, b: Background): View<()> = column([
+    column([]).width(150).height(90).style([b]),
+    text(label).style([
+        Font { size: Size.Scale(0.85), ..Font.theme() },
+        Text { color: Paint.Faded(0.7), ..Text.theme() },
+    ]),
+]).spacing(4);
+
+fun two(a: string, b: string): Stop[] = [
+    Stop { color: Paint.Color(hex(a)), at: 0.0 },
+    Stop { color: Paint.Color(hex(b)), at: 1.0 },
+];
+
+fun sample(fill: Fill): Background = Background {
+    color: Paint.Faded(0.06),
+    image: Some(Image.File("examples/assets/sample.png")),
+    fill: fill,
+    ..Background.theme(),
+};
+
+fun view(m: ()): View<()> = scroll(
+    column([
+        heading("Colours"),
+        wrap([
+            swatch("Color(#c0392b)", Background {
+                color: Paint.Color(hex("#c0392b")),
+                ..Background.theme(),
+            }),
+            swatch("Color(#2a529880)", Background {
+                color: Paint.Color(hex("#2a529880")),
+                ..Background.theme(),
+            }),
+            swatch("Faded(0.08): follows the theme", Background {
+                color: Paint.Faded(0.08),
+                ..Background.theme(),
+            }),
+            swatch("Faded(0.25)", Background { color: Paint.Faded(0.25), ..Background.theme() }),
+        ]).spacing(12),
+        heading("Gradients"),
+        wrap([
+            swatch("Linear(180, …): down", Background {
+                gradient: Gradient.Linear(180, two("#1e3c72", "#2a5298")),
+                ..Background.theme(),
+            }),
+            swatch("Linear(90, …): right", Background {
+                gradient: Gradient.Linear(90, two("#f12711", "#f5af19")),
+                ..Background.theme(),
+            }),
+            swatch("Radial, faded stops", Background {
+                gradient: Gradient.Radial([
+                    Stop { color: Paint.Faded(0.3), at: 0.0 },
+                    Stop { color: Paint.Faded(0.0), at: 1.0 },
+                ]),
+                ..Background.theme(),
+            }),
+            swatch("Linear, three stops", Background {
+                gradient: Gradient.Linear(45, [
+                    Stop { color: Paint.Color(hex("#00c9ff")), at: 0.0 },
+                    Stop { color: Paint.Color(hex("#92fe9d")), at: 0.5 },
+                    Stop { color: Paint.Color(hex("#fc466b")), at: 1.0 },
+                ]),
+                ..Background.theme(),
+            }),
+        ]).spacing(12),
+        heading("Pictures"),
+        wrap([
+            swatch("Fill.Cover", sample(Fill.Cover)),
+            swatch("Fill.Contain", sample(Fill.Contain)),
+            swatch("Fill.Tile", sample(Fill.Tile)),
+            swatch("Fill.Stretch", sample(Fill.Stretch)),
+            swatch("Icon, Fill.Tile", Background {
+                image: Some(Image.Icon("starred-symbolic")),
+                fill: Fill.Tile,
+                ..Background.theme(),
+            }),
+            swatch("A missing file: nothing", Background {
+                color: Paint.Faded(0.06),
+                image: Some(Image.File("no/such.png")),
+                ..Background.theme(),
+            }),
+        ]).spacing(12),
+        heading("All three layers"),
+        column([
+            text("A picture, darkened at the bottom by a gradient, over a colour").style([
+                Font { weight: Weight.Bold, ..Font.theme() },
+                Text { color: Paint.Color(hex("#ffffff")), ..Text.theme() },
+            ]).padding(16),
+        ]).height(160).style([
+            Background {
+                color: Paint.Color(hex("#101010")),
+                gradient: Gradient.Linear(180, two("#00000000", "#000000cc")),
+                image: Some(Image.File("examples/assets/sample.png")),
+                fill: Fill.Cover,
+            },
+        ]),
+    ]).spacing(12).padding(24),
+).window("Backgrounds", 720, 760);
+
+fun main(): i32 = sandbox("org.kivuli.backgrounds", (), fun(m: (), msg: ()): () = (), view);

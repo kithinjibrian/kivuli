@@ -7,7 +7,7 @@
  */
 
 import looks { Style, Window, Align, Fit, plain };
-import typography { Styling, applied };
+import styles { Styling, applied };
 import pictures { Image };
 import menus { MenuEntry };
 // The one import cycle kivuli allows (DECISION-018): mapping maps views.

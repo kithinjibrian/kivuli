@@ -1,7 +1,7 @@
 // Styles as values (PRP-016): `.style`'s merge rule: the last value that sets
 // a field wins; `Theme` sets nothing; two `.style` calls are one longer
 // list. No GTK.
-import kivuli.typography { Sheet };
+import kivuli.styles { Sheet };
 import kivuli {
     View,
     Styling,
@@ -15,6 +15,11 @@ import kivuli {
     Decoration,
     Transform,
     Paint,
+    Background,
+    Gradient,
+    Stop,
+    Fill,
+    Image,
     button,
     column,
     row,
@@ -49,7 +54,17 @@ fun the_theme_values_set_nothing() {
         decoration: Decoration.Theme,
         transform: Transform.Theme,
     });
-    assert_eq(Sheet.theme(), Sheet { font: Font.theme(), text: Text.theme() });
+    assert_eq(Sheet.theme(), Sheet {
+        font: Font.theme(),
+        text: Text.theme(),
+        background: Background.theme(),
+    });
+    assert_eq(Background.theme(), Background {
+        color: Paint.Theme,
+        gradient: Gradient.Theme,
+        image: None,
+        fill: Fill.Theme,
+    });
 }
 
 @test
@@ -94,6 +109,7 @@ fun fonts_and_text_merge_separately_in_one_list() {
             letter_spacing: 2,
             ..Text.theme(),
         },
+        ..Sheet.theme(),
     });
 }
 
@@ -165,6 +181,7 @@ fun the_objective_reads_as_written() {
             color: Paint.Faded(0.55),
             ..Text.theme(),
         },
+        ..Sheet.theme(),
     });
     let folder = match k[2] {
         Row(xs) => xs[2],
@@ -183,7 +200,113 @@ fun the_objective_reads_as_written() {
     assert_eq(sheet_of(k[4]), Sheet {
         font: Font { weight: Weight.Medium, ..Font.theme() },
         text: Text { decoration: Decoration.Strikethrough, ..Text.theme() },
+        ..Sheet.theme(),
     });
     assert_eq(sheet_of(k[5]).text.color, Paint.Color(hex("#e0e0e0")));
     assert_eq(sheet_of(k[6]).font, Font { weight: Weight.Bold, ..Font.theme() });
+}
+
+fun tint(x: f64): Background = Background { color: Paint.Faded(x), ..Background.theme() };
+
+fun down(): Gradient = Gradient.Linear(180, [
+    Stop { color: Paint.Color(hex("#1e3c72")), at: 0.0 },
+    Stop { color: Paint.Color(hex("#2a5298")), at: 1.0 },
+]);
+
+@test
+fun backgrounds_merge_field_by_field() {
+    // A later gradient keeps the colour beneath it.
+    let v: View<i64> = column([]).style([
+        tint(0.08),
+        Background { gradient: down(), ..Background.theme() },
+    ]);
+    assert_eq(sheet_of(v).background, Background {
+        color: Paint.Faded(0.08),
+        gradient: down(),
+        ..Background.theme(),
+    });
+    // A later image replaces an earlier one; None sets nothing.
+    let a = Background { image: Some(Image.Icon("a")), ..Background.theme() };
+    let b = Background { image: Some(Image.Icon("b")), fill: Fill.Tile, ..Background.theme() };
+    let w: View<i64> = column([]).style([a, b, Background.theme()]);
+    assert_eq(sheet_of(w).background, b);
+    // Fonts and text between backgrounds touch neither.
+    let x: View<i64> = text("x").style([
+        tint(0.1),
+        Font { weight: Weight.Bold, ..Font.theme() },
+        Background { fill: Fill.Cover, ..Background.theme() },
+    ]);
+    assert_eq(sheet_of(x).background, Background {
+        color: Paint.Faded(0.1),
+        fill: Fill.Cover,
+        ..Background.theme(),
+    });
+    assert_eq(sheet_of(x).font, Font { weight: Weight.Bold, ..Font.theme() });
+}
+
+// PRP-017's OBJECTIVE, as written there.
+enum Pick {
+    Go,
+}
+
+/** A card that works in light and dark: a tint of the theme's own text colour. */
+fun card(): Background = Background { color: Paint.Faded(0.08), ..Background.theme() };
+
+fun backgrounds_view(rows: View<Pick>[]): View<Pick> = column([
+    column(rows).style([card()]).padding(16),
+    text("NEW").style([
+        Background { color: Paint.Color(hex("#c0392b")), ..Background.theme() },
+        Text { color: Paint.Color(hex("#ffffff")), ..Text.theme() },
+    ]),
+    column([]).height(120).style([
+        Background {
+            gradient: Gradient.Linear(180, [
+                Stop { color: Paint.Color(hex("#1e3c72")), at: 0.0 },
+                Stop { color: Paint.Color(hex("#2a5298")), at: 1.0 },
+            ]),
+            ..Background.theme(),
+        },
+    ]),
+    column([]).height(160).style([
+        Background {
+            color: Paint.Color(hex("#101010")),
+            gradient: Gradient.Linear(180, [
+                Stop { color: Paint.Color(hex("#00000000")), at: 0.0 },
+                Stop { color: Paint.Color(hex("#000000aa")), at: 1.0 },
+            ]),
+            image: Some(Image.File("examples/assets/sample.png")),
+            fill: Fill.Cover,
+        },
+    ]),
+    column([]).height(80).style([
+        Background {
+            image: Some(Image.Icon("starred-symbolic")),
+            fill: Fill.Tile,
+            ..Background.theme(),
+        },
+    ]),
+]);
+
+fun pick_kids(v: View<Pick>): View<Pick>[] = match v {
+    Column(xs) => xs,
+    _ => panic("expected a column"),
+};
+
+@test
+fun the_backgrounds_objective_reads_as_written() {
+    let k = pick_kids(backgrounds_view([text("row")]));
+    assert_eq(sheet_of(k[0]).background, card());
+    assert_eq(sheet_of(k[1]).background.color, Paint.Color(hex("#c0392b")));
+    assert_eq(sheet_of(k[1]).text.color, Paint.Color(hex("#ffffff")));
+    assert_eq(sheet_of(k[2]).background, Background { gradient: down(), ..Background.theme() });
+    let hero = sheet_of(k[3]).background;
+    assert_eq(
+        (hero.color, hero.image, hero.fill),
+        (Paint.Color(hex("#101010")), Some(Image.File("examples/assets/sample.png")), Fill.Cover),
+    );
+    assert_eq(sheet_of(k[4]).background, Background {
+        image: Some(Image.Icon("starred-symbolic")),
+        fill: Fill.Tile,
+        ..Background.theme(),
+    });
 }

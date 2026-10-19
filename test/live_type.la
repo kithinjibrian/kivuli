@@ -20,8 +20,14 @@ import gtk {
 import kivuli.live { mount, live_of };
 import kivuli.effects { sandbox_app };
 import kivuli.live_tree { Live, widget };
+import fixtures;
 import kivuli {
     View,
+    Background,
+    Gradient,
+    Stop,
+    Fill,
+    Image,
     Font,
     Text,
     Size,
@@ -145,5 +151,120 @@ fun values_land_as_classes_and_new_ones_join_the_stylesheet() {
         "red [255, 0, 0, 255]",
         "faded keeps the colour true, alpha 55% true",
         "check box label struck 1",
+    ]);
+}
+
+enum Swap {
+    Next,
+}
+
+fun view_backgrounds(second: bool): View<Swap> = column([
+    column([]).height(40).style([
+        Background {
+            color: Paint.Color(hex("#101010")),
+            gradient: Gradient.Linear(180, [
+                Stop { color: Paint.Color(hex("#00000000")), at: 0.0 },
+                Stop { color: Paint.Color(hex("#000000aa")), at: 1.0 },
+            ]),
+            image: Some(
+                Image.Bytes(
+                    if second { "jpeg" } else { "png" },
+                    if second { fixtures.jpeg() } else { fixtures.png() },
+                ),
+            ),
+            fill: Fill.Cover,
+        },
+    ]),
+    column([]).height(40).style([
+        Background { image: Some(Image.File("examples/assets/sample.png")), ..Background.theme() },
+    ]),
+    column([]).height(40).style([
+        Background { image: Some(Image.File("no/such/file.png")), ..Background.theme() },
+    ]),
+    button("Next", Swap.Next),
+]);
+
+/** The rule for `class` in the app's stylesheet, or "". */
+fun rule_for(css: string[], class: string): string {
+    let mut found = "";
+    for r of css {
+        if r.starts_with(".{class} ") {
+            found = r;
+        }
+    }
+    found
+}
+
+/** A widget's own class that starts with `prefix` (kivuli's), or "". */
+fun class_of(css: string[], w: GtkWidget, prefix: string): string {
+    let mut found = "";
+    for r of css {
+        // A rule is ".class { … }": its class is what comes before the first space.
+        let class = r.split(" ")[0].slice(1, r.split(" ")[0].len);
+        if class.starts_with(prefix) && gtk_widget_has_css_class(w, class) == 1 {
+            found = class;
+        }
+    }
+    found
+}
+
+@test
+fun backgrounds_land_as_classes_and_pictures_as_checked_data_urls() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen: Ref<string[]> = Ref.new([]);
+    let application = gtk_application_new("org.kivuli.test.backgrounds", 0);
+    connect_app(
+        application,
+        "activate",
+        fun(a: GtkApplication) {
+            let window = gtk_application_window_new(a);
+            let app = mount(
+                a,
+                window,
+                sandbox_app(
+                    "org.kivuli.test",
+                    false,
+                    fun(second: bool, msg: Swap): bool = true,
+                    view_backgrounds,
+                ),
+            );
+            let kids = fun(): Live<Swap>[] = match live_of(app) {
+                Box(_, _, ks) => ks,
+                _ => panic("expected a column"),
+            };
+            let css = fun(): string[] = app.styles.css.get();
+            let hero = widget(kids()[0]);
+            note(seen, "colour {gtk_widget_has_css_class(hero, "kv-bg-101010ff")}");
+            let picture = class_of(css(), hero, "kv-bgp-");
+            let body = rule_for(css(), picture);
+            note(
+                seen,
+                "bytes as png data {body.contains("url(\"data:image/png;base64,")} over the gradient {body.contains("linear-gradient(180deg")} cover {body.contains("background-size: cover")}",
+            );
+            let file = rule_for(css(), class_of(css(), widget(kids()[1]), "kv-bgp-"));
+            note(
+                seen,
+                "file as data {file.contains("url(\"data:image/png;base64,")} no path {!file.contains("sample.png")}",
+            );
+            let missing = rule_for(css(), class_of(css(), widget(kids()[2]), "kv-bgp-"));
+            note(seen, "missing file {missing.contains("background-image: none;")}");
+            // A picture never seen before joins while the app runs.
+            emit_widget(widget(kids()[3]), "clicked");
+            let now = rule_for(css(), class_of(css(), widget(kids()[0]), "kv-bgp-"));
+            note(seen, "new picture as jpeg data {now.contains("url(\"data:image/jpeg;base64,")}");
+            g_application_quit(a);
+        },
+        0,
+    );
+    g_application_run(application, 0, None);
+    g_object_unref(application);
+    assert_eq(seen.get(), [
+        "colour 1",
+        "bytes as png data true over the gradient true cover true",
+        "file as data true no path true",
+        "missing file true",
+        "new picture as jpeg data true",
     ]);
 }

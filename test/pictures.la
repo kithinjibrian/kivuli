@@ -1,7 +1,7 @@
 // Images, without GTK: the PNG and JPEG headers read before anything is
 // decoded, the limits, and what makes two images the same.
 import fixtures;
-import kivuli.pictures { MAX_BYTES, identity, size_of };
+import kivuli.pictures { MAX_BYTES, base64, data_url, identity, size_of };
 import kivuli { Image };
 
 @test
@@ -47,4 +47,39 @@ fun images_are_the_same_by_kind_and_name_path_or_key() {
     assert(identity(Image.Icon("x")) != identity(Image.File("x")));
     assert(identity(Image.File("x")) != identity(Image.Bytes("x", [])));
     assert_eq(identity(Image.File("a.png")), identity(Image.File("a.png")));
+}
+
+fun ascii(s: string): u8[] {
+    let mut out: u8[] = [];
+    for b of s {
+        out.push(b);
+    }
+    out
+}
+
+@test
+fun base64_matches_rfc_4648() {
+    for (plain, encoded) of [
+        ("", ""),
+        ("f", "Zg=="),
+        ("fo", "Zm8="),
+        ("foo", "Zm9v"),
+        ("foob", "Zm9vYg=="),
+        ("fooba", "Zm9vYmE="),
+        ("foobar", "Zm9vYmFy"),
+    ] {
+        assert_eq(base64(ascii(plain)), encoded);
+    }
+    let high: u8[] = [255, 254, 253];
+    assert_eq(base64(high), "//79");
+}
+
+@test
+fun checked_pictures_become_data_urls() {
+    assert_eq(data_url(fixtures.png()), Some("data:image/png;base64,{base64(fixtures.png())}"));
+    assert_eq(data_url(fixtures.jpeg()), Some("data:image/jpeg;base64,{base64(fixtures.jpeg())}"));
+    // What fails the header check never reaches GTK.
+    assert_eq(data_url(fixtures.huge_png()), None);
+    assert_eq(data_url(fixtures.cut(fixtures.png(), 10)), None);
+    assert_eq(data_url(ascii("<svg/>")), None);
 }

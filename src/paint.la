@@ -11,7 +11,8 @@
 import views { View };
 import walk { check_content, nodes };
 import looks { Style };
-import sheets { check, rules };
+import sheets { check, picture, rules };
+import pictures { Image };
 
 /**
  * `v` with every node's `classes` filled in from its style; or what's wrong:
@@ -73,7 +74,12 @@ fun paint_style<Msg>(node: View<Msg>, s: Style): Result<Style, string> {
         _ => {}
     }
     check(s.sheet)?;
-    Ok(Style { classes: rules(s.sheet).map(fun(rule) = rule.0), ..s })
+    let mut classes = rules(s.sheet).map(fun(rule) = rule.0);
+    match picture(s.sheet) {
+        Some((class, _, _, _)) => classes.push(class),
+        None => {}
+    }
+    Ok(Style { classes: classes, ..s })
 }
 
 /**
@@ -88,6 +94,25 @@ fun stylesheet<Msg>(v: View<Msg>): (string, string)[] {
             if seen.insert(rule.0) {
                 out.push(rule);
             }
+        }
+    }
+    out
+}
+
+/**
+ * Every background picture a painted view uses, each once: its class, the
+ * image, and the gradient and fill its rule needs (`sheets.picture`). Their
+ * rules need the pictures' bytes, so `live` builds them.
+ */
+fun background_pictures<Msg>(v: View<Msg>): (string, Image, string, string)[] {
+    let mut seen: Set<string> = #{};
+    let mut out: (string, Image, string, string)[] = [];
+    for (_, style) of nodes(v) {
+        match picture(style.sheet) {
+            Some(p) => if seen.insert(p.0) {
+                out.push(p);
+            },
+            None => {}
         }
     }
     out

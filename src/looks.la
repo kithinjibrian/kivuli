@@ -3,11 +3,11 @@
  * fields take. Plain data, no GTK. The modifiers that build a `Style` are
  * methods of `View`, in `views` (an `impl` must sit with its type).
  *
- * Depends on: typography
+ * Depends on: styles
  * Used by: views, lib, diff, walk, paint, testing, live, build, styling
  */
 
-import typography { Sheet };
+import styles { Sheet };
 
 /** The app's window, as `.window(title, width, height)` sets it. */
 public struct Window {

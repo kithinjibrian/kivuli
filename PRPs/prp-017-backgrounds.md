@@ -1,6 +1,6 @@
 # PRP-017 — Backgrounds through `.style`: colours, gradients, images
 
-Status: approved by the user (session 19); building on branch prp-017-backgrounds
+Status: built (session 19) on branch prp-017-backgrounds; merged into main
 Discovery: session 19, 2026-10-19 (DECISION-023's next group). *(you)*: chosen in the interview; *(proposed)*: for you to confirm or change with this PRP.
 
 ## FEATURE: a `Background` value in `.style([...])`: a colour, a gradient and an image, stacked as CSS stacks them, merged like every other style value.
@@ -115,26 +115,34 @@ Background.theme()        // every field the theme's
 ## TESTS TO WRITE
 
 Pure:
-- [ ] `test/styles.la` (renamed): `Background.theme()` sets nothing; the merge rule across backgrounds (colour kept under a later gradient; a later image replaces an earlier one; `None` skipped); a background between fonts and text; the OBJECTIVE's `view` reads as written.
-- [ ] `test/sheets.la`: CSS for a colour (`background-color: #…; background-image: none`), a faded tint, a linear and a radial gradient (stops, angle, faded stops), an icon, each fill (`background-size`/`-repeat`/`-position`), the three layers in one `background-image` with the colour beneath; each check message; icon-name injection cases.
-- [ ] `test/pictures.la`: base64 of RFC 4648's vectors ("", "f", "fo", "foo", "foob", "fooba", "foobar"); a `data:` URL for PNG and JPEG bytes; none for bytes that fail the header check.
-- [ ] `test/theming.la`: `paint` gives a background's classes and refuses its bad values.
+- [x] `test/styles.la` (renamed): `Background.theme()` sets nothing; the merge rule across backgrounds (colour kept under a later gradient; a later image replaces an earlier one; `None` skipped); a background between fonts and text; the OBJECTIVE's `view` reads as written.
+- [x] `test/sheets.la`: CSS for a colour (`background-color: #…; background-image: none`), a faded tint, a linear and a radial gradient (stops, angle, faded stops), an icon, each fill (`background-size`/`-repeat`/`-position`), the three layers in one `background-image` with the colour beneath; each check message; icon-name injection cases.
+- [x] `test/pictures.la`: base64 of RFC 4648's vectors ("", "f", "fo", "foo", "foob", "fooba", "foobar"); a `data:` URL for PNG and JPEG bytes; none for bytes that fail the header check.
+- [x] `test/theming.la`: `paint` gives a background's classes and refuses its bad values.
 
 Live GTK (skipped without a display), `test/live_type.la`:
-- [ ] a node with a background colour, a gradient and an image (from bytes and from a file) carries its classes, and the app's stylesheet holds their rules, the image's as a `data:` URL; a missing file gives no image rule and no crash; a picture never seen before joins while the app runs.
+- [x] a node with a background colour, a gradient and an image (from bytes and from a file) carries its classes, and the app's stylesheet holds their rules, the image's as a `data:` URL; a missing file gives no image rule and no crash; a picture never seen before joins while the app runs.
 - [ ] How backgrounds look: checked by hand in `examples/backgrounds.la`.
 
 ## ROLLBACK PLAN
 - Branch `prp-017-backgrounds` from `main`; abandon by leaving it unmerged.
 
 ## ACCEPTANCE CRITERIA
-- [ ] The OBJECTIVE's code compiles and its tests pass unchanged.
-- [ ] Pictures reach GTK only checked, as bytes; bad ones show nothing.
-- [ ] Tests written first; narrow runs while building; the full suite and the examples' tests pass before the merge.
-- [ ] fmt clean; public items documented; no file over 500 lines.
-- [ ] README, docs/DESIGN.md, CHANGELOG, CLAUDE.md, DECISIONS updated; 0.12.0 tagged; merged. Pushed only on your go.
+- [x] The OBJECTIVE's code compiles and its tests pass unchanged.
+- [x] Pictures reach GTK only checked, as bytes; bad ones show nothing.
+- [x] Tests written first; narrow runs while building; the full suite and the examples' tests pass before the merge.
+- [x] fmt clean; public items documented; no file over 500 lines.
+- [x] README, docs/DESIGN.md, CHANGELOG, CLAUDE.md, DECISIONS updated; 0.12.0 tagged; merged. Pushed only on your go.
 
 ## VALIDATION
 - While building: only the tests covering each step.
 - Before the merge: `lughac fmt --check src examples test`, `lughac test test/`, the examples' own tests, every example built with `-o examples/<name>`.
 - For the user: `lughac run examples/backgrounds.la`: each value as its label names it, in light and dark.
+
+## NOTES FROM THE BUILD
+
+- **`background-image` is one property**, so the gradient and the image share one class (`kv-bgi-g…` for a gradient alone, `kv-bgp-…` for a picture with the gradient under it), and `kv-bgi-none` only for a colour alone: two classes never set `background-image` differently.
+- **A picture's rule is built by the runtime**: `paint` (pure) names its class from the image's identity, gradient and fill; `live` reads a file, checks the bytes and builds the rule (`sheets.url_of`, `picture_css`) when the class is first seen. The pure pieces are tested with a fake file reader.
+- **Every generated rule kind was run through GTK 4.22's CSS parser** (a C probe with `parsing-error`): no errors, gradients with `#rrggbbaa` and `alpha(currentColor, …)` stops, `-gtk-icontheme`, `data:` URLs, `background-size: 100% 100%`.
+- **A style compares with `==` in the diff**: a background picture from bytes compares its bytes on every update. Fine at the sizes allowed; worth a key-only identity if it shows up in a profile.
+- **`pictures` couldn't name both a module and a function** (E0314): `paint.background_pictures`.

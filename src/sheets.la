@@ -4,11 +4,25 @@
  * its class and a class's rule never changes. Pure: `paint` gives nodes their
  * classes, `live` loads the rules.
  *
- * Depends on: typography, theming
+ * Depends on: styles, theming, pictures
  * Used by: paint
  */
 
-import typography { Sheet, Family, Size, Weight, FontStyle, LineHeight, Decoration, Transform };
+import styles {
+    Sheet,
+    Family,
+    Size,
+    Weight,
+    FontStyle,
+    LineHeight,
+    Decoration,
+    Transform,
+    Background,
+    Gradient,
+    Stop,
+    Fill,
+};
+import pictures { Image, data_url, identity };
 import theming { Paint, digits, two_digits };
 
 /**
@@ -21,13 +35,10 @@ fun check(s: Sheet): Result<(), string> {
             if name == "" {
                 return Err("Family.Named(\"\"): a font needs a name");
             }
-            // The name goes inside a CSS string: nothing that could end it.
-            for bad of ["\"", "\\", ";", "{{", "}}", "\n", "\r"] {
-                if name.contains(bad) {
-                    return Err(
-                        "Family.Named(\"{name}\"): a font name can't hold quotes, backslashes, ; {{ }} or line breaks",
-                    );
-                }
+            if breaks_css(name) {
+                return Err(
+                    "Family.Named(\"{name}\"): a font name can't hold quotes, backslashes, ; {{ }} or line breaks",
+                );
             }
             match fallback {
                 Sans | Serif | Monospace => {}
@@ -55,13 +66,59 @@ fun check(s: Sheet): Result<(), string> {
         },
         Theme => {}
     }
-    match s.text.color {
-        Faded(x) => if x < 0.0 || x > 1.0 {
-            return Err("Paint.Faded({x}): an opacity is between 0 and 1");
+    check_paint(s.text.color)?;
+    check_paint(s.background.color)?;
+    match s.background.gradient {
+        Linear(_, stops) => check_stops(stops)?,
+        Radial(stops) => check_stops(stops)?,
+        Theme => {}
+    }
+    match s.background.image {
+        Some(Icon(name)) => if breaks_css(name) {
+            return Err(
+                "Image.Icon(\"{name}\"): an icon name can't hold quotes, backslashes, ; {{ }} or line breaks",
+            );
         },
         _ => {}
     }
     Ok(())
+}
+
+fun check_paint(p: Paint): Result<(), string> = match p {
+    Faded(x) => if x < 0.0 || x > 1.0 {
+        Err("Paint.Faded({x}): an opacity is between 0 and 1")
+    } else {
+        Ok(())
+    },
+    _ => Ok(()),
+};
+
+fun check_stops(stops: Stop[]): Result<(), string> {
+    if stops.len < 2 {
+        return Err("Gradient: a gradient needs at least two stops");
+    }
+    let mut last = 0.0;
+    for stop of stops {
+        if stop.at < 0.0 || stop.at > 1.0 {
+            return Err("Stop at {stop.at}: a stop is between 0 and 1");
+        }
+        if stop.at < last {
+            return Err("Gradient: its stops must be in order");
+        }
+        last = stop.at;
+        check_paint(stop.color)?;
+    }
+    Ok(())
+}
+
+/** Whether `name`, put inside a CSS string, could end it: quotes, backslashes, `;`, braces, line breaks. */
+fun breaks_css(name: string): bool {
+    for bad of ["\"", "\\", ";", "{{", "}}", "\n", "\r"] {
+        if name.contains(bad) {
+            return true;
+        }
+    }
+    false
 }
 
 /** Each value `s` sets, as its class and CSS declarations, font first; checked values only. */
@@ -71,10 +128,7 @@ fun rules(s: Sheet): (string, string)[] {
         Theme => {}
         Named(name, fallback) => {
             // The class spells the name in hex: any name is a valid, unique class.
-            let mut id = "";
-            for b of name {
-                id = id + two_digits(b as i64);
-            }
+            let id = hexed(name);
             out.push(
                 ("kv-ff-{id}-{short(fallback)}", "font-family: \"{name}\", {generic(fallback)};"),
             );
@@ -130,6 +184,110 @@ fun rules(s: Sheet): (string, string)[] {
         Uppercase => out.push(("kv-tt-upper", "text-transform: uppercase;")),
         Lowercase => out.push(("kv-tt-lower", "text-transform: lowercase;")),
         Capitalize => out.push(("kv-tt-cap", "text-transform: capitalize;")),
+    }
+    let b = s.background;
+    match b.color {
+        Theme => {}
+        Color(c) => out.push(("kv-bg-{digits(c)}", "background-color: #{digits(c)};")),
+        Faded(x) => out.push(
+            ("kv-bgfade-{permille(x)}", "background-color: alpha(currentColor, {x});"),
+        ),
+    }
+    // `background-image` is one property: the gradient and the image are one
+    // rule, so two classes never set it differently. An image's is `picture`'s.
+    if b.image.is_none() {
+        let g = gradient_css(b.gradient);
+        if g != "" {
+            out.push(("kv-bgi-g{hexed(g)}", "background-image: {g};"));
+        } else if b.color != Paint.Theme {
+            // A colour alone: a themed widget's own background image (a
+            // button's) would cover it, so it goes.
+            out.push(("kv-bgi-none", "background-image: none;"));
+        }
+    }
+    out
+}
+
+/**
+ * A background's picture, when it has one: its class, the image, the
+ * gradient under it (CSS, or `""`) and how it fills the node. Its rule needs
+ * the picture's bytes, so `live` builds it (`url_of`, `picture_css`) when the
+ * class is first seen.
+ */
+fun picture(s: Sheet): Option<(string, Image, string, string)> = match s.background.image {
+    Some(img) => {
+        let g = gradient_css(s.background.gradient);
+        let fill = fill_css(s.background.fill);
+        Some(("kv-bgp-{hexed("{identity(img)}|{g}|{fill}")}", img, g, fill))
+    }
+    None => None,
+};
+
+/** A picture's rule from its url (`None`: it can't be shown), the gradient under it, and its fill. */
+fun picture_css(url: Option<string>, gradient: string, fill: string): string {
+    let mut layers: string[] = [];
+    match url {
+        Some(u) => layers.push(u),
+        None => {}
+    }
+    if gradient != "" {
+        layers.push(gradient);
+    }
+    if layers.len == 0 {
+        "background-image: none;"
+    } else {
+        "background-image: {layers.join(", ")}; {fill}"
+    }
+}
+
+/**
+ * An image as a CSS image: a theme icon by name, or a file's or bytes'
+ * checked bytes as a `data:` URL, so GTK never decodes what kivuli hasn't
+ * checked or opens a path from CSS. `read` gives a file's bytes (`None`:
+ * missing). `None` for what can't be shown.
+ */
+fun url_of(img: Image, read: fun(string): Option<u8[]>): Option<string> = match img {
+    // The name was checked (`check`): it can't end the CSS string.
+    Icon(name) => Some("-gtk-icontheme(\"{name}\")"),
+    File(path) => match read(path) {
+        Some(bytes) => data_url(bytes).map(fun(u) = "url(\"{u}\")"),
+        None => None,
+    },
+    Bytes(_, bytes) => data_url(bytes).map(fun(u) = "url(\"{u}\")"),
+};
+
+/** A gradient as CSS; `""` for the theme's (none). */
+fun gradient_css(g: Gradient): string = match g {
+    Theme => "",
+    Linear(angle, stops) => "linear-gradient({angle}deg, {stops_css(stops)})",
+    Radial(stops) => "radial-gradient(circle, {stops_css(stops)})",
+};
+
+fun stops_css(stops: Stop[]): string = stops.map(fun(stop) {
+    let p = permille(stop.at);
+    "{paint_css(stop.color)} {p / 10}.{p % 10}%"
+}).join(", ");
+
+/** A colour as CSS: the theme's text colour for `Theme`, faded for `Faded`. */
+fun paint_css(p: Paint): string = match p {
+    Theme => "currentColor",
+    Color(c) => "#{digits(c)}",
+    Faded(x) => "alpha(currentColor, {x})",
+};
+
+/** How an image fills the node; the theme's is `Cover`. Always centred. */
+fun fill_css(f: Fill): string = match f {
+    Contain => "background-size: contain; background-position: center; background-repeat: no-repeat;",
+    Tile => "background-size: auto; background-position: center; background-repeat: repeat;",
+    Stretch => "background-size: 100% 100%; background-position: center; background-repeat: no-repeat;",
+    _ => "background-size: cover; background-position: center; background-repeat: no-repeat;",
+};
+
+/** `s` in hex: any text as a valid, unique part of a class name. */
+fun hexed(s: string): string {
+    let mut out = "";
+    for b of s {
+        out = out + two_digits(b as i64);
     }
     out
 }

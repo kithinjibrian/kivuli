@@ -1,18 +1,19 @@
 /**
- * Styles as values (PRP-016): what `.style([…])` takes. A style is a list of
+ * Styles as values (PRPs 016, 017): what `.style([…])` takes. A style is a list of
  * typed values, each applying to a `Sheet` in order: the last value that sets
  * a field wins, and a `Theme` value sets nothing, so a field nothing sets
  * stays the GTK theme's. `Font` picks the typeface and its size; `Text` says
  * what's done with the letters. Pure: `sheets` checks values and turns them
  * into CSS.
  *
- * Depends on: theming (`Color`, `Paint`)
+ * Depends on: theming (`Paint`), pictures (`Image`)
  * Used by: lib, looks, views, sheets, paint
  */
 
 import theming { Paint };
+import pictures { Image };
 
-/** Something `.style([…])` can apply: a `Font` or a `Text`. */
+/** Something `.style([…])` can apply: a `Font`, a `Text` or a `Background`. */
 public interface Styling {
     /** `s` with this value's fields over it; fields left `Theme` are skipped. */
     fun apply(self, s: Sheet): Sheet;
@@ -22,11 +23,16 @@ public interface Styling {
 public struct Sheet {
     public font: Font,
     public text: Text,
+    public background: Background,
 }
 
 impl Sheet {
     /** Nothing set: everything the GTK theme's. */
-    public fun theme(): Sheet = Sheet { font: Font.theme(), text: Text.theme() };
+    public fun theme(): Sheet = Sheet {
+        font: Font.theme(),
+        text: Text.theme(),
+        background: Background.theme(),
+    };
 }
 
 /** Applies `items` to `s` in order. */
@@ -199,6 +205,76 @@ impl Text {
             } else {
                 self.transform
             },
+        },
+        ..s,
+    };
+}
+
+/** A gradient, under a background's image and over its colour. */
+public enum Gradient {
+    Theme,
+    /** Along an angle in degrees (0 points up, 90 right, 180 down), through its stops. */
+    Linear(i64, Stop[]),
+    /** A circle from the node's centre out, through its stops. */
+    Radial(Stop[]),
+}
+
+/** One colour of a gradient, `at` its place along it: 0.0 the start, 1.0 the end. */
+public struct Stop {
+    public color: Paint,
+    public at: f64,
+}
+
+/** How a background's image fills the node; images are always centred. */
+public enum Fill {
+    Theme,
+    /** Fills the node, cropping what doesn't fit: the default with an image. */
+    Cover,
+    /** The whole picture, the rest showing what's beneath. */
+    Contain,
+    /** Repeated at its own size. */
+    Tile,
+    /** Stretched to the node exactly. */
+    Stretch,
+}
+
+/**
+ * What's behind a node's content: an image over a gradient over a colour,
+ * stacked as CSS stacks them. Fields left `Theme` (and `image` `None`) stay
+ * the GTK theme's. A picture from a file or bytes is checked before GTK sees
+ * it; one that can't be shown shows nothing.
+ *
+ * Example:
+ *     column(rows).style([Background { color: Paint.Faded(0.08), ..Background.theme() }])
+ */
+public struct Background {
+    /** `Faded(x)` is a tint of the theme's text colour, following light and dark. */
+    public color: Paint,
+    public gradient: Gradient,
+    public image: Option<Image>,
+    public fill: Fill,
+}
+
+impl Background {
+    /** Every field the theme's: start here and change what you need. */
+    public fun theme(): Background = Background {
+        color: Paint.Theme,
+        gradient: Gradient.Theme,
+        image: None,
+        fill: Fill.Theme,
+    };
+
+    /** `s` with every field this background sets. */
+    public fun apply(self, s: Sheet): Sheet = Sheet {
+        background: Background {
+            color: if self.color == Paint.Theme { s.background.color } else { self.color },
+            gradient: if self.gradient == Gradient.Theme {
+                s.background.gradient
+            } else {
+                self.gradient
+            },
+            image: if self.image.is_some() { self.image } else { s.background.image },
+            fill: if self.fill == Fill.Theme { s.background.fill } else { self.fill },
         },
         ..s,
     };

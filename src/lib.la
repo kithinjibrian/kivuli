@@ -11,7 +11,7 @@
 public import views { View };
 public import looks { Align, Fit };
 public import theming { Color, Paint, hex, rgb };
-public import typography {
+public import styles {
     Styling,
     Font,
     Text,
@@ -22,6 +22,10 @@ public import typography {
     LineHeight,
     Decoration,
     Transform,
+    Background,
+    Gradient,
+    Stop,
+    Fill,
 };
 public import pictures { Image };
 public import menus { MenuEntry, item, menu_separator };
