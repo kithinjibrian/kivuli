@@ -11,10 +11,8 @@
 public import views { View };
 public import looks { Align, Fit };
 public import theming { Color, Paint, hex, rgb };
-public import styles {
-    Styling,
-    Font,
-    Text,
+public import styles { Styling, Font, Text, Background, Border, Outline };
+public import style_values {
     Family,
     Size,
     Weight,
@@ -22,13 +20,10 @@ public import styles {
     LineHeight,
     Decoration,
     Transform,
-    Background,
     Gradient,
     Stop,
     Fill,
-    Border,
     Side,
-    Outline,
     Width,
     Line,
     Radius,

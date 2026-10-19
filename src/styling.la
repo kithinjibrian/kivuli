@@ -57,7 +57,7 @@ import gtk {
 };
 import live_tree { Live, widget };
 import looks { Style, Align, Fit };
-import styles { Radius };
+import style_values { Radius };
 import keys { parse };
 import widgets { snap };
 

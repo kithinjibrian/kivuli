@@ -4,12 +4,12 @@
  * its class and a class's rule never changes. Pure: `paint` gives nodes their
  * classes, `live` loads the rules.
  *
- * Depends on: styles, theming, pictures
+ * Depends on: styles, style_values, theming, pictures, box_rules
  * Used by: paint
  */
 
-import styles {
-    Sheet,
+import styles { Sheet, Background, Border };
+import style_values {
     Family,
     Size,
     Weight,
@@ -17,18 +17,17 @@ import styles {
     LineHeight,
     Decoration,
     Transform,
-    Background,
     Gradient,
     Stop,
     Fill,
-    Border,
     Side,
     Width,
     Line,
     Radius,
 };
 import pictures { Image, data_url, identity };
-import theming { Paint, digits, two_digits };
+import theming { Paint, digits, permille, two_digits };
+import box_rules { box_css, sides };
 
 /**
  * Whether every value in `s` can be shown.
@@ -231,112 +230,11 @@ fun rules(s: Sheet): (string, string)[] {
             out.push(("kv-bgi-none", "background-image: none;"));
         }
     }
-    let edges = sides(s.border);
-    for (name, side) of [
-        ("top", edges.top),
-        ("right", edges.right),
-        ("bottom", edges.bottom),
-        ("left", edges.left),
-    ] {
-        for rule of line_rules(
-            "b",
-            "border-{name}",
-            "-{name}",
-            side.width,
-            side.style,
-            side.color,
-        ) {
-            out.push(rule);
-        }
-    }
-    let corners = match s.border.radius {
-        Theme => [],
-        All(n) => [n, n, n, n],
-        Corners(a, b, c, d) => [a, b, c, d],
-    };
-    let names = [
-        ("tl", "top-left"),
-        ("tr", "top-right"),
-        ("br", "bottom-right"),
-        ("bl", "bottom-left"),
-    ];
-    let mut i = 0;
-    while i < corners.len {
-        out.push(
-            ("kv-br-{names[i].0}-{corners[i]}", "border-{names[i].1}-radius: {corners[i]}px;"),
-        );
-        i = i + 1;
-    }
-    // Only while the node doesn't have keyboard focus: the theme's focus ring
-    // is an outline too, and must still show. The key carries the selector's
-    // tail; `paint` takes the class before the `:`.
-    let o = s.outline;
-    for (class, body) of line_rules("o", "outline", "", o.width, o.style, o.color) {
-        out.push(("{class}:not(:focus-visible)", body));
-    }
-    if o.offset != 0 {
-        let id = if o.offset < 0 { "m{-o.offset}" } else { "{o.offset}" };
-        out.push(("kv-oo-{id}:not(:focus-visible)", "outline-offset: {o.offset}px;"));
+    for rule of box_css(s) {
+        out.push(rule);
     }
     out
 }
-
-/**
- * The rules for one border side or an outline (`kind` "b" or "o", `prop` the
- * CSS property's stem, `tail` the class's side): width, line, colour. A width
- * whose line is left `Theme` is drawn solid: CSS draws nothing without a style.
- */
-fun line_rules(
-    kind: string,
-    prop: string,
-    tail: string,
-    width: Width,
-    style: Line,
-    color: Paint,
-): (string, string)[] {
-    let mut out: (string, string)[] = [];
-    match width {
-        Px(n) => out.push(("kv-{kind}w{tail}-{n}", "{prop}-width: {n}px;")),
-        Theme => {}
-    }
-    let line = if style == Line.Theme && width != Width.Theme { Line.Solid } else { style };
-    match keyword(line) {
-        Some(k) => out.push(("kv-{kind}s{tail}-{k}", "{prop}-style: {k};")),
-        None => {}
-    }
-    match color {
-        Theme => {}
-        Color(c) => out.push(("kv-{kind}c{tail}-{digits(c)}", "{prop}-color: #{digits(c)};")),
-        Faded(x) => out.push(
-            ("kv-{kind}cfade{tail}-{permille(x)}", "{prop}-color: alpha(currentColor, {x});"),
-        ),
-    }
-    out
-}
-
-/** `b` with `all` folded into each side (a side's own fields over it), as `.style` leaves it. */
-fun sides(b: Border): Border = Border {
-    all: Side.theme(),
-    top: b.top.over(b.all),
-    right: b.right.over(b.all),
-    bottom: b.bottom.over(b.all),
-    left: b.left.over(b.all),
-    radius: b.radius,
-};
-
-/** A line's CSS keyword; `None` for the theme's. */
-fun keyword(l: Line): Option<string> = match l {
-    Theme => None,
-    None => Some("none"),
-    Solid => Some("solid"),
-    Dashed => Some("dashed"),
-    Dotted => Some("dotted"),
-    Double => Some("double"),
-    Groove => Some("groove"),
-    Ridge => Some("ridge"),
-    Inset => Some("inset"),
-    Outset => Some("outset"),
-};
 
 /**
  * A background's picture, when it has one: its class, the image, the
@@ -421,9 +319,6 @@ fun hexed(s: string): string {
     }
     out
 }
-
-/** A positive number in thousandths, rounded: a class name can't hold a dot. */
-fun permille(x: f64): i64 = (x * 1000.0 + 0.5) as i64;
 
 /** CSS's numeric `font-weight`; `None` for the theme's. */
 fun number(w: Weight): Option<i64> = match w {
