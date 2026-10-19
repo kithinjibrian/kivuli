@@ -492,6 +492,12 @@ Branch: main (PRP-020 on prp-020-sizing, merged)
 
 ---
 
+## SESSION 23 — 2026-10-20 — States (hover, press, focus…): discovery — open
+
+Branch: main
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
