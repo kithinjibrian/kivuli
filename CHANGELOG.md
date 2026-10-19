@@ -8,6 +8,11 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.16.0] — 2026-10-20
+
+### Added
+- States (PRP-021): `When(State.Hover | Press | Focus | Disabled | Checked, [...])` in `.style([...])`: values that apply only while a node is in that state, merged over its own, through GTK's pseudo-classes. A fixed order decides between two states on at once (Hover < Focus < Press < Checked < Disabled). `examples/borders.la` has a "States" section.
+
 ## [0.15.0] — 2026-10-19
 
 ### Breaking

@@ -1,0 +1,182 @@
+// States (PRP-021): `When(state, [...])` values merge over a node's own, a
+// second `When` of a state into the first; each state's rules carry its
+// pseudo-class and a specificity above the one before (Hover < Focus <
+// Press < Checked < Disabled); what CSS can't switch per state is refused.
+// No GTK.
+import kivuli.styles { Sheet };
+import kivuli.sheets { check, rules };
+import kivuli.paint { painted };
+import kivuli {
+    View,
+    When,
+    State,
+    Background,
+    Outline,
+    Text,
+    Font,
+    Weight,
+    Width,
+    Line,
+    Paint,
+    Image,
+    Sizing,
+    Spacing,
+    button,
+    column,
+    hex,
+};
+
+fun sheet_of<M>(v: View<M>): Sheet = match v {
+    Styled(_, s) => s.sheet,
+    _ => panic("expected a styled node"),
+};
+
+fun bg(c: string): Background = Background { color: Paint.Color(hex(c)), ..Background.theme() };
+
+fun keys(s: Sheet): string[] = rules(s).map(fun(r) = r.0);
+
+@test
+fun a_state_merges_its_own_sheet_and_a_second_when_merges_into_it() {
+    let v: View<i64> = button("Save", 1).style([
+        bg("#2a5298"),
+        When(State.Hover, [bg("#3a62a8")]),
+        When(State.Hover, [Font { weight: Weight.Bold, ..Font.theme() }]),
+    ]);
+    let s = sheet_of(v);
+    assert_eq(s.background.color, Paint.Color(hex("#2a5298")));
+    assert_eq(s.states.len, 1);
+    let (state, hover) = s.states[0];
+    assert_eq(state, State.Hover);
+    assert_eq(
+        (hover.background.color, hover.font.weight),
+        (Paint.Color(hex("#3a62a8")), Weight.Bold),
+    );
+}
+
+@test
+fun each_states_rules_carry_its_pseudo_class_and_rank() {
+    let s = sheet_of(
+        button("x", 1).style([
+            When(State.Hover, [bg("#111111")]),
+            When(State.Focus, [bg("#222222")]),
+            When(State.Press, [bg("#333333")]),
+            When(State.Checked, [bg("#444444")]),
+            When(State.Disabled, [bg("#555555")]),
+        ]),
+    );
+    let found = keys(s).filter(fun(k) = !k.contains("bgi-none"));
+    assert_eq(found, [
+        "kv-hover-bg-111111ff:hover",
+        "kv-focus-bg-222222ff.kv-focus-bg-222222ff:focus-visible",
+        "kv-press-bg-333333ff.kv-press-bg-333333ff.kv-press-bg-333333ff:active",
+        "kv-checked-bg-444444ff.kv-checked-bg-444444ff.kv-checked-bg-444444ff.kv-checked-bg-444444ff:checked",
+        "kv-disabled-bg-555555ff.kv-disabled-bg-555555ff.kv-disabled-bg-555555ff.kv-disabled-bg-555555ff.kv-disabled-bg-555555ff:disabled",
+    ]);
+    let hover = rules(s).filter(fun(r) = r.0 == "kv-hover-bg-111111ff:hover");
+    assert_eq(hover[0].1, "background-color: #111111ff;");
+}
+
+@test
+fun an_outline_in_the_focus_state_replaces_the_focus_ring_elsewhere_it_steps_aside() {
+    let ring = Outline { width: Width.Px(2), ..Outline.theme() };
+    let focused = keys(sheet_of(button("x", 1).style([When(State.Focus, [ring])])));
+    assert_eq(focused[0], "kv-focus-ow-2.kv-focus-ow-2:focus-visible");
+    let hovered = keys(sheet_of(button("x", 1).style([When(State.Hover, [ring])])));
+    assert_eq(hovered[0], "kv-hover-ow-2:not(:focus-visible):hover");
+}
+
+@test
+fun painting_gives_a_nodes_state_classes_beside_its_own() {
+    let v: View<i64> = column([
+        button("x", 1).style([bg("#101010"), When(State.Press, [bg("#202020")])]),
+    ]);
+    let classes = match painted(v) {
+        Ok(Column(kids)) => match kids[0] {
+            Styled(_, s) => s.classes,
+            _ => [],
+        },
+        _ => [],
+    };
+    assert_eq(classes, [
+        "kv-bg-101010ff",
+        "kv-bgi-none",
+        "kv-press-bg-202020ff",
+        "kv-press-bgi-none",
+    ]);
+}
+
+@test
+fun what_css_cant_switch_per_state_is_refused() {
+    let refused = "When(State.Hover, …): a state can't change a background image, an exact or maximum size, or the gap";
+    let image = sheet_of(
+        button("x", 1).style([
+            When(State.Hover, [Background { image: Some(Image.Icon("a")), ..Background.theme() }]),
+        ]),
+    );
+    assert_eq(check(image), Err(refused));
+    let wide = sheet_of(
+        button("x", 1).style([
+            When(State.Hover, [Sizing { max_width: Width.Px(10), ..Sizing.theme() }]),
+        ]),
+    );
+    assert_eq(check(wide), Err(refused));
+    let gap = sheet_of(
+        button("x", 1).style([
+            When(State.Hover, [Spacing { gap: Width.Px(4), ..Spacing.theme() }]),
+        ]),
+    );
+    assert_eq(check(gap), Err(refused));
+    let nested = sheet_of(
+        button("x", 1).style([When(State.Hover, [When(State.Press, [bg("#000000")])])]),
+    );
+    assert_eq(check(nested), Err("When(State.Hover, …): states can't nest"));
+    // A bad value inside a state is found too.
+    let faded = sheet_of(
+        button("x", 1).style([
+            When(State.Press, [Text { color: Paint.Faded(2.0), ..Text.theme() }]),
+        ]),
+    );
+    assert_eq(check(faded), Err("Paint.Faded(2.0): an opacity is between 0 and 1"));
+}
+
+// PRP-021's OBJECTIVE, as written there.
+enum Msg {
+    Save,
+}
+
+fun view(): View<Msg> = column([
+    button("Save", Msg.Save).style([
+        Background { color: Paint.Color(hex("#2a5298")), ..Background.theme() },
+        Text { color: Paint.Color(hex("#ffffff")), ..Text.theme() },
+        When(State.Hover, [
+            Background { color: Paint.Color(hex("#3a62a8")), ..Background.theme() },
+        ]),
+        When(State.Press, [
+            Background { color: Paint.Color(hex("#1e3c72")), ..Background.theme() },
+        ]),
+        When(State.Focus, [
+            Outline {
+                width: Width.Px(2),
+                color: Paint.Color(hex("#ffffff")),
+                style: Line.Solid,
+                offset: -4,
+            },
+        ]),
+        When(State.Disabled, [Text { color: Paint.Faded(0.5), ..Text.theme() }]),
+    ]),
+]);
+
+@test
+fun the_objective_reads_as_written() {
+    let save = match view() {
+        Column(kids) => sheet_of(kids[0]),
+        _ => panic("expected a column"),
+    };
+    assert_eq(save.states.map(fun(p) = p.0), [
+        State.Hover,
+        State.Press,
+        State.Focus,
+        State.Disabled,
+    ]);
+    assert_eq(check(save), Ok(()));
+}

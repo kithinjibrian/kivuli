@@ -1,6 +1,6 @@
 # PRP-021 — States: styles on hover, press, focus, disabled, checked
 
-Status: approved by the user (session 23); building on branch prp-021-states
+Status: built (session 23) on branch prp-021-states; merged into main
 Discovery: session 23, 2026-10-20. *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: `When(state, [...])` in `.style([...])`: style values that apply only while a node is hovered, pressed, focused, disabled or checked.
@@ -41,10 +41,16 @@ fun view(m: Model): View<Msg> = column([
 - No transitions (later), no combined states (`Hover` and `Checked` at once as one rule), no `:selected`, no states on the header bar.
 
 ## TESTS (narrow, per the user: only what this changes)
-- [ ] `test/states.la` (new, pure): `When` merges over the node's values; a second `When` of a state merges into the first; the CSS for each state (prefix, pseudo-class, specificity order); paint gives the classes; each refusal.
-- [ ] `test/live_type.la`: a state's classes land on the widget and its rules in the stylesheet; GTK parses each selector (C probe).
-- [ ] Every example builds (`-o examples/<name>`). The full suite is skipped this time (the user's call, session 23).
+- [x] `test/states.la` (new, pure): `When` merges over the node's values; a second `When` of a state merges into the first; the CSS for each state (prefix, pseudo-class, specificity order); paint gives the classes; each refusal.
+- [x] `test/live_type.la`: a state's classes land on the widget and its rules in the stylesheet; GTK parses each selector (C probe).
+- [x] Every example builds (`-o examples/<name>`). The full suite is skipped this time (the user's call, session 23).
 - [ ] How states look: by hand in `examples/borders.la` (a new "States" section).
 
 ## ACCEPTANCE
-- [ ] The OBJECTIVE compiles and its test passes; fmt clean; no file over 500 lines; README, DESIGN, CHANGELOG 0.16.0; merged, tagged; pushed only on your go.
+- [x] The OBJECTIVE compiles and its test passes; fmt clean; no file over 500 lines; README, DESIGN, CHANGELOG 0.16.0; merged, tagged; pushed only on your go.
+
+## NOTES FROM THE BUILD
+
+- **Narrow runs only**, as the user asked: test/states.la (6), live_type (4), and the files covering `Sheet`, rules and paint (styles, sheets, sheets_border, theming, spacing, sizing); every example built. The full suite wasn't run.
+- **A state's key repeats its class** (`.c.c:active`), so `paint` takes the class before the first `.` as well as the first `:`.
+- **`When` is a function** returning a `StateStyle` (Lugha allows the capital), so it reads as the interview chose.

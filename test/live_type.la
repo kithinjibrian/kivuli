@@ -31,6 +31,8 @@ import kivuli {
     Fill,
     Image,
     Border,
+    When,
+    State,
     Side,
     Outline,
     Width,
@@ -356,4 +358,68 @@ fun borders_land_as_classes_and_rounded_nodes_clip_their_content() {
         "rounded clips 1",
         "flat: same true clips 0 radius class 0",
     ]);
+}
+
+@test
+fun a_states_classes_land_and_its_rules_join_the_stylesheet() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen: Ref<string[]> = Ref.new([]);
+    let application = gtk_application_new("org.kivuli.test.states", 0);
+    connect_app(
+        application,
+        "activate",
+        fun(a: GtkApplication) {
+            let window = gtk_application_window_new(a);
+            let app = mount(
+                a,
+                window,
+                sandbox_app(
+                    "org.kivuli.test",
+                    false,
+                    fun(m: bool, msg: Swap): bool = m,
+                    fun(m: bool): View<Swap> = column([
+                        button("Save", Swap.Next).style([
+                            Background { color: Paint.Color(hex("#2a5298")), ..Background.theme() },
+                            When(State.Hover, [
+                                Background {
+                                    color: Paint.Color(hex("#3a62a8")),
+                                    ..Background.theme(),
+                                },
+                            ]),
+                            When(State.Press, [
+                                Background {
+                                    color: Paint.Color(hex("#1e3c72")),
+                                    ..Background.theme(),
+                                },
+                            ]),
+                        ]),
+                    ]),
+                ),
+            );
+            let save = match live_of(app) {
+                Box(_, _, ks) => widget(ks[0]),
+                _ => panic("expected a column"),
+            };
+            let css = app.styles.css.get();
+            note(
+                seen,
+                "classes {gtk_widget_has_css_class(save, "kv-bg-2a5298ff")} {gtk_widget_has_css_class(save, "kv-hover-bg-3a62a8ff")} {gtk_widget_has_css_class(save, "kv-press-bg-1e3c72ff")}",
+            );
+            note(
+                seen,
+                "hover rule {css.any(fun(r) = r == ".kv-hover-bg-3a62a8ff:hover {{ background-color: #3a62a8ff; }}")}",
+            );
+            note(
+                seen,
+                "press rule {css.any(fun(r) = r == ".kv-press-bg-1e3c72ff.kv-press-bg-1e3c72ff.kv-press-bg-1e3c72ff:active {{ background-color: #1e3c72ff; }}")}",
+            );
+            g_application_quit(a);
+        },
+        0,
+    );
+    g_application_run(application, 0, None);
+    g_object_unref(application);
+    assert_eq(seen.get(), ["classes 1 1 1", "hover rule true", "press rule true"]);
 }

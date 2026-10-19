@@ -6,7 +6,7 @@ kivuli draws nothing. Every visual comes from the user's GTK theme (Adwaita by d
 
 ## Tokens: kivuli vocabulary → GTK
 
-### Styles (`.style([...])`; PRPs 016–020, DECISION-023)
+### Styles (`.style([...])`; PRPs 016–021, DECISION-023)
 
 A style is a list of typed values (`Font`, `Text`, `Background`, `Border`, `Outline`, `Spacing`, `Sizing`) merged into one `Sheet` per node: for each field the last value that sets it wins, and `Theme` sets nothing. kivuli turns a `Sheet` into atomic CSS classes, one per property and value, so every node using a value shares its class and a class's rule never changes:
 
@@ -35,6 +35,7 @@ A style is a list of typed values (`Font`, `Text`, `Background`, `Border`, `Outl
 | `Spacing.padding` / `.margin` (after `all` is folded in) | `kv-p-{side}-{n}` / `kv-m-{side}-{n}`, `kv-m-{side}-m{n}` | `padding-{side}` / `margin-{side}: {n}px` (a margin may be negative); kivuli no longer sets GTK's widget margins |
 | `Sizing.min_width` / `.min_height` | `kv-minw-{n}` / `kv-minh-{n}` | `min-width` / `min-height: {n}px` |
 | `Sizing.width`, `.max_width`, `.height`, `.max_height` | (no class) | GTK's CSS has no `width`, `max-width` or `max-height` (session 22): the node goes in a clamp (`lgtk_clamp_*`, lugha-gtk 0.1.30, a C widget with one child) whose limits keep its size, never below the child's minimum; given more room than its maximum it gives the child the maximum, at the start. The parent holds the clamp, so `.expand` and `.align` go on it; the node fills it. Gaining or losing the clamp rebuilds the node (`Replace`); new numbers reset the limits |
+| `When(state, …)` | each of its rules' classes with `kv-{hover\|focus\|press\|checked\|disabled}-` | the rule under `:hover`, `:focus-visible`, `:active`, `:checked`, `:disabled`, its class repeated to the state's rank (1 to 5) so a later state in that order wins whatever the stylesheet's order; an outline in `Focus` drops `:not(:focus-visible)` (it's the app's focus ring there). Parsed by GTK 4.22 (C probe) |
 | `Spacing.gap` | (no class) | not CSS: `gtk_box_set_spacing` on a column or row, `gtk_flow_box_set_row_spacing` and `set_column_spacing` on a wrap (a flow box reads no CSS gap) |
 | `Outline` | `kv-ow-{n}`, `kv-os-{line}`, `kv-oc-…`, `kv-oo-{n}` / `kv-oo-m{n}` | `outline-width`, `-style`, `-color`, `-offset`, each under `:not(:focus-visible)` so the theme's focus ring (an outline) still shows |
 

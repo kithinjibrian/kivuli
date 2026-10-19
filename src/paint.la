@@ -75,7 +75,8 @@ fun paint_style<Msg>(node: View<Msg>, s: Style): Result<Style, string> {
     }
     check(s.sheet)?;
     // A rule's key may carry its selector's tail (`:not(:focus-visible)`): the class is before it.
-    let mut classes = rules(s.sheet).map(fun(rule) = rule.0.split(":")[0]);
+    // A state's key repeats its class (`.c.c:active`): the class is before the first `.` too.
+    let mut classes = rules(s.sheet).map(fun(rule) = rule.0.split(":")[0].split(".")[0]);
     match picture(s.sheet) {
         Some((class, _, _, _)) => classes.push(class),
         None => {}

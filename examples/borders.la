@@ -1,10 +1,12 @@
 // A specimen of borders, outlines and spacing: each line style, one side at
 // a time, `all` with one side overridden, each radius, padding inside a
-// border and margin outside it, exact, minimum and maximum sizes, and
-// outlines that step aside for the theme's focus ring: Tab to an outlined
-// button and its focus ring shows instead.
+// border and margin outside it, exact, minimum and maximum sizes, styles per
+// state (hover, press, focus, disabled, checked), and outlines that step
+// aside for the theme's focus ring: Tab to an outlined button and its focus
+// ring shows instead.
 import kivuli {
     View,
+    Background,
     Sizing,
     Edges,
     Spacing,
@@ -26,6 +28,9 @@ import kivuli {
     scroll,
     text,
     wrap,
+    When,
+    State,
+    checkbox,
 };
 
 /** At least `w` by `h` pixels; 0 leaves that way to the theme. */
@@ -160,6 +165,25 @@ fun view(m: ()): View<()> = scroll(
         ]),
         text("min_height 60: at least").style([all(hairline()), pad(8), at_least(0, 60)]),
     ]).style([gap(12)]),
+    heading("States (hover, press, Tab to focus)"),
+    wrap([
+        button("Hover and press me", ()).style([
+            Background { color: Paint.Color(hex("#2a5298")), ..Background.theme() },
+            Text { color: Paint.Color(hex("#ffffff")), ..Text.theme() },
+            When(State.Hover, [Background { color: Paint.Color(hex("#3a62a8")), ..Background.theme() }]),
+            When(State.Press, [Background { color: Paint.Color(hex("#1e3c72")), ..Background.theme() }]),
+            When(State.Focus, [
+                Outline { width: Width.Px(2), color: Paint.Color(hex("#ffffff")), style: Line.Solid, offset: -4 },
+            ]),
+        ]),
+        button("Bold on hover", ()).style([When(State.Hover, [Font { weight: Weight.Bold, ..Font.theme() }])]),
+        button("Disabled: faded", ()).disabled(true).style([
+            When(State.Disabled, [Text { color: Paint.Faded(0.4), ..Text.theme() }, Border { all: side(1, Line.Dashed), ..Border.theme() }]),
+        ]),
+        checkbox("Ticked: green", true, fun(b: bool) = ()).style([
+            When(State.Checked, [Text { color: Paint.Color(hex("#27ae60")), ..Text.theme() }]),
+        ]),
+    ]).style([gap(16)]),
     heading("Outlines (Tab to the buttons: the focus ring shows instead)"),
         wrap([
             button("Outlined, offset 2", ()).style([

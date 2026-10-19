@@ -71,6 +71,7 @@ fun the_theme_values_set_nothing() {
         outline: Outline.theme(),
         spacing: Spacing.theme(),
         sizing: Sizing.theme(),
+        states: [],
     });
     assert_eq(Side.theme(), Side { width: Width.Theme, color: Paint.Theme, style: Line.Theme });
     assert_eq(Border.theme(), Border {

@@ -492,9 +492,19 @@ Branch: main (PRP-020 on prp-020-sizing, merged)
 
 ---
 
-## SESSION 23 — 2026-10-20 — States (hover, press, focus…): discovery — open
+## SESSION 23 — 2026-10-20 — PRP-021: states, kivuli 0.16.0 — closed
 
-Branch: main
+Branch: main (PRP-021 on prp-021-states, merged)
+
+### WHAT WAS DONE
+- Interview (one `When(state, [...])`), PRP-021 approved and built fast, per the user: narrow test runs only, no full suite. `State` (Hover, Press, Focus, Disabled, Checked), `StateStyle`, `When`, `Sheet.states`; each state's rules under its pseudo-class with its class repeated to its rank (Hover < Focus < Press < Checked < Disabled; GTK parses them, C probe); an outline in `Focus` is the app's focus ring; image, exact/max size and gap refused in a state, as is nesting. Tests: states (new), live_type, and the files covering Sheet/rules/paint. borders.la has a "States" section. Docs and the tutorial page updated. kivuli 0.16.0, tagged locally.
+
+### STILL OPEN AT CLOSE
+- Not pushed, waiting for the user's go: main and tags v0.11.0 through v0.16.0.
+- The full suite wasn't run this session (the user's call); run it before a push.
+- For the user to check by hand: `lughac run examples/borders.la`'s "States" section: hover, press, Tab, the disabled and ticked looks.
+- Next: button looks and theme colours in `Paint`; shadows, effects, motion; style utilities. Queued: file dialog (013). For the lugha session: DECISIONS 020-022. test/live_forms.la split awaiting the user.
+- `reports/.gitkeep` deleted in the working tree, not by Claude; left alone.
 
 ---
 
