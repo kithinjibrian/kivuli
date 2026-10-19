@@ -536,6 +536,12 @@ Branch: main (PRP-022 on prp-022-shadows_and_effects, merged)
 
 ---
 
+## SESSION 26 — 2026-10-20 — Clean-up of old code — open
+
+Branch: cleanup
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
