@@ -430,9 +430,18 @@ Branch: main (PRP-016 on prp-016-style_values, merged)
 
 ---
 
-## SESSION 19 — 2026-10-19 — Backgrounds through .style: discovery — open
+## SESSION 19 — 2026-10-19 — PRP-017: backgrounds, kivuli 0.12.0 — closed
 
-Branch: main
+Branch: main (PRP-017 on prp-017-backgrounds, merged)
+
+### WHAT WAS DONE
+- Interview (colour, gradients and images; `Linear`/`Radial` with `Stop`s; `Image` sources reused, `Fill` Cover/Contain/Tile/Stretch, centred; pictures checked and handed to GTK as bytes), PRP-017 approved and built. Rename first: src/typography.la → src/styles.la. `Background`, `Gradient`, `Stop`, `Fill`; `Sheet.background`; base64 and `data:` URLs in pictures.la (RFC 4648 vectors); background rules, picture rules (built by live from checked bytes), checks (stops, opacity, icon-name injection). Every generated rule kind parsed by GTK 4.22 with no errors (C probe). Tests: styles, sheets, pictures, theming, live_type. examples/backgrounds.la. Docs and the tutorial page updated. kivuli 0.12.0, tagged locally.
+
+### STILL OPEN AT CLOSE
+- Not pushed, waiting for the user's go: main and tags v0.11.0, v0.12.0.
+- For the user to check by hand: `lughac run examples/backgrounds.la` in light and dark; also examples/type.la, browser.la, hello.la from 0.11.0.
+- Next: style utilities (names free of the fields, E0310); borders, corners and button looks through `.style`. Queued: file dialog (013). For the lugha session: DECISIONS 020-022. test/live_forms.la split awaiting the user.
+- `reports/.gitkeep` deleted in the working tree, not by Claude; left alone.
 
 ---
 

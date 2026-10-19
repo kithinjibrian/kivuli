@@ -38,7 +38,7 @@ fun main() {
 
 ### DECISION-023 — Styling has one door
 
-**Status:** resolved for fonts and text (PRP-016, session 18); backgrounds, borders, corners and button looks come through the same door in a later PRP
+**Status:** resolved for fonts and text (PRP-016, session 18) and backgrounds (PRP-017, session 19); borders, corners and button looks come through the same door in a later PRP
 **Raised:** 2026-10-19 — Session 17 (the user)
 
 **Question:** Appearance comes through three overlapping ways: modifiers (`.bold`, `.dim`, `.size` on text, `.button_style`), `ButtonStyle`, and `Surface` fields (`text`, `flat`) that compete with them. Which one wins depends on the order kivuli applies them.

@@ -22,6 +22,10 @@ public import styles {
     LineHeight,
     Decoration,
     Transform,
+    Background,
+    Gradient,
+    Stop,
+    Fill,
 };
 public import pictures { Image };
 public import menus { MenuEntry, item, menu_separator };

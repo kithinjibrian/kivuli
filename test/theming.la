@@ -12,6 +12,10 @@ import kivuli {
     Weight,
     FontStyle,
     Transform,
+    Paint,
+    Background,
+    Gradient,
+    Image,
     button,
     button_with,
     checkbox,
@@ -132,4 +136,20 @@ fun a_button_withs_content_holds_nothing_interactive() {
         painted(bad).map(fun(v) = 0),
         Err("a button_with's content can't hold a button (\"Delete\")"),
     );
+}
+
+@test
+fun painting_gives_a_backgrounds_classes_and_refuses_its_bad_values() {
+    let dark = Background { color: Paint.Color(rgb(16, 16, 16)), ..Background.theme() };
+    assert_eq(classes_of(text("a").style([dark])), ["kv-bg-101010ff", "kv-bgi-none"]);
+    let pictured: View<i64> = column([]).style([
+        Background { image: Some(Image.Icon("starred-symbolic")), ..Background.theme() },
+    ]);
+    let cs = classes_of(pictured);
+    assert_eq(cs.len, 1);
+    assert(cs[0].starts_with("kv-bgp-"));
+    let bad: View<i64> = column([
+        text("a").style([Background { gradient: Gradient.Radial([]), ..Background.theme() }]),
+    ]);
+    assert_eq(painted(bad).map(fun(v) = 0), Err("Gradient: a gradient needs at least two stops"));
 }

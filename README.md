@@ -63,6 +63,7 @@ Inside this repository, run the examples directly:
 ```sh
 lughac run examples/hello.la      # the app above
 lughac run examples/type.la       # every Font and Text value, each on a line naming it
+lughac run examples/backgrounds.la   # colours, tints, gradients, pictures in each fill, all three layers
 lughac run examples/tasks.la      # a to-do list: keyed rows, a row menu
 lughac run examples/browser.la    # a header bar, tab menus, tiles, whole-row buttons, background loads
 lughac run examples/controls.la   # drop-down, sliders, check box, text area, icons, pictures
@@ -142,11 +143,12 @@ text("Price").style([Text { decoration: Decoration.Strikethrough, ..Text.theme()
 | Value | Fields |
 | --- | --- |
 | `Font` (the typeface) | `family` (`Sans`, `Serif`, `Monospace`, `Named("Inter", Family.Sans)`: a named font names its fallback), `size` (`Pt(14)` points, or `Scale(1.5)` times the theme's), `weight` (`Thin`, `Light`, `Normal`, `Medium`, `Semibold`, `Bold`, `Black`), `style` (`Normal`, `Italic`), `tabular` (digits all one width) |
+| `Background` (behind the content) | `color` (a `Paint`: `Faded(0.08)` is a tint of the theme's text colour that follows light and dark), `gradient` (`Linear(180, stops)` in degrees, 0 up and 90 right, or `Radial(stops)`; each `Stop { color, at }`, `at` from 0.0 to 1.0), `image` (`Some(Image.File(…))`, `Image.Bytes(…)` or `Image.Icon(…)`), `fill` (`Cover`, `Contain`, `Tile`, `Stretch`; always centred). The image sits over the gradient, over the colour. |
 | `Text` (what's done with the letters) | `color` (`Paint.Color(hex("#e0e0e0"))`, or `Paint.Faded(0.55)`: the theme's text colour at that opacity, so it follows light and dark), `line_height` (`Times(1.4)`), `letter_spacing` (pixels; negative tightens), `decoration` (`Underline`, `Strikethrough`, `None`), `transform` (`Uppercase`, `Lowercase`, `Capitalize`, `None`) |
 
 Each field's `Theme` value (and `Font.theme()`, `Text.theme()` for a whole group) means "not set here". The values apply in order, and for each field the last one that sets it wins: `[big, Font { weight: Weight.Thin, ..Font.theme() }]` keeps `big`'s size and makes it thin. `.style(a).style(b)` is `.style(a + b)`. What nothing sets stays the GTK theme's, so an app follows the user's light or dark theme with no work. A bad value (`Size.Pt(0)`, a line height of 0, an opacity over 1, a font name with quotes or braces) stops the app with a message naming it. kivuli turns each value into one CSS class (`kv-fw-700`), adds its rule to the app's stylesheet the first time it's seen, and never draws anything itself.
 
-Backgrounds, borders, corners and button looks aren't styles yet: they come in a later release.
+A background picture from a file or bytes is checked like `image(…)` (PNG or JPEG, at most 4096 × 4096 px and 16 MB) and handed to GTK as bytes, never as a path; one that can't be shown shows no image, and the app keeps running. Borders, corners and button looks aren't styles yet: they come in a later release.
 
 **Components.** A part of an app can have its own model, messages, `update` and `view`, and sit in a bigger app through `map`, which sends `f(msg)` wherever the part would send `msg`:
 

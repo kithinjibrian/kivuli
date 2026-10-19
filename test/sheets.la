@@ -1,7 +1,7 @@
 // A style's values, checked and turned into CSS: one class per property and
 // value, so nodes sharing a value share a class. No GTK.
 import kivuli.styles { Sheet };
-import kivuli.sheets { check, rules };
+import kivuli.sheets { check, picture, picture_css, rules, url_of };
 import kivuli {
     Font,
     Text,
@@ -13,15 +13,22 @@ import kivuli {
     Decoration,
     Transform,
     Paint,
+    Background,
+    Gradient,
+    Stop,
+    Fill,
+    Image,
     hex,
 };
+import fixtures;
+import kivuli.pictures { data_url };
 
 fun named(name: string, fallback: Family): Font = Font {
     family: Family.Named(name, fallback),
     ..Font.theme(),
 };
 
-fun sheet(f: Font, t: Text): Sheet = Sheet { font: f, text: t };
+fun sheet(f: Font, t: Text): Sheet = Sheet { font: f, text: t, ..Sheet.theme() };
 
 fun css(s: Sheet): string[] = rules(s).map(fun(rule) = ".{rule.0} {{ {rule.1} }}");
 
@@ -163,6 +170,231 @@ fun a_font_name_cant_break_out_of_its_css_string() {
             check(sheet(named(name, Family.Sans), Text.theme())),
             Err(
                 "Family.Named(\"{name}\"): a font name can't hold quotes, backslashes, ; {{ }} or line breaks",
+            ),
+        );
+    }
+}
+
+fun bg(b: Background): Sheet = Sheet { background: b, ..Sheet.theme() };
+
+fun stops(a: string, b: string): Stop[] = [
+    Stop { color: Paint.Color(hex(a)), at: 0.0 },
+    Stop { color: Paint.Color(hex(b)), at: 1.0 },
+];
+
+@test
+fun a_background_colour_clears_the_themes_image_so_it_shows() {
+    assert_eq(rules(bg(Background { color: Paint.Color(hex("#242424")), ..Background.theme() })), [
+        ("kv-bg-242424ff", "background-color: #242424ff;"),
+        ("kv-bgi-none", "background-image: none;"),
+    ]);
+    assert_eq(rules(bg(Background { color: Paint.Faded(0.08), ..Background.theme() })), [
+        ("kv-bgfade-80", "background-color: alpha(currentColor, 0.08);"),
+        ("kv-bgi-none", "background-image: none;"),
+    ]);
+}
+
+@test
+fun gradients_are_one_background_image_rule() {
+    let linear = rules(
+        bg(Background {
+            gradient: Gradient.Linear(180, stops("#1e3c72", "#2a5298")),
+            ..Background.theme(),
+        }),
+    );
+    assert_eq(linear.len, 1);
+    assert(linear[0].0.starts_with("kv-bgi-g"));
+    assert_eq(
+        linear[0].1,
+        "background-image: linear-gradient(180deg, #1e3c72ff 0.0%, #2a5298ff 100.0%);",
+    );
+    let radial = rules(
+        bg(Background {
+            gradient: Gradient.Radial([
+                Stop { color: Paint.Faded(0.15), at: 0.0 },
+                Stop { color: Paint.Faded(0.0), at: 1.0 },
+            ]),
+            ..Background.theme(),
+        }),
+    );
+    assert_eq(
+        radial[0].1,
+        "background-image: radial-gradient(circle, alpha(currentColor, 0.15) 0.0%, alpha(currentColor, 0.0) 100.0%);",
+    );
+    // The same gradient shares a class; another doesn't.
+    let again = rules(
+        bg(Background {
+            gradient: Gradient.Linear(180, stops("#1e3c72", "#2a5298")),
+            ..Background.theme(),
+        }),
+    );
+    let other = rules(
+        bg(Background {
+            gradient: Gradient.Linear(90, stops("#1e3c72", "#2a5298")),
+            ..Background.theme(),
+        }),
+    );
+    assert_eq(again[0].0, linear[0].0);
+    assert(other[0].0 != linear[0].0);
+    // Over a colour: the colour stays beneath, and isn't cleared.
+    let both = rules(
+        bg(Background {
+            color: Paint.Color(hex("#101010")),
+            gradient: Gradient.Linear(180, stops("#00000000", "#000000aa")),
+            ..Background.theme(),
+        }),
+    );
+    assert_eq(both.map(fun(r) = r.0.slice(0, 8)), ["kv-bg-10", "kv-bgi-g"]);
+}
+
+@test
+fun a_picture_is_its_own_rule_over_the_gradient() {
+    let sample = Image.File("examples/assets/sample.png");
+    let s = bg(Background {
+        color: Paint.Color(hex("#101010")),
+        gradient: Gradient.Linear(180, stops("#00000000", "#000000aa")),
+        image: Some(sample),
+        fill: Fill.Cover,
+    });
+    // Only the colour is an ordinary rule; the image and gradient are the picture's.
+    assert_eq(rules(s).map(fun(r) = r.0), ["kv-bg-101010ff"]);
+    let Some((class, img, gradient, fill)) = picture(s) else {
+        panic("expected a picture");
+    };
+    assert(class.starts_with("kv-bgp-"));
+    assert_eq(img, sample);
+    assert_eq(gradient, "linear-gradient(180deg, #00000000 0.0%, #000000aa 100.0%)");
+    assert_eq(
+        fill,
+        "background-size: cover; background-position: center; background-repeat: no-repeat;",
+    );
+    assert_eq(picture(bg(Background.theme())), None);
+}
+
+@test
+fun each_fill_is_its_css() {
+    let fill_of = fun(f: Fill): string = match picture(
+        bg(Background { image: Some(Image.Icon("x")), fill: f, ..Background.theme() }),
+    ) {
+        Some((_, _, _, css)) => css,
+        None => "none",
+    };
+    // With an image, the theme's fill is Cover.
+    assert_eq(fill_of(Fill.Theme), fill_of(Fill.Cover));
+    assert_eq(
+        fill_of(Fill.Contain),
+        "background-size: contain; background-position: center; background-repeat: no-repeat;",
+    );
+    assert_eq(
+        fill_of(Fill.Tile),
+        "background-size: auto; background-position: center; background-repeat: repeat;",
+    );
+    assert_eq(
+        fill_of(Fill.Stretch),
+        "background-size: 100% 100%; background-position: center; background-repeat: no-repeat;",
+    );
+}
+
+@test
+fun a_pictures_rule_is_built_from_its_url() {
+    let fill = "background-size: cover; background-position: center; background-repeat: no-repeat;";
+    assert_eq(
+        picture_css(
+            Some("-gtk-icontheme(\"x\")"),
+            "linear-gradient(180deg, #000000ff 0.0%, #ffffffff 100.0%)",
+            fill,
+        ),
+        "background-image: -gtk-icontheme(\"x\"), linear-gradient(180deg, #000000ff 0.0%, #ffffffff 100.0%); {fill}",
+    );
+    // A picture that can't be shown: the gradient alone, or no image at all.
+    assert_eq(
+        picture_css(None, "linear-gradient(0deg, #000000ff 0.0%, #ffffffff 100.0%)", fill),
+        "background-image: linear-gradient(0deg, #000000ff 0.0%, #ffffffff 100.0%); {fill}",
+    );
+    assert_eq(picture_css(None, "", fill), "background-image: none;");
+}
+
+@test
+fun a_pictures_url_comes_from_its_checked_bytes() {
+    let none_on_disk = fun(path: string): Option<u8[]> = None;
+    let png_on_disk = fun(path: string): Option<u8[]> = Some(fixtures.png());
+    assert_eq(
+        url_of(Image.Icon("starred-symbolic"), none_on_disk),
+        Some("-gtk-icontheme(\"starred-symbolic\")"),
+    );
+    assert_eq(
+        url_of(Image.Bytes("k", fixtures.jpeg()), none_on_disk),
+        data_url(fixtures.jpeg()).map(fun(u) = "url(\"{u}\")"),
+    );
+    assert_eq(
+        url_of(Image.File("a.png"), png_on_disk),
+        data_url(fixtures.png()).map(fun(u) = "url(\"{u}\")"),
+    );
+    // Missing, or failing the checks: no image.
+    assert_eq(url_of(Image.File("missing.png"), none_on_disk), None);
+    assert_eq(url_of(Image.Bytes("bad", fixtures.huge_png()), none_on_disk), None);
+}
+
+@test
+fun bad_background_values_say_what_is_wrong() {
+    assert_eq(
+        check(
+            bg(Background {
+                gradient: Gradient.Linear(0, [Stop { color: Paint.Theme, at: 0.0 }]),
+                ..Background.theme(),
+            }),
+        ),
+        Err("Gradient: a gradient needs at least two stops"),
+    );
+    assert_eq(
+        check(
+            bg(Background {
+                gradient: Gradient.Radial([
+                    Stop { color: Paint.Theme, at: 0.0 },
+                    Stop { color: Paint.Theme, at: 1.5 },
+                ]),
+                ..Background.theme(),
+            }),
+        ),
+        Err("Stop at 1.5: a stop is between 0 and 1"),
+    );
+    assert_eq(
+        check(
+            bg(Background {
+                gradient: Gradient.Linear(0, [
+                    Stop { color: Paint.Theme, at: 0.6 },
+                    Stop { color: Paint.Theme, at: 0.2 },
+                ]),
+                ..Background.theme(),
+            }),
+        ),
+        Err("Gradient: its stops must be in order"),
+    );
+    assert_eq(
+        check(bg(Background { color: Paint.Faded(2.0), ..Background.theme() })),
+        Err("Paint.Faded(2.0): an opacity is between 0 and 1"),
+    );
+    assert_eq(
+        check(
+            bg(Background {
+                gradient: Gradient.Linear(0, [
+                    Stop { color: Paint.Faded(-0.5), at: 0.0 },
+                    Stop { color: Paint.Theme, at: 1.0 },
+                ]),
+                ..Background.theme(),
+            }),
+        ),
+        Err("Paint.Faded(-0.5): an opacity is between 0 and 1"),
+    );
+}
+
+@test
+fun an_icon_name_cant_break_out_of_its_css_string() {
+    for name of ["a\"b", "a\\b", "a;b", "a{{b", "a}}b", "a\nb"] {
+        assert_eq(
+            check(bg(Background { image: Some(Image.Icon(name)), ..Background.theme() })),
+            Err(
+                "Image.Icon(\"{name}\"): an icon name can't hold quotes, backslashes, ; {{ }} or line breaks",
             ),
         );
     }

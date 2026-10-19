@@ -167,7 +167,7 @@ fun style_values_land_in_the_style() {
     let bold = Font { weight: Weight.Bold, size: Size.Pt(18), ..Font.theme() };
     let faded = Text { color: Paint.Faded(0.55), ..Text.theme() };
     let expected: View<Msg> = View.Styled(View.Text("x"), Style {
-        sheet: Sheet { font: bold, text: faded },
+        sheet: Sheet { font: bold, text: faded, ..Sheet.theme() },
         ..plain(),
     });
     assert_same(text("x").style([bold, faded]), expected);

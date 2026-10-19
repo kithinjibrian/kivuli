@@ -148,3 +148,45 @@ fun be(bytes: u8[], at: i64, count: i64): i64 {
     }
     n
 }
+
+/**
+ * Checked PNG or JPEG bytes as a `data:` URL, for a stylesheet; `None` for
+ * bytes that fail `size_of`'s checks, so they never reach GTK.
+ */
+fun data_url(bytes: u8[]): Option<string> {
+    if size_of(bytes).is_err() {
+        return None;
+    }
+    // `size_of` passed: the bytes start as one or the other.
+    let kind = if starts(bytes, [137, 80, 78, 71]) { "png" } else { "jpeg" };
+    Some("data:image/{kind};base64,{base64(bytes)}")
+}
+
+/** `bytes` in base64 (RFC 4648, with `=` padding). */
+fun base64(bytes: u8[]): string {
+    let alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut parts: string[] = [];
+    let mut i = 0;
+    while i < bytes.len {
+        let left = bytes.len - i;
+        let a = bytes[i] as i64;
+        let b = if left > 1 { bytes[i + 1] as i64 } else { 0 };
+        let c = if left > 2 { bytes[i + 2] as i64 } else { 0 };
+        let n = a * 65536 + b * 256 + c;
+        let mut four = "";
+        let mut k = 0;
+        while k < 4 {
+            // Bytes missing at the end are `=`: 1 left gives 2 letters, 2 give 3.
+            if k > left {
+                four = four + "=";
+            } else {
+                let six = n / [262144, 4096, 64, 1][k] % 64;
+                four = four + alphabet.slice(six, six + 1);
+            }
+            k = k + 1;
+        }
+        parts.push(four);
+        i = i + 3;
+    }
+    parts.join("")
+}

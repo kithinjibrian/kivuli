@@ -8,6 +8,14 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.12.0] — 2026-10-19
+
+### Added
+- Backgrounds (PRP-017): `Background { color, gradient, image, fill }` in `.style([...])`, merged like every style value. A colour (`Paint`; `Faded(x)` is a tint that follows light and dark), a `Gradient.Linear(angle, stops)` or `Gradient.Radial(stops)`, and an image (`Image.File`, `Image.Bytes`, `Image.Icon`) filling the node (`Fill.Cover`, `Contain`, `Tile`, `Stretch`), stacked image over gradient over colour. Pictures are header-checked and reach GTK as bytes (`data:` URLs), never paths; bad ones show nothing. `examples/backgrounds.la`.
+
+### Changed
+- `src/typography.la` is `src/styles.la` (it holds every style value); no change for apps.
+
 ## [0.11.0] — 2026-10-19
 
 ### Breaking

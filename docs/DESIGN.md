@@ -6,9 +6,9 @@ kivuli draws nothing. Every visual comes from the user's GTK theme (Adwaita by d
 
 ## Tokens: kivuli vocabulary → GTK
 
-### Styles (`.style([...])`; PRP-016, DECISION-023)
+### Styles (`.style([...])`; PRPs 016, 017, DECISION-023)
 
-A style is a list of typed values (`Font`, `Text`) merged into one `Sheet` per node: for each field the last value that sets it wins, and `Theme` sets nothing. kivuli turns a `Sheet` into atomic CSS classes, one per property and value, so every node using a value shares its class and a class's rule never changes:
+A style is a list of typed values (`Font`, `Text`, `Background`) merged into one `Sheet` per node: for each field the last value that sets it wins, and `Theme` sets nothing. kivuli turns a `Sheet` into atomic CSS classes, one per property and value, so every node using a value shares its class and a class's rule never changes:
 
 | kivuli | class | GTK CSS |
 | --- | --- | --- |
@@ -24,6 +24,13 @@ A style is a list of typed values (`Font`, `Text`) merged into one `Sheet` per n
 | `Text.letter_spacing` n | `kv-ls-{n}` / `kv-ls-m{-n}` | `letter-spacing: {n}px` |
 | `Text.decoration` | `kv-td-underline` / `strike` / `none` | `text-decoration-line` |
 | `Text.transform` | `kv-tt-upper` / `lower` / `cap` / `none` | `text-transform` |
+
+| `Background.color` `Color(c)` / `Faded(x)` | `kv-bg-{rrggbbaa}` / `kv-bgfade-{x·1000}` | `background-color: #…` / `alpha(currentColor, x)` |
+| a colour alone | `kv-bgi-none` | `background-image: none`: a themed widget's own image (a button's) would cover the colour |
+| `Background.gradient` (no image) | `kv-bgi-g{css in hex}` | `background-image: linear-gradient({angle}deg, …)` / `radial-gradient(circle, …)`, stops as `colour at%` |
+| `Background.image` (with the gradient and fill) | `kv-bgp-{identity, gradient, fill in hex}` | `background-image: url("data:image/png;base64,…") \| -gtk-icontheme("name"), gradient; background-size; background-position: center; background-repeat` |
+
+`background-image` is one CSS property, so the gradient and the image are one class: two classes never set it differently. A picture's rule needs its bytes: `paint` (pure) names the class, and the runtime reads a file and checks the bytes (`pictures.size_of`) the first time the class is seen, then embeds them as a `data:` URL. GTK never decodes unchecked bytes or opens a path from CSS. A picture that can't be shown gives `background-image: none` (or the gradient alone). Icon names and font names go inside CSS strings and are refused when they hold `"`, `\\`, `;`, braces or line breaks. Checked against GTK 4.22's CSS parser (no parsing errors, session 19).
 
 The rules live in one app stylesheet at application priority (600), created when the window opens; each render adds the rules of values not seen before (rules are never removed). A style's classes also go on the label kivuli puts in a button or a check box, because CSS doesn't inherit every text property (`text-decoration` isn't). A font name goes inside a CSS string, so one holding `"`, `\`, `;`, braces or a line break is refused. kivuli removes only its own `kv-` classes from a widget.
 
