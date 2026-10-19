@@ -6,8 +6,8 @@
  * Used by: lib, diff, live
  */
 
-import looks { Style, Window, ButtonStyle, Align, Fit, plain };
-import theming { Theme };
+import looks { Style, Window, Align, Fit, plain };
+import typography { Styling, applied };
 import pictures { Image };
 import menus { MenuEntry };
 // The one import cycle kivuli allows (DECISION-018): mapping maps views.
@@ -154,41 +154,17 @@ impl View<Msg> {
     );
 
     /**
-     * Shows text at `n` points instead of the theme's size; ignored on other nodes.
+     * Makes an icon or picture `n` pixels (a picture: an n × n box), or a
+     * button's image. Not text: its size is a `Font`'s
+     * (`.style([Font { size: Size.Pt(n), ..Font.theme() }])`), and `.size` on
+     * text stops the app with a message saying so.
      *
      * Example:
-     *     text("Total").size(18)
+     *     icon("folder-symbolic").size(24)
      */
     public fun size(self, n: i64): View<Msg> = restyle(
         self,
         fun(s: Style) = Style { size: n, ..s },
-    );
-
-    /**
-     * Shows text in bold; ignored on other nodes.
-     *
-     * Example:
-     *     text(m.title).bold()
-     */
-    public fun bold(self): View<Msg> = restyle(self, fun(s: Style) = Style { bold: true, ..s });
-
-    /**
-     * Shows text faded, for secondary information; ignored on other nodes.
-     *
-     * Example:
-     *     text("{m.count} left").dim()
-     */
-    public fun dim(self): View<Msg> = restyle(self, fun(s: Style) = Style { dim: true, ..s });
-
-    /**
-     * Gives a button the theme's look for its role; ignored on other nodes.
-     *
-     * Example:
-     *     button("Delete", Msg.Delete).button_style(ButtonStyle.Danger)
-     */
-    public fun button_style(self, look: ButtonStyle): View<Msg> = restyle(
-        self,
-        fun(s: Style) = Style { button: look, ..s },
     );
 
     /**
@@ -380,29 +356,17 @@ impl View<Msg> {
     );
 
     /**
-     * Paints the node with the app's looks, from the root's `.theme(…)`: each
-     * look's fields over the last's, so a later look wins. `[]` is no look.
-     * A look the theme doesn't have stops the app with a message.
+     * How the node looks: typed values (`Font`, `Text`) applied in order, so
+     * for each field the last value that sets it wins; a value's `Theme`
+     * fields set nothing, and what nothing sets stays the GTK theme's. A
+     * second `.style` adds to the first, as one longer list would.
      *
      * Example:
-     *     tab.style([Look.Rail, Look.Selected])
+     *     text("Total").style([Font { weight: Weight.Bold, ..Font.theme() }, Text { color: Paint.Faded(0.55), ..Text.theme() }])
      */
-    public fun style<L>(self, chosen: L[]): View<Msg> = restyle(
+    public fun style(self, items: Styling[]): View<Msg> = restyle(
         self,
-        fun(s: Style) = Style { looks: chosen.map(fun(l) = "{l}"), ..s },
-    );
-
-    /**
-     * On the root of `view`: the app's theme, every look it uses and what
-     * each looks like (`theme(…)`). Applied when the window opens; a different
-     * theme in a later view is ignored. Ignored below the root.
-     *
-     * Example:
-     *     column([...]).theme(theme([Look.Bar, Look.Home], surface))
-     */
-    public fun theme(self, t: Theme): View<Msg> = restyle(
-        self,
-        fun(s: Style) = Style { theme: Some(t), ..s },
+        fun(s: Style) = Style { sheet: applied(s.sheet, items), ..s },
     );
 
     /**
@@ -435,18 +399,6 @@ impl View<Msg> {
         Styled(inside, s) => View.Styled(inside.header(start, title, end), s),
         _ => View.Framed(self, start, title, end),
     };
-
-    /**
-     * On the root, with `.header(…)`: the header bar takes these looks, as
-     * `.style` gives a node (its window controls stay GTK's).
-     *
-     * Example:
-     *     column([...]).header([back], address, [menu]).header_style([Look.Frame])
-     */
-    public fun header_style<L>(self, chosen: L[]): View<Msg> = restyle(
-        self,
-        fun(s: Style) = Style { header_looks: chosen.map(fun(l) = "{l}"), ..s },
-    );
 
     /** In a `wrap`: every child as wide as the widest, a tidy grid. Ignored elsewhere. */
     public fun equal(self): View<Msg> = restyle(self, fun(s: Style) = Style { equal: true, ..s });

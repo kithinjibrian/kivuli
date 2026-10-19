@@ -9,8 +9,20 @@
  */
 
 public import views { View };
-public import looks { Align, ButtonStyle, Fit };
-public import theming { Border, Color, Surface, Theme, hex, rgb, theme };
+public import looks { Align, Fit };
+public import theming { Color, Paint, hex, rgb };
+public import typography {
+    Styling,
+    Font,
+    Text,
+    Family,
+    Size,
+    Weight,
+    FontStyle,
+    LineHeight,
+    Decoration,
+    Transform,
+};
 public import pictures { Image };
 public import menus { MenuEntry, item, menu_separator };
 public import widgets {

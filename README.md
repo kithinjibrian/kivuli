@@ -5,7 +5,7 @@
 A declarative UI framework for [Lugha](https://github.com/kithinjibrian/lugha), built on the Elm architecture and rendered to real GTK 4 widgets through [lugha-gtk](https://github.com/kithinjibrian/lugha-gtk). An app is three pure functions: a model, `update` making the next model from a message, and `view` describing the screen. kivuli shows the view, turns clicks and keystrokes into messages, and on each one diffs the new view against the last and changes only the widgets that differ.
 
 ```
-import kivuli { View, ButtonStyle, button, column, input, row, sandbox, text };
+import kivuli { View, Font, Text, Size, Weight, Paint, button, column, input, row, sandbox, text };
 
 struct Model {
     count: i64,
@@ -26,15 +26,12 @@ fun update(m: Model, msg: Msg): Model = match msg {
 
 fun view(m: Model): View<Msg> = column([
     input(m.name, Msg.Named).placeholder("Your name"),
-    text("Hello, {m.name}").bold(),
-    text("Clicked {m.count} times"),
-    row([
-        button("Add", Msg.Add).button_style(ButtonStyle.Primary),
-        button("Reset", Msg.Reset).disabled(m.count == 0),
-    ]).spacing(8),
-]).padding(24).spacing(8).window("Counter", 320, 240);
+    text("Hello, {m.name}").style([Font { size: Size.Pt(18), weight: Weight.Bold, ..Font.theme() }]),
+    text("Clicked {m.count} times").style([Text { color: Paint.Faded(0.55), ..Text.theme() }]),
+    row([button("Add", Msg.Add), button("Reset", Msg.Reset).disabled(m.count == 0)]).spacing(8),
+]).padding(24).spacing(8).window("Hello", 320, 240);
 
-fun main(): i32 = sandbox("org.kivuli.counter", Model { count: 0, name: "" }, update, view);
+fun main(): i32 = sandbox("org.kivuli.hello", Model { count: 0, name: "" }, update, view);
 ```
 
 The app never touches a widget. A disabled button has no message to send; a text field keeps its cursor while you type; nothing is rebuilt that didn't change.
@@ -64,15 +61,12 @@ and write `import kivuli { … };` or `import kivuli;` (then `kivuli.sandbox(…
 Inside this repository, run the examples directly:
 
 ```sh
-lughac run examples/counter.la
-lughac run examples/todo.la
-lughac run examples/stopwatch.la
-lughac run examples/counters.la
-lughac run examples/notes.la
-lughac run examples/settings.la
-lughac run examples/gallery.la
-lughac run examples/frame.la
-lughac run examples/download.la
+lughac run examples/hello.la      # the app above
+lughac run examples/type.la       # every Font and Text value, each on a line naming it
+lughac run examples/tasks.la      # a to-do list: keyed rows, a row menu
+lughac run examples/browser.la    # a header bar, tab menus, tiles, whole-row buttons, background loads
+lughac run examples/controls.la   # drop-down, sliders, check box, text area, icons, pictures
+lughac run examples/split.la      # one component, two copies, through map
 ```
 
 ## What's there
@@ -90,7 +84,7 @@ lughac run examples/download.la
 | --- | --- |
 | `text(s)` | A line of text. |
 | `button(label, msg)` | Sends `msg` when clicked. |
-| `button_with(content, msg)` | A button showing any view, such as a whole row (`row([text("Account").expand(), text(summary).dim(), icon("go-next-symbolic")])`): one click target, drawn by the theme as a button, with keyboard focus and Enter. The content fills it. `.disabled`, `.button_style` (`Subtle` for rows in a card), `.tooltip`, `.shortcut` and `.menu` work as on `button`. The content can't hold anything interactive (buttons, fields, check boxes, drop-downs, sliders): kivuli stops with a message naming it. |
+| `button_with(content, msg)` | A button showing any view, such as a whole row (`row([text("Account").expand(), text(summary), icon("go-next-symbolic")])`): one click target, drawn by the theme as a button, with keyboard focus and Enter. The content fills it. `.disabled`, `.style`, `.tooltip`, `.shortcut` and `.menu` work as on `button`. The content can't hold anything interactive (buttons, fields, check boxes, drop-downs, sliders): kivuli stops with a message naming it. |
 | `input(value, on_change)` | A one-line text field; each edit sends `on_change(text)`. |
 | `text_area(value, on_change)` | A multi-line text field that wraps and scrolls inside itself; each edit sends `on_change(text)`, Enter starts a new line. |
 | `checkbox(label, checked, on_toggle)` | Each toggle sends `on_toggle(ticked)`. |
@@ -113,13 +107,13 @@ lughac run examples/download.la
 | `.padding(n)`, `.spacing(n)` | Room around a node; between a column's or row's children, or across and down in a wrap (pixels). |
 | `.expand()`, `.align(Align.Start \| Center \| End)` | Take spare room along the parent; place across it. |
 | `.width(n)`, `.height(n)` | A minimum size in pixels. |
-| `.size(points)`, `.bold()`, `.dim()` | Text. On an icon or a button's image, `.size(n)` is its size in pixels; on a picture, an n × n box. |
+| `.style([...])` | How the node looks: typed values (`Font`, `Text`), the last that sets a field winning. See **Styles** below. |
+| `.size(n)` | Icons and a button's image: `n` pixels; a picture: an n × n box. Not text: a text's size is a `Font`'s, and `.size` on text stops the app with a message saying so. |
 | `.wrap()`, `.wrap_at(chars)`, `.ellipsize()` | Long text on text and check box labels: onto more lines (at most `chars` wide), or cut with "…"; both: up to three lines, the last cut. |
 | `.selectable()` | Text the user can select and copy. |
 | `.tooltip(hint)` | Hover text on any node; tests can click a button by it. |
 | `.shortcut(keys)` | Keys that press a button from anywhere in the window: `"Ctrl+N"`, `"Ctrl+Shift+Delete"`, `"Escape"`. A disabled button's shortcut does nothing; unreadable keys, or two enabled buttons with the same ones, stop the app with a message. |
 | `.autofocus()` | Keyboard focus goes to the node when it's first shown. |
-| `.button_style(ButtonStyle.Primary \| Danger \| Subtle \| Normal)` | Buttons. |
 | `.disabled(bool)` | Buttons, text fields and text areas: greyed out by the theme, and they send nothing. A disabled field still shows its value and follows the model. `.disabled(false)` changes nothing. |
 | `.step(n)` | Sliders: move in steps of `n`, counted from the least value. |
 | `.equal()`, `.max_per_line(n)` | Wraps: every child as wide as the widest (a tidy grid); at most `n` children on a line (`n <= 0`: no limit, the default). |
@@ -132,35 +126,27 @@ lughac run examples/download.la
 | `.window(title, width, height)` | On the root of `view`: the window's title (it may follow the model) and size. |
 | `.maximized()` | On the root: the window opens maximized; `.window`'s size is its size when unmaximized. |
 | `.header(start, title, end)` | On the root: a header bar as the window's title bar, with `start` views, a `title` view (`.expand()` fills the bar) and `end` views; GTK draws the window's controls. Its widgets send messages like any others. |
-| `.theme(theme(looks, surface))` | On the root: the app's colours, as typed looks (below). |
-| `.style([Look.Bar, …])` | The app's looks on any node, merged left to right: a later look wins, field by field. |
-| `.header_style([Look.Frame, …])` | On the root, with `.header`: the header bar's looks (its window controls stay GTK's). |
 
-Everything visual comes from the GTK theme (button styles are the theme's `suggested-action`, `destructive-action` and `flat`), and apps follow the user's light or dark theme. kivuli ships no colours.
+Everything visual comes from the GTK theme unless a node's `.style` says otherwise, and apps follow the user's light or dark theme. kivuli ships no colours.
 
-**Click outside to close.** A layer takes the clicks in its own area and the base gets the rest. For a panel that closes when you click beside it, put a full-size layer under it that sends a message (`examples/frame.la`'s Info panel):
+**Styles.** How a node looks is a list of typed values, given with `.style([...])`. There are no class names to invent and nothing to register: a style is written on the node, and reused through an ordinary function.
 
 ```
-overlay(page(m), if m.panel_open {
-    [button("", Msg.Close).style([Look.Scrim]).tooltip("Close the panel"), panel(m).place(Align.End, Align.Fill)]
-} else { [] })
+fun dim(): Text = Text { color: Paint.Faded(0.55), ..Text.theme() };
+
+text("Storage").style([Font { size: Size.Pt(22), weight: Weight.Bold, ..Font.theme() }])
+text(m.folder).style([Font { family: Family.Monospace, tabular: true, ..Font.theme() }, dim()])
+text("Price").style([Text { decoration: Decoration.Strikethrough, ..Text.theme() }])
 ```
 
-**An app's own colours.** An app that paints its own frame names its looks in its own enum, says what each looks like as a typed `Surface`, and puts them on nodes with `.style([…])`. kivuli checks every value, generates the CSS itself (apps write none), and loads it when the window opens:
+| Value | Fields |
+| --- | --- |
+| `Font` (the typeface) | `family` (`Sans`, `Serif`, `Monospace`, `Named("Inter", Family.Sans)`: a named font names its fallback), `size` (`Pt(14)` points, or `Scale(1.5)` times the theme's), `weight` (`Thin`, `Light`, `Normal`, `Medium`, `Semibold`, `Bold`, `Black`), `style` (`Normal`, `Italic`), `tabular` (digits all one width) |
+| `Text` (what's done with the letters) | `color` (`Paint.Color(hex("#e0e0e0"))`, or `Paint.Faded(0.55)`: the theme's text colour at that opacity, so it follows light and dark), `line_height` (`Times(1.4)`), `letter_spacing` (pixels; negative tightens), `decoration` (`Underline`, `Strikethrough`, `None`), `transform` (`Uppercase`, `Lowercase`, `Capitalize`, `None`) |
 
-```
-enum Look { Rail, Selected }
+Each field's `Theme` value (and `Font.theme()`, `Text.theme()` for a whole group) means "not set here". The values apply in order, and for each field the last one that sets it wins: `[big, Font { weight: Weight.Thin, ..Font.theme() }]` keeps `big`'s size and makes it thin. `.style(a).style(b)` is `.style(a + b)`. What nothing sets stays the GTK theme's, so an app follows the user's light or dark theme with no work. A bad value (`Size.Pt(0)`, a line height of 0, an opacity over 1, a font name with quotes or braces) stops the app with a message naming it. kivuli turns each value into one CSS class (`kv-fw-700`), adds its rule to the app's stylesheet the first time it's seen, and never draws anything itself.
 
-fun surface(l: Look): Surface = match l {
-    Rail => Surface { background: Some(hex("#242424")), ..Surface.theme() },
-    Selected => Surface { background: Some(hex("#3a3a3a")), radius: Some(6), ..Surface.theme() },
-};
-
-column(tabs).style([Look.Rail])          // a tab: tab.style([Look.Rail, Look.Selected])
-    .theme(theme([Look.Rail, Look.Selected], surface))
-```
-
-A `Surface` sets any of `background`, `text` (text and icon colour), `border` (`Border { width, color }`), `radius` (all four corners), `radius_top_left`, `radius_top_right`, `radius_bottom_right`, `radius_bottom_left` (one corner, over `radius`; a rounded node's content is clipped to its curve) and `flat` (`Some(true)` turns the theme's shadow and border line off, as under a header bar; a look's own `border` stays); unset fields stay the GTK theme's. Colours come from `hex("#rgb" | "#rrggbb" | "#rrggbbaa")` or `rgb(r, g, b)`. A bad colour, a look with a value or listed twice, a look missing from the theme, or `.style` without `.theme` stops the app with a message. The theme is read when the window opens. `examples/frame.la` shows it all.
+Backgrounds, borders, corners and button looks aren't styles yet: they come in a later release.
 
 **Components.** A part of an app can have its own model, messages, `update` and `view`, and sit in a bigger app through `map`, which sends `f(msg)` wherever the part would send `msg`:
 

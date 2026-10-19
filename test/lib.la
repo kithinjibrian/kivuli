@@ -1,5 +1,6 @@
 // Building views: what an app's `view` returns is exactly the tree it wrote.
 import kivuli.looks { Style, plain };
+import kivuli.typography { Sheet };
 import kivuli.menus { MenuEntry };
 import kivuli {
     View,
@@ -14,7 +15,11 @@ import kivuli {
     scroll,
     keyed_column,
     Align,
-    ButtonStyle,
+    Font,
+    Text,
+    Size,
+    Weight,
+    Paint,
     text_area,
     dropdown,
     slider,
@@ -28,19 +33,12 @@ import kivuli {
     button_with,
     item,
     menu_separator,
-    Surface,
-    theme,
 };
 
 // Views and patches can hold functions, which have no `==`: compare what they
 // print instead (functions print as `<fun>`; DECISION-008).
 fun assert_same<T>(actual: T, expected: T) {
     assert_eq("{actual}", "{expected}");
-}
-
-enum Shade {
-    Bar,
-    Selected,
 }
 
 enum Msg {
@@ -165,14 +163,14 @@ fun every_layout_modifier_lands_in_the_style() {
 }
 
 @test
-fun text_modifiers_land_in_the_style() {
+fun style_values_land_in_the_style() {
+    let bold = Font { weight: Weight.Bold, size: Size.Pt(18), ..Font.theme() };
+    let faded = Text { color: Paint.Faded(0.55), ..Text.theme() };
     let expected: View<Msg> = View.Styled(View.Text("x"), Style {
-        size: 18,
-        bold: true,
-        dim: true,
+        sheet: Sheet { font: bold, text: faded },
         ..plain(),
     });
-    assert_same(text("x").size(18).bold().dim(), expected);
+    assert_same(text("x").style([bold, faded]), expected);
 }
 
 @test
@@ -189,10 +187,10 @@ fun disabled_false_changes_nothing() {
 @test
 fun disabled_reaches_a_styled_button_and_ignores_other_nodes() {
     let expected: View<Msg> = View.Styled(View.Button("Go", None, None), Style {
-        button: ButtonStyle.Primary,
+        tooltip: "Go on",
         ..plain(),
     });
-    assert_same(button("Go", Msg.Add).button_style(ButtonStyle.Primary).disabled(true), expected);
+    assert_same(button("Go", Msg.Add).tooltip("Go on").disabled(true), expected);
     let label: View<Msg> = text("x");
     assert_same(label.disabled(true), label);
 }
@@ -314,19 +312,9 @@ fun disabled_false_changes_nothing_on_a_field() {
 }
 
 @test
-fun styles_and_window_settings_land_in_the_style() {
-    let styled: View<Msg> = View.Styled(View.Text("a"), Style {
-        looks: ["Bar", "Selected"],
-        ..plain(),
-    });
-    assert_same(text("a").style([Shade.Bar, Shade.Selected]), styled);
-    let t = theme([Shade.Bar], fun(s: Shade) = Surface.theme());
-    let rooted: View<Msg> = View.Styled(View.Text("a"), Style {
-        theme: Some(t),
-        maximized: true,
-        ..plain(),
-    });
-    assert_same(text("a").theme(t).maximized(), rooted);
+fun window_settings_land_in_the_style() {
+    let rooted: View<Msg> = View.Styled(View.Text("a"), Style { maximized: true, ..plain() });
+    assert_same(text("a").maximized(), rooted);
 }
 
 @test
@@ -343,15 +331,6 @@ fun a_header_frames_the_node_and_its_styles_stay_outside() {
         text("body").header([button("Back", Msg.Reset)], text("Title"), []).padding(8),
         framed,
     );
-}
-
-@test
-fun header_looks_land_in_the_root_style_outside_the_frame() {
-    let expected: View<Msg> = View.Styled(View.Framed(View.Text("body"), [], text("T"), []), Style {
-        header_looks: ["Bar"],
-        ..plain(),
-    });
-    assert_same(text("body").header([], text("T"), []).header_style([Shade.Bar]), expected);
 }
 
 @test
@@ -441,15 +420,12 @@ fun a_button_with_holds_its_content_and_takes_button_modifiers() {
     let off: View<Msg> = View.ButtonWith(content, None);
     assert_same(button_with(content, Msg.Add).disabled(true), off);
     let styled: View<Msg> = View.Styled(View.ButtonWith(content, None), Style {
-        button: ButtonStyle.Subtle,
         tooltip: "Open",
         shortcut: "Ctrl+O",
         ..plain(),
     });
     assert_same(
-        button_with(content, Msg.Add).button_style(ButtonStyle.Subtle).tooltip("Open").shortcut(
-            "Ctrl+O",
-        ).disabled(true),
+        button_with(content, Msg.Add).tooltip("Open").shortcut("Ctrl+O").disabled(true),
         styled,
     );
     // The content is the app's: an icon doesn't go in.

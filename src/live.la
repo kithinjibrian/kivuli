@@ -5,12 +5,13 @@
  * responsible for deciding what to show (the app's `view`) or what changed
  * (`diff`).
  *
- * Depends on: views, effects, diff, paint, theming, live_tree, build, patch, gtk.raw
+ * Depends on: views, effects, diff, paint, live_tree, build, patch, gtk.raw
  * Used by: lib
  */
 
 import gtk {
     GtkApplication,
+    GtkCssProvider,
     GtkWidget,
     connect_app,
     g_application_quit,
@@ -46,8 +47,7 @@ import paths { at };
 import keys { duplicate };
 import walk { path_of_name };
 import live_tree { Live, titlebar, widget };
-import paint { painted };
-import theming { css };
+import paint { painted, stylesheet };
 
 /** What changes as the app runs: the model, the view it gave, and the widgets showing it. */
 struct State<Model, Msg> {
@@ -81,6 +81,19 @@ struct Running<Model, Msg> {
     receiving: Ref<(fun(): Option<Msg>)[]>,
     // Whether the turn source (`turn`) is running.
     turning: Ref<bool>,
+    // The app's stylesheet: every CSS rule a view has needed so far.
+    styles: Styles,
+}
+
+/**
+ * The app's one stylesheet (priority 600, over the GTK theme) and the rules
+ * in it. Rules are only ever added: a class's rule never changes, and a value
+ * used once may come back.
+ */
+struct Styles {
+    provider: GtkCssProvider,
+    classes: Ref<Set<string>>,
+    css: Ref<string[]>,
 }
 
 /**
@@ -127,18 +140,20 @@ fun mount<Model, Msg>(
         pending: Ref.new(no_tasks),
         receiving: Ref.new(no_receivers),
         turning: Ref.new(false),
+        styles: styles_for(window),
     };
     let (model, cmd) = program.init;
     let view = program.view;
     let tree = paint_or_stop(lazies.resolve(view(model), None));
     check_shortcuts(tree);
+    add_rules(app.styles, tree);
     let live = create(tree, sender(app));
     gtk_window_set_child(window, widget(live));
     match titlebar(live) {
         Some(bar) => gtk_window_set_titlebar(window, Some(bar)),
         None => {}
     }
-    show_look(window, tree);
+    show_maximized(window, tree);
     app.state.set(Some(State { model: model, tree: tree, live: live }));
     show_window(window, None, window_of(tree));
     perform(app, cmd);
@@ -176,6 +191,8 @@ fun dispatch<Model, Msg>(app: Running<Model, Msg>, msg: Msg) {
     // Lazy nodes whose keys are unchanged at their place reuse what they built.
     let tree = paint_or_stop(lazies.resolve(view(model), Some(s.tree)));
     check_shortcuts(tree);
+    // Before the patches: a new value's class has its rule when it lands.
+    add_rules(app.styles, tree);
     let mut live = s.live;
     app.patching.set(true);
     for change of diff.diff(s.tree, tree) {
@@ -214,28 +231,37 @@ fun paint_or_stop<Msg>(v: View<Msg>): View<Msg> = match painted(v) {
     Err(problem) => panic("kivuli: {problem}"),
 };
 
-/**
- * What the root asks of the window when it opens: the theme's stylesheet for
- * its display (at application priority, 600, over the GTK theme), and
- * maximized. Read once: later views don't change them (PRP-007).
- */
-fun show_look<Msg>(window: GtkWidget, tree: View<Msg>) {
+/** The app's stylesheet, empty, applied to `window`'s display. */
+fun styles_for(window: GtkWidget): Styles {
+    let provider = gtk_css_provider_new();
+    // The display keeps the provider for the app's life.
+    gtk_style_context_add_provider_for_display(gtk_widget_get_display(window), provider, 600);
+    Styles { provider: provider, classes: Ref.new(#{}), css: Ref.new([]) }
+}
+
+/** Adds the rules `tree` needs that the stylesheet doesn't have yet, reloading it only then. */
+fun add_rules<Msg>(styles: Styles, tree: View<Msg>) {
+    let mut known = styles.classes.get();
+    let mut css = styles.css.get();
+    let mut added = false;
+    for (class, body) of stylesheet(tree) {
+        if known.insert(class) {
+            css.push(".{class} {{ {body} }}");
+            added = true;
+        }
+    }
+    if added {
+        styles.classes.set(known);
+        styles.css.set(css);
+        gtk_css_provider_load_from_string(styles.provider, css.join("\n"));
+    }
+}
+
+/** On the root, `.maximized()`: the window opens maximized. Read once, when it opens. */
+fun show_maximized<Msg>(window: GtkWidget, tree: View<Msg>) {
     let Styled(_, style) = tree else {
         return;
     };
-    match style.theme {
-        Some(t) => {
-            let provider = gtk_css_provider_new();
-            gtk_css_provider_load_from_string(provider, css(t));
-            // The display keeps the provider for the app's life.
-            gtk_style_context_add_provider_for_display(
-                gtk_widget_get_display(window),
-                provider,
-                600,
-            );
-        }
-        None => {}
-    }
     if style.maximized {
         // Before the window is shown: it opens maximized.
         gtk_window_maximize(window);

@@ -3,11 +3,11 @@
  * fields take. Plain data, no GTK. The modifiers that build a `Style` are
  * methods of `View`, in `views` (an `impl` must sit with its type).
  *
- * Depends on: theming
+ * Depends on: typography
  * Used by: views, lib, diff, walk, paint, testing, live, build, styling
  */
 
-import theming { Theme };
+import typography { Sheet };
 
 /** The app's window, as `.window(title, width, height)` sets it. */
 public struct Window {
@@ -15,17 +15,6 @@ public struct Window {
     /** The size it opens at, in pixels. */
     width: i64,
     height: i64,
-}
-
-/** How a button looks, from the theme (docs/DESIGN.md). */
-public enum ButtonStyle {
-    Normal,
-    /** The one main action in a view. */
-    Primary,
-    /** Deletes or discards. */
-    Danger,
-    /** Low emphasis, toolbar-like. */
-    Subtle,
 }
 
 /** How a picture fills the room it's given, as `.fit(…)` sets it. */
@@ -64,14 +53,8 @@ public struct Style {
     /** The smallest width and height in pixels; -1 leaves it to the widget. */
     width: i64,
     height: i64,
-    /** Text size in points, or an image's size in pixels (on a button: its image's); 0 keeps the theme's. */
+    /** An icon's or picture's size in pixels (on a button: its image's); 0 keeps the theme's. Not text. */
     size: i64,
-    /** Bold text. Text only. */
-    bold: bool,
-    /** Faded text, for secondary information. Text only. */
-    dim: bool,
-    /** How a button looks in the theme (`.button_style`). Buttons only. */
-    button: ButtonStyle,
     /** The window's title and size, from the root of `view`. Root only. */
     window: Option<Window>,
     /** Hint text an empty text field shows; "" for none. Text fields only. */
@@ -96,14 +79,10 @@ public struct Style {
     step: i64,
     /** How a picture fills the room it's given. Images only. */
     fit: Fit,
-    /** The app's looks on this node, by name, merged left to right (`.style`). Any node. */
-    looks: string[],
-    /** The CSS classes `looks` give with the root's theme: filled in by `paint`, never by hand. */
+    /** Everything `.style` set, merged. Any node. */
+    sheet: Sheet,
+    /** The CSS classes `sheet` gives: filled in by `paint`, never by hand. */
     classes: string[],
-    /** Whether `looks` round a corner, so the node clips its content to the curve: filled in by `paint`. */
-    clips: bool,
-    /** The app's looks and what each looks like (`.theme`). Root only. */
-    theme: Option<Theme>,
     /** The window opens maximized (`.maximized()`). Root only. */
     maximized: bool,
     /** Every child as wide as the widest (`.equal()`). Wraps only. */
@@ -113,10 +92,6 @@ public struct Style {
     /** Where an overlay's layer sits on its base, across and down (`.place`). Layers only. */
     place_across: Align,
     place_down: Align,
-    /** The app's looks on the header bar, by name (`.header_style`). Root only, with `.header`. */
-    header_looks: string[],
-    /** The CSS classes `header_looks` give: filled in by `paint`. */
-    header_classes: string[],
 }
 
 /** The style of a node with no modifiers: what GTK does by default. */
@@ -128,9 +103,6 @@ fun plain(): Style = Style {
     width: -1,
     height: -1,
     size: 0,
-    bold: false,
-    dim: false,
-    button: ButtonStyle.Normal,
     window: None,
     placeholder: "",
     name: "",
@@ -143,15 +115,11 @@ fun plain(): Style = Style {
     autofocus: false,
     step: 1,
     fit: Fit.Contain,
-    looks: [],
+    sheet: Sheet.theme(),
     classes: [],
-    clips: false,
-    theme: None,
     maximized: false,
     equal: false,
     max_per_line: 0,
     place_across: Align.Fill,
     place_down: Align.Fill,
-    header_looks: [],
-    header_classes: [],
 };

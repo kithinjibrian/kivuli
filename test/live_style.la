@@ -13,7 +13,6 @@ import gtk {
     gtk_application_new,
     gtk_application_window_new,
     gtk_box_get_spacing,
-    gtk_label_get_attributes,
     gtk_label_get_ellipsize,
     gtk_label_get_lines,
     gtk_label_get_max_width_chars,
@@ -27,12 +26,25 @@ import gtk {
     gtk_widget_get_tooltip_text,
     gtk_widget_get_vexpand,
     gtk_widget_has_css_class,
-    pango_attr_list_to_string,
 };
 import kivuli.live { dispatch, mount, live_of };
 import kivuli.effects { sandbox_app };
 import kivuli.live_tree { Live, widget };
-import kivuli { View, Align, column, row, spacer, text, ButtonStyle, button, checkbox };
+import kivuli {
+    View,
+    Align,
+    Font,
+    Text,
+    Size,
+    Weight,
+    Paint,
+    column,
+    row,
+    spacer,
+    text,
+    button,
+    checkbox,
+};
 
 fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
 
@@ -54,7 +66,10 @@ fun update(p: Page, msg: Look): Page = match msg {
 // the spacer always carries padding, and must still grow.
 fun view(p: Page): View<Look> = if p.roomy {
     column([
-        text("Title").padding(12).align(Align.Center).bold().size(18).dim(),
+        text("Title").padding(12).align(Align.Center).style([
+            Font { weight: Weight.Bold, size: Size.Pt(18), ..Font.theme() },
+            Text { color: Paint.Faded(0.55), ..Text.theme() },
+        ]),
         row([text("a"), text("b")]).spacing(8),
         spacer().padding(2),
     ])
@@ -62,15 +77,9 @@ fun view(p: Page): View<Look> = if p.roomy {
     column([text("Title"), row([text("a"), text("b")]), spacer().padding(2)])
 };
 
-// A label's Pango attributes as text; empty when it has none.
-fun attrs(label: GtkWidget): string = match gtk_label_get_attributes(label) {
-    Some(list) => pango_attr_list_to_string(list),
-    None => "",
-};
-
 // margin, alignment across the column (GtkAlign: 0 fill, 3 center), the
-// row's spacing, whether the spacer grows down, and the title's bold, size
-// (18pt = 18432 Pango units) and dim class.
+// row's spacing, whether the spacer grows down, and the title's style
+// classes: bold, 18pt and faded.
 fun read(root: Live<Look>): i32[] {
     let Box(_, _, kids) = root else {
         panic("expected a column");
@@ -82,9 +91,9 @@ fun read(root: Live<Look>): i32[] {
         gtk_widget_get_halign(title),
         gtk_box_get_spacing(widget(kids[1])),
         gtk_widget_get_vexpand(widget(kids[2])),
-        if attrs(title).contains("weight bold") { 1 } else { 0 },
-        if attrs(title).contains("size 18432") { 1 } else { 0 },
-        gtk_widget_has_css_class(title, "dim-label"),
+        gtk_widget_has_css_class(title, "kv-fw-700"),
+        gtk_widget_has_css_class(title, "kv-fs-18pt"),
+        gtk_widget_has_css_class(title, "kv-fade-550"),
     ]
 }
 
@@ -129,7 +138,7 @@ fun styles_apply_change_and_undo_on_the_same_widgets() {
     g_application_run(application, 0, None);
     g_object_unref(application);
 
-    // Plain, then roomy (padding 12, centered, spacing 8, bold 18pt dim), then plain again:
+    // Plain, then roomy (padding 12, centered, spacing 8, bold 18pt faded), then plain again:
     // every field is undone. The padded spacer grows throughout.
     assert_eq(seen.get(), [
         [0, 0, 0, 0, 1, 0, 0, 0],
@@ -152,11 +161,10 @@ fun update_tally(t: Tally, msg: Tap): Tally = match msg {
     Reset => Tally { count: 0 },
 };
 
-// Reset is disabled at zero (decision 6); Add is the primary action, Reset
-// the dangerous one.
+// Reset is disabled at zero (decision 6).
 fun view_tally(t: Tally): View<Tap> = row([
-    button("Add", Tap.Add).button_style(ButtonStyle.Primary),
-    button("Reset", Tap.Reset).button_style(ButtonStyle.Danger).disabled(t.count == 0),
+    button("Add", Tap.Add),
+    button("Reset", Tap.Reset).disabled(t.count == 0),
 ]);
 
 @test
@@ -192,10 +200,7 @@ fun a_disabled_button_is_greyed_out_and_sends_nothing() {
             let add = widget(kids[0]);
             let reset = widget(kids[1]);
             let look = fun(): string {
-                let sensitive = gtk_widget_get_sensitive(reset);
-                let primary = gtk_widget_has_css_class(add, "suggested-action");
-                let danger = gtk_widget_has_css_class(reset, "destructive-action");
-                "reset {sensitive}, primary {primary}, danger {danger}"
+                "reset {gtk_widget_get_sensitive(reset)}"
             };
             // At zero: a click on the greyed-out Reset sends nothing.
             emit_widget(reset, "clicked");
@@ -224,11 +229,7 @@ fun a_disabled_button_is_greyed_out_and_sends_nothing() {
     g_application_run(application, 0, None);
     g_object_unref(application);
 
-    assert_eq(seen.get(), [
-        "reset 0, primary 1, danger 1",
-        "reset 1, primary 1, danger 1",
-        "reset 0, primary 1, danger 1",
-    ]);
+    assert_eq(seen.get(), ["reset 0", "reset 1", "reset 0"]);
     assert_eq(received.get(), ["Add", "Reset"]);
 }
 

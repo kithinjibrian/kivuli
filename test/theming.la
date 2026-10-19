@@ -1,17 +1,21 @@
-// Typed styles, without GTK: colours read from hex, themes built from an
-// app's looks, the atomic CSS kivuli generates, and the classes a node's
-// merged looks give it.
-import kivuli.theming { Border, Color, Surface, build_theme, classes, css, merged, read_hex };
-import kivuli.paint { painted };
-import kivuli.looks { Style, plain };
+// Colours, and the paint pass: each node's style becomes its CSS classes
+// before the diff, the rules the view needs are collected for the app's
+// stylesheet, and what the app got wrong stops it before GTK. No GTK.
+import kivuli.theming { Color, read_hex };
+import kivuli.paint { painted, stylesheet };
 import kivuli.walk { check_content };
 import kivuli {
     View,
+    Font,
+    Text,
+    Size,
+    Weight,
+    FontStyle,
+    Transform,
     button,
     button_with,
     checkbox,
     column,
-    hex,
     icon,
     input,
     lazy,
@@ -19,34 +23,6 @@ import kivuli {
     row,
     spacer,
     text,
-    theme,
-};
-
-enum Look {
-    Bar,
-    Rail,
-    Home,
-    Selected,
-}
-
-enum Bad {
-    Tile(i64),
-}
-
-fun surface(l: Look): Surface = match l {
-    Bar => Surface { background: Some(hex("#242424")), ..Surface.theme() },
-    Rail => Surface { background: Some(hex("#242424")), ..Surface.theme() },
-    Home => Surface {
-        background: Some(hex("#161616")),
-        text: Some(hex("#eeeeee")),
-        ..Surface.theme(),
-    },
-    Selected => Surface {
-        background: Some(hex("#3a3a3a")),
-        border: Some(Border { width: 1, color: hex("#555555") }),
-        radius: Some(6),
-        ..Surface.theme(),
-    },
 };
 
 @test
@@ -64,279 +40,75 @@ fun bad_hex_strings_say_why() {
     assert_eq(read_hex("#zz0000"), Err("not a hex digit in \"#zz0000\""));
 }
 
-@test
-fun a_theme_names_its_looks_by_variant() {
-    let t = theme([Look.Bar, Look.Home], surface);
-    assert_eq(t.looks.map(fun(pair) = pair.0), ["Bar", "Home"]);
-}
+fun classes_of(v: View<i64>): string[] = match painted(v) {
+    Ok(Styled(_, s)) => s.classes,
+    Ok(_) => [],
+    Err(problem) => panic(problem),
+};
 
 @test
-fun looks_with_payloads_or_listed_twice_are_refused() {
+fun painting_gives_each_node_the_classes_of_its_values() {
     assert_eq(
-        build_theme(["Tile(3)"], [Surface.theme()]).map(fun(t) = t.looks.len),
-        Err("a look can't carry a value: \"Tile(3)\""),
+        classes_of(
+            text("a").style([
+                Font { weight: Weight.Bold, ..Font.theme() },
+                Text { transform: Transform.Uppercase, ..Text.theme() },
+            ]),
+        ),
+        ["kv-fw-700", "kv-tt-upper"],
     );
+    assert_eq(classes_of(text("a").padding(4)), []);
+    // A value changed by a later `.style` call gives the new class only.
     assert_eq(
-        build_theme(["Bar", "Bar"], [Surface.theme(), Surface.theme()]).map(fun(t) = t.looks.len),
-        Err("the look \"Bar\" is listed twice"),
-    );
-    let bad = Surface { radius: Some(-1), ..Surface.theme() };
-    assert_eq(
-        build_theme(["Bar"], [bad]).map(fun(t) = t.looks.len),
-        Err("the look \"Bar\" has a negative size"),
-    );
-    // The payload name, as `theme` gets it from an app's enum.
-    assert_eq("{Bad.Tile(3)}", "Tile(3)");
-}
-
-@test
-fun the_css_has_one_rule_per_property_and_value() {
-    // Bar and Rail share a colour: one rule serves both.
-    let t = theme([Look.Bar, Look.Rail, Look.Home, Look.Selected], surface);
-    assert_eq(
-        css(t),
-        [
-            ".kv-bg-242424ff {{ background-color: #242424ff; background-image: none; }}",
-            ".kv-bg-161616ff {{ background-color: #161616ff; background-image: none; }}",
-            ".kv-fg-eeeeeeff {{ color: #eeeeeeff; }}",
-            ".kv-bg-3a3a3aff {{ background-color: #3a3a3aff; background-image: none; }}",
-            ".kv-border-1-555555ff {{ border: 1px solid #555555ff; }}",
-            // Every corner rule for a radius a theme uses: merges can need any.
-            ".kv-radius-6 {{ border-radius: 6px; }}",
-            ".kv-radius-tl-6 {{ border-top-left-radius: 6px; }}",
-            ".kv-radius-tr-6 {{ border-top-right-radius: 6px; }}",
-            ".kv-radius-br-6 {{ border-bottom-right-radius: 6px; }}",
-            ".kv-radius-bl-6 {{ border-bottom-left-radius: 6px; }}",
-        ].join("\n"),
+        classes_of(
+            text("a").style([Font { weight: Weight.Bold, ..Font.theme() }]).style([
+                Font { weight: Weight.Thin, ..Font.theme() },
+            ]),
+        ),
+        ["kv-fw-100"],
     );
 }
 
 @test
-fun later_looks_win_field_by_field() {
-    let t = theme([Look.Bar, Look.Home, Look.Selected], surface);
-    let both = merged(t, ["Home", "Selected"]);
-    assert_eq(
-        both.map(fun(s) = classes(s)),
-        Ok(["kv-bg-3a3a3aff", "kv-fg-eeeeeeff", "kv-border-1-555555ff", "kv-radius-6"]),
-    );
-    assert_eq(merged(t, []).map(fun(s) = classes(s)), Ok([]));
-    assert_eq(
-        merged(t, ["Nope"]).map(fun(s) = classes(s)),
-        Err("the look \"Nope\" isn't in the theme"),
-    );
-}
-
-fun looked(): View<i64> = column([
-    text("bar").style([Look.Bar]),
-    text("both").style([Look.Home, Look.Selected]),
-]);
-
-@test
-fun painting_gives_nodes_the_classes_of_their_looks() {
-    let t = theme([Look.Bar, Look.Home, Look.Selected], surface);
-    let expected: View<i64> = View.Styled(
-        View.Column([
-            View.Styled(View.Text("bar"), Style {
-                looks: ["Bar"],
-                classes: ["kv-bg-242424ff"],
-                ..plain(),
-            }),
-            View.Styled(View.Text("both"), Style {
-                looks: ["Home", "Selected"],
-                classes: [
-                    "kv-bg-3a3a3aff",
-                    "kv-fg-eeeeeeff",
-                    "kv-border-1-555555ff",
-                    "kv-radius-6",
-                ],
-                // Selected rounds its corners: the node clips its content.
-                clips: true,
-                ..plain(),
-            }),
+fun the_stylesheet_has_every_rule_the_view_uses_once() {
+    let v: View<i64> = column([
+        text("a").style([Font { weight: Weight.Bold, ..Font.theme() }]),
+        row([
+            text("b").style([
+                Font { weight: Weight.Bold, ..Font.theme() },
+                Font { style: FontStyle.Italic, ..Font.theme() },
+            ]),
         ]),
-        Style { theme: Some(t), ..plain() },
-    );
-    let want: Result<View<i64>, string> = Ok(expected);
-    assert_eq("{painted(looked().theme(t))}", "{want}");
+        lazy("k", fun(): View<i64> = text("c").style([Text { letter_spacing: 1, ..Text.theme() }])),
+    ]);
+    let painted_view = match painted(v) {
+        Ok(p) => p,
+        Err(problem) => panic(problem),
+    };
+    assert_eq(stylesheet(painted_view), [
+        ("kv-fw-700", "font-weight: 700;"),
+        ("kv-fst-italic", "font-style: italic;"),
+        ("kv-ls-1", "letter-spacing: 1px;"),
+    ]);
 }
 
 @test
 fun painting_refuses_what_the_app_got_wrong() {
-    let partial = theme([Look.Bar], surface);
-    assert_eq(
-        painted(looked().theme(partial)).map(fun(v) = 0),
-        Err("the look \"Home\" isn't in the theme"),
-    );
-    assert_eq(
-        painted(looked()).map(fun(v) = 0),
-        Err("a node has .style([…]) but the root has no .theme(…)"),
-    );
     let deep: View<i64> = column([text("a").header([], text("T"), [])]);
     assert_eq(
         painted(deep).map(fun(v) = 0),
         Err(".header(…) belongs on the root of the view only"),
     );
-    let plain_view: View<i64> = column([text("a")]);
-    let unchanged: Result<View<i64>, string> = Ok(plain_view);
-    assert_eq("{painted(plain_view)}", "{unchanged}");
-}
-
-@test
-fun a_flat_surface_turns_the_theme_edges_off() {
-    let flat = Surface { background: Some(hex("#242424")), flat: Some(true), ..Surface.theme() };
-    assert_eq(classes(flat), ["kv-bg-242424ff", "kv-flat"]);
-    let t = build_theme(["Frame"], [flat]);
+    let bad: View<i64> = column([text("a").style([Font { size: Size.Pt(0), ..Font.theme() }])]);
+    assert_eq(painted(bad).map(fun(v) = 0), Err("Size.Pt(0): a font size must be positive"));
+    // `.size` is a box size for icons and pictures; text takes Font.size.
+    let sized: View<i64> = column([text("a").size(20)]);
     assert_eq(
-        t.map(fun(x) = css(x)),
-        Ok(
-            [
-                ".kv-bg-242424ff {{ background-color: #242424ff; background-image: none; }}",
-                ".kv-flat {{ box-shadow: none; border-width: 0; }}",
-            ].join("\n"),
-        ),
+        painted(sized).map(fun(v) = 0),
+        Err(".size(n) on text is gone: use .style([Font {{ size: Size.Pt(n), ..Font.theme() }}])"),
     );
-    // Its own border wins: only the shadow goes.
-    let edged = Surface {
-        border: Some(Border { width: 1, color: hex("#555555") }),
-        flat: Some(true),
-        ..Surface.theme(),
-    };
-    assert_eq(classes(edged), ["kv-border-1-555555ff", "kv-flat-shadow"]);
-    assert_eq(
-        build_theme(["Edged"], [edged]).map(fun(x) = css(x)),
-        Ok(
-            [
-                ".kv-border-1-555555ff {{ border: 1px solid #555555ff; }}",
-                ".kv-flat-shadow {{ box-shadow: none; }}",
-            ].join("\n"),
-        ),
-    );
-    // false is unset, and a later look can unset an earlier one's.
-    assert_eq(classes(Surface { flat: Some(false), ..Surface.theme() }), []);
-    let both = build_theme(["Flat", "Edgy"], [
-        flat,
-        Surface { flat: Some(false), ..Surface.theme() },
-    ]);
-    assert_eq(
-        both.map(fun(x) = merged(x, ["Flat", "Edgy"]).map(fun(s) = classes(s))),
-        Ok(Ok(["kv-bg-242424ff"])),
-    );
-}
-
-fun headed(): View<i64> = text("body").header([], text("T"), []).header_style([Look.Bar]);
-
-@test
-fun painting_gives_the_header_bar_its_looks() {
-    let t = theme([Look.Bar], surface);
-    let got = painted(headed().theme(t));
-    let classes_of = got.map(fun(v) = match v {
-        Styled(_, s) => s.header_classes,
-        _ => [],
-    });
-    assert_eq(classes_of, Ok(["kv-bg-242424ff"]));
-    assert_eq(
-        painted(headed().theme(theme([Look.Home], surface))).map(fun(v) = 0),
-        Err("the look \"Bar\" isn't in the theme"),
-    );
-    assert_eq(
-        painted(headed()).map(fun(v) = 0),
-        Err("a node has .style([…]) but the root has no .theme(…)"),
-    );
-}
-
-@test
-fun one_corner_rounds_alone() {
-    let page = Surface { radius_top_right: Some(12), ..Surface.theme() };
-    assert_eq(classes(page), ["kv-radius-tr-12"]);
-    assert_eq(
-        build_theme(["Page"], [page]).map(fun(t) = css(t)),
-        Ok(
-            [
-                ".kv-radius-12 {{ border-radius: 12px; }}",
-                ".kv-radius-tl-12 {{ border-top-left-radius: 12px; }}",
-                ".kv-radius-tr-12 {{ border-top-right-radius: 12px; }}",
-                ".kv-radius-br-12 {{ border-bottom-right-radius: 12px; }}",
-                ".kv-radius-bl-12 {{ border-bottom-left-radius: 12px; }}",
-            ].join("\n"),
-        ),
-    );
-}
-
-@test
-fun four_equal_corners_are_one_radius_and_different_ones_four() {
-    let same = Surface {
-        radius_top_left: Some(6),
-        radius_top_right: Some(6),
-        radius_bottom_right: Some(6),
-        radius_bottom_left: Some(6),
-        ..Surface.theme(),
-    };
-    assert_eq(classes(same), ["kv-radius-6"]);
-    assert_eq(classes(Surface { radius: Some(6), ..Surface.theme() }), ["kv-radius-6"]);
-    let mixed = Surface {
-        radius_top_left: Some(1),
-        radius_top_right: Some(2),
-        radius_bottom_right: Some(3),
-        radius_bottom_left: Some(4),
-        ..Surface.theme(),
-    };
-    assert_eq(classes(mixed), [
-        "kv-radius-tl-1",
-        "kv-radius-tr-2",
-        "kv-radius-br-3",
-        "kv-radius-bl-4",
-    ]);
-    // `radius` with one corner: that corner overrides, the rest follow `radius`.
-    let one = Surface { radius: Some(6), radius_top_right: Some(12), ..Surface.theme() };
-    assert_eq(classes(one), [
-        "kv-radius-tl-6",
-        "kv-radius-tr-12",
-        "kv-radius-br-6",
-        "kv-radius-bl-6",
-    ]);
-}
-
-@test
-fun later_corners_replace_only_themselves_and_a_later_radius_replaces_all() {
-    let round = Surface { radius: Some(6), ..Surface.theme() };
-    let corner = Surface { radius_top_right: Some(12), ..Surface.theme() };
-    let t = build_theme(["Round", "Corner"], [round, corner]);
-    assert_eq(
-        t.map(fun(x) = merged(x, ["Round", "Corner"]).map(fun(s) = classes(s))),
-        Ok(Ok(["kv-radius-tl-6", "kv-radius-tr-12", "kv-radius-br-6", "kv-radius-bl-6"])),
-    );
-    assert_eq(
-        t.map(fun(x) = merged(x, ["Corner", "Round"]).map(fun(s) = classes(s))),
-        Ok(Ok(["kv-radius-6"])),
-    );
-}
-
-@test
-fun a_negative_corner_is_refused() {
-    let bad = Surface { radius_bottom_left: Some(-2), ..Surface.theme() };
-    assert_eq(
-        build_theme(["Bad"], [bad]).map(fun(t) = t.looks.len),
-        Err("the look \"Bad\" has a negative size"),
-    );
-}
-
-fun rounded(on: bool): View<i64> = column([
-    text("page").style(if on { [Look.Selected] } else { [Look.Bar] }),
-]).theme(theme([Look.Bar, Look.Selected], surface));
-
-/** Whether the page node clips its content, as `paint` decides. */
-fun clips(v: View<i64>): Result<bool, string> = painted(v).map(fun(p) = match p {
-    Styled(Column(kids), _) => match kids[0] {
-        Styled(_, s) => s.clips,
-        _ => false,
-    },
-    _ => false,
-});
-
-@test
-fun painting_marks_rounded_nodes_to_clip_their_content() {
-    assert_eq(clips(rounded(true)), Ok(true));
-    assert_eq(clips(rounded(false)), Ok(false));
+    let icon_size: View<i64> = column([icon("folder-symbolic").size(24)]);
+    assert_eq(painted(icon_size).map(fun(v) = 0), Ok(0));
 }
 
 @test

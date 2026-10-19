@@ -1,0 +1,165 @@
+/**
+ * A style's values checked and turned into CSS. The CSS is atomic: one class
+ * per property and value (`kv-fw-700`), so every node using a value shares
+ * its class and a class's rule never changes. Pure: `paint` gives nodes their
+ * classes, `live` loads the rules.
+ *
+ * Depends on: typography, theming
+ * Used by: paint
+ */
+
+import typography { Sheet, Family, Size, Weight, FontStyle, LineHeight, Decoration, Transform };
+import theming { Paint, digits, two_digits };
+
+/**
+ * Whether every value in `s` can be shown.
+ * @returns `Err` naming the first value that can't, and why
+ */
+fun check(s: Sheet): Result<(), string> {
+    match s.font.family {
+        Named(name, fallback) => {
+            if name == "" {
+                return Err("Family.Named(\"\"): a font needs a name");
+            }
+            // The name goes inside a CSS string: nothing that could end it.
+            for bad of ["\"", "\\", ";", "{{", "}}", "\n", "\r"] {
+                if name.contains(bad) {
+                    return Err(
+                        "Family.Named(\"{name}\"): a font name can't hold quotes, backslashes, ; {{ }} or line breaks",
+                    );
+                }
+            }
+            match fallback {
+                Sans | Serif | Monospace => {}
+                _ => {
+                    return Err(
+                        "Family.Named(\"{name}\"): a font's fallback must be Sans, Serif or Monospace",
+                    );
+                }
+            }
+        }
+        _ => {}
+    }
+    match s.font.size {
+        Pt(n) => if n <= 0 {
+            return Err("Size.Pt({n}): a font size must be positive");
+        },
+        Scale(x) => if x <= 0.0 {
+            return Err("Size.Scale({x}): a font scale must be positive");
+        },
+        Theme => {}
+    }
+    match s.text.line_height {
+        Times(x) => if x <= 0.0 {
+            return Err("LineHeight.Times({x}): a line height must be positive");
+        },
+        Theme => {}
+    }
+    match s.text.color {
+        Faded(x) => if x < 0.0 || x > 1.0 {
+            return Err("Paint.Faded({x}): an opacity is between 0 and 1");
+        },
+        _ => {}
+    }
+    Ok(())
+}
+
+/** Each value `s` sets, as its class and CSS declarations, font first; checked values only. */
+fun rules(s: Sheet): (string, string)[] {
+    let mut out: (string, string)[] = [];
+    match s.font.family {
+        Theme => {}
+        Named(name, fallback) => {
+            // The class spells the name in hex: any name is a valid, unique class.
+            let mut id = "";
+            for b of name {
+                id = id + two_digits(b as i64);
+            }
+            out.push(
+                ("kv-ff-{id}-{short(fallback)}", "font-family: \"{name}\", {generic(fallback)};"),
+            );
+        }
+        _ => out.push(("kv-ff-{short(s.font.family)}", "font-family: {generic(s.font.family)};")),
+    }
+    match s.font.size {
+        Theme => {}
+        Pt(n) => out.push(("kv-fs-{n}pt", "font-size: {n}pt;")),
+        Scale(x) => {
+            let p = permille(x);
+            out.push(("kv-fs-s{p}", "font-size: {p / 10}.{p % 10}%;"));
+        }
+    }
+    match number(s.font.weight) {
+        Some(w) => out.push(("kv-fw-{w}", "font-weight: {w};")),
+        None => {}
+    }
+    match s.font.style {
+        Theme => {}
+        Normal => out.push(("kv-fst-normal", "font-style: normal;")),
+        Italic => out.push(("kv-fst-italic", "font-style: italic;")),
+    }
+    if s.font.tabular {
+        out.push(("kv-tnum", "font-variant-numeric: tabular-nums;"));
+    }
+    match s.text.color {
+        Theme => {}
+        Color(c) => out.push(("kv-fg-{digits(c)}", "color: #{digits(c)};")),
+        // `currentColor` is the colour the theme gives the node: faded, it
+        // still follows light and dark, as the theme's `dim-label` does.
+        Faded(x) => out.push(("kv-fade-{permille(x)}", "color: alpha(currentColor, {x});")),
+    }
+    match s.text.line_height {
+        Theme => {}
+        Times(x) => out.push(("kv-lh-{permille(x)}", "line-height: {x};")),
+    }
+    let n = s.text.letter_spacing;
+    if n > 0 {
+        out.push(("kv-ls-{n}", "letter-spacing: {n}px;"));
+    } else if n < 0 {
+        out.push(("kv-ls-m{-n}", "letter-spacing: {n}px;"));
+    }
+    match s.text.decoration {
+        Theme => {}
+        None => out.push(("kv-td-none", "text-decoration-line: none;")),
+        Underline => out.push(("kv-td-underline", "text-decoration-line: underline;")),
+        Strikethrough => out.push(("kv-td-strike", "text-decoration-line: line-through;")),
+    }
+    match s.text.transform {
+        Theme => {}
+        None => out.push(("kv-tt-none", "text-transform: none;")),
+        Uppercase => out.push(("kv-tt-upper", "text-transform: uppercase;")),
+        Lowercase => out.push(("kv-tt-lower", "text-transform: lowercase;")),
+        Capitalize => out.push(("kv-tt-cap", "text-transform: capitalize;")),
+    }
+    out
+}
+
+/** A positive number in thousandths, rounded: a class name can't hold a dot. */
+fun permille(x: f64): i64 = (x * 1000.0 + 0.5) as i64;
+
+/** CSS's numeric `font-weight`; `None` for the theme's. */
+fun number(w: Weight): Option<i64> = match w {
+    Theme => None,
+    Thin => Some(100),
+    Light => Some(300),
+    Normal => Some(400),
+    Medium => Some(500),
+    Semibold => Some(600),
+    Bold => Some(700),
+    Black => Some(900),
+};
+
+/** A generic family as CSS names it. */
+fun generic(f: Family): string = match f {
+    Serif => "serif",
+    Monospace => "monospace",
+    // Checked: a named font's fallback is generic, and Theme writes no rule.
+    _ => "sans-serif",
+};
+
+/** A generic family's part of a class name. */
+fun short(f: Family): string = match f {
+    Serif => "serif",
+    Monospace => "mono",
+    _ => "sans",
+};

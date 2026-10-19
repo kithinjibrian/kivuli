@@ -1,0 +1,296 @@
+// A browser-like frame: a header bar (back, an address field filling the
+// bar, new tab, info), a tab rail whose tabs have right-click menus, home
+// tiles in a wrapping grid that re-flows as the window resizes, an Info panel
+// of whole-row buttons, and pages that "load" in the background (`Cmd.task`)
+// with a note over the page until they arrive (`overlay`). Its tests are at
+// the bottom: `lughac test examples/browser.la`.
+import std.task;
+import kivuli {
+    Align,
+    App,
+    Cmd,
+    Sub,
+    View,
+    Font,
+    Text,
+    Size,
+    Weight,
+    Paint,
+    application,
+    button,
+    button_with,
+    column,
+    icon,
+    input,
+    item,
+    keyed_wrap,
+    menu_separator,
+    overlay,
+    row,
+    separator,
+    text,
+};
+// For the tests at the bottom; `lughac build` leaves tests out.
+import kivuli.testing { click, is_disabled, pick, submit, texts, type_into };
+
+struct Browser {
+    /** Each tab's history of addresses; the last is shown. */
+    tabs: string[][],
+    current: i64,
+    draft: string,
+    /** Home's tiles, by name (each name is its key). */
+    tiles: string[],
+    info: bool,
+    /** The address being loaded, while it loads. */
+    loading: Option<string>,
+}
+
+enum Msg {
+    Draft(string),
+    Go,
+    Loaded(string),
+    Back,
+    Open(i64),
+    NewTab,
+    Duplicate(i64),
+    CloseTab(i64),
+    CloseOthers(i64),
+    Visit(string),
+    ToggleInfo,
+}
+
+fun start(): Browser = Browser {
+    tabs: [["home"]],
+    current: 0,
+    draft: "home",
+    tiles: ["News", "Mail", "Maps", "Music", "Notes", "Photos", "Weather", "Chess"],
+    info: false,
+    loading: None,
+};
+
+fun shown(b: Browser): string {
+    let history = b.tabs[b.current];
+    history[history.len - 1]
+}
+
+/** A pretend page load: the work runs on a green thread, so the window stays responsive. */
+fun load(address: string): string {
+    task.sleep(400);
+    address
+}
+
+fun update(b: Browser, msg: Msg): (Browser, Cmd<Msg>) = match msg {
+    Draft(s) => (Browser { draft: s, ..b }, Cmd.none()),
+    // `update` only describes the work; kivuli runs it and sends Loaded.
+    Go => (
+        Browser { loading: Some(b.draft), ..b },
+        Cmd.task(fun(): string = load(b.draft), Msg.Loaded),
+    ),
+    Loaded(address) => {
+        let mut tabs = b.tabs;
+        let mut history = tabs[b.current];
+        history.push(address);
+        tabs[b.current] = history;
+        (Browser { tabs: tabs, loading: None, ..b }, Cmd.none())
+    }
+    Back => {
+        let mut tabs = b.tabs;
+        let mut history = tabs[b.current];
+        if history.len > 1 {
+            history.pop();
+        }
+        tabs[b.current] = history;
+        (opened(Browser { tabs: tabs, ..b }, b.current), Cmd.none())
+    }
+    Open(i) => (opened(b, i), Cmd.none()),
+    NewTab => {
+        let mut tabs = b.tabs;
+        tabs.push(["home"]);
+        (opened(Browser { tabs: tabs, ..b }, tabs.len - 1), Cmd.none())
+    }
+    Duplicate(i) => {
+        let mut tabs: string[][] = [];
+        let mut j = 0;
+        while j < b.tabs.len {
+            tabs.push(b.tabs[j]);
+            if j == i {
+                tabs.push(b.tabs[i]);
+            }
+            j = j + 1;
+        }
+        (opened(Browser { tabs: tabs, ..b }, i + 1), Cmd.none())
+    }
+    // The last tab closed leaves a fresh one; the selected tab closed selects
+    // the one taking its place (or the new last).
+    CloseTab(i) => if b.tabs.len == 1 {
+        (opened(Browser { tabs: [["home"]], ..b }, 0), Cmd.none())
+    } else {
+        let mut tabs: string[][] = [];
+        let mut j = 0;
+        while j < b.tabs.len {
+            if j != i {
+                tabs.push(b.tabs[j]);
+            }
+            j = j + 1;
+        }
+        let current = if b.current > i || b.current == tabs.len {
+            b.current - 1
+        } else {
+            b.current
+        };
+        (opened(Browser { tabs: tabs, ..b }, current), Cmd.none())
+    },
+    CloseOthers(i) => (opened(Browser { tabs: [b.tabs[i]], ..b }, 0), Cmd.none()),
+    // A tile opens its page in this tab, as typing its name would.
+    Visit(name) => update(Browser { draft: name, ..b }, Msg.Go),
+    ToggleInfo => (Browser { info: !b.info, ..b }, Cmd.none()),
+};
+
+/** `b` showing tab `i`, the address bar following it. */
+fun opened(b: Browser, i: i64): Browser {
+    let next = Browser { current: i, ..b };
+    Browser { draft: shown(next), ..next }
+}
+
+/** Greyed text: the theme's text colour, faded. */
+fun dim(): Text = Text { color: Paint.Faded(0.55), ..Text.theme() };
+
+fun bold(): Font = Font { weight: Weight.Bold, ..Font.theme() };
+
+fun tab(b: Browser, i: i64): View<Msg> {
+    let history = b.tabs[i];
+    button(history[history.len - 1], Msg.Open(i)).style(
+        if i == b.current { [bold()] } else { [] },
+    ).menu([
+        item("Duplicate tab", Msg.Duplicate(i)),
+        item("Close tab", Msg.CloseTab(i)),
+        menu_separator(),
+        item("Close other tabs", Msg.CloseOthers(i)).disabled(b.tabs.len == 1),
+    ])
+}
+
+/** One row of the info panel: a label, a summary and an arrow, all one button. */
+fun panel_row(label: string, summary: string, msg: Msg): View<Msg> = button_with(
+    row([text(label).expand(), text(summary).style([dim()]), icon("go-next-symbolic")]).spacing(8),
+    msg,
+);
+
+fun info_panel(b: Browser): View<Msg> {
+    let history = b.tabs[b.current];
+    let previous = if history.len < 2 { "nothing" } else { history[history.len - 2] };
+    column([
+        text("About this tab").style([bold()]),
+        text("Tab {b.current + 1} of {b.tabs.len}, {history.len} page(s)").style([dim()]),
+        panel_row("Go back", "to {previous}", Msg.Back).disabled(history.len < 2),
+        panel_row("Open a new tab", "home", Msg.NewTab),
+    ]).spacing(8).padding(16).width(280)
+}
+
+fun page(b: Browser): View<Msg> {
+    let body = column([
+        text("You're at {shown(b)}").style([Font { size: Size.Pt(20), ..bold() }]),
+        // Equal tiles, at most six across; fewer on a narrow window.
+        keyed_wrap(b.tiles.map(fun(t) = (t, button(t, Msg.Visit(t)).width(120).height(72)))).equal().max_per_line(6).spacing(12),
+    ]).spacing(12).padding(24).expand();
+    let note: View<Msg>[] = match b.loading {
+        Some(address) => [
+            text("Loading {address}…").style([dim()]).padding(16).place(Align.Center, Align.End),
+        ],
+        None => [],
+    };
+    overlay(body, note).expand()
+}
+
+fun view(b: Browser): View<Msg> {
+    let mut tabs: View<Msg>[] = [];
+    let mut i = 0;
+    while i < b.tabs.len {
+        tabs.push(tab(b, i));
+        i = i + 1;
+    }
+    let mut parts = [page(b)];
+    if b.info {
+        parts.push(separator());
+        parts.push(info_panel(b));
+    }
+    parts.push(separator());
+    parts.push(column(tabs).spacing(4).padding(8).width(160));
+    row(parts).window("{shown(b)} — Browser", 1000, 640).header(
+        [
+            button("", Msg.Back).icon("go-previous-symbolic").tooltip("Back").disabled(
+                b.tabs[b.current].len < 2,
+            ),
+        ],
+        input(b.draft, Msg.Draft).placeholder("Address").on_submit(Msg.Go).expand(),
+        [
+            button("", Msg.NewTab).icon("tab-new-symbolic").tooltip("New tab"),
+            button("", Msg.ToggleInfo).icon("dialog-information-symbolic").tooltip("Info"),
+        ],
+    )
+}
+
+fun main(): i32 = application(App {
+    id: "org.kivuli.browser",
+    init: (start(), Cmd.none()),
+    update: update,
+    view: view,
+    subscriptions: fun(b: Browser): Sub<Msg> = Sub.none(),
+});
+
+// Tests: what a user does, worked out from the view and fed back through
+// `update`. A load's result is sent by hand: tests don't run tasks.
+
+fun did(b: Browser, msg: Msg): Browser = update(b, msg).0;
+
+fun visit(b: Browser, address: string): Browser {
+    let typed = did(b, type_into(view(b), "Address", address).unwrap_or(Msg.Go));
+    let loading = did(typed, submit(view(typed), "Address").unwrap_or(Msg.Go));
+    did(loading, Msg.Loaded(address))
+}
+
+@test
+fun going_somewhere_loads_it_with_a_note_then_back_returns() {
+    let typed = did(start(), Msg.Draft("news"));
+    let loading = did(typed, Msg.Go);
+    assert_eq(loading.loading, Some("news"));
+    assert(texts(view(loading)).any(fun(t) = t == "Loading news…"));
+    let b = did(loading, Msg.Loaded("news"));
+    assert_eq((shown(b), b.loading), ("news", None));
+    let back = did(b, click(view(b), "Back").unwrap_or(Msg.Go));
+    assert_eq((shown(back), back.draft), ("home", "home"));
+}
+
+@test
+fun back_is_disabled_on_a_tabs_first_page() {
+    assert_eq(is_disabled(view(start()), "Back"), Ok(true));
+    assert_eq(is_disabled(view(visit(start(), "a")), "Back"), Ok(false));
+}
+
+@test
+fun tiles_load_their_page() {
+    let loading = did(start(), click(view(start()), "Maps").unwrap_or(Msg.Go));
+    assert_eq(loading.loading, Some("Maps"));
+}
+
+@test
+fun a_tabs_menu_duplicates_and_closes_tabs() {
+    assert_eq(is_disabled(view(start()), "New tab"), Ok(false));
+    let b = visit(start(), "news");
+    let two = did(b, pick(view(b), "news", "Duplicate tab").unwrap_or(Msg.Go));
+    assert_eq((two.tabs.len, two.current, shown(two)), (2, 1, "news"));
+    let three = did(two, click(view(two), "New tab").unwrap_or(Msg.Go));
+    let closed = did(three, pick(view(three), "home", "Close tab").unwrap_or(Msg.Go));
+    assert_eq((closed.tabs.len, closed.current, closed.draft), (2, 1, "news"));
+    let alone = did(three, pick(view(three), "home", "Close other tabs").unwrap_or(Msg.Go));
+    assert_eq((alone.tabs.len, shown(alone)), (1, "home"));
+}
+
+@test
+fun the_info_panels_rows_are_whole_buttons() {
+    let open = did(start(), click(view(start()), "Info").unwrap_or(Msg.Go));
+    assert_eq(is_disabled(view(open), "Go back"), Ok(true));
+    assert_eq(did(open, click(view(open), "Open a new tab").unwrap_or(Msg.Go)).tabs.len, 2);
+    let b = did(visit(start(), "news"), Msg.ToggleInfo);
+    // A row is found by any text in it, its summary too.
+    assert_eq(shown(did(b, click(view(b), "to home").unwrap_or(Msg.Go))), "home");
+}

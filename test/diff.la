@@ -3,6 +3,7 @@
 // test/ see package-level items (lughac milestone 97).
 import kivuli.diff { Patch, diff as patches };
 import kivuli.looks { Style, plain };
+import kivuli.typography { Sheet };
 import kivuli {
     Image,
     View,
@@ -17,15 +18,16 @@ import kivuli {
     scroll,
     keyed_column,
     Align,
-    ButtonStyle,
+    Font,
+    Text,
+    Weight,
+    Paint,
     text_area,
     dropdown,
     slider,
     icon,
     image,
     Fit,
-    Surface,
-    theme,
 };
 
 // Views and patches can hold functions, which have no `==`: compare what they
@@ -318,8 +320,10 @@ fun a_new_kind_is_replaced_with_its_style() {
 
 @test
 fun making_text_bold_restyles_it() {
-    let expected: Patch<Msg>[] = [Patch.SetStyle([], Style { bold: true, ..plain() })];
-    assert_same(patches(text("a"), text("a").bold()), expected);
+    let bold = Font { weight: Weight.Bold, ..Font.theme() };
+    let sheet = Sheet { font: bold, ..Sheet.theme() };
+    let expected: Patch<Msg>[] = [Patch.SetStyle([], Style { sheet: sheet, ..plain() })];
+    assert_same(patches(text("a"), text("a").style([bold])), expected);
 }
 
 @test
@@ -327,21 +331,6 @@ fun disabling_a_button_takes_its_message_away() {
     let expected: Patch<Msg>[] = [Patch.SetMsg([], None)];
     assert_same(
         patches(button("Reset", Msg.Reset), button("Reset", Msg.Reset).disabled(true)),
-        expected,
-    );
-}
-
-@test
-fun a_button_style_is_a_restyle() {
-    let expected: Patch<Msg>[] = [
-        Patch.SetStyle([], Style { button: ButtonStyle.Danger, ..plain() }),
-        Patch.SetMsg([], Some(Msg.Reset)),
-    ];
-    assert_same(
-        patches(
-            button("Reset", Msg.Reset),
-            button("Reset", Msg.Reset).button_style(ButtonStyle.Danger),
-        ),
         expected,
     );
 }
@@ -490,7 +479,8 @@ fun a_headers_parts_diff_in_place() {
 }
 
 @test
-fun a_change_of_looks_is_a_restyle() {
-    let expected: Patch<Msg>[] = [Patch.SetStyle([], Style { looks: ["Bar"], ..plain() })];
-    assert_same(patches(text("a"), text("a").style(["Bar"])), expected);
+fun the_same_style_twice_is_no_change() {
+    let dim = Text { color: Paint.Faded(0.55), ..Text.theme() };
+    let expected: Patch<Msg>[] = [];
+    assert_same(patches(text("a").style([dim]), text("a").style([dim])), expected);
 }

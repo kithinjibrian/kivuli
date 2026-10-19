@@ -8,6 +8,24 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.11.0] — 2026-10-19
+
+### Breaking
+- Styling has one door (PRP-016, DECISION-023): how a node looks is `.style([...])`, a list of typed values. Removed, with no replacement in this release: `.bold()`, `.dim()`, `.size(n)` on text (it stops the app with a message pointing to `Font`; `.size` stays for icons and pictures), `.button_style` and `ButtonStyle`, and named looks (`Surface`, `Border`, `Theme`, `theme(…)`, `.theme(…)`, `.header_style`). Backgrounds, borders, corners and button looks come back through `.style` in a later release.
+- The old examples are gone; the new ones are hello, type, tasks, browser, controls, split and bench.
+- For Rapidkoi: replace `.bold()` with `.style([Font { weight: Weight.Bold, ..Font.theme() }])`, `.dim()` with `.style([Text { color: Paint.Faded(0.55), ..Text.theme() }])`, `.size(n)` on text with `Font { size: Size.Pt(n), ..Font.theme() }`; remove `.button_style`, `.theme(…)`, `.header_style` and its look enum until backgrounds return.
+
+### Added
+- `Styling`, `Font` (`family`, `size`, `weight`, `style`, `tabular`), `Text` (`color`, `line_height`, `letter_spacing`, `decoration`, `transform`) and `Paint` (`Theme`, `Color`, `Faded`), each field's `Theme` value meaning "not set here". Bad values (a size or line height of 0, an opacity over 1, a font name that could break out of CSS) stop the app with a message.
+- The app's stylesheet grows as new values appear while it runs. A style's classes also go on the label kivuli puts in a button or check box.
+- `examples/type.la`: every value, each on a line naming it.
+
+### Fixed
+- Eleven example binaries committed by mistake in 0.9.0 are removed from the tree (they stay in history).
+
+### Needs
+- A lughac with the struct-update fix (DECISION-024): `S { f: e, ..base }` converts to an interface value where one is expected.
+
 ## [0.10.0] — 2026-10-18
 
 ### Added

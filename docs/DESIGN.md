@@ -6,24 +6,26 @@ kivuli draws nothing. Every visual comes from the user's GTK theme (Adwaita by d
 
 ## Tokens: kivuli vocabulary → GTK
 
-### Button styles (`.button_style(ButtonStyle.…)`)
+### Styles (`.style([...])`; PRP-016, DECISION-023)
 
-| kivuli | GTK CSS class | Meaning |
-|--------|---------------|---------|
-| `Normal` | none | default action |
-| `Primary` | `suggested-action` | the one main action in a view |
-| `Danger` | `destructive-action` | deletes or discards |
-| `Subtle` | `flat` | low-emphasis, toolbar-like |
+A style is a list of typed values (`Font`, `Text`) merged into one `Sheet` per node: for each field the last value that sets it wins, and `Theme` sets nothing. kivuli turns a `Sheet` into atomic CSS classes, one per property and value, so every node using a value shares its class and a class's rule never changes:
 
-### Text (`.size`, `.bold`, `.dim`)
+| kivuli | class | GTK CSS |
+| --- | --- | --- |
+| `Font.weight` `Thin` … `Black` | `kv-fw-100` … `kv-fw-900` | `font-weight: 100` … `900` |
+| `Font.size` `Pt(n)` / `Scale(x)` | `kv-fs-{n}pt` / `kv-fs-s{x·1000}` | `font-size: {n}pt` / `{x·100}%` |
+| `Font.family` `Sans` / `Serif` / `Monospace` | `kv-ff-sans` / `serif` / `mono` | `font-family: sans-serif` / `serif` / `monospace` |
+| `Font.family` `Named(name, fallback)` | `kv-ff-{name in hex}-{fallback}` | `font-family: "name", fallback` |
+| `Font.style` `Italic` / `Normal` | `kv-fst-italic` / `normal` | `font-style` |
+| `Font.tabular` | `kv-tnum` | `font-variant-numeric: tabular-nums` |
+| `Text.color` `Color(c)` | `kv-fg-{rrggbbaa}` | `color: #rrggbbaa` |
+| `Text.color` `Faded(x)` | `kv-fade-{x·1000}` | `color: alpha(currentColor, x)`: the theme's text colour faded, so it follows light and dark as `dim-label` does |
+| `Text.line_height` `Times(x)` | `kv-lh-{x·1000}` | `line-height: x` |
+| `Text.letter_spacing` n | `kv-ls-{n}` / `kv-ls-m{-n}` | `letter-spacing: {n}px` |
+| `Text.decoration` | `kv-td-underline` / `strike` / `none` | `text-decoration-line` |
+| `Text.transform` | `kv-tt-upper` / `lower` / `cap` / `none` | `text-transform` |
 
-| kivuli | GTK | Notes |
-|--------|-----|-------|
-| `.dim()` | CSS class `dim-label` | theme-defined opacity |
-| `.bold()` | Pango weight bold (label attributes) | no CSS colour |
-| `.size(n)` | Pango size `n` pt (label attributes) | the only numeric typography input. It comes from the app, never from kivuli |
-
-`bold` and `size` are Pango attributes on the label (a fresh `PangoAttrList` each time, or none); `dim` is the `dim-label` CSS class (session 3, the user's agreement).
+The rules live in one app stylesheet at application priority (600), created when the window opens; each render adds the rules of values not seen before (rules are never removed). A style's classes also go on the label kivuli puts in a button or a check box, because CSS doesn't inherit every text property (`text-decoration` isn't). A font name goes inside a CSS string, so one holding `"`, `\`, `;`, braces or a line break is refused. kivuli removes only its own `kv-` classes from a widget.
 
 ### Layout (`.padding`, `.spacing`, `.expand`, `.align`, `.width`, `.height`)
 
@@ -67,20 +69,13 @@ Disabled means no message (MEMORY decision 6), mapped to `gtk_widget_set_sensiti
 
 - A modifier that doesn't apply to a node is ignored silently (decision 5).
 - A view's root carries `.window(title, w, h)`. Window size is the default size, not a fixed size.
-- Correct:
+- Correct: a look is a typed value on the node, through the one door.
 
-      button("Delete", Msg.Delete).button_style(ButtonStyle.Danger)
+      text(m.note).style([Text { color: Paint.Faded(0.55), ..Text.theme() }])
 
-- Wrong:
-
-      // never reach for custom CSS colours, even for "danger"
-      button("Delete", Msg.Delete).css("color: #c01c28")
+- Wrong: a look smuggled in any other way (a widget's CSS, a Pango attribute, a second modifier for the same property).
 
 ---
-
-### An app's own colours (`.style`, `.theme`; PRP-007, DECISION-012)
-
-kivuli ships no colours. An app that paints its own frame gives its colours as typed looks: an enum of its own, a `Surface` per look (`background`, `text`, `border`, `radius`; unset fields stay the theme's), `.style([…])` on nodes and `.theme(theme(…))` on the root. kivuli generates the stylesheet: one class per property and value (`.kv-bg-242424ff`), merged per node in kivuli's code (a later look wins), loaded once for the display at application priority (600), when the window opens. Apps write no CSS and no selectors, so they can't depend on how kivuli or GTK build widgets. A background also clears the theme's background image, so it shows on themed widgets. kivuli removes only its own `kv-` classes from a widget.
 
 ### Overlay (`overlay`, `.place`; PRP-013)
 
@@ -97,7 +92,7 @@ The overlay takes the base's size (`measure-overlay` off). A `GtkOverlay` only a
 | --- | --- |
 | `button_with(content, msg)` | a `GtkButton` whose child is the content's widget (`gtk_button_set_child`), filling it (GTK's default for a button's child) |
 
-Everything else is a plain button's: the theme's button look, hover and pressed states and focus ring; `clicked` connected once, reading the message from a `Ref`; the same shortcut controller; `.button_style` as the theme's classes. New content of another kind replaces the button's child, not the button. Interactive content is refused before anything is built (the paint pass), since a GTK button inside a GTK button fights it for clicks and focus.
+Everything else is a plain button's: the theme's button look, hover and pressed states and focus ring; `clicked` connected once, reading the message from a `Ref`; the same shortcut controller; `.style` as on any node. New content of another kind replaces the button's child, not the button. Interactive content is refused before anything is built (the paint pass), since a GTK button inside a GTK button fights it for clicks and focus.
 
 ### Context menus (`.menu`; PRP-014)
 
@@ -130,10 +125,6 @@ A keyed move takes a child out and puts it back at its new place (a flow box can
 | each `start` / `end` view | packed into the bar itself (`pack_start` / `pack_end`), so the theme's spacing between them applies |
 | `title` | the bar's title widget; `.expand()` lets it take the bar's spare width |
 
-**The header bar's look** (`.header_style([…])`, PRP-008): kivuli's classes go on the `headerbar` node only, so its window controls stay GTK's. GTK's Default theme and Yaru-dark both draw the line under a header bar as a 1 px bottom border (`border-width: 0 0 1px`), not a shadow, over a gradient background. A look with a `background` clears the gradient; `flat: Some(true)` sets `box-shadow: none; border-width: 0` (only `box-shadow: none` when the look has its own `border`), so a header bar and a rail with one flat look read as one frame, focused or not (kivuli's rules outrank the theme's in every state).
-
-**Corner radius** (PRP-009): `radius` rounds all four corners, `radius_top_left` and the others one each. Four equal corners give `border-radius`, otherwise one `border-…-radius` per set corner; for every radius a theme uses, kivuli generates all five rules, so any merge of looks finds its classes. GTK 4.22 rounds a box's own background but does **not** clip its children to the curve (probed: the child is drawn outside any rounded clip unless the box's overflow is hidden). So kivuli sets `gtk_widget_set_overflow(HIDDEN)` on a node whose looks round a corner, marked with a `kv-clip` class so it can undo it; a widget GTK itself clips is left alone.
-
 Dark mode: apps follow the desktop's preference. Forcing dark from an app is deferred (DECISION-017).
 
 ---
@@ -148,6 +139,6 @@ Requests for the lugha session (not worked around): runtime hooks so GLib waits 
 
 ## What Is Forbidden
 
-- No hardcoded colours, fonts, or pixel values inside kivuli. Numbers reach GTK only from app-supplied modifier arguments, and colours only from an app's theme.
-- No custom CSS stylesheet shipped by kivuli, other than what PRP-001 approves for `size`/`bold`, and the stylesheet generated from an app's own theme.
-- No style that bypasses the theme (inline `background`, `color`).
+- No hardcoded colours, fonts, or pixel values inside kivuli. Numbers reach GTK only from app-supplied modifier arguments and style values.
+- No CSS stylesheet shipped by kivuli: the only one is generated from the app's own style values.
+- No style applied any way but `.style([...])`: one door, so two ways can never disagree.

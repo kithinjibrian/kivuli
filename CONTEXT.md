@@ -396,9 +396,37 @@ Branch: main (PRP-015 on prp-015-clickable_rows, merged)
 
 ---
 
-## SESSION 17 — 2026-10-19 — Styling through one door: discovery — open
+## SESSION 17 — 2026-10-19 — PRP-016: styles as values (blocked on lughac) — closed
 
-Branch: main
+Branch: prp-016-style_values (not merged)
+
+### WHAT WAS DONE
+- The user chose one door for styling (DECISION-023): `.style([...])` of typed values; named looks, `.bold`, `.dim`, text `.size`, `.button_style` deleted (breaking, only what was discussed). Interview in conversation: `Font` and `Text` groups (kept apart), `Theme` variants meaning "not set", the last setter wins, no registry (values on the node, reuse through functions). Utilities deferred: their names clash with the fields (E0310).
+- PRP-016 approved and narrowed (bedrock only; old examples to be deleted, new ones written). Built so far: src/typography.la (Styling, Sheet, Font, Text, enums), src/sheets.la (checks, atomic CSS, font names guarded against CSS injection), theming.la cut to Color/Paint, Style holds a Sheet, paint and styling rewritten, live keeps one growing stylesheet. test/sheets.la passes (7).
+- Blocked: lughac doesn't convert a struct update literal (`S { f: e, ..base }`) to an interface value where one is expected (DECISION-024). Every `.style([Font { …, ..Font.theme() }])` hits it.
+
+### STILL OPEN AT CLOSE
+- DECISION-024: fix in ../lugha (not from a kivuli session), then the user reinstalls lughac.
+- Then on the branch: test/typography.la and test/theming.la should compile; migrate the other tests (lib, diff, lazy, live_style, live_look); write test/live_type.la; delete the old examples, write the new ones; docs; 0.11.0.
+- `reports/.gitkeep` deleted in the working tree, not by Claude; left alone.
+
+---
+
+## SESSION 18 — 2026-10-19 — PRP-016: styles as values, kivuli 0.11.0 — closed
+
+Branch: main (PRP-016 on prp-016-style_values, merged)
+
+### WHAT WAS DONE
+- DECISION-024 fixed in lughac by the user; the blocked tests compiled and passed. Tests migrated to `.style` (looks tests deleted; header-bar tests moved to test/live_header.la); new test/live_type.la (classes, a growing stylesheet, colours read back from GTK; mutation-checked). A style's classes also go on kivuli's own label in a button or check box (CSS doesn't inherit `text-decoration`).
+- Old examples deleted; new: hello, type, tasks, browser, controls (each of the last three with tests), split, bench.
+- Clean-up: eleven example binaries had been committed in PRP-014 (99cd972, pushed with v0.9.0) by `git add -A`; removed from the tree, history kept (the user's call). The user deleted the binaries on disk. Examples now build with `-o examples/<name>`; .gitignore lists the new ones.
+- Docs: README (example, styles section), DESIGN (the class table), CHANGELOG 0.11.0 under Breaking (with Rapidkoi's migration), CLAUDE.md, MEMORY, DECISIONS (023 resolved for fonts and text, 024 resolved); the tutorial artifact republished. kivuli 0.11.0, tagged locally.
+
+### STILL OPEN AT CLOSE
+- Not pushed, waiting for the user's go: main and tag v0.11.0.
+- For the user to check by hand: `lughac run examples/type.la` (each value as its line names it), `examples/browser.la`, `examples/hello.la`.
+- Next: style utilities (names free of the fields, E0310), then backgrounds, borders, corners and button looks through `.style`. Queued: file dialog (013). For the lugha session: DECISIONS 020-022. test/live_forms.la split awaiting the user.
+- `reports/.gitkeep` deleted in the working tree, not by Claude; left alone.
 
 ---
 

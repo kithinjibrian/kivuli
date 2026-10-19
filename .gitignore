@@ -1,12 +1,8 @@
 # Executables from `lughac build`
-/examples/counter
-/examples/todo
-/examples/stopwatch
-/examples/raw
-/examples/counters
 /examples/bench
-/examples/notes
-/examples/settings
-/examples/gallery
-/examples/frame
-/examples/download
+/examples/hello
+/examples/type
+/examples/tasks
+/examples/browser
+/examples/controls
+/examples/split

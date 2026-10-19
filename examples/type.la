@@ -1,0 +1,94 @@
+// A type specimen: every value of every `Font` and `Text` field, each on a
+// line that names it, so you can see what each one does with your theme's
+// font. Nothing here is interactive; scroll to see it all.
+import kivuli {
+    View,
+    Styling,
+    Font,
+    Text,
+    Family,
+    Size,
+    Weight,
+    FontStyle,
+    LineHeight,
+    Decoration,
+    Transform,
+    Paint,
+    column,
+    hex,
+    sandbox,
+    scroll,
+    separator,
+    text,
+};
+
+/** A section's heading. */
+fun heading(s: string): View<()> = text(s).style([
+    Font { size: Size.Pt(16), weight: Weight.Bold, ..Font.theme() },
+]);
+
+/** One line naming the value it shows. */
+fun line(name: string, style: Styling[]): View<()> = text(
+    "{name}: The quick brown fox, 0123456789",
+).style(style);
+
+fun f(font: Font): Styling[] = [font];
+
+fun t(txt: Text): Styling[] = [txt];
+
+fun view(m: ()): View<()> = scroll(
+    column([
+        heading("Font.weight"),
+        line("Thin", f(Font { weight: Weight.Thin, ..Font.theme() })),
+        line("Light", f(Font { weight: Weight.Light, ..Font.theme() })),
+        line("Normal", f(Font { weight: Weight.Normal, ..Font.theme() })),
+        line("Medium", f(Font { weight: Weight.Medium, ..Font.theme() })),
+        line("Semibold", f(Font { weight: Weight.Semibold, ..Font.theme() })),
+        line("Bold", f(Font { weight: Weight.Bold, ..Font.theme() })),
+        line("Black", f(Font { weight: Weight.Black, ..Font.theme() })),
+        separator(),
+        heading("Font.size"),
+        line("Pt(9)", f(Font { size: Size.Pt(9), ..Font.theme() })),
+        line("Pt(14)", f(Font { size: Size.Pt(14), ..Font.theme() })),
+        line("Pt(24)", f(Font { size: Size.Pt(24), ..Font.theme() })),
+        line("Scale(0.8)", f(Font { size: Size.Scale(0.8), ..Font.theme() })),
+        line("Scale(1.5)", f(Font { size: Size.Scale(1.5), ..Font.theme() })),
+        separator(),
+        heading("Font.family, Font.style, Font.tabular"),
+        line("Sans", f(Font { family: Family.Sans, ..Font.theme() })),
+        line("Serif", f(Font { family: Family.Serif, ..Font.theme() })),
+        line("Monospace", f(Font { family: Family.Monospace, ..Font.theme() })),
+        line(
+            "Named(\"Cantarell\", Sans)",
+            f(Font { family: Family.Named("Cantarell", Family.Sans), ..Font.theme() }),
+        ),
+        line("Italic", f(Font { style: FontStyle.Italic, ..Font.theme() })),
+        line("tabular", f(Font { tabular: true, ..Font.theme() })),
+        separator(),
+        heading("Text"),
+        line("Uppercase", t(Text { transform: Transform.Uppercase, ..Text.theme() })),
+        line("Lowercase", t(Text { transform: Transform.Lowercase, ..Text.theme() })),
+        line("Capitalize", t(Text { transform: Transform.Capitalize, ..Text.theme() })),
+        line("Underline", t(Text { decoration: Decoration.Underline, ..Text.theme() })),
+        line("Strikethrough", t(Text { decoration: Decoration.Strikethrough, ..Text.theme() })),
+        line("letter_spacing: 3", t(Text { letter_spacing: 3, ..Text.theme() })),
+        line("letter_spacing: -1", t(Text { letter_spacing: -1, ..Text.theme() })),
+        text(
+            "LineHeight.Times(2.0): two lines of text, set far apart, so you can see the gap between them.",
+        ).wrap().style(t(Text { line_height: LineHeight.Times(2.0), ..Text.theme() })),
+        line("Paint.Faded(0.55)", t(Text { color: Paint.Faded(0.55), ..Text.theme() })),
+        line(
+            "Paint.Color(#c0392b)",
+            t(Text { color: Paint.Color(hex("#c0392b")), ..Text.theme() }),
+        ),
+        separator(),
+        heading("Merged: the last value that sets a field wins"),
+        line("[Bold, Pt(20), Thin]", [
+            Font { weight: Weight.Bold, ..Font.theme() },
+            Font { size: Size.Pt(20), ..Font.theme() },
+            Font { weight: Weight.Thin, ..Font.theme() },
+        ]),
+    ]).spacing(6).padding(24),
+).window("Type", 640, 800);
+
+fun main(): i32 = sandbox("org.kivuli.type", (), fun(m: (), msg: ()): () = (), view);

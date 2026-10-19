@@ -12,17 +12,42 @@ Rules:
 
 ## OPEN — Requires human input before implementation
 
+### DECISION-024 — lughac: a struct update literal isn't converted to an interface value
+
+**Status:** resolved — fixed in lughac (the user, between sessions 17 and 18; the reproduction prints `4 1 9 16`)
+**Raised:** 2026-10-19 — Session 17
+
+**Question:** Where an interface type is expected, lughac 0.1.0 converts a plain struct literal and a call's result into an interface value, but not a struct literal with `..base` (E0403, "expected Shape, found Sq"). PRP-016's whole style API is that shape: `.style([Font { weight: Weight.Bold, ..Font.theme() }])`.
+
+```
+interface Shape { fun area(self): i64; }
+struct Sq { side: i64, tag: i64 }
+impl Sq {
+    fun base(): Sq = Sq { side: 1, tag: 0 };
+    fun area(self): i64 = self.side * self.side;
+}
+fun main() {
+    let plain: Shape = Sq { side: 2, tag: 0 };          // ok
+    let call: Shape = Sq.base();                        // ok
+    let updated: Shape = Sq { side: 3, ..Sq.base() };   // E0403: expected Shape, found Sq
+    let listed: Shape[] = [Sq { side: 4, ..Sq.base() }];   // E0403
+}
+```
+
+**Needed:** the same conversion for `S { f: e, ..base }` as for `S { … }` (milestone 93's struct update, with v5's interface values). Fixed in `../lugha` with its own PR; kivuli waits (no workaround: apps would have to bind every value to a typed `let` first).
+
 ### DECISION-023 — Styling has one door
 
-**Status:** open (direction chosen; details in a PRP)
+**Status:** resolved for fonts and text (PRP-016, session 18); backgrounds, borders, corners and button looks come through the same door in a later PRP
 **Raised:** 2026-10-19 — Session 17 (the user)
-**Blocks:** any new appearance modifier or `Surface` field until the PRP is approved
 
 **Question:** Appearance comes through three overlapping ways: modifiers (`.bold`, `.dim`, `.size` on text, `.button_style`), `ButtonStyle`, and `Surface` fields (`text`, `flat`) that compete with them. Which one wins depends on the order kivuli applies them.
 
 **Direction (the user's choice, breaking changes accepted):** modifiers keep layout, behaviour and text flow only; all appearance goes through `.style(looks)`. kivuli ships a `Role` enum of looks the GTK theme draws (its own classes: theme-following, no `.theme` needed); app looks are `Surface`s that can build on roles (`roles: […]`) and use theme colours. `.bold`, `.dim`, `.size` on text, `.button_style`, `ButtonStyle`, `Surface.flat` and `.header_style` go. A role on a node it doesn't fit stops the app with a message.
 
 **Open details, for the PRP's interview:** the exact `Role` list (checked against GTK 4.22's default theme); theme and adaptive colours (DECISION-017); how `.style` mixes roles and app looks; the migration of examples, README and Rapidkoi.
+
+**Outcome:** `.style([...])` of typed values implementing `Styling` (`Font`, `Text`, with `Paint`), merged field by field (the last value that sets a field wins; `Theme` sets nothing), with no registry and no utilities yet (their names would clash with the fields, E0310). `.bold`, `.dim`, text `.size`, `.button_style`/`ButtonStyle` and named looks (`Surface`, `Theme`, `.theme`, `.header_style`) are deleted. Breaking, in 0.11.0.
 
 ---
 
