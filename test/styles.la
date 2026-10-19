@@ -1,7 +1,7 @@
 // Styles as values (PRP-016): `.style`'s merge rule: the last value that sets
 // a field wins; `Theme` sets nothing; two `.style` calls are one longer
 // list. No GTK.
-import kivuli.typography { Sheet };
+import kivuli.styles { Sheet };
 import kivuli {
     View,
     Styling,

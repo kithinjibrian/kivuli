@@ -11,7 +11,7 @@
 public import views { View };
 public import looks { Align, Fit };
 public import theming { Color, Paint, hex, rgb };
-public import typography {
+public import styles {
     Styling,
     Font,
     Text,

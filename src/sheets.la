@@ -4,11 +4,11 @@
  * its class and a class's rule never changes. Pure: `paint` gives nodes their
  * classes, `live` loads the rules.
  *
- * Depends on: typography, theming
+ * Depends on: styles, theming
  * Used by: paint
  */
 
-import typography { Sheet, Family, Size, Weight, FontStyle, LineHeight, Decoration, Transform };
+import styles { Sheet, Family, Size, Weight, FontStyle, LineHeight, Decoration, Transform };
 import theming { Paint, digits, two_digits };
 
 /**

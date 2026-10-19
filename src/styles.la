@@ -1,5 +1,5 @@
 /**
- * Styles as values (PRP-016): what `.style([…])` takes. A style is a list of
+ * Styles as values (PRPs 016, 017): what `.style([…])` takes. A style is a list of
  * typed values, each applying to a `Sheet` in order: the last value that sets
  * a field wins, and a `Theme` value sets nothing, so a field nothing sets
  * stays the GTK theme's. `Font` picks the typeface and its size; `Text` says

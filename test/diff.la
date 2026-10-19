@@ -3,7 +3,7 @@
 // test/ see package-level items (lughac milestone 97).
 import kivuli.diff { Patch, diff as patches };
 import kivuli.looks { Style, plain };
-import kivuli.typography { Sheet };
+import kivuli.styles { Sheet };
 import kivuli {
     Image,
     View,

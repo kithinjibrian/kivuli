@@ -1,6 +1,6 @@
 // A style's values, checked and turned into CSS: one class per property and
 // value, so nodes sharing a value share a class. No GTK.
-import kivuli.typography { Sheet };
+import kivuli.styles { Sheet };
 import kivuli.sheets { check, rules };
 import kivuli {
     Font,

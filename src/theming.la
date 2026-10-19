@@ -5,7 +5,7 @@
  * `Color`, `Paint`, `hex` and `rgb` through the entry.
  *
  * Depends on: nothing
- * Used by: lib, typography, sheets
+ * Used by: lib, styles, sheets
  */
 
 /** A colour, each channel 0–255; `alpha` 255 is opaque. Made by `hex` or `rgb`. */
