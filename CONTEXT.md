@@ -552,6 +552,12 @@ Branch: main (cleanup, merged)
 
 ---
 
+## SESSION 27 — 2026-10-20 — Style utilities: discovery — open
+
+Branch: main
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
