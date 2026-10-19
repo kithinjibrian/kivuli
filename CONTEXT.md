@@ -412,6 +412,12 @@ Branch: prp-016-style_values (not merged)
 
 ---
 
+## SESSION 18 — 2026-10-19 — PRP-016: styles as values, continued — open
+
+Branch: prp-016-style_values
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.

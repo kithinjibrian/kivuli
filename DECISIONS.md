@@ -14,7 +14,7 @@ Rules:
 
 ### DECISION-024 — lughac: a struct update literal isn't converted to an interface value
 
-**Status:** open (a lughac bug, for the lugha repository; blocks PRP-016)
+**Status:** resolved — fixed in lughac (the user, between sessions 17 and 18; the reproduction prints `4 1 9 16`)
 **Raised:** 2026-10-19 — Session 17
 
 **Question:** Where an interface type is expected, lughac 0.1.0 converts a plain struct literal and a call's result into an interface value, but not a struct literal with `..base` (E0403, "expected Shape, found Sq"). PRP-016's whole style API is that shape: `.style([Font { weight: Weight.Bold, ..Font.theme() }])`.
