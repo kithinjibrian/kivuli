@@ -81,6 +81,13 @@ fun apply_style<Msg>(node: Live<Msg>, style: Style, axis: i32) {
     for class of style.classes {
         gtk_widget_add_css_class(w, class);
     }
+    // The label kivuli puts in a button or check box takes them too: CSS
+    // doesn't inherit every text property (`text-decoration` isn't).
+    match node {
+        Button(_, _, _, _, label, _) => style_label(label, style),
+        Checkbox(_, label, _) => style_label(label, style),
+        _ => {}
+    }
     let pad = style.padding as i32;
     gtk_widget_set_margin_top(w, pad);
     gtk_widget_set_margin_bottom(w, pad);
@@ -271,6 +278,14 @@ fun content_fit(fit: Fit): i32 = match fit {
     Cover => 2,
     ScaleDown => 3,
 };
+
+/** Gives a widget's own label the style's classes, and only those of kivuli's. */
+fun style_label(label: GtkWidget, style: Style) {
+    lgtk_remove_css_classes_with_prefix(label, "kv-");
+    for class of style.classes {
+        gtk_widget_add_css_class(label, class);
+    }
+}
 
 /** `GtkAlign`: 0 fill, 1 start, 2 end, 3 center. */
 fun gtk_align(a: Align): i32 = match a {

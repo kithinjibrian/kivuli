@@ -21,8 +21,6 @@ import kivuli {
     button_with,
     item,
     menu_separator,
-    Surface,
-    theme,
 };
 import kivuli.testing {
     Lookup,

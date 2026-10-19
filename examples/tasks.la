@@ -1,15 +1,22 @@
-// A to-do list: add with Enter or the button, tick, delete, filter, and clear
-// what's done. Rows are keyed (moves and deletes touch only those widgets)
-// and lazy (a row is rebuilt only when its title or state changes). The
-// app's own tests are at the bottom: `lughac test examples/todo.la`.
+// A to-do list: add with Enter, Ctrl+N or the button; tick, delete (from a
+// row's ✕ or its right-click menu), filter, and clear what's done. Rows are
+// keyed (moves and deletes touch only those widgets) and lazy (a row is
+// rebuilt only when its title or state changes). Its tests are at the
+// bottom: `lughac test examples/tasks.la`.
 import kivuli {
     Align,
-    ButtonStyle,
     View,
+    Font,
+    Text,
+    Size,
+    Weight,
+    Paint,
+    Decoration,
     button,
     checkbox,
     column,
     input,
+    item,
     keyed_column,
     lazy,
     row,
@@ -24,6 +31,7 @@ import kivuli.testing {
     Lookup,
     click,
     is_disabled,
+    pick,
     press,
     submit,
     texts,
@@ -62,7 +70,7 @@ enum Msg {
 }
 
 fun update(m: Model, msg: Msg): Model = match msg {
-    Draft(text) => Model { draft: text, ..m },
+    Draft(s) => Model { draft: s, ..m },
     Add => {
         let title = m.draft.trim();
         if title == "" {
@@ -90,19 +98,18 @@ fun shown(t: Todo, filter: Filter): bool = match filter {
 
 fun left(m: Model): i64 = m.todos.filter(fun(t) = !t.done).len;
 
-fun any_done(m: Model): bool = m.todos.any(fun(t) = t.done);
-
 fun items(n: i64): string = if n == 1 { "1 item" } else { "{n} items" };
 
+/** Greyed text: the theme's text colour, faded. */
+fun dim(): Text = Text { color: Paint.Faded(0.55), ..Text.theme() };
+
 fun view(m: Model): View<Msg> = column([
-    text("To-do").size(24).bold(),
+    text("To-do").style([Font { size: Size.Pt(22), weight: Weight.Bold, ..Font.theme() }]),
     row([
         input(m.draft, Msg.Draft).placeholder("What needs doing?").on_submit(
             Msg.Add,
         ).autofocus().expand(),
-        button("Add", Msg.Add).button_style(ButtonStyle.Primary).shortcut("Ctrl+N").disabled(
-            m.draft.trim() == "",
-        ),
+        button("Add", Msg.Add).shortcut("Ctrl+N").disabled(m.draft.trim() == ""),
     ]).spacing(8),
     row([
         tab("All", Filter.All, m.filter),
@@ -113,25 +120,29 @@ fun view(m: Model): View<Msg> = column([
     list(m),
     separator(),
     row([
-        text("{items(left(m))} left").dim().align(Align.Center),
+        text("{items(left(m))} left").style([dim()]).align(Align.Center),
         spacer(),
-        button("Clear done", Msg.ClearDone).button_style(ButtonStyle.Danger).shortcut(
-            "Ctrl+Shift+Delete",
-        ).disabled(!any_done(m)),
+        button("Clear done", Msg.ClearDone).shortcut("Ctrl+Shift+Delete").disabled(
+            !m.todos.any(fun(t) = t.done),
+        ),
     ]),
 ]).padding(20).spacing(12).window("To-do — {left(m)} left", 420, 560);
 
-// The current filter reads as a plain button; the others as subtle ones.
-fun tab(label: string, filter: Filter, current: Filter): View<Msg> {
-    let look = if filter == current { ButtonStyle.Normal } else { ButtonStyle.Subtle };
-    button(label, Msg.Show(filter)).button_style(look)
-}
+// The filter shown now has nothing to do when clicked: it's disabled (no message).
+fun tab(label: string, filter: Filter, current: Filter): View<Msg> = button(
+    label,
+    Msg.Show(filter),
+).disabled(filter == current);
 
 fun list(m: Model): View<Msg> {
     let visible = m.todos.filter(fun(t) = shown(t, m.filter));
     if visible.len == 0 {
         let message = if m.todos.len == 0 { "Nothing to do yet" } else { "Nothing here" };
-        return column([spacer(), text(message).dim().align(Align.Center), spacer()]).expand();
+        return column([
+            spacer(),
+            text(message).style([dim()]).align(Align.Center),
+            spacer(),
+        ]).expand();
     }
     scroll(keyed_column(visible.map(fun(t) = ("{t.id}", todo_row(t)))).spacing(4))
 }
@@ -140,20 +151,24 @@ fun list(m: Model): View<Msg> {
 fun todo_row(t: Todo): View<Msg> = lazy(
     "{t.id}:{t.done}:{t.title}",
     fun(): View<Msg> = row([
-        // A long title is cut with "…" and shown whole on hover.
-        checkbox(t.title, t.done, fun(on: bool) = Msg.Toggle(t.id, on)).ellipsize().tooltip(t.title).expand(),
-        button("✕", Msg.Delete(t.id)).button_style(ButtonStyle.Subtle).tooltip("Delete {t.title}"),
-    ]).spacing(8),
+        // A long title is cut with "…" and shown whole on hover; a done one is struck through.
+        checkbox(t.title, t.done, fun(on: bool) = Msg.Toggle(t.id, on)).ellipsize().tooltip(t.title).style(
+            if t.done { [Text { decoration: Decoration.Strikethrough, ..dim() }] } else { [] },
+        ).expand(),
+        button("✕", Msg.Delete(t.id)).tooltip("Delete {t.title}"),
+    ]).spacing(8).name("row {t.title}").menu([
+        item(if t.done { "Mark as not done" } else { "Mark as done" }, Msg.Toggle(t.id, !t.done)),
+        item("Delete", Msg.Delete(t.id)),
+    ]),
 );
 
 fun start(): Model = Model { todos: [], draft: "", filter: Filter.All, next: 1 };
 
-fun main(): i32 = sandbox("org.kivuli.todo", start(), update, view);
+fun main(): i32 = sandbox("org.kivuli.tasks", start(), update, view);
 
 // Tests: what a user does, worked out from the view by kivuli.testing and fed
 // back through `update`, with no window.
 
-// The model after the user's messages.
 fun after(msgs: Msg[]): Model {
     let mut m = start();
     for msg of msgs {
@@ -171,8 +186,7 @@ fun add(m: Model, title: string): Model {
 @test
 fun typing_and_enter_add_a_task() {
     let m = add(start(), "  milk ");
-    assert_eq(m.todos.len, 1);
-    assert_eq(m.todos[0].title, "milk");
+    assert_eq(m.todos.map(fun(t) = t.title), ["milk"]);
     assert_eq(m.draft, "");
     assert_eq(texts(view(m)), ["To-do", "1 item left"]);
 }
@@ -195,10 +209,10 @@ fun ticking_a_task_and_clearing_what_is_done() {
 }
 
 @test
-fun filters_show_only_their_tasks() {
-    let m = add(add(start(), "milk"), "eggs");
-    let ticked = update(m, Msg.Toggle(1, true));
-    let active = update(ticked, click(view(ticked), "Active").unwrap_or(Msg.Draft("")));
+fun filters_show_only_their_tasks_and_the_current_one_is_disabled() {
+    let m = update(add(add(start(), "milk"), "eggs"), Msg.Toggle(1, true));
+    assert_eq(is_disabled(view(m), "All"), Ok(true));
+    let active = update(m, click(view(m), "Active").unwrap_or(Msg.Draft("")));
     assert_eq(toggle(view(active), "milk"), Err(Lookup.NotFound("check box \"milk\"")));
     assert_eq(toggle(view(active), "eggs"), Ok(Msg.Toggle(2, true)));
     let done = update(active, Msg.Show(Filter.Done));
@@ -206,12 +220,14 @@ fun filters_show_only_their_tasks() {
 }
 
 @test
-fun deleting_a_task() {
+fun deleting_a_task_by_its_button_or_its_menu() {
     let m = add(add(start(), "milk"), "eggs");
     // Each row has its own ✕: its tooltip says which task it deletes.
     assert_eq(click(view(m), "✕"), Err(Lookup.Ambiguous("button \"✕\"", 2)));
     assert_eq(click(view(m), "Delete eggs"), Ok(Msg.Delete(2)));
-    let gone = update(m, click(view(m), "Delete milk").unwrap_or(Msg.Draft("")));
+    assert_eq(pick(view(m), "row milk", "Delete"), Ok(Msg.Delete(1)));
+    assert_eq(pick(view(m), "row milk", "Mark as done"), Ok(Msg.Toggle(1, true)));
+    let gone = update(m, pick(view(m), "row milk", "Delete").unwrap_or(Msg.Draft("")));
     assert_eq(gone.todos.map(fun(t) = t.title), ["eggs"]);
 }
 
@@ -221,10 +237,9 @@ fun an_empty_list_says_so() {
 }
 
 @test
-fun a_long_title_is_cut_and_shown_whole_on_hover() {
+fun a_long_title_is_shown_whole_on_hover() {
     let long = "buy oat milk, the barista kind, from the shop on the corner";
-    let m = add(start(), long);
-    assert_eq(tooltip(view(m), "✕"), Ok("Delete {long}"));
+    assert_eq(tooltip(view(add(start(), long)), "✕"), Ok("Delete {long}"));
 }
 
 @test
@@ -232,8 +247,6 @@ fun keyboard_shortcuts_add_and_clear() {
     let m = add(start(), "milk");
     // Ctrl+N is Add's shortcut: disabled (sending nothing) while the draft is blank.
     assert_eq(press(view(m), "Ctrl+N"), Err(Lookup.Silent("shortcut \"Ctrl+N\"")));
-    let typed = update(m, Msg.Draft("eggs"));
-    assert_eq(press(view(typed), "Ctrl+N"), Ok(Msg.Add));
-    let ticked = update(m, Msg.Toggle(1, true));
-    assert_eq(press(view(ticked), "Ctrl+Shift+Delete"), Ok(Msg.ClearDone));
+    assert_eq(press(view(update(m, Msg.Draft("eggs"))), "Ctrl+N"), Ok(Msg.Add));
+    assert_eq(press(view(update(m, Msg.Toggle(1, true))), "Ctrl+Shift+Delete"), Ok(Msg.ClearDone));
 }

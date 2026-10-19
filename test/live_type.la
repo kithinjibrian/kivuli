@@ -1,0 +1,149 @@
+// Styles as values on real GTK widgets: a node's values land as classes and
+// the app's stylesheet holds their rules; a value never seen before adds its
+// rule while the app runs, on the same widget; colours read back from GTK as
+// set, and a faded colour is the theme's text colour at that opacity. Needs
+// a display, so it is skipped without one. (How text looks: examples/type.la.)
+import std.env;
+import gtk {
+    GtkApplication,
+    GtkWidget,
+    connect_app,
+    emit_widget,
+    g_application_quit,
+    g_application_run,
+    g_object_unref,
+    gtk_application_new,
+    gtk_application_window_new,
+    gtk_widget_has_css_class,
+    lgtk_widget_rgba,
+};
+import kivuli.live { mount, live_of };
+import kivuli.effects { sandbox_app };
+import kivuli.live_tree { Live, widget };
+import kivuli {
+    View,
+    Font,
+    Text,
+    Size,
+    Weight,
+    Paint,
+    Transform,
+    Decoration,
+    button,
+    checkbox,
+    column,
+    hex,
+    text,
+};
+
+fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
+
+fun note(seen: Ref<string[]>, s: string) {
+    seen.update(fun(xs) {
+        let mut ys = xs;
+        ys.push(s);
+        ys
+    });
+}
+
+enum Grow {
+    Bigger,
+}
+
+fun view_type(big: bool): View<Grow> = column([
+    text("Bold").style([
+        Font { weight: Weight.Bold, ..Font.theme() },
+        Text { transform: Transform.Uppercase, ..Text.theme() },
+    ]),
+    text("Sized").style([Font { size: Size.Pt(if big { 30 } else { 12 }), ..Font.theme() }]),
+    text("Red").style([Text { color: Paint.Color(hex("#ff0000")), ..Text.theme() }]),
+    text("Plain"),
+    text("Faded").style([Text { color: Paint.Faded(0.55), ..Text.theme() }]),
+    button("Bigger", Grow.Bigger),
+    checkbox("Struck", true, fun(b: bool) = Grow.Bigger).style([
+        Text { decoration: Decoration.Strikethrough, ..Text.theme() },
+    ]),
+]);
+
+/** A colour from `lgtk_widget_rgba`'s 0xRRGGBBAA, as its four channels. */
+fun channels(rgba: u32): i64[] {
+    let n = rgba as i64;
+    [n / 16777216 % 256, n / 65536 % 256, n / 256 % 256, n % 256]
+}
+
+@test
+fun values_land_as_classes_and_new_ones_join_the_stylesheet() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen: Ref<string[]> = Ref.new([]);
+    let application = gtk_application_new("org.kivuli.test.type", 0);
+    connect_app(
+        application,
+        "activate",
+        fun(a: GtkApplication) {
+            let window = gtk_application_window_new(a);
+            let app = mount(
+                a,
+                window,
+                sandbox_app(
+                    "org.kivuli.test",
+                    false,
+                    fun(big: bool, msg: Grow): bool = true,
+                    view_type,
+                ),
+            );
+            let kids = fun(): Live<Grow>[] = match live_of(app) {
+                Box(_, _, ks) => ks,
+                _ => panic("expected a column"),
+            };
+            let bold = widget(kids()[0]);
+            note(
+                seen,
+                "bold {gtk_widget_has_css_class(bold, "kv-fw-700")} upper {gtk_widget_has_css_class(bold, "kv-tt-upper")}",
+            );
+            let css = fun(): string[] = app.styles.css.get();
+            note(
+                seen,
+                "rules {css().len}, bold rule {css().any(fun(r) = r == ".kv-fw-700 {{ font-weight: 700; }}")}",
+            );
+            // A size never seen before: its rule joins, and the same widget changes class.
+            let sized = widget(kids()[1]);
+            emit_widget(widget(kids()[5]), "clicked");
+            note(
+                seen,
+                "same {widget(kids()[1]) == sized} 30pt {gtk_widget_has_css_class(sized, "kv-fs-30pt")} 12pt {gtk_widget_has_css_class(sized, "kv-fs-12pt")} rule {css().any(fun(r) = r == ".kv-fs-30pt {{ font-size: 30pt; }}")}",
+            );
+            // Colours as GTK computes them.
+            note(seen, "red {channels(lgtk_widget_rgba(widget(kids()[2])))}");
+            let plain = channels(lgtk_widget_rgba(widget(kids()[3])));
+            let faded = channels(lgtk_widget_rgba(widget(kids()[4])));
+            // The theme's colour, its alpha times 0.55 (rounded either way).
+            let want = plain[3] * 55 / 100;
+            note(
+                seen,
+                "faded keeps the colour {faded[0] == plain[0] && faded[1] == plain[1] && faded[2] == plain[2]}, alpha 55% {faded[3] >= want - 1 && faded[3] <= want + 1}",
+            );
+            // A check box's own label takes its classes: decoration isn't inherited.
+            match kids()[6] {
+                Checkbox(_, label, _) => note(
+                    seen,
+                    "check box label struck {gtk_widget_has_css_class(label, "kv-td-strike")}",
+                ),
+                _ => note(seen, "not a check box"),
+            }
+            g_application_quit(a);
+        },
+        0,
+    );
+    g_application_run(application, 0, None);
+    g_object_unref(application);
+    assert_eq(seen.get(), [
+        "bold 1 upper 1",
+        "rules 6, bold rule true",
+        "same true 30pt 1 12pt 0 rule true",
+        "red [255, 0, 0, 255]",
+        "faded keeps the colour true, alpha 55% true",
+        "check box label struck 1",
+    ]);
+}

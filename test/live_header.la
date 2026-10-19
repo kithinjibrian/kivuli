@@ -1,0 +1,190 @@
+// The header bar on real GTK widgets: the window's titlebar, its parts
+// patched in place and its buttons sending messages, and a replaced view
+// keeping the ones packed after it. Needs a display, so it is skipped
+// without one. Maximizing and an expanding title widget need a window on
+// screen: those are checked by hand.
+import std.env;
+import gtk {
+    GtkApplication,
+    GtkWidget,
+    connect_app,
+    emit_widget,
+    g_application_quit,
+    g_application_run,
+    g_object_unref,
+    gtk_application_new,
+    gtk_application_window_new,
+    gtk_header_bar_get_show_title_buttons,
+    gtk_header_bar_get_title_widget,
+    gtk_widget_get_parent,
+    gtk_window_get_titlebar,
+};
+import kivuli.live { mount, live_of };
+import kivuli.effects { sandbox_app };
+import kivuli.live_tree { Live, widget };
+import kivuli { View, button, column, input, text };
+
+fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
+
+/** Runs `steps` on the mounted app's window and root, noting every message `update` receives. */
+fun with_app<Model, Msg>(
+    id: string,
+    model: Model,
+    update: fun(Model, Msg): Model,
+    view: fun(Model): View<Msg>,
+    received: Ref<string[]>,
+    steps: fun(GtkWidget, fun(): Live<Msg>),
+) {
+    let application = gtk_application_new(id, 0);
+    connect_app(
+        application,
+        "activate",
+        fun(a: GtkApplication) {
+            let window = gtk_application_window_new(a);
+            let app = mount(a, window, sandbox_app(
+                "org.kivuli.test",
+                model,
+                fun(m: Model, msg: Msg): Model {
+                    received.update(fun(xs) {
+                        let mut ys = xs;
+                        ys.push("{msg}");
+                        ys
+                    });
+                    update(m, msg)
+                },
+                view,
+            ));
+            steps(window, fun(): Live<Msg> = live_of(app));
+            g_application_quit(a);
+        },
+        0,
+    );
+    g_application_run(application, 0, None);
+    g_object_unref(application);
+}
+
+fun note(seen: Ref<string[]>, s: string) {
+    seen.update(fun(xs) {
+        let mut ys = xs;
+        ys.push(s);
+        ys
+    });
+}
+
+enum Nav {
+    Back,
+    Typed(string),
+    More,
+}
+
+struct Browser {
+    address: string,
+    extra: bool,
+}
+
+fun update_browser(b: Browser, msg: Nav): Browser = match msg {
+    Back => b,
+    Typed(s) => Browser { address: s, ..b },
+    More => Browser { extra: !b.extra, ..b },
+};
+
+fun view_browser(b: Browser): View<Nav> {
+    let mut end = [button("More", Nav.More)];
+    if b.extra {
+        end.push(button("Extra", Nav.More));
+    }
+    column([text("page {b.address}")]).header(
+        [button("Back", Nav.Back)],
+        input(b.address, Nav.Typed).expand(),
+        end,
+    )
+}
+
+/** The header as the live tree holds it: its start and end widgets' counts, and the title widget. */
+fun header_of(window: GtkWidget, root: Live<Nav>): string {
+    let Framed(bar, _, title, Pack(_, _, start), Pack(_, _, end)) = root else {
+        panic("expected a header");
+    };
+    let is_titlebar = gtk_window_get_titlebar(window) == Some(bar);
+    let is_title = gtk_header_bar_get_title_widget(bar) == Some(widget(title));
+    "titlebar {is_titlebar} buttons {gtk_header_bar_get_show_title_buttons(bar)} title {is_title} start {start.len} end {end.len}"
+}
+
+@test
+fun a_header_bar_is_the_titlebar_and_its_parts_follow_the_model() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen: Ref<string[]> = Ref.new([]);
+    let received: Ref<string[]> = Ref.new([]);
+    with_app("org.kivuli.test.header", Browser {
+        address: "home",
+        extra: false,
+    }, update_browser, view_browser, received, fun(window: GtkWidget, root: fun(): Live<Nav>) {
+        note(seen, header_of(window, root()));
+        let Framed(_, _, title, Pack(_, _, start), Pack(_, _, end)) = root() else {
+            panic("expected a header");
+        };
+        let address = widget(title);
+        // A click in the bar sends its message.
+        emit_widget(widget(start[0]), "clicked");
+        // More adds an end button (Append), then removes it (Remove).
+        emit_widget(widget(end[0]), "clicked");
+        note(seen, header_of(window, root()));
+        emit_widget(widget(end[0]), "clicked");
+        note(seen, header_of(window, root()));
+        let Framed(_, _, after, _, _) = root() else {
+            panic("expected a header");
+        };
+        note(seen, "same title widget: {widget(after) == address}");
+    });
+    assert_eq(seen.get(), [
+        "titlebar true buttons 1 title true start 1 end 1",
+        "titlebar true buttons 1 title true start 1 end 2",
+        "titlebar true buttons 1 title true start 1 end 1",
+        "same title widget: true",
+    ]);
+    assert_eq(received.get(), ["Back", "More", "More"]);
+}
+
+enum Repack {
+    Swap,
+}
+
+// The header's first start view changes kind (text to button): it's replaced,
+// and the view after it is taken off and packed again.
+fun view_repack(swapped: bool): View<Repack> = column([button("Swap", Repack.Swap)]).header(
+    [if swapped { button("first", Repack.Swap) } else { text("first") }, text("second")],
+    text("Title"),
+    [],
+);
+
+@test
+fun replacing_a_header_view_keeps_the_ones_after_it() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen: Ref<string[]> = Ref.new([]);
+    let received: Ref<string[]> = Ref.new([]);
+    with_app("org.kivuli.test.repack", false, fun(
+        s: bool,
+        msg: Repack,
+    ): bool = true, view_repack, received, fun(window: GtkWidget, root: fun(): Live<Repack>) {
+        let Framed(_, body, _, Pack(_, _, before), _) = root() else {
+            panic("expected a header");
+        };
+        let second = widget(before[1]);
+        let Box(_, _, kids) = body else {
+            panic("expected a column");
+        };
+        emit_widget(widget(kids[0]), "clicked");
+        let Framed(_, _, _, Pack(_, _, after), _) = root() else {
+            panic("expected a header");
+        };
+        note(
+            seen,
+            "views {after.len}, second kept: {widget(after[1]) == second}, still in the bar: {gtk_widget_get_parent(second).is_some()}",
+        );
+    });
+    assert_eq(seen.get(), ["views 2, second kept: true, still in the bar: true"]);
+}

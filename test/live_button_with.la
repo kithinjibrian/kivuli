@@ -2,7 +2,7 @@
 // content's widget; clicking sends, disabled sends nothing; a summary change
 // patches the label in place and new content keeps the button; becoming a
 // plain button rebuilds it; the button look and the shortcut apply. Needs a
-// display, so it is skipped without one. (How rows look: examples/frame.la.)
+// display, so it is skipped without one. (How rows look: examples/browser.la's Info panel.)
 import std.env;
 import gtk {
     GtkApplication,
@@ -24,7 +24,7 @@ import gtk {
 import kivuli.live { mount, live_of };
 import kivuli.effects { sandbox_app };
 import kivuli.live_tree { Live, widget };
-import kivuli { ButtonStyle, View, button, button_with, column, icon, row, text };
+import kivuli { View, button, button_with, column, icon, row, text };
 
 fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
 
@@ -92,7 +92,7 @@ fun view_panel(p: Panel): View<Act> {
         button_with(
             row([text("Account"), text(p.summary), icon("go-next-symbolic")]),
             Act.Open(1),
-        ).button_style(ButtonStyle.Subtle).shortcut("Ctrl+A")
+        ).shortcut("Ctrl+A")
     };
     column([
         account,
@@ -135,7 +135,6 @@ fun buttons_with_views_send_patch_in_place_and_look_like_buttons() {
     }, update, view_panel, fun(kids: fun(): Live<Act>[]) {
         let (button, content) = parts(kids()[0]);
         note(seen, "child is the content: {gtk_button_get_child(button) == Some(widget(content))}");
-        note(seen, "flat: {gtk_widget_has_css_class(button, "flat")}");
         emit_widget(button, "clicked");
         // The shortcut presses it.
         match kids()[0] {
@@ -176,7 +175,6 @@ fun buttons_with_views_send_patch_in_place_and_look_like_buttons() {
     });
     assert_eq(seen.get(), [
         "child is the content: true",
-        "flat: 1",
         "open 1",
         "open 1",
         "data sensitive: 0",
