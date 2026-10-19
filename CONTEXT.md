@@ -475,6 +475,12 @@ Branch: main (PRP-019 on prp-019-spacing, merged)
 
 ---
 
+## SESSION 22 — 2026-10-19 — Sizing (width, min, max): discovery — open
+
+Branch: main
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
