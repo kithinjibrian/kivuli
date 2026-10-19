@@ -133,11 +133,11 @@ Decisions 1–12 were agreed in the design discussion in the lugha repository (a
 
 ---
 
-### 16. Apps style their frame with typed looks (DECISION-012)
+### 16. Styling has one door: typed values (DECISION-023, PRP-016; replaced DECISION-012's named looks)
 
-**Decision:** an app names its looks in its own enum and gives each a typed `Surface`; nodes take `.style([…])`, merged left to right (a later look wins) in kivuli's code; kivuli generates atomic CSS and loads it when the window opens. The button variant is `.button_style(ButtonStyle.…)`. Window-wide settings (`.theme`, `.maximized`, `.header`) go on the root view, next to `.window`.
+**Decision:** how a node looks is `.style([...])`, a list of typed values (`Font`, `Text`; more groups later) that each implement `Styling`. They merge into one `Sheet` per node: for each field the last value that sets it wins, and a `Theme` variant sets nothing. No names to register: a style is written on the node and reused through ordinary functions. kivuli turns each value into an atomic CSS class and adds its rule to the app's one stylesheet the first time it's seen. Modifiers are for layout, behaviour and text flow only. Window-wide settings (`.maximized`, `.header`) go on the root view, next to `.window`.
 
-**Rules out:** app-written CSS or selectors, per-node colour modifiers, colours shipped by kivuli.
+**Rules out:** a second way to set any look (`.bold`, `.dim`, `.button_style` are gone), named-look registries, app-written CSS or selectors, a cascade beyond what GTK's CSS inherits, colours shipped by kivuli.
 
 ---
 
@@ -166,8 +166,8 @@ Decisions 1–12 were agreed in the design discussion in the lugha repository (a
 ### Fully Working
 - `sandbox` and `application` (Cmd/Sub), diff-and-patch rendering, per-place `lazy`, `map` for components, `kivuli.testing`.
 - Widgets: text, button, input (placeholder, on_submit), checkbox, column, row, keyed_column, scroll, spacer, separator; modifiers for layout, text, buttons and the window.
-- Examples: counter, counters, todo (with tests), stopwatch, raw; README. 93 tests (12 GTK, skipped without a display), plus the to-do app's.
-- Toolchain: lughac from lugha main (user-installed, milestone 101), lugha-gtk 0.1.14, GTK 4.22.
+- Examples: hello, type (a specimen of every style value), tasks, browser and controls (each with tests), split, bench; README.
+- Toolchain: lughac from lugha main (user-installed), lugha-gtk 0.1.29, GTK 4.22.
 
 ### Known limits
 - Speed: 100-row keyed lists update in 3–4 ms; 1,000 rows take ~200 ms because Lugha's `Map`/`Set` inserts are quadratic (milestone 101; reported to the lugha session in session 3). Reversing a list is O(n²) in kivuli's keyed diff by design.

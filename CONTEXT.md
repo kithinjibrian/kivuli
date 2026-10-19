@@ -412,9 +412,21 @@ Branch: prp-016-style_values (not merged)
 
 ---
 
-## SESSION 18 — 2026-10-19 — PRP-016: styles as values, continued — open
+## SESSION 18 — 2026-10-19 — PRP-016: styles as values, kivuli 0.11.0 — closed
 
-Branch: prp-016-style_values
+Branch: main (PRP-016 on prp-016-style_values, merged)
+
+### WHAT WAS DONE
+- DECISION-024 fixed in lughac by the user; the blocked tests compiled and passed. Tests migrated to `.style` (looks tests deleted; header-bar tests moved to test/live_header.la); new test/live_type.la (classes, a growing stylesheet, colours read back from GTK; mutation-checked). A style's classes also go on kivuli's own label in a button or check box (CSS doesn't inherit `text-decoration`).
+- Old examples deleted; new: hello, type, tasks, browser, controls (each of the last three with tests), split, bench.
+- Clean-up: eleven example binaries had been committed in PRP-014 (99cd972, pushed with v0.9.0) by `git add -A`; removed from the tree, history kept (the user's call). The user deleted the binaries on disk. Examples now build with `-o examples/<name>`; .gitignore lists the new ones.
+- Docs: README (example, styles section), DESIGN (the class table), CHANGELOG 0.11.0 under Breaking (with Rapidkoi's migration), CLAUDE.md, MEMORY, DECISIONS (023 resolved for fonts and text, 024 resolved); the tutorial artifact republished. kivuli 0.11.0, tagged locally.
+
+### STILL OPEN AT CLOSE
+- Not pushed, waiting for the user's go: main and tag v0.11.0.
+- For the user to check by hand: `lughac run examples/type.la` (each value as its line names it), `examples/browser.la`, `examples/hello.la`.
+- Next: style utilities (names free of the fields, E0310), then backgrounds, borders, corners and button looks through `.style`. Queued: file dialog (013). For the lugha session: DECISIONS 020-022. test/live_forms.la split awaiting the user.
+- `reports/.gitkeep` deleted in the working tree, not by Claude; left alone.
 
 ---
 

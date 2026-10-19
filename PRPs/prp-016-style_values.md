@@ -1,6 +1,6 @@
 # PRP-016 — Styles as values: one door, fonts and text first
 
-Status: approved by the user (session 17), scope narrowed: breaking changes, only what was discussed; building on branch prp-016-style_values
+Status: built (sessions 17–18) on branch prp-016-style_values; merged into main
 Discovery: session 17, 2026-10-19, in conversation (DECISION-023). *(you)*: chosen in the conversation; *(proposed)*: for you to confirm or change with this PRP.
 
 ## FEATURE: every look goes through `.style([...])`, a list of typed values merged left to right (the last value that sets a field wins), starting with the `Font` and `Text` groups.
@@ -103,7 +103,7 @@ public enum Paint { Theme, Color(Color), Faded(f64) }   // Faded: the theme's te
 - `paint` turns each node's `Sheet` into atomic classes (one per property and value, as now) and returns the CSS rules the view uses. `live` keeps every rule seen so far and reloads the one app provider (priority 600) whenever a render brings a new one. Rules are never removed (a class costs one line; a value used once may come back).
 
 ### Examples *(you: delete the old ones, write new ones)*
-- Deleted: counter, counters, todo, stopwatch, notes, settings, gallery, frame, download, raw, bench (and their built binaries and `assets/`).
+- Deleted: counter, counters, todo, stopwatch, notes, settings, gallery, frame, download, raw, bench (the sources; built binaries are protected files, removed by the user; `assets/sample.png` kept for controls.la).
 - New, each using `.style` where it looks like anything *(proposed set)*:
   - `hello.la`: the counter, styled (the README's example).
   - `type.la`: a type specimen: each `Font` and `Text` field's values on a line naming it.
@@ -134,33 +134,44 @@ public enum Paint { Theme, Color(Color), Faded(f64) }   // Faded: the theme's te
 ## TESTS TO WRITE
 
 Pure (no display):
-- [ ] `test/typography.la` (new): `Font.theme()`, `Text.theme()`, `Sheet.theme()` set nothing.
-- [ ] `test/typography.la`: the merge rule: the last setter wins, `Theme` fields skipped, fonts and text merge separately in one list, `.style(a).style(b)` equals `.style(a + b)`.
-- [ ] `test/typography.la`: the OBJECTIVE's `view` compiles and each node's `Sheet` is what it wrote.
-- [ ] `test/sheets.la` (new): CSS for each property: `font-weight: 100` … `900`, `font-size: 22pt`, `font-size: 110%`, `font-family: "Inter", sans-serif`, `font-style: italic`, `font-variant-numeric: tabular-nums`, `line-height: 1.6`, `letter-spacing: 1px`, `text-decoration-line: line-through`, `text-transform: uppercase`, `color: alpha(currentColor, 0.55)`, `color: #e0e0e0ff`; one class per property and value; two nodes with the same value share a class.
-- [ ] `test/sheets.la`: each error message above, and the font-name injection cases.
-- [ ] `test/theming.la`: colours; paint gives classes, collects the view's rules once each, refuses bad values and `.size` on text.
-- [ ] `test/lib.la`: `.style` folds into the node's `Sheet`; `.size(n)` on text is refused by `paint`, kept on icons and pictures.
-- [ ] Existing tests that used `.bold`, `.dim`, `.size` on text, `.button_style`, `.theme` or look enums: rewritten to the new door where the intent survives, deleted where it tested a removed feature.
-- [ ] Each new example's own tests (`tasks.la`, `browser.la`).
+- [x] `test/typography.la` (new): `Font.theme()`, `Text.theme()`, `Sheet.theme()` set nothing.
+- [x] `test/typography.la`: the merge rule: the last setter wins, `Theme` fields skipped, fonts and text merge separately in one list, `.style(a).style(b)` equals `.style(a + b)`.
+- [x] `test/typography.la`: the OBJECTIVE's `view` compiles and each node's `Sheet` is what it wrote.
+- [x] `test/sheets.la` (new): CSS for each property: `font-weight: 100` … `900`, `font-size: 22pt`, `font-size: 110%`, `font-family: "Inter", sans-serif`, `font-style: italic`, `font-variant-numeric: tabular-nums`, `line-height: 1.6`, `letter-spacing: 1px`, `text-decoration-line: line-through`, `text-transform: uppercase`, `color: alpha(currentColor, 0.55)`, `color: #e0e0e0ff`; one class per property and value; two nodes with the same value share a class.
+- [x] `test/sheets.la`: each error message above, and the font-name injection cases.
+- [x] `test/theming.la`: colours; paint gives classes, collects the view's rules once each, refuses bad values and `.size` on text.
+- [x] `test/lib.la`: `.style` folds into the node's `Sheet`; `.size(n)` on text is refused by `paint`, kept on icons and pictures.
+- [x] Existing tests that used `.bold`, `.dim`, `.size` on text, `.button_style`, `.theme` or look enums: rewritten to the new door where the intent survives, deleted where it tested a removed feature.
+- [x] Each new example's own tests (`tasks.la`, `browser.la`).
 
 Live GTK (skipped without a display), `test/live_type.la` (new):
-- [ ] a text styled bold and upper case carries the generated classes, and the app's provider holds their rules.
-- [ ] an update to a value never seen before (12pt → 30pt) adds its rule to the provider and moves the class; the widget is the same.
-- [ ] `Paint.Color(hex("#ff0000"))` and `Paint.Faded(0.55)` read back from GTK as the expected colour (`lgtk_widget_rgba`): red; the theme's text colour at about 55%.
+- [x] a text styled bold and upper case carries the generated classes, and the app's provider holds their rules.
+- [x] an update to a value never seen before (12pt → 30pt) adds its rule to the provider and moves the class; the widget is the same.
+- [x] `Paint.Color(hex("#ff0000"))` and `Paint.Faded(0.55)` read back from GTK as the expected colour (`lgtk_widget_rgba`): red; the theme's text colour at about 55%.
 - [ ] The new examples, by hand: `type.la` shows each value as its line names it.
 
 ## ROLLBACK PLAN
 - Branch `prp-016-style_values` from `main`; abandon by leaving it unmerged.
 
 ## ACCEPTANCE CRITERIA
-- [ ] The OBJECTIVE's code compiles and its tests pass unchanged.
-- [ ] No `.bold`, `.dim`, text `.size`, `.button_style`, `ButtonStyle`, `Surface`, `.theme`, `theme(…)`, `.header_style` or look enum left in kivuli, its examples or tests.
-- [ ] Tests written first; narrow runs while building; the full suite and the examples' tests pass before the merge.
-- [ ] fmt clean; public items documented; no file over 500 lines.
-- [ ] README, docs/DESIGN.md, CHANGELOG (Breaking), CLAUDE.md, DECISIONS updated; the tutorial artifact republished; 0.11.0 tagged; merged. Pushed only on your go.
+- [x] The OBJECTIVE's code compiles and its tests pass unchanged.
+- [x] No `.bold`, `.dim`, text `.size`, `.button_style`, `ButtonStyle`, `Surface`, `.theme`, `theme(…)`, `.header_style` or look enum left in kivuli, its examples or tests.
+- [x] Tests written first; narrow runs while building; the full suite and the examples' tests pass before the merge.
+- [x] fmt clean; public items documented; no file over 500 lines.
+- [x] README, docs/DESIGN.md, CHANGELOG (Breaking), CLAUDE.md, DECISIONS updated; the tutorial artifact republished; 0.11.0 tagged; merged. Pushed only on your go.
 
 ## VALIDATION
 - While building: only the tests covering each step.
 - Before the merge: `lughac fmt --check src examples test`, `lughac test test/`, the examples' own tests, every example built.
 - For the user: `lughac run examples/type.la` (each value as named), `examples/hello.la`, `examples/browser.la`.
+
+## NOTES FROM THE BUILD
+
+- **The utilities were deferred** (the user's call, session 17): `Font.size(…)`, `Font.family(…)`, `Font.tabular()` and `Text.color(…)` can't exist beside the fields of those names (E0310, static functions included). A later PRP names them.
+- **Blocked on lughac, then unblocked**: a struct update literal (`Font { …, ..Font.theme() }`) wasn't converted to an interface value where one is expected (DECISION-024). The user fixed it in lugha between sessions 17 and 18.
+- **`"{"` in a Lugha string starts interpolation**: the font-name check's brace test never matched until written `"{{"`; caught by `test/sheets.la`.
+- **A style's classes also go on kivuli's own label** inside a button or check box: CSS doesn't inherit `text-decoration`, so a struck-through check box showed nothing without it (tested in `test/live_type.la`).
+- **`Paint.Faded` is `alpha(currentColor, x)`**, read back from GTK as the theme's text colour at that alpha; mutation-checked (with alpha 1.0 the test fails).
+- **No overlay panel in the new browser example**: without backgrounds (the colours PRP), a panel over the page would be see-through, so the Info panel sits beside the page and the overlay shows a "Loading…" note while a `Cmd.task` runs.
+- **Test files moved**: `test/live_look.la`'s two header-bar tests are `test/live_header.la`; its looks tests and `test/diff_header.la` are deleted (the feature is gone).
+- **Repo clean-up found eleven binaries committed in PRP-014** (`git add -A` while they sat at the root): removed from the tree, kept in history (the user's call). Examples now build with `-o examples/<name>`.
