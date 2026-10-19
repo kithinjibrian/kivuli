@@ -1,6 +1,6 @@
 # PRP-017 — Backgrounds through `.style`: colours, gradients, images
 
-Status: draft, for the user's approval (session 19)
+Status: approved by the user (session 19); building on branch prp-017-backgrounds
 Discovery: session 19, 2026-10-19 (DECISION-023's next group). *(you)*: chosen in the interview; *(proposed)*: for you to confirm or change with this PRP.
 
 ## FEATURE: a `Background` value in `.style([...])`: a colour, a gradient and an image, stacked as CSS stacks them, merged like every other style value.
