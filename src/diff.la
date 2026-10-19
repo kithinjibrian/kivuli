@@ -4,8 +4,8 @@
  * calls GTK, so it is tested with no display. Not responsible for applying
  * the changes (that's `live`).
  *
- * Depends on: views
- * Used by: live (from step 3, part 2)
+ * Depends on: views, looks, pictures, menus, box_rules
+ * Used by: live (from step 3, part 2), patch
  */
 
 import views { View };

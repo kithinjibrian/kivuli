@@ -5,7 +5,7 @@
  * responsible for deciding what to show (the app's `view`) or what changed
  * (`diff`).
  *
- * Depends on: views, effects, diff, paint, live_tree, build, patch, gtk.raw
+ * Depends on: diff, lazies, views, looks, effects, build, patch, paths, keys, walk, live_tree, paint, sheets, gtk.raw
  * Used by: lib
  */
 

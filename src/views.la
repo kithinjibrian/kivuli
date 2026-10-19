@@ -3,7 +3,7 @@
  * that build it. Plain data: it describes a screen and touches no GTK. Apps
  * reach it through the package entry, `lib.la`, which re-exports it.
  *
- * Used by: lib, diff, live
+ * Used by: build, diff, effects, keys, lazies, lib, live, mapping, paint, testing, walk, widgets
  */
 
 import looks { Style, Window, Align, Fit, plain };

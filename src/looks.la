@@ -4,7 +4,7 @@
  * methods of `View`, in `views` (an `impl` must sit with its type).
  *
  * Depends on: styles
- * Used by: views, lib, diff, walk, paint, testing, live, build, styling
+ * Used by: diff, lib, live, paint, styling, testing, views, walk
  */
 
 import styles { Sheet };

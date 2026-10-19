@@ -258,7 +258,7 @@ Update this tree when modules are added.
 4. **Never name a parameter after an imported module (E0311).** No `fun f(gtk: …)` in a file that imports `gtk`.
 5. **Never call an interface's default method on the concrete type.** It is callable only through an interface value or a bound.
 6. **Never compare messages or views with `==`.** Functions have no `==`, so a `View` holding closures isn't `Eq`. Diff by node kind and fields, and re-point handler `Ref`s.
-7. **Every modifier returns `View<Msg>`, exactly the receiver's type.** lughac infers `Msg` for `text("x").padding(8)` only through methods returning the receiver's own type (lugha PR #48); a modifier returning anything else breaks chaining in apps.
+7. **Every modifier returns `View<Msg>`, exactly the receiver's type.** lughac infers `Msg` for `text("x").align(Align.Center)` only through methods returning the receiver's own type (lugha PR #48); a modifier returning anything else breaks chaining in apps.
 8. **Never reassign a captured variable in a closure (E0511).** Capture a `Ref` and `set`/`update` it.
 9. **Never add framework-owned local widget state, multiple windows, or a virtualised list in v1.** They are deferred by decision, not by oversight.
 10. **Never write an extern from memory.** Open the header. GTK 4 removed or renamed many GTK 3 functions.

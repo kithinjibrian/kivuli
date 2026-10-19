@@ -2,8 +2,8 @@
  * The live tree: the GTK widgets on screen, shaped like the `View` they show.
  * Data only; making widgets is `build`, running the app and patching is `live`.
  *
- * Depends on: gtk.raw
- * Used by: build, live
+ * Depends on: menus, gtk.raw
+ * Used by: build, buttons, controls, live, patch, paths, popovers, styling
  */
 
 import gtk {

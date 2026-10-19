@@ -7,7 +7,7 @@
  * lives as long as the widget showing it.
  *
  * Depends on: pictures, gtk.raw
- * Used by: build, patch
+ * Used by: build, buttons, patch
  */
 
 import gtk {

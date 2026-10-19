@@ -3,12 +3,12 @@
  * and its padding and margin, one class per side, property and value.
  * Moved out of `sheets` (file size). Pure.
  *
- * Depends on: styles, style_values, theming
- * Used by: sheets
+ * Depends on: styles, style_values, theming, style_groups
+ * Used by: build, diff, sheets, styling
  */
 
 import styles { Sheet, Border, Sizing };
-import style_values { Side, Width, Line, Radius, Edges, Drop, Filter, Move };
+import style_values { Side, Width, Line, Edges, Drop, Filter, Move };
 import theming { Paint, digits, hexed, paint_css, permille };
 import style_groups { Shadow, Effects };
 

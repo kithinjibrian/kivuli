@@ -6,7 +6,7 @@
  * decoder. Pure.
  *
  * Depends on: nothing
- * Used by: lib, views, diff, mapping, build, patch
+ * Used by: buttons, diff, lib, mapping, paint, sheets, styles, textures, views, widgets
  */
 
 /**

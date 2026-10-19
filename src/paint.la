@@ -4,7 +4,7 @@
  * patch like any other modifier. Also where what an app got wrong about
  * styles and headers is found, before GTK. Pure.
  *
- * Depends on: views, looks, sheets, walk
+ * Depends on: views, walk, looks, sheets, pictures
  * Used by: live
  */
 

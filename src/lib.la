@@ -5,7 +5,7 @@
  * re-exported, the two ways to run an app (`sandbox` and `application`), and
  * the testing helpers as `kivuli.testing`.
  *
- * Depends on: views, widgets, effects, testing, live
+ * Depends on: views, looks, theming, styles, style_groups, style_values, pictures, menus, widgets, effects, testing, live
  */
 
 public import views { View };

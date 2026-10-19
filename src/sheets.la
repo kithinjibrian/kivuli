@@ -4,30 +4,25 @@
  * its class and a class's rule never changes. Pure: `paint` gives nodes their
  * classes, `live` loads the rules.
  *
- * Depends on: styles, style_values, theming, pictures, box_rules
- * Used by: paint
+ * Depends on: styles, style_values, pictures, theming, box_rules
+ * Used by: live, paint
  */
 
-import styles { Sheet, Background, Border, State };
+import styles { Sheet, State };
 import style_values {
     Family,
     Size,
     Weight,
-    FontStyle,
     LineHeight,
-    Decoration,
-    Transform,
     Gradient,
     Stop,
     Fill,
-    Side,
     Width,
-    Line,
     Radius,
     Edges,
 };
 import pictures { Image, data_url, identity };
-import theming { Paint, digits, hexed, paint_css, permille, two_digits };
+import theming { Paint, digits, hexed, paint_css, permille };
 import box_rules { box_css, check_effects, needs_clamp, sides };
 
 /**

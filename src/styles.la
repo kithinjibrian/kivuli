@@ -6,8 +6,8 @@
  * what's done with the letters. Pure: `sheets` checks values and turns them
  * into CSS.
  *
- * Depends on: theming (`Paint`), pictures (`Image`), style_values
- * Used by: lib, looks, views, sheets, paint
+ * Depends on: theming (`Paint`), pictures (`Image`), style_groups, style_values
+ * Used by: box_rules, lib, looks, sheets, style_groups, views
  */
 
 import theming { Paint };
@@ -23,7 +23,6 @@ import style_values {
     Decoration,
     Transform,
     Gradient,
-    Stop,
     Fill,
     Width,
     Line,

@@ -4,8 +4,8 @@
  * out along, and a child's place among its siblings. No GTK calls. Moved out
  * of `patch` (file size).
  *
- * Depends on: live_tree, styling (`LAYER`), gtk.raw (the `GtkWidget` type)
- * Used by: patch, live
+ * Depends on: live_tree, styling (`LAYER`), gtk.raw
+ * Used by: live, patch
  */
 
 import gtk { GtkWidget };

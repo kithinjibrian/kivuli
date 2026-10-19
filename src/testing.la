@@ -4,7 +4,7 @@
  * test builds a view, "clicks" or "types" through these, and checks the
  * message that comes back. Re-exported by the entry: `kivuli.testing.click`.
  *
- * Depends on: views, widgets, walk, keys
+ * Depends on: views, menus, looks, walk, keys, widgets
  * Used by: lib (re-exported), apps' tests
  */
 
