@@ -508,6 +508,12 @@ Branch: main (PRP-021 on prp-021-states, merged)
 
 ---
 
+## SESSION 24 — 2026-10-20 — Theme colours and button looks: discovery — open
+
+Branch: main
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
