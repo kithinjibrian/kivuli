@@ -430,6 +430,12 @@ Branch: main (PRP-016 on prp-016-style_values, merged)
 
 ---
 
+## SESSION 19 — 2026-10-19 — Backgrounds through .style: discovery — open
+
+Branch: main
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
