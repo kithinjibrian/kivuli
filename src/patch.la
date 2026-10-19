@@ -3,7 +3,7 @@
  * returns the `Live` tree that now mirrors them. Not responsible for deciding
  * what changed (`diff`) or for making widgets (`build`).
  *
- * Depends on: diff, live_tree, build, styling, gtk.raw
+ * Depends on: diff, build, controls, styling, textures, live_tree, paths, popovers, gtk.raw
  * Used by: live
  */
 
@@ -26,7 +26,6 @@ import gtk {
     gtk_overlay_add_overlay,
     gtk_overlay_remove_overlay,
     gtk_overlay_set_child,
-    gtk_picture_set_filename,
     gtk_range_set_range,
     gtk_scrolled_window_set_child,
     gtk_text_buffer_set_text,

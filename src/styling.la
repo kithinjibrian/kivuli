@@ -3,8 +3,8 @@
  * its style's CSS classes, long text, shortcut, tooltip), defaults included,
  * so a dropped modifier is undone. Used when widgets are made and by `SetStyle`.
  *
- * Depends on: looks, widgets, keys, live_tree, gtk.raw
- * Used by: build, patch
+ * Depends on: live_tree, looks, style_values, box_rules, keys, widgets, gtk.raw
+ * Used by: build, buttons, patch, paths, popovers
  */
 
 import gtk {
@@ -16,7 +16,6 @@ import gtk {
     gtk_box_set_spacing,
     gtk_callback_action_new,
     gtk_entry_set_placeholder_text,
-    gtk_image_set_from_icon_name,
     gtk_flow_box_set_column_spacing,
     gtk_flow_box_set_homogeneous,
     gtk_flow_box_set_max_children_per_line,

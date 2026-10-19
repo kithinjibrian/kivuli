@@ -4,7 +4,7 @@
  * Pure: kivuli parses the keys itself, so a typo shows up in plain tests too.
  *
  * Depends on: views, walk
- * Used by: build, live, testing
+ * Used by: live, styling, testing
  */
 
 import views { View };

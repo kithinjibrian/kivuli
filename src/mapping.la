@@ -4,7 +4,7 @@
  * (DECISION-018, file size), where every method must stay with `View`;
  * `views` and `mapping` import each other, the one import cycle kivuli allows.
  *
- * Depends on: views
+ * Depends on: views, pictures, menus
  * Used by: views (`View.map`)
  */
 

@@ -4,8 +4,8 @@
  * testing helpers, the shortcut duplicate check, and `Cmd.focus` (finding a
  * named node's path).
  *
- * Depends on: views
- * Used by: testing, keys, live
+ * Depends on: views, looks
+ * Used by: keys, live, paint, testing
  */
 
 import views { View };

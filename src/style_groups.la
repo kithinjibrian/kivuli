@@ -5,7 +5,7 @@
  * (DECISION-025). Pure.
  *
  * Depends on: styles (`Sheet`), style_values, theming
- * Used by: styles, lib
+ * Used by: box_rules, lib, styles
  */
 
 import styles { Sheet };

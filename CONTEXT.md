@@ -536,9 +536,19 @@ Branch: main (PRP-022 on prp-022-shadows_and_effects, merged)
 
 ---
 
-## SESSION 26 — 2026-10-20 — Clean-up of old code — open
+## SESSION 26 — 2026-10-20 — Clean-up of old code — closed
 
-Branch: cleanup
+Branch: main (cleanup, merged)
+
+### WHAT WAS DONE
+- Scanned src for unused functions (none) and unused imports (13, left by the styling removals: removed). Fixed stale doc comments (`button_with`'s `.button_style` and `.dim()`; CLAUDE.md anti-pattern 7's `.padding`). Regenerated every module header's "Depends on" and "Used by" from its real imports (25 had drifted).
+- The full suite, the first since 0.15.0: 275 tests passed; the examples' 16 passed; every example built; fmt clean. Merged into main. No version change (no behaviour change).
+
+### STILL OPEN AT CLOSE
+- Not pushed, waiting for the user's go: main and tags v0.11.0 through v0.17.0 (the full suite is green now).
+- test/live_forms.la is 562 lines (over 500): its split still waits for the user. DECISION-007 (non-blocking I/O) still says deferred though PRP-011 shipped `Cmd.task`: the user may want it closed.
+- Next: motion (transitions, animations); style utilities; the file dialog (013). For the lugha session: DECISIONS 020-022.
+- `reports/.gitkeep` deleted in the working tree, not by Claude; left alone.
 
 ---
 

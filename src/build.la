@@ -4,8 +4,8 @@
  * nodes; not responsible for running the app or deciding what changed
  * (`live`, `diff`).
  *
- * Depends on: views, widgets, pictures, textures, live_tree, styling, buttons, popovers, gtk.raw
- * Used by: live
+ * Depends on: live_tree, views, buttons, popovers, box_rules, styling, textures, widgets, controls, gtk.raw
+ * Used by: live, patch
  */
 
 import gtk {
@@ -71,7 +71,7 @@ import gtk {
 };
 import live_tree { Choices, Live, widget };
 import views { View };
-import looks { Style };
+
 import buttons { create_button, create_button_with };
 import popovers { attach };
 import box_rules { needs_clamp };
