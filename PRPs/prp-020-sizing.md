@@ -1,6 +1,6 @@
 # PRP-020 — Sizing through `.style`: width, min and max
 
-Status: draft, for the user's approval (session 22)
+Status: approved by the user (session 22); building on branch prp-020-sizing
 Discovery: session 22, 2026-10-19 (DECISION-023's next group). *(you)*: chosen in the interview; *(proposed)*: for you to confirm or change with this PRP.
 
 ## FEATURE: a `Sizing` value in `.style([...])`: an exact width and height, a minimum and a maximum of each; `.width(n)` and `.height(n)` (which were minimums) go.
