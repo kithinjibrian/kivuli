@@ -6,6 +6,9 @@
 // GPL-3.0-only like the rest of the repository.
 import kivuli {
     Align,
+    Width,
+    Edges,
+    Spacing,
     Fit,
     Image,
     View,
@@ -30,6 +33,15 @@ import kivuli {
 };
 // For the tests at the bottom; `lughac build` leaves tests out.
 import kivuli.testing { choose, slide, texts, toggle, type_into };
+
+/** The same room on every side, inside the node. */
+fun pad(n: i64): Spacing = Spacing {
+    padding: Edges { all: Width.Px(n), ..Edges.theme() },
+    ..Spacing.theme(),
+};
+
+/** Room between a column's, row's or wrap's children. */
+fun gap(n: i64): Spacing = Spacing { gap: Width.Px(n), ..Spacing.theme() };
 
 struct Model {
     /** The preview's size in points: 8 to 72, in steps of 2. */
@@ -70,7 +82,7 @@ fun dim(): Text = Text { color: Paint.Faded(0.55), ..Text.theme() };
 fun labelled(label: string, control: View<Msg>): View<Msg> = row([
     text(label).width(70).align(Align.Center),
     control.expand(),
-]).spacing(8);
+]).style([gap(8)]);
 
 fun view(m: Model): View<Msg> = column([
     text("The quick brown fox").height(90).style([
@@ -106,8 +118,8 @@ fun view(m: Model): View<Msg> = column([
         image(Image.File("examples/assets/sample.png")).width(120).height(80).fit(Fit.Cover),
         // The key names the bytes: the same key, and they're never decoded again.
         image(Image.Bytes("sample", m.sample)).size(64),
-    ]).spacing(12),
-]).padding(16).spacing(10).window("Controls", 440, 560);
+    ]).style([gap(12)]),
+]).style([pad(16), gap(10)]).window("Controls", 440, 560);
 
 fun main(): i32 = sandbox("org.kivuli.controls", start(), update, view);
 

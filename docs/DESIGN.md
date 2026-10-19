@@ -6,9 +6,9 @@ kivuli draws nothing. Every visual comes from the user's GTK theme (Adwaita by d
 
 ## Tokens: kivuli vocabulary → GTK
 
-### Styles (`.style([...])`; PRPs 016–018, DECISION-023)
+### Styles (`.style([...])`; PRPs 016–019, DECISION-023)
 
-A style is a list of typed values (`Font`, `Text`, `Background`, `Border`, `Outline`) merged into one `Sheet` per node: for each field the last value that sets it wins, and `Theme` sets nothing. kivuli turns a `Sheet` into atomic CSS classes, one per property and value, so every node using a value shares its class and a class's rule never changes:
+A style is a list of typed values (`Font`, `Text`, `Background`, `Border`, `Outline`, `Spacing`) merged into one `Sheet` per node: for each field the last value that sets it wins, and `Theme` sets nothing. kivuli turns a `Sheet` into atomic CSS classes, one per property and value, so every node using a value shares its class and a class's rule never changes:
 
 | kivuli | class | GTK CSS |
 | --- | --- | --- |
@@ -32,18 +32,18 @@ A style is a list of typed values (`Font`, `Text`, `Background`, `Border`, `Outl
 
 | `Border` side (after `all` is folded in) | `kv-bw-{side}-{n}`, `kv-bs-{side}-{line}`, `kv-bc-{side}-{rrggbbaa}` / `kv-bcfade-{side}-{x·1000}` | `border-{side}-width`, `-style`, `-color`; a width with the line left `Theme` is `solid` |
 | `Border.radius` | `kv-br-{tl\|tr\|br\|bl}-{n}` | `border-{corner}-radius: {n}px`, one class per corner; a rounded node gets `overflow: hidden` (`gtk_widget_set_overflow`, marked `kv-clip`) |
+| `Spacing.padding` / `.margin` (after `all` is folded in) | `kv-p-{side}-{n}` / `kv-m-{side}-{n}`, `kv-m-{side}-m{n}` | `padding-{side}` / `margin-{side}: {n}px` (a margin may be negative); kivuli no longer sets GTK's widget margins |
+| `Spacing.gap` | (no class) | not CSS: `gtk_box_set_spacing` on a column or row, `gtk_flow_box_set_row_spacing` and `set_column_spacing` on a wrap (a flow box reads no CSS gap) |
 | `Outline` | `kv-ow-{n}`, `kv-os-{line}`, `kv-oc-…`, `kv-oo-{n}` / `kv-oo-m{n}` | `outline-width`, `-style`, `-color`, `-offset`, each under `:not(:focus-visible)` so the theme's focus ring (an outline) still shows |
 
 `background-image` is one CSS property, so the gradient and the image are one class: two classes never set it differently. A picture's rule needs its bytes: `paint` (pure) names the class, and the runtime reads a file and checks the bytes (`pictures.size_of`) the first time the class is seen, then embeds them as a `data:` URL. GTK never decodes unchecked bytes or opens a path from CSS. A picture that can't be shown gives `background-image: none` (or the gradient alone). Icon names and font names go inside CSS strings and are refused when they hold `"`, `\\`, `;`, braces or line breaks. Checked against GTK 4.22's CSS parser (no parsing errors, session 19).
 
 The rules live in one app stylesheet at application priority (600), created when the window opens; each render adds the rules of values not seen before (rules are never removed). A style's classes also go on the label kivuli puts in a button or a check box, because CSS doesn't inherit every text property (`text-decoration` isn't). A font name goes inside a CSS string, so one holding `"`, `\`, `;`, braces or a line break is refused. kivuli removes only its own `kv-` classes from a widget.
 
-### Layout (`.padding`, `.spacing`, `.expand`, `.align`, `.width`, `.height`)
+### Layout (`.expand`, `.align`, `.width`, `.height`; room is `Spacing`, below)
 
 | kivuli | GTK |
 |--------|-----|
-| `.padding(n)` | `gtk_widget_set_margin_{top,bottom,start,end}(n)` |
-| `.spacing(n)` | `gtk_box_set_spacing(n)` (column/row only) |
 | `.expand()` | `gtk_widget_set_hexpand` / `vexpand(true)` (along the parent's axis) |
 | `.align(Start\|Center\|End)` | `gtk_widget_set_halign` / `valign` (GTK_ALIGN_START/CENTER/END) |
 | `.width(n)` / `.height(n)` | `gtk_widget_set_size_request` |
@@ -122,7 +122,7 @@ Everything is made once per widget: an update re-points the actions' messages (o
 | kivuli | GTK |
 | --- | --- |
 | `wrap`, `keyed_wrap` | a `GtkFlowBox`, selection `NONE`; each child inside a `GtkFlowBoxChild` GTK makes, set not focusable so Tab goes straight to what's inside |
-| `.spacing(n)` | row and column spacing |
+| `Spacing.gap` | row and column spacing |
 | `.equal()` | `homogeneous` |
 | `.max_per_line(n)` | `max-children-per-line`; without it, 65535 (GTK's own default caps a line at 7) |
 

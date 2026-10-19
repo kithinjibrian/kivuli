@@ -1,0 +1,147 @@
+/**
+ * The CSS for a node's box: its border's sides and corners and its outline
+ * and its padding and margin, one class per side, property and value.
+ * Moved out of `sheets` (file size). Pure.
+ *
+ * Depends on: styles, style_values, theming
+ * Used by: sheets
+ */
+
+import styles { Sheet, Border };
+import style_values { Side, Width, Line, Radius, Edges };
+import theming { Paint, digits, permille };
+
+/** The rules for `s`'s border and outline, in that order. */
+fun box_css(s: Sheet): (string, string)[] {
+    let mut out: (string, string)[] = [];
+    let edges = sides(s.border);
+    for (name, side) of [
+        ("top", edges.top),
+        ("right", edges.right),
+        ("bottom", edges.bottom),
+        ("left", edges.left),
+    ] {
+        for rule of line_rules(
+            "b",
+            "border-{name}",
+            "-{name}",
+            side.width,
+            side.style,
+            side.color,
+        ) {
+            out.push(rule);
+        }
+    }
+    let corners = match s.border.radius {
+        Theme => [],
+        All(n) => [n, n, n, n],
+        Corners(a, b, c, d) => [a, b, c, d],
+    };
+    let names = [
+        ("tl", "top-left"),
+        ("tr", "top-right"),
+        ("br", "bottom-right"),
+        ("bl", "bottom-left"),
+    ];
+    let mut i = 0;
+    while i < corners.len {
+        out.push(
+            ("kv-br-{names[i].0}-{corners[i]}", "border-{names[i].1}-radius: {corners[i]}px;"),
+        );
+        i = i + 1;
+    }
+    // Only while the node doesn't have keyboard focus: the theme's focus ring
+    // is an outline too, and must still show. The key carries the selector's
+    // tail; `paint` takes the class before the `:`.
+    let o = s.outline;
+    for (class, body) of line_rules("o", "outline", "", o.width, o.style, o.color) {
+        out.push(("{class}:not(:focus-visible)", body));
+    }
+    if o.offset != 0 {
+        let id = if o.offset < 0 { "m{-o.offset}" } else { "{o.offset}" };
+        out.push(("kv-oo-{id}:not(:focus-visible)", "outline-offset: {o.offset}px;"));
+    }
+    // Padding and margin, side by side; a margin may be negative.
+    let room = fun(e: Edges): (string, Width)[] {
+        // `all` folded into the sides, as `.style` leaves it.
+        let resolved = e.over(Edges.theme());
+        [
+            ("top", resolved.top),
+            ("right", resolved.right),
+            ("bottom", resolved.bottom),
+            ("left", resolved.left),
+        ]
+    };
+    for (side, w) of room(s.spacing.padding) {
+        match w {
+            Px(n) => out.push(("kv-p-{side}-{n}", "padding-{side}: {n}px;")),
+            Theme => {}
+        }
+    }
+    for (side, w) of room(s.spacing.margin) {
+        match w {
+            Px(n) => out.push(
+                ("kv-m-{side}-{if n < 0 { "m{-n}" } else { "{n}" }}", "margin-{side}: {n}px;"),
+            ),
+            Theme => {}
+        }
+    }
+    out
+}
+
+/**
+ * The rules for one border side or an outline (`kind` "b" or "o", `prop` the
+ * CSS property's stem, `tail` the class's side): width, line, colour. A width
+ * whose line is left `Theme` is drawn solid: CSS draws nothing without a style.
+ */
+fun line_rules(
+    kind: string,
+    prop: string,
+    tail: string,
+    width: Width,
+    style: Line,
+    color: Paint,
+): (string, string)[] {
+    let mut out: (string, string)[] = [];
+    match width {
+        Px(n) => out.push(("kv-{kind}w{tail}-{n}", "{prop}-width: {n}px;")),
+        Theme => {}
+    }
+    let line = if style == Line.Theme && width != Width.Theme { Line.Solid } else { style };
+    match keyword(line) {
+        Some(k) => out.push(("kv-{kind}s{tail}-{k}", "{prop}-style: {k};")),
+        None => {}
+    }
+    match color {
+        Theme => {}
+        Color(c) => out.push(("kv-{kind}c{tail}-{digits(c)}", "{prop}-color: #{digits(c)};")),
+        Faded(x) => out.push(
+            ("kv-{kind}cfade{tail}-{permille(x)}", "{prop}-color: alpha(currentColor, {x});"),
+        ),
+    }
+    out
+}
+
+/** `b` with `all` folded into each side (a side's own fields over it), as `.style` leaves it. */
+fun sides(b: Border): Border = Border {
+    all: Side.theme(),
+    top: b.top.over(b.all),
+    right: b.right.over(b.all),
+    bottom: b.bottom.over(b.all),
+    left: b.left.over(b.all),
+    radius: b.radius,
+};
+
+/** A line's CSS keyword; `None` for the theme's. */
+fun keyword(l: Line): Option<string> = match l {
+    Theme => None,
+    None => Some("none"),
+    Solid => Some("solid"),
+    Dashed => Some("dashed"),
+    Dotted => Some("dotted"),
+    Double => Some("double"),
+    Groove => Some("groove"),
+    Ridge => Some("ridge"),
+    Inset => Some("inset"),
+    Outset => Some("outset"),
+};

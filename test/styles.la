@@ -26,6 +26,8 @@ import kivuli {
     Width,
     Line,
     Radius,
+    Spacing,
+    Edges,
     button,
     column,
     row,
@@ -66,6 +68,7 @@ fun the_theme_values_set_nothing() {
         background: Background.theme(),
         border: Border.theme(),
         outline: Outline.theme(),
+        spacing: Spacing.theme(),
     });
     assert_eq(Side.theme(), Side { width: Width.Theme, color: Paint.Theme, style: Line.Theme });
     assert_eq(Border.theme(), Border {
@@ -139,11 +142,11 @@ fun fonts_and_text_merge_separately_in_one_list() {
 @test
 fun two_style_calls_are_one_longer_list() {
     let wide = Text { letter_spacing: 1, ..Text.theme() };
-    let split: View<i64> = text("x").style([big(), wide]).style([weight(Weight.Thin)]).padding(4);
-    let whole: View<i64> = text("x").padding(4).style([big(), wide, weight(Weight.Thin)]);
+    let split: View<i64> = text("x").style([big(), wide]).style([weight(Weight.Thin)]).width(4);
+    let whole: View<i64> = text("x").width(4).style([big(), wide, weight(Weight.Thin)]);
     assert_eq(sheet_of(split), sheet_of(whole));
     // Nothing set: the theme's.
-    let none: View<i64> = text("x").padding(4);
+    let none: View<i64> = text("x").width(4);
     assert_eq(sheet_of(none), Sheet.theme());
 }
 
@@ -185,7 +188,13 @@ fun view(m: Model): View<Msg> = column([
     ]),
     text(m.total).style([Text { color: Paint.Color(hex("#e0e0e0")), ..Text.theme() }]),
     button("Clear cache", Msg.Clear).style([Font { weight: Weight.Bold, ..Font.theme() }]),
-]).spacing(10).padding(24);
+]).style([
+    Spacing {
+        padding: Edges { all: Width.Px(24), ..Edges.theme() },
+        gap: Width.Px(10),
+        ..Spacing.theme(),
+    },
+]);
 
 fun kids(v: View<Msg>): View<Msg>[] = match v {
     Styled(Column(xs), _) => xs,
@@ -276,7 +285,10 @@ enum Pick {
 fun card(): Background = Background { color: Paint.Faded(0.08), ..Background.theme() };
 
 fun backgrounds_view(rows: View<Pick>[]): View<Pick> = column([
-    column(rows).style([card()]).padding(16),
+    column(rows).style([
+        card(),
+        Spacing { padding: Edges { all: Width.Px(16), ..Edges.theme() }, ..Spacing.theme() },
+    ]),
     text("NEW").style([
         Background { color: Paint.Color(hex("#c0392b")), ..Background.theme() },
         Text { color: Paint.Color(hex("#ffffff")), ..Text.theme() },
@@ -407,8 +419,12 @@ fun outlines_merge_field_by_field() {
 fun borders_view(rows: View<Pick>[]): View<Pick> = column([
     column(rows).style([
         Border { all: hairline(), radius: Radius.All(12), ..Border.theme() },
-    ]).padding(16),
-    text("Settings").padding(8).style([Border { bottom: hairline(), ..Border.theme() }]),
+        Spacing { padding: Edges { all: Width.Px(16), ..Edges.theme() }, ..Spacing.theme() },
+    ]),
+    text("Settings").style([
+        Spacing { padding: Edges { all: Width.Px(8), ..Edges.theme() }, ..Spacing.theme() },
+        Border { bottom: hairline(), ..Border.theme() },
+    ]),
     text("Tab").style([
         Border {
             all: hairline(),

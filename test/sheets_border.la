@@ -4,7 +4,7 @@
 // (test/sheets.la is nearly full.) No GTK.
 import kivuli.styles { Sheet };
 import kivuli.sheets { check, rules };
-import kivuli { Border, Side, Outline, Width, Line, Radius, Paint, hex };
+import kivuli { Border, Side, Outline, Width, Line, Radius, Paint, Spacing, Edges, hex };
 
 fun sheet(b: Border): Sheet = Sheet { border: b, ..Sheet.theme() };
 
@@ -158,5 +158,52 @@ fun bad_border_values_say_what_is_wrong() {
             }),
         ),
         Err("Paint.Faded(3.0): an opacity is between 0 and 1"),
+    );
+}
+
+fun spaced(sp: Spacing): Sheet = Sheet { spacing: sp, ..Sheet.theme() };
+
+@test
+fun padding_and_margin_are_one_class_per_side() {
+    let room = Spacing {
+        padding: Edges { all: Width.Px(4), left: Width.Px(12), ..Edges.theme() },
+        margin: Edges { top: Width.Px(-4), bottom: Width.Px(8), ..Edges.theme() },
+        ..Spacing.theme(),
+    };
+    assert_eq(css(spaced(room)), [
+        "kv-p-top-4 => padding-top: 4px;",
+        "kv-p-right-4 => padding-right: 4px;",
+        "kv-p-bottom-4 => padding-bottom: 4px;",
+        "kv-p-left-12 => padding-left: 12px;",
+        "kv-m-top-m4 => margin-top: -4px;",
+        "kv-m-bottom-8 => margin-bottom: 8px;",
+    ]);
+    // The gap isn't CSS: GTK's own spacing properties take it.
+    assert_eq(css(spaced(Spacing { gap: Width.Px(6), ..Spacing.theme() })), []);
+}
+
+@test
+fun negative_padding_or_gap_is_refused() {
+    assert_eq(
+        check(
+            spaced(Spacing {
+                padding: Edges { right: Width.Px(-4), ..Edges.theme() },
+                ..Spacing.theme(),
+            }),
+        ),
+        Err("Spacing.padding: Width.Px(-4): padding can't be negative"),
+    );
+    assert_eq(
+        check(spaced(Spacing { gap: Width.Px(-2), ..Spacing.theme() })),
+        Err("Spacing.gap: Width.Px(-2): a gap can't be negative"),
+    );
+    assert_eq(
+        check(
+            spaced(Spacing {
+                margin: Edges { all: Width.Px(-8), ..Edges.theme() },
+                ..Spacing.theme(),
+            }),
+        ),
+        Ok(()),
     );
 }

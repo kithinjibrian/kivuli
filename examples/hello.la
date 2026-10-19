@@ -1,7 +1,32 @@
 // The first app: a name field, a greeting and a counter. Its looks are
 // values on the nodes (`.style`); everything it doesn't set is the GTK
 // theme's, so it follows light and dark.
-import kivuli { View, Font, Text, Weight, Size, Paint, button, column, input, row, sandbox, text };
+import kivuli {
+    View,
+    Width,
+    Edges,
+    Spacing,
+    Font,
+    Text,
+    Weight,
+    Size,
+    Paint,
+    button,
+    column,
+    input,
+    row,
+    sandbox,
+    text,
+};
+
+/** The same room on every side, inside the node. */
+fun pad(n: i64): Spacing = Spacing {
+    padding: Edges { all: Width.Px(n), ..Edges.theme() },
+    ..Spacing.theme(),
+};
+
+/** Room between a column's, row's or wrap's children. */
+fun gap(n: i64): Spacing = Spacing { gap: Width.Px(n), ..Spacing.theme() };
 
 struct Model {
     count: i64,
@@ -26,7 +51,9 @@ fun view(m: Model): View<Msg> = column([
         Font { size: Size.Pt(18), weight: Weight.Bold, ..Font.theme() },
     ]),
     text("Clicked {m.count} times").style([Text { color: Paint.Faded(0.55), ..Text.theme() }]),
-    row([button("Add", Msg.Add), button("Reset", Msg.Reset).disabled(m.count == 0)]).spacing(8),
-]).padding(24).spacing(8).window("Hello", 320, 240);
+    row([button("Add", Msg.Add), button("Reset", Msg.Reset).disabled(m.count == 0)]).style([
+        gap(8),
+    ]),
+]).style([pad(24), gap(8)]).window("Hello", 320, 240);
 
 fun main(): i32 = sandbox("org.kivuli.hello", Model { count: 0, name: "" }, update, view);

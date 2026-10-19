@@ -101,3 +101,6 @@ fun two_digits(n: i64): string {
     let low = n % 16;
     all.slice(high, high + 1) + all.slice(low, low + 1)
 }
+
+/** A positive number in thousandths, rounded: a class name can't hold a dot. */
+fun permille(x: f64): i64 = (x * 1000.0 + 0.5) as i64;

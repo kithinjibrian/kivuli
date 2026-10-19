@@ -29,7 +29,7 @@ import gtk {
 import kivuli.live { mount, live_of };
 import kivuli.effects { sandbox_app };
 import kivuli.live_tree { Live, widget };
-import kivuli { View, button, column, keyed_wrap };
+import kivuli { View, button, column, keyed_wrap, Spacing, Width };
 
 fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
 
@@ -107,7 +107,11 @@ fun update_grid(g: Grid, msg: Tiles): Grid = match msg {
 fun view_grid(g: Grid): View<Tiles> {
     let tiles = keyed_wrap(g.keys.map(fun(k) = (k, button(k, Tiles.Open(k)))));
     column([
-        if g.styled { tiles.equal().max_per_line(4).spacing(8) } else { tiles },
+        if g.styled {
+            tiles.equal().max_per_line(4).style([Spacing { gap: Width.Px(8), ..Spacing.theme() }])
+        } else {
+            tiles
+        },
         button("Rotate", Tiles.Rotate),
         button("Drop b", Tiles.Drop("b")),
         button("Front d", Tiles.Front("d")),

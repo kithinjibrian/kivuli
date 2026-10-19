@@ -127,10 +127,10 @@ public fun keyed_column<Msg>(children: (string, View<Msg>)[]): View<Msg> = View.
  * Lays `children` side by side, moving to a new line when a line is full, so
  * they re-flow as the window resizes. Children keep their natural widths
  * (`.equal()` makes a tidy grid); `.max_per_line(n)` caps a line;
- * `.spacing(n)` is the gap across and down. Children are matched by position.
+ * a `Spacing`'s `gap` is the room across and down. Children are matched by position.
  *
  * Example:
- *     wrap(m.tags.map(chip)).spacing(6)
+ *     wrap(m.tags.map(chip)).style([Spacing { gap: Width.Px(6), ..Spacing.theme() }])
  */
 public fun wrap<Msg>(children: View<Msg>[]): View<Msg> = View.Wrap(children);
 
@@ -139,7 +139,7 @@ public fun wrap<Msg>(children: View<Msg>[]): View<Msg> = View.Wrap(children);
  * removing or reordering one moves just that widget. Keys must be unique.
  *
  * Example:
- *     keyed_wrap(m.apps.map(fun(a) = (a.id, tile(a)))).equal().max_per_line(6).spacing(12)
+ *     keyed_wrap(m.apps.map(fun(a) = (a.id, tile(a)))).equal().max_per_line(6)
  */
 public fun keyed_wrap<Msg>(children: (string, View<Msg>)[]): View<Msg> = View.KeyedWrap(children);
 

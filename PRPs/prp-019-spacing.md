@@ -1,6 +1,6 @@
 # PRP-019 — Spacing through `.style`: padding, margin, gap
 
-Status: approved by the user (session 21); building on branch prp-019-spacing
+Status: built (session 21) on branch prp-019-spacing; merged into main
 Discovery: session 21, 2026-10-19 (DECISION-023's next group). *(you)*: chosen in the interview; *(proposed)*: for you to confirm or change with this PRP.
 
 ## FEATURE: a `Spacing` value in `.style([...])`: padding inside the border, margin outside it, and the gap between a box's children; `.padding(n)` and `.spacing(n)` go.
@@ -91,27 +91,35 @@ Edges.theme(), Spacing.theme()   // every field the theme's
 ## TESTS TO WRITE
 
 Pure:
-- [ ] Before the splits: the existing style and sheet tests pass unchanged after them.
-- [ ] `test/styles.la`: `Edges.theme()`, `Spacing.theme()` set nothing; `all` folds into each side; a side's own field beats `all`; a later `all` resets earlier sides; padding, margin and gap merge separately; the OBJECTIVE's `view` reads as written.
-- [ ] `test/sheets_border.la` (box rules): CSS for each padding and margin side, a negative margin; each check message.
-- [ ] `test/theming.la`: `paint` gives a spacing's classes and refuses its bad values.
-- [ ] Every test that used `.padding` or `.spacing`: rewritten to `Spacing`, same intent.
+- [x] Before the splits: the existing style and sheet tests pass unchanged after them.
+- [x] `test/styles.la`: `Edges.theme()`, `Spacing.theme()` set nothing; `all` folds into each side; a side's own field beats `all`; a later `all` resets earlier sides; padding, margin and gap merge separately; the OBJECTIVE's `view` reads as written.
+- [x] `test/sheets_border.la` (box rules): CSS for each padding and margin side, a negative margin; each check message.
+- [x] `test/theming.la`: `paint` gives a spacing's classes and refuses its bad values.
+- [x] Every test that used `.padding` or `.spacing`: rewritten to `Spacing`, same intent.
 
 Live GTK (skipped without a display):
-- [ ] `test/live_style.la`: padding and margin land as classes (and widget margins stay 0); a gap sets a box's spacing and a wrap's row and column spacing, follows the model, and goes back to 0 when it goes.
+- [x] `test/live_style.la`: padding and margin land as classes (and widget margins stay 0); a gap sets a box's spacing and a wrap's row and column spacing, follows the model, and goes back to 0 when it goes.
 - [ ] How the room looks (padding inside a border): checked by hand in `examples/borders.la`.
 
 ## ROLLBACK PLAN
 - Branch `prp-019-spacing` from `main`; abandon by leaving it unmerged.
 
 ## ACCEPTANCE CRITERIA
-- [ ] The OBJECTIVE's code compiles and its tests pass unchanged.
-- [ ] No `.padding(` or `.spacing(` modifier left in kivuli, its examples, tests or docs.
-- [ ] Tests written first; narrow runs while building; the full suite and the examples' tests pass before the merge.
-- [ ] fmt clean; public items documented; no file over 500 lines.
-- [ ] README, docs/DESIGN.md, CHANGELOG (Breaking), CLAUDE.md, DECISIONS updated; the tutorial page; 0.14.0 tagged; merged. Pushed only on your go.
+- [x] The OBJECTIVE's code compiles and its tests pass unchanged.
+- [x] No `.padding(` or `.spacing(` modifier left in kivuli, its examples, tests or docs.
+- [x] Tests written first; narrow runs while building; the full suite and the examples' tests pass before the merge.
+- [x] fmt clean; public items documented; no file over 500 lines.
+- [x] README, docs/DESIGN.md, CHANGELOG (Breaking), CLAUDE.md, DECISIONS updated; the tutorial page; 0.14.0 tagged; merged. Pushed only on your go.
 
 ## VALIDATION
 - While building: only the tests covering each step.
 - Before the merge: `lughac fmt --check src examples test`, `lughac test test/`, the examples' own tests, every example built with `-o examples/<name>`.
 - For the user: `lughac run examples/borders.la`'s "Padding and margin" section, and any example: the room looks as before.
+
+## NOTES FROM THE BUILD
+
+- **Both splits landed first**, in one commit with no behaviour change: `style_values.la` (162 lines) and `box_rules.la` (122); `permille` moved down to `theming` so both `sheets` and `box_rules` can use it without a cycle. `box_rules`'s entry is `box_css`: a function can't share its module's name (E0314).
+- **`Edges` lives with the plain values** (its `over` never mentions a `Sheet`); `Spacing` with the groups.
+- **Where `.padding(n)` stood for "any modifier"** in tests (a style surviving `.menu` or `.header`), it became `.width(n)`, same intent. The new tests are `test/spacing.la` (`test/styles.la` was at 453 lines).
+- **Examples use two helpers**, `pad(n)` and `gap(n)`, each a `Spacing` value; `.padding(24).spacing(8)` became `.style([pad(24), gap(8)])`. Their room is now inside the node (padding), which looks the same where a node has no border or background.
+- **README's opening example** now matches `examples/hello.la` exactly.

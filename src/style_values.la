@@ -1,0 +1,206 @@
+/**
+ * The plain values style groups are made of: the enums for fonts, text,
+ * backgrounds and borders, a gradient's `Stop` and a border's `Side`. None
+ * mentions a `Sheet`, so they live apart from `styles` (file size) and
+ * nothing imports back. Pure.
+ *
+ * Depends on: theming (`Paint`)
+ * Used by: styles, sheets, box_rules, lib
+ */
+
+import theming { Paint };
+
+/** `font-family`. */
+public enum Family {
+    Theme,
+    /** `sans-serif` */
+    Sans,
+    /** `serif` */
+    Serif,
+    /** `monospace` */
+    Monospace,
+    /** A font by name, and the generic family to use when it isn't installed. */
+    Named(string, Family),
+}
+
+/** `font-size`. */
+public enum Size {
+    Theme,
+    /** Points. */
+    Pt(i64),
+    /** A multiple of the theme's size, like CSS `em`. */
+    Scale(f64),
+}
+
+/** `font-weight`. */
+public enum Weight {
+    Theme,
+    /** 100 */
+    Thin,
+    /** 300 */
+    Light,
+    /** 400 */
+    Normal,
+    /** 500 */
+    Medium,
+    /** 600 */
+    Semibold,
+    /** 700 */
+    Bold,
+    /** 900 */
+    Black,
+}
+
+/** `font-style`. */
+public enum FontStyle {
+    Theme,
+    Normal,
+    Italic,
+}
+
+/** `line-height`. */
+public enum LineHeight {
+    Theme,
+    /** A multiple of the font size. */
+    Times(f64),
+}
+
+/** `text-decoration-line`. */
+public enum Decoration {
+    Theme,
+    None,
+    Underline,
+    Strikethrough,
+}
+
+/** `text-transform`. */
+public enum Transform {
+    Theme,
+    None,
+    Uppercase,
+    Lowercase,
+    Capitalize,
+}
+
+/** A gradient, under a background's image and over its colour. */
+public enum Gradient {
+    Theme,
+    /** Along an angle in degrees (0 points up, 90 right, 180 down), through its stops. */
+    Linear(i64, Stop[]),
+    /** A circle from the node's centre out, through its stops. */
+    Radial(Stop[]),
+}
+
+/** One colour of a gradient, `at` its place along it: 0.0 the start, 1.0 the end. */
+public struct Stop {
+    public color: Paint,
+    public at: f64,
+}
+
+/** How a background's image fills the node; images are always centred. */
+public enum Fill {
+    Theme,
+    /** Fills the node, cropping what doesn't fit: the default with an image. */
+    Cover,
+    /** The whole picture, the rest showing what's beneath. */
+    Contain,
+    /** Repeated at its own size. */
+    Tile,
+    /** Stretched to the node exactly. */
+    Stretch,
+}
+
+/** A border's or outline's width. */
+public enum Width {
+    Theme,
+    /** Pixels. */
+    Px(i64),
+}
+
+/** How a border or outline is drawn. A width with the line left `Theme` is drawn `Solid`. */
+public enum Line {
+    Theme,
+    /** Not drawn. */
+    None,
+    Solid,
+    Dashed,
+    Dotted,
+    Double,
+    Groove,
+    Ridge,
+    Inset,
+    Outset,
+}
+
+/** How round a node's corners are, in pixels. A rounded node clips what's inside it. */
+public enum Radius {
+    Theme,
+    /** Every corner. */
+    All(i64),
+    /** Top left, top right, bottom right, bottom left. */
+    Corners(i64, i64, i64, i64),
+}
+
+/** One side of a border. Fields left `Theme` stay the theme's. */
+public struct Side {
+    public width: Width,
+    /** `Faded(x)` is a hairline of the theme's text colour, following light and dark. */
+    public color: Paint,
+    public style: Line,
+}
+
+impl Side {
+    /** Every field the theme's. */
+    public fun theme(): Side = Side { width: Width.Theme, color: Paint.Theme, style: Line.Theme };
+
+    /** `under` with every field this side sets. */
+    public fun over(self, under: Side): Side = Side {
+        width: if self.width == Width.Theme { under.width } else { self.width },
+        color: if self.color == Paint.Theme { under.color } else { self.color },
+        style: if self.style == Line.Theme { under.style } else { self.style },
+    };
+}
+
+/**
+ * Room on each side of a node, in pixels: `all` for every side, a side's own
+ * value over it. A `Spacing`'s padding or margin.
+ */
+public struct Edges {
+    public all: Width,
+    public top: Width,
+    public right: Width,
+    public bottom: Width,
+    public left: Width,
+}
+
+impl Edges {
+    /** Every side the theme's. */
+    public fun theme(): Edges = Edges {
+        all: Width.Theme,
+        top: Width.Theme,
+        right: Width.Theme,
+        bottom: Width.Theme,
+        left: Width.Theme,
+    };
+
+    /**
+     * `under` with this value's sides over it: a side's own value beats `all`,
+     * and both beat what was there. `all` is folded into the sides.
+     */
+    public fun over(self, under: Edges): Edges {
+        let side = fun(own: Width, before: Width): Width = if own != Width.Theme {
+            own
+        } else if self.all != Width.Theme {
+            self.all
+        } else {
+            before
+        };
+        Edges {
+            all: Width.Theme,
+            top: side(self.top, under.top),
+            right: side(self.right, under.right),
+            bottom: side(self.bottom, under.bottom),
+            left: side(self.left, under.left),
+        }
+    }
+}

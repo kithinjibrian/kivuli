@@ -5,6 +5,9 @@
 // bottom: `lughac test examples/tasks.la`.
 import kivuli {
     Align,
+    Width,
+    Edges,
+    Spacing,
     View,
     Font,
     Text,
@@ -39,6 +42,15 @@ import kivuli.testing {
     tooltip,
     type_into,
 };
+
+/** The same room on every side, inside the node. */
+fun pad(n: i64): Spacing = Spacing {
+    padding: Edges { all: Width.Px(n), ..Edges.theme() },
+    ..Spacing.theme(),
+};
+
+/** Room between a column's, row's or wrap's children. */
+fun gap(n: i64): Spacing = Spacing { gap: Width.Px(n), ..Spacing.theme() };
 
 struct Todo {
     id: i64,
@@ -110,12 +122,12 @@ fun view(m: Model): View<Msg> = column([
             Msg.Add,
         ).autofocus().expand(),
         button("Add", Msg.Add).shortcut("Ctrl+N").disabled(m.draft.trim() == ""),
-    ]).spacing(8),
+    ]).style([gap(8)]),
     row([
         tab("All", Filter.All, m.filter),
         tab("Active", Filter.Active, m.filter),
         tab("Done", Filter.Done, m.filter),
-    ]).spacing(4),
+    ]).style([gap(4)]),
     separator(),
     list(m),
     separator(),
@@ -126,7 +138,7 @@ fun view(m: Model): View<Msg> = column([
             !m.todos.any(fun(t) = t.done),
         ),
     ]),
-]).padding(20).spacing(12).window("To-do — {left(m)} left", 420, 560);
+]).style([pad(20), gap(12)]).window("To-do — {left(m)} left", 420, 560);
 
 // The filter shown now has nothing to do when clicked: it's disabled (no message).
 fun tab(label: string, filter: Filter, current: Filter): View<Msg> = button(
@@ -144,7 +156,7 @@ fun list(m: Model): View<Msg> {
             spacer(),
         ]).expand();
     }
-    scroll(keyed_column(visible.map(fun(t) = ("{t.id}", todo_row(t)))).spacing(4))
+    scroll(keyed_column(visible.map(fun(t) = ("{t.id}", todo_row(t)))).style([gap(4)]))
 }
 
 // Lazy: rebuilt only when the key (everything the row shows) changes.
@@ -156,7 +168,7 @@ fun todo_row(t: Todo): View<Msg> = lazy(
             if t.done { [Text { decoration: Decoration.Strikethrough, ..dim() }] } else { [] },
         ).expand(),
         button("✕", Msg.Delete(t.id)).tooltip("Delete {t.title}"),
-    ]).spacing(8).name("row {t.title}").menu([
+    ]).style([gap(8)]).name("row {t.title}").menu([
         item(if t.done { "Mark as not done" } else { "Mark as done" }, Msg.Toggle(t.id, !t.done)),
         item("Delete", Msg.Delete(t.id)),
     ]),
