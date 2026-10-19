@@ -1,6 +1,6 @@
 # PRP-021 — States: styles on hover, press, focus, disabled, checked
 
-Status: draft, for the user's approval (session 23)
+Status: approved by the user (session 23); building on branch prp-021-states
 Discovery: session 23, 2026-10-20. *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: `When(state, [...])` in `.style([...])`: style values that apply only while a node is hovered, pressed, focused, disabled or checked.
