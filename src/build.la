@@ -64,6 +64,8 @@ import gtk {
     gtk_widget_set_sensitive,
     gtk_widget_set_size_request,
     gtk_widget_set_vexpand,
+    lgtk_clamp_new,
+    lgtk_clamp_set_child,
     lgtk_cstring_text,
     lgtk_text_get,
 };
@@ -72,6 +74,7 @@ import views { View };
 import looks { Style };
 import buttons { create_button, create_button_with };
 import popovers { attach };
+import box_rules { needs_clamp };
 import styling { LAYER, NO_LINE_LIMIT, apply_style, flag, show_number };
 import textures { show_picture };
 import widgets { snap };
@@ -324,7 +327,15 @@ fun create_in<Msg>(v: View<Msg>, axis: i32, send: fun(Msg)): Live<Msg> = match v
         Live.Menu(node, attach(widget(node), entries, send))
     }
     Styled(inside, style) => {
-        let node = create_in(inside, axis, send);
+        let made = create_in(inside, axis, send);
+        // An exact size or a maximum: the node goes in a clamp, which its parent holds.
+        let node = if needs_clamp(style.sheet.sizing) {
+            let clamp = lgtk_clamp_new();
+            lgtk_clamp_set_child(clamp, Some(widget(made)));
+            Live.Clamp(made, clamp)
+        } else {
+            made
+        };
         apply_style(node, style, axis);
         if style.autofocus {
             // On the main loop's next turn: the widget is in its window by then
@@ -408,6 +419,7 @@ fun create_box<Msg>(orientation: i32, children: View<Msg>[], send: fun(Msg)): Li
 fun focus_target<Msg>(node: Live<Msg>): GtkWidget = match node {
     TextArea(scrolled, _, _) => editor(scrolled),
     Menu(inner, _) => focus_target(inner),
+    Clamp(inner, _) => focus_target(inner),
     _ => widget(node),
 };
 

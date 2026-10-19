@@ -1,6 +1,6 @@
 # PRP-020 — Sizing through `.style`: width, min and max
 
-Status: approved by the user (session 22); building on branch prp-020-sizing
+Status: built (session 22) on branch prp-020-sizing; merged into main
 Discovery: session 22, 2026-10-19 (DECISION-023's next group). *(you)*: chosen in the interview; *(proposed)*: for you to confirm or change with this PRP.
 
 ## FEATURE: a `Sizing` value in `.style([...])`: an exact width and height, a minimum and a maximum of each; `.width(n)` and `.height(n)` (which were minimums) go.
@@ -88,29 +88,36 @@ Sizing.theme()          // every field the theme's
 ## TESTS TO WRITE
 
 lugha-gtk `test/clamp.la` (needs a display):
-- [ ] a clamp's measured size is its child's, kept within its limits; a maximum below the child's minimum gives the child's minimum; `-1` is no limit; changing limits re-measures; the child is freed with the clamp.
+- [x] a clamp's measured size is its child's, kept within its limits; a maximum below the child's minimum gives the child's minimum; `-1` is no limit; changing limits re-measures; the child is freed with the clamp.
 
 Pure:
-- [ ] `test/sizing.la` (new): `Sizing.theme()` sets nothing; fields merge one by one; the OBJECTIVE's `view` reads as written.
-- [ ] `test/sheets_border.la`: CSS for `min_width` and `min_height`; an exact size and a maximum give no CSS (the clamp takes them); each check message.
-- [ ] `test/diff.la` (or a new `test/diff_sizing.la`): adding the first maximum is a `Replace`; changing a maximum is a `SetStyle`; removing the last is a `Replace`; a minimum alone never is.
-- [ ] Every test that used `.width` or `.height`: rewritten, same intent.
+- [x] `test/sizing.la` (new): `Sizing.theme()` sets nothing; fields merge one by one; the OBJECTIVE's `view` reads as written.
+- [x] `test/sheets_border.la`: CSS for `min_width` and `min_height`; an exact size and a maximum give no CSS (the clamp takes them); each check message.
+- [x] `test/diff.la` (or a new `test/diff_sizing.la`): adding the first maximum is a `Replace`; changing a maximum is a `SetStyle`; removing the last is a `Replace`; a minimum alone never is.
+- [x] Every test that used `.width` or `.height`: rewritten, same intent.
 
 Live GTK (skipped without a display), `test/live_style.la` (or a new `test/live_sizing.la`):
-- [ ] a node with a maximum sits in a clamp with those limits and measures no wider; an exact width measures exactly that; a minimum alone is a class, no clamp; `.align` lands on the clamp; a `SetStyle` of new numbers resets the limits on the same widgets.
+- [x] a node with a maximum sits in a clamp with those limits and measures no wider; an exact width measures exactly that; a minimum alone is a class, no clamp; `.align` lands on the clamp; a `SetStyle` of new numbers resets the limits on the same widgets.
 - [ ] How sizes look in a window: checked by hand in `examples/borders.la`.
 
 ## ROLLBACK PLAN
 - Branch `prp-020-sizing` from `main`; abandon by leaving it unmerged. lugha-gtk 0.1.30 is additions only.
 
 ## ACCEPTANCE CRITERIA
-- [ ] The OBJECTIVE's code compiles and its tests pass unchanged.
-- [ ] No `.width(` or `.height(` modifier left in kivuli, its examples, tests or docs.
-- [ ] Tests written first; narrow runs while building; the full suite and the examples' tests pass before the merge.
-- [ ] fmt clean; public items documented; no file over 500 lines (a split proposed first if one would pass it).
-- [ ] README, docs/DESIGN.md, CHANGELOG (Breaking), CLAUDE.md, DECISIONS updated; the tutorial page; 0.15.0 tagged; merged. Pushed only on your go.
+- [x] The OBJECTIVE's code compiles and its tests pass unchanged.
+- [x] No `.width(` or `.height(` modifier left in kivuli, its examples, tests or docs.
+- [x] Tests written first; narrow runs while building; the full suite and the examples' tests pass before the merge.
+- [x] fmt clean; public items documented; no file over 500 lines (a split proposed first if one would pass it).
+- [x] README, docs/DESIGN.md, CHANGELOG (Breaking), CLAUDE.md, DECISIONS updated; the tutorial page; 0.15.0 tagged; merged. Pushed only on your go.
 
 ## VALIDATION
 - While building: only the tests covering each step.
 - Before the merge: `lughac fmt --check src examples test`, `lughac test test/`, the examples' own tests, every example built with `-o examples/<name>`; lugha-gtk `lughac test test/`.
 - For the user: `lughac run examples/borders.la`'s "Sizing" section: resize the window and the readable column stops at 560 px.
+
+## NOTES FROM THE BUILD
+
+- **lugha-gtk 0.1.30 first**: `src/c/clamp.c` (a final `GtkWidget` subclass: `measure` keeps the child's size within the limits, never below its minimum, measuring a wrapping child for the width it will get; `size_allocate` gives the child at most the maximum, at the start; `dispose` unparents), `lgtk_clamp_new`/`set_child`/`get_child`/`set_limits` and `gtk_widget_measure`. Its test was mutation-checked (without the cap, it fails). Pushed under the standing go.
+- **`at_outer`** in `paths`: a restyle needs the node with its clamp (to reset the limits), every other patch the bare node (`at`).
+- **The text area's default 80 px height** stays a size request unless the style sets a height or minimum height; a picture's `.size(n)` box is its size request.
+- **Tests that used `.width(n)` as an arbitrary modifier** (several moved there in PRP-019) now use `.tooltip(…)`. Examples use `at_least(w, h)`.

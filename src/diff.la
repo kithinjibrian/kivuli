@@ -12,6 +12,7 @@ import views { View };
 import looks { Style, plain };
 import pictures { Image, identity };
 import menus { MenuEntry };
+import box_rules { needs_clamp };
 
 /**
  * One change to the live widgets. A path is the list of child indexes from
@@ -94,6 +95,11 @@ fun diff_node<Msg>(path: i64[], old: View<Msg>, new: View<Msg>): Patch<Msg>[] {
     let (new_inside, new_style) = split(new);
     let (old_node, old_menu) = unmenu(old_inside);
     let (new_node, new_menu) = unmenu(new_inside);
+    // A node moving into or out of a clamp (`Sizing`'s exact size or maximum)
+    // is rebuilt: a live widget is never re-parented into one.
+    if needs_clamp(old_style.sheet.sizing) != needs_clamp(new_style.sheet.sizing) {
+        return [Patch.Replace(path, new)];
+    }
     let inside = diff_inside(path, old_node, new_node, new);
     // A different kind is rebuilt whole, its style and menu with it.
     if inside.len > 0 && replaces(inside[0], path) {

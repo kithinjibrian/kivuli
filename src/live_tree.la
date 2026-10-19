@@ -83,6 +83,11 @@ enum Live<Msg> {
      * (`paths`): only `SetMenu` and the patches replacing or removing the node see it.
      */
     Menu(Live<Msg>, Popup<Msg>),
+    /**
+     * A node in a clamp (`Sizing`'s exact size or maximum), and the clamp: the
+     * parent holds the clamp. Paths look through it, as through a menu.
+     */
+    Clamp(Live<Msg>, GtkWidget),
     /** An overlay's layers, bottom to top; no widget of their own, so their widget is the overlay's. */
     Layers(GtkWidget, Live<Msg>[]),
     /**
@@ -154,6 +159,7 @@ fun widget<Msg>(node: Live<Msg>): GtkWidget = match node {
     Overlay(w, _, _) => w,
     Layers(w, _) => w,
     Menu(node, _) => widget(node),
+    Clamp(_, clamp) => clamp,
     // The window's child; the bar is its titlebar.
     Framed(_, body, _, _, _) => widget(body),
     Pack(bar, _, _) => bar,
@@ -163,5 +169,6 @@ fun widget<Msg>(node: Live<Msg>): GtkWidget = match node {
 fun titlebar<Msg>(root: Live<Msg>): Option<GtkWidget> = match root {
     Framed(bar, _, _, _, _) => Some(bar),
     Menu(node, _) => titlebar(node),
+    Clamp(node, _) => titlebar(node),
     _ => None,
 };

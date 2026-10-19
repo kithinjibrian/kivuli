@@ -287,23 +287,23 @@ fun a_keyed_column_is_not_a_column() {
 
 @test
 fun adding_a_modifier_restyles_the_same_widget() {
-    let expected: Patch<Msg>[] = [Patch.SetStyle([0], Style { width: 8, ..plain() })];
-    assert_same(patches(column([text("a")]), column([text("a").width(8)])), expected);
+    let expected: Patch<Msg>[] = [Patch.SetStyle([0], Style { tooltip: "t8", ..plain() })];
+    assert_same(patches(column([text("a")]), column([text("a").tooltip("t8")])), expected);
 }
 
 @test
 fun dropping_a_modifier_restyles_back_to_plain() {
     let expected: Patch<Msg>[] = [Patch.SetStyle([], plain())];
-    assert_same(patches(text("a").width(8), text("a")), expected);
+    assert_same(patches(text("a").tooltip("t8"), text("a")), expected);
 }
 
 @test
 fun style_and_content_are_diffed_separately() {
     let expected: Patch<Msg>[] = [
-        Patch.SetStyle([], Style { width: 2, ..plain() }),
+        Patch.SetStyle([], Style { tooltip: "t2", ..plain() }),
         Patch.SetText([], "b"),
     ];
-    assert_same(patches(text("a").width(1), text("b").width(2)), expected);
+    assert_same(patches(text("a").tooltip("t1"), text("b").tooltip("t2")), expected);
 }
 
 @test
@@ -314,8 +314,8 @@ fun an_unchanged_style_needs_nothing() {
 
 @test
 fun a_new_kind_is_replaced_with_its_style() {
-    let expected: Patch<Msg>[] = [Patch.Replace([], button("b", Msg.Add).width(3))];
-    assert_same(patches(text("a").width(3), button("b", Msg.Add).width(3)), expected);
+    let expected: Patch<Msg>[] = [Patch.Replace([], button("b", Msg.Add).tooltip("t3"))];
+    assert_same(patches(text("a").tooltip("t3"), button("b", Msg.Add).tooltip("t3")), expected);
 }
 
 @test

@@ -5,6 +5,7 @@
 // the picture's path is relative to where the app starts.
 import kivuli {
     View,
+    Sizing,
     Width,
     Edges,
     Spacing,
@@ -27,6 +28,13 @@ import kivuli {
     wrap,
 };
 
+/** At least `w` by `h` pixels; 0 leaves that way to the theme. */
+fun at_least(w: i64, h: i64): Sizing = Sizing {
+    min_width: if w > 0 { Width.Px(w) } else { Width.Theme },
+    min_height: if h > 0 { Width.Px(h) } else { Width.Theme },
+    ..Sizing.theme(),
+};
+
 /** The same room on every side, inside the node. */
 fun pad(n: i64): Spacing = Spacing {
     padding: Edges { all: Width.Px(n), ..Edges.theme() },
@@ -42,7 +50,7 @@ fun heading(s: string): View<()> = text(s).style([
 
 /** A tile showing `b`, its label under it. */
 fun swatch(label: string, b: Background): View<()> = column([
-    column([]).width(150).height(90).style([b]),
+    column([]).style([at_least(150, 90)]).style([b]),
     text(label).style([
         Font { size: Size.Scale(0.85), ..Font.theme() },
         Text { color: Paint.Faded(0.7), ..Text.theme() },
@@ -128,7 +136,7 @@ fun view(m: ()): View<()> = scroll(
                 Font { weight: Weight.Bold, ..Font.theme() },
                 Text { color: Paint.Color(hex("#ffffff")), ..Text.theme() },
             ]).style([pad(16)]),
-        ]).height(160).style([
+        ]).style([at_least(0, 160)]).style([
             Background {
                 color: Paint.Color(hex("#101010")),
                 gradient: Gradient.Linear(180, two("#00000000", "#000000cc")),

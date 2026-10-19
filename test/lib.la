@@ -140,11 +140,11 @@ fun a_keyed_column_keeps_its_keys_with_its_children() {
 @test
 fun modifiers_merge_into_one_style() {
     let expected: View<Msg> = View.Styled(View.Text("x"), Style {
-        width: 4,
+        tooltip: "late",
         align: Align.Center,
         ..plain(),
     });
-    assert_same(text("x").width(8).align(Align.Center).width(4), expected);
+    assert_same(text("x").tooltip("early").align(Align.Center).tooltip("late"), expected);
 }
 
 @test
@@ -152,11 +152,9 @@ fun every_layout_modifier_lands_in_the_style() {
     let expected: View<Msg> = View.Styled(View.Column([]), Style {
         expand: true,
         align: Align.End,
-        width: 30,
-        height: 40,
         ..plain(),
     });
-    assert_same(column([]).expand().align(Align.End).width(30).height(40), expected);
+    assert_same(column([]).expand().align(Align.End), expected);
 }
 
 @test
@@ -318,14 +316,14 @@ fun window_settings_land_in_the_style() {
 fun a_header_frames_the_node_and_its_styles_stay_outside() {
     let framed: View<Msg> = View.Styled(
         View.Framed(View.Text("body"), [button("Back", Msg.Reset)], text("Title"), []),
-        Style { width: 8, ..plain() },
+        Style { tooltip: "t", ..plain() },
     );
     assert_same(
-        text("body").width(8).header([button("Back", Msg.Reset)], text("Title"), []),
+        text("body").tooltip("t").header([button("Back", Msg.Reset)], text("Title"), []),
         framed,
     );
     assert_same(
-        text("body").header([button("Back", Msg.Reset)], text("Title"), []).width(8),
+        text("body").header([button("Back", Msg.Reset)], text("Title"), []).tooltip("t"),
         framed,
     );
 }
@@ -403,10 +401,10 @@ fun a_menu_wraps_its_node_inside_the_style() {
             MenuEntry.Separator,
             MenuEntry.Item("Reset", None),
         ]),
-        Style { width: 4, ..plain() },
+        Style { tooltip: "t", ..plain() },
     );
-    assert_same(text("a").width(4).menu(entries), expected);
-    assert_same(text("a").menu(entries).width(4), expected);
+    assert_same(text("a").tooltip("t").menu(entries), expected);
+    assert_same(text("a").menu(entries).tooltip("t"), expected);
     // A second .menu replaces the first.
     let replaced: View<Msg> = View.Menu(View.Text("a"), [MenuEntry.Item("Open", Some(Msg.Add))]);
     assert_same(text("a").menu([item("x", Msg.Reset)]).menu([item("Open", Msg.Add)]), replaced);

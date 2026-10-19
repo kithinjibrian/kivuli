@@ -4,7 +4,7 @@
 // (test/sheets.la is nearly full.) No GTK.
 import kivuli.styles { Sheet };
 import kivuli.sheets { check, rules };
-import kivuli { Border, Side, Outline, Width, Line, Radius, Paint, Spacing, Edges, hex };
+import kivuli { Border, Side, Outline, Width, Line, Radius, Paint, Spacing, Edges, Sizing, hex };
 
 fun sheet(b: Border): Sheet = Sheet { border: b, ..Sheet.theme() };
 
@@ -205,5 +205,42 @@ fun negative_padding_or_gap_is_refused() {
             }),
         ),
         Ok(()),
+    );
+}
+
+fun sized(z: Sizing): Sheet = Sheet { sizing: z, ..Sheet.theme() };
+
+@test
+fun a_minimum_is_css_and_an_exact_size_or_maximum_isnt() {
+    assert_eq(
+        css(sized(Sizing { min_width: Width.Px(70), min_height: Width.Px(40), ..Sizing.theme() })),
+        ["kv-minw-70 => min-width: 70px;", "kv-minh-40 => min-height: 40px;"],
+    );
+    // The clamp takes them: GTK's CSS has no width or max-width.
+    assert_eq(
+        css(sized(Sizing { width: Width.Px(320), max_height: Width.Px(10), ..Sizing.theme() })),
+        [],
+    );
+}
+
+@test
+fun bad_sizes_say_what_is_wrong() {
+    assert_eq(
+        check(sized(Sizing { max_width: Width.Px(-1), ..Sizing.theme() })),
+        Err("Sizing.max_width: Width.Px(-1): a size can't be negative"),
+    );
+    assert_eq(
+        check(sized(Sizing { min_height: Width.Px(-5), ..Sizing.theme() })),
+        Err("Sizing.min_height: Width.Px(-5): a size can't be negative"),
+    );
+    assert_eq(
+        check(
+            sized(Sizing { min_width: Width.Px(300), max_width: Width.Px(200), ..Sizing.theme() }),
+        ),
+        Err("Sizing: min_width 300 is more than max_width 200"),
+    );
+    assert_eq(
+        check(sized(Sizing { min_height: Width.Px(9), max_height: Width.Px(8), ..Sizing.theme() })),
+        Err("Sizing: min_height 9 is more than max_height 8"),
     );
 }

@@ -30,7 +30,7 @@ import style_values {
     Edges,
 };
 
-/** Something `.style([…])` can apply: a `Font`, a `Text`, a `Background`, a `Border`, an `Outline` or a `Spacing`. */
+/** Something `.style([…])` can apply: a `Font`, a `Text`, a `Background`, a `Border`, an `Outline`, a `Spacing` or a `Sizing`. */
 public interface Styling {
     /** `s` with this value's fields over it; fields left `Theme` are skipped. */
     fun apply(self, s: Sheet): Sheet;
@@ -46,6 +46,7 @@ public struct Sheet {
     public outline: Outline,
     /** Padding, margin (each side resolved) and the gap between children. */
     public spacing: Spacing,
+    public sizing: Sizing,
 }
 
 impl Sheet {
@@ -57,6 +58,7 @@ impl Sheet {
         border: Border.theme(),
         outline: Outline.theme(),
         spacing: Spacing.theme(),
+        sizing: Sizing.theme(),
     };
 }
 
@@ -320,4 +322,55 @@ impl Spacing {
         },
         ..s,
     };
+}
+
+/**
+ * How big a node is, each way: exactly, at least and at most, combined as CSS
+ * combines them (an exact size kept within the minimum and the maximum, the
+ * minimum winning). A node is never smaller than its content's own minimum.
+ * A minimum is GTK's CSS; an exact size or a maximum puts the node in a clamp.
+ *
+ * Example:
+ *     text(m.body).wrap().style([Sizing { max_width: Width.Px(560), ..Sizing.theme() }])
+ */
+public struct Sizing {
+    public width: Width,
+    public min_width: Width,
+    public max_width: Width,
+    public height: Width,
+    public min_height: Width,
+    public max_height: Width,
+}
+
+impl Sizing {
+    /** Every field the theme's: start here and change what you need. */
+    public fun theme(): Sizing = Sizing {
+        width: Width.Theme,
+        min_width: Width.Theme,
+        max_width: Width.Theme,
+        height: Width.Theme,
+        min_height: Width.Theme,
+        max_height: Width.Theme,
+    };
+
+    /** `s` with every size this value sets. */
+    public fun apply(self, s: Sheet): Sheet {
+        let was = s.sizing;
+        let pick = fun(own: Width, before: Width): Width = if own == Width.Theme {
+            before
+        } else {
+            own
+        };
+        Sheet {
+            sizing: Sizing {
+                width: pick(self.width, was.width),
+                min_width: pick(self.min_width, was.min_width),
+                max_width: pick(self.max_width, was.max_width),
+                height: pick(self.height, was.height),
+                min_height: pick(self.min_height, was.min_height),
+                max_height: pick(self.max_height, was.max_height),
+            },
+            ..s,
+        }
+    }
 }

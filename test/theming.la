@@ -67,7 +67,7 @@ fun painting_gives_each_node_the_classes_of_its_values() {
         ),
         ["kv-fw-700", "kv-tt-upper"],
     );
-    assert_eq(classes_of(text("a").width(4)), []);
+    assert_eq(classes_of(text("a").tooltip("t")), []);
     // A value changed by a later `.style` call gives the new class only.
     assert_eq(
         classes_of(

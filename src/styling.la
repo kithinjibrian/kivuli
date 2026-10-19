@@ -40,6 +40,11 @@ import gtk {
     gtk_widget_get_overflow,
     gtk_widget_has_css_class,
     gtk_widget_set_overflow,
+    gtk_widget_get_halign,
+    gtk_widget_get_hexpand,
+    gtk_widget_get_valign,
+    gtk_widget_get_vexpand,
+    lgtk_clamp_set_limits,
     gtk_widget_get_visible,
     gtk_widget_set_visible,
     lgtk_remove_css_classes_with_prefix,
@@ -54,6 +59,7 @@ import gtk {
 import live_tree { Live, widget };
 import looks { Style, Align, Fit };
 import style_values { Radius, Width };
+import box_rules { clamp_limits };
 import keys { parse };
 import widgets { snap };
 
@@ -67,6 +73,23 @@ fun apply_style<Msg>(node: Live<Msg>, style: Style, axis: i32) {
     match node {
         Menu(inner, _) => {
             apply_style(inner, style, axis);
+            return;
+        }
+        Clamp(inner, clamp) => {
+            apply_style(inner, style, axis);
+            let (min_w, max_w, min_h, max_h) = clamp_limits(style.sheet.sizing);
+            lgtk_clamp_set_limits(clamp, min_w as i32, max_w as i32, min_h as i32, max_h as i32);
+            // The parent holds the clamp: how the node takes room and sits
+            // moves onto it, and the node fills the clamp.
+            let w = widget(inner);
+            gtk_widget_set_hexpand(clamp, gtk_widget_get_hexpand(w));
+            gtk_widget_set_vexpand(clamp, gtk_widget_get_vexpand(w));
+            gtk_widget_set_halign(clamp, gtk_widget_get_halign(w));
+            gtk_widget_set_valign(clamp, gtk_widget_get_valign(w));
+            gtk_widget_set_hexpand(w, 0);
+            gtk_widget_set_vexpand(w, 0);
+            gtk_widget_set_halign(w, 0);
+            gtk_widget_set_valign(w, 0);
             return;
         }
         Framed(_, body, _, _, _) => {
@@ -119,12 +142,24 @@ fun apply_style<Msg>(node: Live<Msg>, style: Style, axis: i32) {
         gtk_widget_set_hexpand(w, flag(grows));
         gtk_widget_set_valign(w, gtk_align(style.align));
     }
-    // A text area keeps its default height (80 pixels) until `.height` sets one.
-    let height = match node {
-        TextArea(_, _, _) => if style.height < 0 { 80 } else { style.height },
-        _ => style.height,
+    // Sizes are the style's (`Sizing`: CSS minimums, a clamp for the rest).
+    // A text area keeps its default height (80 pixels) unless the style sets one.
+    let z = style.sheet.sizing;
+    let sets_height = z.height != Width.Theme || z.min_height != Width.Theme;
+    let floor = match node {
+        TextArea(_, _, _) => if sets_height { -1 } else { 80 },
+        // A picture's `.size(n)` is its box (`style_picture` below).
+        Image(_) => if style.size > 0 { style.size } else { -1 },
+        _ => -1,
     };
-    gtk_widget_set_size_request(w, style.width as i32, height as i32);
+    gtk_widget_set_size_request(
+        w,
+        match node {
+            Image(_) => floor as i32,
+            _ => -1,
+        },
+        floor as i32,
+    );
     gtk_widget_set_tooltip_text(w, if style.tooltip == "" { None } else { Some(style.tooltip) });
     match node {
         // The gap is GTK's spacing, not CSS: a flow box reads no CSS gap.
@@ -170,14 +205,7 @@ fun apply_style<Msg>(node: Live<Msg>, style: Style, axis: i32) {
         ),
         Image(picture) => {
             gtk_picture_set_content_fit(picture, content_fit(style.fit));
-            // `.size(n)`: an n × n box, unless `.width` or `.height` says otherwise.
-            if style.size > 0 {
-                gtk_widget_set_size_request(
-                    picture,
-                    if style.width < 0 { style.size as i32 } else { style.width as i32 },
-                    if style.height < 0 { style.size as i32 } else { style.height as i32 },
-                );
-            }
+            // `.size(n)`: an n × n box (set with the node's size request, above).
         }
         Slider(scale, range, last, _) => {
             let (min, max, _) = range.get();

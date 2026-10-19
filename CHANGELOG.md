@@ -8,6 +8,16 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.15.0] — 2026-10-19
+
+### Breaking
+- Sizing is a style value (PRP-020): `Sizing { width, min_width, max_width, height, min_height, max_height }` in `.style([...])`. The `.width(n)` and `.height(n)` modifiers are gone: they were minimums, now written `min_width` / `min_height`.
+- For Rapidkoi: `.width(n)` becomes `.style([Sizing { min_width: Width.Px(n), ..Sizing.theme() }])` and `.height(n)` `min_height`.
+
+### Added
+- Exact sizes and maximums, which GTK doesn't have: a node with one sits in a clamp (lugha-gtk 0.1.30's `lgtk_clamp`), never smaller than its content's minimum, so `max_width` on wrapping text is a readable column. Minimums are GTK's CSS. `examples/borders.la` shows them; resize the window.
+- Needs lugha-gtk 0.1.30.
+
 ## [0.14.0] — 2026-10-19
 
 ### Breaking

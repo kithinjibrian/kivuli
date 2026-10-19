@@ -6,6 +6,7 @@
 // GPL-3.0-only like the rest of the repository.
 import kivuli {
     Align,
+    Sizing,
     Width,
     Edges,
     Spacing,
@@ -33,6 +34,13 @@ import kivuli {
 };
 // For the tests at the bottom; `lughac build` leaves tests out.
 import kivuli.testing { choose, slide, texts, toggle, type_into };
+
+/** At least `w` by `h` pixels; 0 leaves that way to the theme. */
+fun at_least(w: i64, h: i64): Sizing = Sizing {
+    min_width: if w > 0 { Width.Px(w) } else { Width.Theme },
+    min_height: if h > 0 { Width.Px(h) } else { Width.Theme },
+    ..Sizing.theme(),
+};
 
 /** The same room on every side, inside the node. */
 fun pad(n: i64): Spacing = Spacing {
@@ -80,12 +88,12 @@ fun update(m: Model, msg: Msg): Model = match msg {
 fun dim(): Text = Text { color: Paint.Faded(0.55), ..Text.theme() };
 
 fun labelled(label: string, control: View<Msg>): View<Msg> = row([
-    text(label).width(70).align(Align.Center),
+    text(label).style([at_least(70, 0)]).align(Align.Center),
     control.expand(),
 ]).style([gap(8)]);
 
 fun view(m: Model): View<Msg> = column([
-    text("The quick brown fox").height(90).style([
+    text("The quick brown fox").style([at_least(0, 90)]).style([
         Font {
             size: Size.Pt(m.size),
             weight: m.weight,
@@ -111,11 +119,11 @@ fun view(m: Model): View<Msg> = column([
         spacer(),
         button("Reset", Msg.Reset).disabled(m.size == 14 && m.weight == Weight.Normal && !m.italic),
     ]),
-    text_area(m.notes, Msg.Notes).name("notes").height(80),
+    text_area(m.notes, Msg.Notes).name("notes").style([at_least(0, 80)]),
     row([
         icon("emblem-ok-symbolic"),
         icon("starred-symbolic").size(32),
-        image(Image.File("examples/assets/sample.png")).width(120).height(80).fit(Fit.Cover),
+        image(Image.File("examples/assets/sample.png")).style([at_least(120, 80)]).fit(Fit.Cover),
         // The key names the bytes: the same key, and they're never decoded again.
         image(Image.Bytes("sample", m.sample)).size(64),
     ]).style([gap(12)]),

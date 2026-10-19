@@ -110,28 +110,6 @@ impl View<Msg> {
     );
 
     /**
-     * Makes the node at least `n` pixels wide.
-     *
-     * Example:
-     *     input(m.name, Msg.Named).width(240)
-     */
-    public fun width(self, n: i64): View<Msg> = restyle(
-        self,
-        fun(s: Style) = Style { width: n, ..s },
-    );
-
-    /**
-     * Makes the node at least `n` pixels tall.
-     *
-     * Example:
-     *     scroll(column(rows)).height(200)
-     */
-    public fun height(self, n: i64): View<Msg> = restyle(
-        self,
-        fun(s: Style) = Style { height: n, ..s },
-    );
-
-    /**
      * Makes an icon or picture `n` pixels (a picture: an n × n box), or a
      * button's image. Not text: its size is a `Font`'s
      * (`.style([Font { size: Size.Pt(n), ..Font.theme() }])`), and `.size` on
@@ -326,7 +304,7 @@ impl View<Msg> {
      * Ignored on other nodes.
      *
      * Example:
-     *     image(m.avatar).width(48).height(48).fit(Fit.Cover)
+     *     image(m.avatar).size(48).fit(Fit.Cover)
      */
     public fun fit(self, how: Fit): View<Msg> = restyle(
         self,

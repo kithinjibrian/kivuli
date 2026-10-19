@@ -46,9 +46,6 @@ public struct Style {
     /** Whether the node takes spare room along its column (down) or row (across). */
     expand: bool,
     align: Align,
-    /** The smallest width and height in pixels; -1 leaves it to the widget. */
-    width: i64,
-    height: i64,
     /** An icon's or picture's size in pixels (on a button: its image's); 0 keeps the theme's. Not text. */
     size: i64,
     /** The window's title and size, from the root of `view`. Root only. */
@@ -94,8 +91,6 @@ public struct Style {
 fun plain(): Style = Style {
     expand: false,
     align: Align.Fill,
-    width: -1,
-    height: -1,
     size: 0,
     window: None,
     placeholder: "",

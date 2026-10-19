@@ -6,9 +6,9 @@ kivuli draws nothing. Every visual comes from the user's GTK theme (Adwaita by d
 
 ## Tokens: kivuli vocabulary → GTK
 
-### Styles (`.style([...])`; PRPs 016–019, DECISION-023)
+### Styles (`.style([...])`; PRPs 016–020, DECISION-023)
 
-A style is a list of typed values (`Font`, `Text`, `Background`, `Border`, `Outline`, `Spacing`) merged into one `Sheet` per node: for each field the last value that sets it wins, and `Theme` sets nothing. kivuli turns a `Sheet` into atomic CSS classes, one per property and value, so every node using a value shares its class and a class's rule never changes:
+A style is a list of typed values (`Font`, `Text`, `Background`, `Border`, `Outline`, `Spacing`, `Sizing`) merged into one `Sheet` per node: for each field the last value that sets it wins, and `Theme` sets nothing. kivuli turns a `Sheet` into atomic CSS classes, one per property and value, so every node using a value shares its class and a class's rule never changes:
 
 | kivuli | class | GTK CSS |
 | --- | --- | --- |
@@ -33,6 +33,8 @@ A style is a list of typed values (`Font`, `Text`, `Background`, `Border`, `Outl
 | `Border` side (after `all` is folded in) | `kv-bw-{side}-{n}`, `kv-bs-{side}-{line}`, `kv-bc-{side}-{rrggbbaa}` / `kv-bcfade-{side}-{x·1000}` | `border-{side}-width`, `-style`, `-color`; a width with the line left `Theme` is `solid` |
 | `Border.radius` | `kv-br-{tl\|tr\|br\|bl}-{n}` | `border-{corner}-radius: {n}px`, one class per corner; a rounded node gets `overflow: hidden` (`gtk_widget_set_overflow`, marked `kv-clip`) |
 | `Spacing.padding` / `.margin` (after `all` is folded in) | `kv-p-{side}-{n}` / `kv-m-{side}-{n}`, `kv-m-{side}-m{n}` | `padding-{side}` / `margin-{side}: {n}px` (a margin may be negative); kivuli no longer sets GTK's widget margins |
+| `Sizing.min_width` / `.min_height` | `kv-minw-{n}` / `kv-minh-{n}` | `min-width` / `min-height: {n}px` |
+| `Sizing.width`, `.max_width`, `.height`, `.max_height` | (no class) | GTK's CSS has no `width`, `max-width` or `max-height` (session 22): the node goes in a clamp (`lgtk_clamp_*`, lugha-gtk 0.1.30, a C widget with one child) whose limits keep its size, never below the child's minimum; given more room than its maximum it gives the child the maximum, at the start. The parent holds the clamp, so `.expand` and `.align` go on it; the node fills it. Gaining or losing the clamp rebuilds the node (`Replace`); new numbers reset the limits |
 | `Spacing.gap` | (no class) | not CSS: `gtk_box_set_spacing` on a column or row, `gtk_flow_box_set_row_spacing` and `set_column_spacing` on a wrap (a flow box reads no CSS gap) |
 | `Outline` | `kv-ow-{n}`, `kv-os-{line}`, `kv-oc-…`, `kv-oo-{n}` / `kv-oo-m{n}` | `outline-width`, `-style`, `-color`, `-offset`, each under `:not(:focus-visible)` so the theme's focus ring (an outline) still shows |
 
@@ -40,13 +42,12 @@ A style is a list of typed values (`Font`, `Text`, `Background`, `Border`, `Outl
 
 The rules live in one app stylesheet at application priority (600), created when the window opens; each render adds the rules of values not seen before (rules are never removed). A style's classes also go on the label kivuli puts in a button or a check box, because CSS doesn't inherit every text property (`text-decoration` isn't). A font name goes inside a CSS string, so one holding `"`, `\`, `;`, braces or a line break is refused. kivuli removes only its own `kv-` classes from a widget.
 
-### Layout (`.expand`, `.align`, `.width`, `.height`; room is `Spacing`, below)
+### Layout (`.expand`, `.align`; room is `Spacing` and size is `Sizing`, below)
 
 | kivuli | GTK |
 |--------|-----|
 | `.expand()` | `gtk_widget_set_hexpand` / `vexpand(true)` (along the parent's axis) |
 | `.align(Start\|Center\|End)` | `gtk_widget_set_halign` / `valign` (GTK_ALIGN_START/CENTER/END) |
-| `.width(n)` / `.height(n)` | `gtk_widget_set_size_request` |
 
 Units are pixels. All numbers come from the app. kivuli has **no default spacing or padding of its own**: a fresh `column` looks exactly like a fresh `GtkBox`.
 

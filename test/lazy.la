@@ -125,7 +125,7 @@ fun a_lazy_next_to_a_plain_node_compares_what_it_built() {
 fun modifiers_on_a_lazy_node_are_ignored() {
     let build = fun(): View<Msg> = text("x");
     let bold = Font { weight: Weight.Bold, ..Font.theme() };
-    assert_same(lazy("k", build).width(4).style([bold]), lazy("k", build));
+    assert_same(lazy("k", build).tooltip("t").style([bold]), lazy("k", build));
 }
 
 @test
