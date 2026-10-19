@@ -6,9 +6,9 @@ kivuli draws nothing. Every visual comes from the user's GTK theme (Adwaita by d
 
 ## Tokens: kivuli vocabulary → GTK
 
-### Styles (`.style([...])`; PRPs 016, 017, DECISION-023)
+### Styles (`.style([...])`; PRPs 016–018, DECISION-023)
 
-A style is a list of typed values (`Font`, `Text`, `Background`) merged into one `Sheet` per node: for each field the last value that sets it wins, and `Theme` sets nothing. kivuli turns a `Sheet` into atomic CSS classes, one per property and value, so every node using a value shares its class and a class's rule never changes:
+A style is a list of typed values (`Font`, `Text`, `Background`, `Border`, `Outline`) merged into one `Sheet` per node: for each field the last value that sets it wins, and `Theme` sets nothing. kivuli turns a `Sheet` into atomic CSS classes, one per property and value, so every node using a value shares its class and a class's rule never changes:
 
 | kivuli | class | GTK CSS |
 | --- | --- | --- |
@@ -29,6 +29,10 @@ A style is a list of typed values (`Font`, `Text`, `Background`) merged into one
 | a colour alone | `kv-bgi-none` | `background-image: none`: a themed widget's own image (a button's) would cover the colour |
 | `Background.gradient` (no image) | `kv-bgi-g{css in hex}` | `background-image: linear-gradient({angle}deg, …)` / `radial-gradient(circle, …)`, stops as `colour at%` |
 | `Background.image` (with the gradient and fill) | `kv-bgp-{identity, gradient, fill in hex}` | `background-image: url("data:image/png;base64,…") \| -gtk-icontheme("name"), gradient; background-size; background-position: center; background-repeat` |
+
+| `Border` side (after `all` is folded in) | `kv-bw-{side}-{n}`, `kv-bs-{side}-{line}`, `kv-bc-{side}-{rrggbbaa}` / `kv-bcfade-{side}-{x·1000}` | `border-{side}-width`, `-style`, `-color`; a width with the line left `Theme` is `solid` |
+| `Border.radius` | `kv-br-{tl\|tr\|br\|bl}-{n}` | `border-{corner}-radius: {n}px`, one class per corner; a rounded node gets `overflow: hidden` (`gtk_widget_set_overflow`, marked `kv-clip`) |
+| `Outline` | `kv-ow-{n}`, `kv-os-{line}`, `kv-oc-…`, `kv-oo-{n}` / `kv-oo-m{n}` | `outline-width`, `-style`, `-color`, `-offset`, each under `:not(:focus-visible)` so the theme's focus ring (an outline) still shows |
 
 `background-image` is one CSS property, so the gradient and the image are one class: two classes never set it differently. A picture's rule needs its bytes: `paint` (pure) names the class, and the runtime reads a file and checks the bytes (`pictures.size_of`) the first time the class is seen, then embeds them as a `data:` URL. GTK never decodes unchecked bytes or opens a path from CSS. A picture that can't be shown gives `background-image: none` (or the gradient alone). Icon names and font names go inside CSS strings and are refused when they hold `"`, `\\`, `;`, braces or line breaks. Checked against GTK 4.22's CSS parser (no parsing errors, session 19).
 

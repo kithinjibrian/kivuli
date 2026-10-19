@@ -14,6 +14,7 @@ import gtk {
     g_object_unref,
     gtk_application_new,
     gtk_application_window_new,
+    gtk_widget_get_overflow,
     gtk_widget_has_css_class,
     lgtk_widget_rgba,
 };
@@ -28,6 +29,12 @@ import kivuli {
     Stop,
     Fill,
     Image,
+    Border,
+    Side,
+    Outline,
+    Width,
+    Line,
+    Radius,
     Font,
     Text,
     Size,
@@ -266,5 +273,83 @@ fun backgrounds_land_as_classes_and_pictures_as_checked_data_urls() {
         "file as data true no path true",
         "missing file true",
         "new picture as jpeg data true",
+    ]);
+}
+
+enum Round {
+    Flatten,
+}
+
+fun view_borders(rounded: bool): View<Round> = column([
+    column([text("inside")]).style([
+        Border {
+            all: Side { width: Width.Px(1), color: Paint.Faded(0.2), style: Line.Solid },
+            radius: if rounded { Radius.All(12) } else { Radius.Theme },
+            ..Border.theme(),
+        },
+        Outline {
+            width: Width.Px(2),
+            color: Paint.Color(hex("#2a5298")),
+            style: Line.Dashed,
+            offset: 2,
+        },
+    ]),
+    button("Flatten", Round.Flatten),
+]);
+
+@test
+fun borders_land_as_classes_and_rounded_nodes_clip_their_content() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen: Ref<string[]> = Ref.new([]);
+    let application = gtk_application_new("org.kivuli.test.borders", 0);
+    connect_app(
+        application,
+        "activate",
+        fun(a: GtkApplication) {
+            let window = gtk_application_window_new(a);
+            let app = mount(
+                a,
+                window,
+                sandbox_app(
+                    "org.kivuli.test",
+                    true,
+                    fun(rounded: bool, msg: Round): bool = false,
+                    view_borders,
+                ),
+            );
+            let kids = fun(): Live<Round>[] = match live_of(app) {
+                Box(_, _, ks) => ks,
+                _ => panic("expected a column"),
+            };
+            let css = fun(): string[] = app.styles.css.get();
+            let card = widget(kids()[0]);
+            note(
+                seen,
+                "classes {gtk_widget_has_css_class(card, "kv-bw-top-1")} {gtk_widget_has_css_class(card, "kv-br-tl-12")} {gtk_widget_has_css_class(card, "kv-ow-2")}",
+            );
+            note(
+                seen,
+                "outline rule keeps focus {css().any(fun(r) = r == ".kv-ow-2:not(:focus-visible) {{ outline-width: 2px; }}")}",
+            );
+            // GtkOverflow: 0 visible, 1 hidden.
+            note(seen, "rounded clips {gtk_widget_get_overflow(card)}");
+            emit_widget(widget(kids()[1]), "clicked");
+            note(
+                seen,
+                "flat: same {widget(kids()[0]) == card} clips {gtk_widget_get_overflow(card)} radius class {gtk_widget_has_css_class(card, "kv-br-tl-12")}",
+            );
+            g_application_quit(a);
+        },
+        0,
+    );
+    g_application_run(application, 0, None);
+    g_object_unref(application);
+    assert_eq(seen.get(), [
+        "classes 1 1 1",
+        "outline rule keeps focus true",
+        "rounded clips 1",
+        "flat: same true clips 0 radius class 0",
     ]);
 }

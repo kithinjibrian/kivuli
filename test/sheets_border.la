@@ -1,0 +1,162 @@
+// Borders and outlines turned into CSS: one class per side, property and
+// value; a width without a line drawn solid; an outline's rules only while
+// the node doesn't have keyboard focus, so the theme's focus ring shows.
+// (test/sheets.la is nearly full.) No GTK.
+import kivuli.styles { Sheet };
+import kivuli.sheets { check, rules };
+import kivuli { Border, Side, Outline, Width, Line, Radius, Paint, hex };
+
+fun sheet(b: Border): Sheet = Sheet { border: b, ..Sheet.theme() };
+
+fun lined(o: Outline): Sheet = Sheet { outline: o, ..Sheet.theme() };
+
+fun css(s: Sheet): string[] = rules(s).map(fun(rule) = "{rule.0} => {rule.1}");
+
+@test
+fun one_side_is_its_own_classes() {
+    let red = Side { width: Width.Px(2), color: Paint.Color(hex("#ff0000")), style: Line.Dashed };
+    assert_eq(css(sheet(Border { bottom: red, ..Border.theme() })), [
+        "kv-bw-bottom-2 => border-bottom-width: 2px;",
+        "kv-bs-bottom-dashed => border-bottom-style: dashed;",
+        "kv-bc-bottom-ff0000ff => border-bottom-color: #ff0000ff;",
+    ]);
+    let faint = Side { color: Paint.Faded(0.15), ..Side.theme() };
+    assert_eq(css(sheet(Border { left: faint, ..Border.theme() })), [
+        "kv-bcfade-left-150 => border-left-color: alpha(currentColor, 0.15);",
+    ]);
+}
+
+@test
+fun all_gives_every_side_in_order() {
+    let one = Side { width: Width.Px(1), color: Paint.Theme, style: Line.Solid };
+    assert_eq(rules(sheet(Border { all: one, ..Border.theme() })).map(fun(r) = r.0), [
+        "kv-bw-top-1",
+        "kv-bs-top-solid",
+        "kv-bw-right-1",
+        "kv-bs-right-solid",
+        "kv-bw-bottom-1",
+        "kv-bs-bottom-solid",
+        "kv-bw-left-1",
+        "kv-bs-left-solid",
+    ]);
+}
+
+@test
+fun a_width_without_a_line_is_drawn_solid_and_none_hides_it() {
+    assert_eq(
+        css(sheet(Border { top: Side { width: Width.Px(4), ..Side.theme() }, ..Border.theme() })),
+        ["kv-bw-top-4 => border-top-width: 4px;", "kv-bs-top-solid => border-top-style: solid;"],
+    );
+    assert_eq(
+        css(
+            sheet(Border {
+                top: Side { width: Width.Px(4), style: Line.None, ..Side.theme() },
+                ..Border.theme(),
+            }),
+        ),
+        ["kv-bw-top-4 => border-top-width: 4px;", "kv-bs-top-none => border-top-style: none;"],
+    );
+}
+
+@test
+fun every_line_style_is_its_css_keyword() {
+    let lines = [
+        Line.None,
+        Line.Solid,
+        Line.Dashed,
+        Line.Dotted,
+        Line.Double,
+        Line.Groove,
+        Line.Ridge,
+        Line.Inset,
+        Line.Outset,
+    ];
+    let shown = lines.map(
+        fun(l) = rules(
+            sheet(Border { top: Side { style: l, ..Side.theme() }, ..Border.theme() }),
+        )[0].1,
+    );
+    assert_eq(shown, [
+        "border-top-style: none;",
+        "border-top-style: solid;",
+        "border-top-style: dashed;",
+        "border-top-style: dotted;",
+        "border-top-style: double;",
+        "border-top-style: groove;",
+        "border-top-style: ridge;",
+        "border-top-style: inset;",
+        "border-top-style: outset;",
+    ]);
+}
+
+@test
+fun a_radius_is_one_class_per_corner() {
+    assert_eq(css(sheet(Border { radius: Radius.All(12), ..Border.theme() })), [
+        "kv-br-tl-12 => border-top-left-radius: 12px;",
+        "kv-br-tr-12 => border-top-right-radius: 12px;",
+        "kv-br-br-12 => border-bottom-right-radius: 12px;",
+        "kv-br-bl-12 => border-bottom-left-radius: 12px;",
+    ]);
+    assert_eq(
+        rules(sheet(Border { radius: Radius.Corners(8, 8, 0, 0), ..Border.theme() })).map(
+            fun(r) = r.0,
+        ),
+        ["kv-br-tl-8", "kv-br-tr-8", "kv-br-br-0", "kv-br-bl-0"],
+    );
+}
+
+@test
+fun an_outline_applies_only_without_keyboard_focus() {
+    let o = Outline {
+        width: Width.Px(2),
+        color: Paint.Color(hex("#2a5298")),
+        style: Line.Solid,
+        offset: 2,
+    };
+    assert_eq(css(lined(o)), [
+        "kv-ow-2:not(:focus-visible) => outline-width: 2px;",
+        "kv-os-solid:not(:focus-visible) => outline-style: solid;",
+        "kv-oc-2a5298ff:not(:focus-visible) => outline-color: #2a5298ff;",
+        "kv-oo-2:not(:focus-visible) => outline-offset: 2px;",
+    ]);
+    assert_eq(css(lined(Outline { offset: -3, color: Paint.Faded(0.5), ..Outline.theme() })), [
+        "kv-ocfade-500:not(:focus-visible) => outline-color: alpha(currentColor, 0.5);",
+        "kv-oo-m3:not(:focus-visible) => outline-offset: -3px;",
+    ]);
+    // A width without a line is drawn solid, as for a border.
+    assert_eq(rules(lined(Outline { width: Width.Px(1), ..Outline.theme() })).map(fun(r) = r.0), [
+        "kv-ow-1:not(:focus-visible)",
+        "kv-os-solid:not(:focus-visible)",
+    ]);
+}
+
+@test
+fun bad_border_values_say_what_is_wrong() {
+    assert_eq(
+        check(
+            sheet(Border { top: Side { width: Width.Px(-1), ..Side.theme() }, ..Border.theme() }),
+        ),
+        Err("Width.Px(-1): a width can't be negative"),
+    );
+    assert_eq(
+        check(sheet(Border { radius: Radius.All(-4), ..Border.theme() })),
+        Err("Radius.All(-4): a radius can't be negative"),
+    );
+    assert_eq(
+        check(sheet(Border { radius: Radius.Corners(2, -1, 0, 0), ..Border.theme() })),
+        Err("Radius.Corners(2, -1, 0, 0): a radius can't be negative"),
+    );
+    assert_eq(
+        check(lined(Outline { width: Width.Px(-2), ..Outline.theme() })),
+        Err("Width.Px(-2): a width can't be negative"),
+    );
+    assert_eq(
+        check(
+            sheet(Border {
+                all: Side { color: Paint.Faded(3.0), ..Side.theme() },
+                ..Border.theme(),
+            }),
+        ),
+        Err("Paint.Faded(3.0): an opacity is between 0 and 1"),
+    );
+}

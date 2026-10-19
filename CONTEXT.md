@@ -445,9 +445,18 @@ Branch: main (PRP-017 on prp-017-backgrounds, merged)
 
 ---
 
-## SESSION 20 — 2026-10-19 — Borders and outlines through .style: discovery — open
+## SESSION 20 — 2026-10-19 — PRP-018: borders and outlines, kivuli 0.13.0 — closed
 
-Branch: main
+Branch: main (PRP-018 on prp-018-borders_and_outlines, merged)
+
+### WHAT WAS DONE
+- Interview (each side on its own, plus `all`; a side's own field beats `all` within a value, a later value wins across; outlines hide while the node has keyboard focus), PRP-018 approved and built. `Border`, `Side`, `Outline`, `Width`, `Line`, `Radius`; `Sheet.border`, `Sheet.outline`; per-side atomic CSS (a width without a line drawn solid), per-corner radius, outline rules under `:not(:focus-visible)` (GTK parses them, C probe); rounded nodes clip their content again (overflow hidden, `kv-clip`). Tests: styles, sheets_border (new: sheets.la was at 401), theming, live_type. examples/borders.la. Docs and the tutorial page updated. kivuli 0.13.0, tagged locally.
+
+### STILL OPEN AT CLOSE
+- Not pushed, waiting for the user's go: main and tags v0.11.0, v0.12.0, v0.13.0.
+- For the user to check by hand: `lughac run examples/borders.la` in light and dark; Tab to the outlined buttons: the focus ring shows instead of the outline.
+- Next: button looks through `.style`; style utilities (names free of the fields, E0310). Queued: file dialog (013). For the lugha session: DECISIONS 020-022. test/live_forms.la split awaiting the user.
+- `reports/.gitkeep` deleted in the working tree, not by Claude; left alone.
 
 ---
 

@@ -1,6 +1,6 @@
 # PRP-018 — Borders and outlines through `.style`
 
-Status: approved by the user (session 20); building on branch prp-018-borders_and_outlines
+Status: built (session 20) on branch prp-018-borders_and_outlines; merged into main
 Discovery: session 20, 2026-10-19 (DECISION-023's next group). *(you)*: chosen in the interview; *(proposed)*: for you to confirm or change with this PRP.
 
 ## FEATURE: `Border` (each side, or all of them, and the corners' radius) and `Outline` values in `.style([...])`, merged like every other style value.
@@ -94,24 +94,31 @@ Side.theme(), Border.theme(), Outline.theme()   // every field the theme's
 ## TESTS TO WRITE
 
 Pure:
-- [ ] `test/styles.la`: `Border.theme()`, `Side.theme()`, `Outline.theme()` set nothing; `all` folds into each side; a side's own field beats `all` within one value, field by field; a later `all` resets earlier sides; a later radius replaces every corner; outlines merge field by field; the OBJECTIVE's `view` reads as written.
-- [ ] `test/sheets.la`: CSS for each side's width, style (every `Line`), colour (and faded), each corner's radius, a width with a `Theme` style drawn solid, `Line.None`; an outline's four properties under `:not(:focus-visible)`, a negative offset; each check message.
-- [ ] `test/theming.la`: `paint` gives a border's and an outline's classes and refuses their bad values.
+- [x] `test/styles.la`: `Border.theme()`, `Side.theme()`, `Outline.theme()` set nothing; `all` folds into each side; a side's own field beats `all` within one value, field by field; a later `all` resets earlier sides; a later radius replaces every corner; outlines merge field by field; the OBJECTIVE's `view` reads as written.
+- [x] `test/sheets.la`: CSS for each side's width, style (every `Line`), colour (and faded), each corner's radius, a width with a `Theme` style drawn solid, `Line.None`; an outline's four properties under `:not(:focus-visible)`, a negative offset; each check message.
+- [x] `test/theming.la`: `paint` gives a border's and an outline's classes and refuses their bad values.
 
 Live GTK (skipped without a display), `test/live_type.la`:
-- [ ] a bordered, rounded node carries its classes and the stylesheet holds their rules (an outline's with `:not(:focus-visible)`); a rounded node clips its children (overflow hidden), and stops when the radius goes; a node GTK clips itself is left as it is.
+- [x] a bordered, rounded node carries its classes and the stylesheet holds their rules (an outline's with `:not(:focus-visible)`); a rounded node clips its children (overflow hidden), and stops when the radius goes; a node GTK clips itself is left as it is.
 - [ ] How borders and outlines look, and that the focus ring still shows: checked by hand in `examples/borders.la`.
 
 ## ROLLBACK PLAN
 - Branch `prp-018-borders_and_outlines` from `main`; abandon by leaving it unmerged.
 
 ## ACCEPTANCE CRITERIA
-- [ ] The OBJECTIVE's code compiles and its tests pass unchanged.
-- [ ] Tests written first; narrow runs while building; the full suite and the examples' tests pass before the merge.
-- [ ] fmt clean; public items documented; no file over 500 lines (`styles.la` and `sheets.la` are proposed for a split first if either would pass it).
-- [ ] README, docs/DESIGN.md, CHANGELOG, CLAUDE.md, DECISIONS updated; the tutorial page; 0.13.0 tagged; merged. Pushed only on your go.
+- [x] The OBJECTIVE's code compiles and its tests pass unchanged.
+- [x] Tests written first; narrow runs while building; the full suite and the examples' tests pass before the merge.
+- [x] fmt clean; public items documented; no file over 500 lines (`styles.la` and `sheets.la` are proposed for a split first if either would pass it).
+- [x] README, docs/DESIGN.md, CHANGELOG, CLAUDE.md, DECISIONS updated; the tutorial page; 0.13.0 tagged; merged. Pushed only on your go.
 
 ## VALIDATION
 - While building: only the tests covering each step.
 - Before the merge: `lughac fmt --check src examples test`, `lughac test test/`, the examples' own tests, every example built with `-o examples/<name>`.
 - For the user: `lughac run examples/borders.la`: each value as its label names it, in light and dark; Tab to the outlined button and its focus ring shows.
+
+## NOTES FROM THE BUILD
+
+- **An outline's rule carries its selector's tail**: `rules` gives `("kv-ow-2:not(:focus-visible)", …)` and `paint` takes the class before the `:`. GTK 4.22 parses the selector (C probe, no errors).
+- **`all` is folded in twice over**: `Border.apply` resolves it into the sides (the `Sheet` keeps `all` as `Theme`), and `sheets` folds it again (`sides`), so a `Sheet` built by hand with `all` set gives the same CSS.
+- **The border CSS tests are `test/sheets_border.la`**: `test/sheets.la` was at 401 lines (nothing moved). `src/styles.la` is 421 lines and `src/sheets.la` about 450 after this.
+- **Clipping is back**: 0.10's overflow clipping for rounded nodes (with the `kv-clip` marker) went with named looks in 0.11.0; restored, reading the sheet's radius.

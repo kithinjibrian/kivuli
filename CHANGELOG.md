@@ -8,6 +8,11 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.13.0] — 2026-10-19
+
+### Added
+- Borders and outlines (PRP-018): `Border { all, top, right, bottom, left, radius }` and `Outline { width, color, style, offset }` in `.style([...])`. Each side is a `Side { width, color, style }`; a side's own fields beat `all`, and a later value's `all` resets earlier sides. `Line` has every CSS style; a width with no line is drawn solid. `Radius.All(n)` or `Radius.Corners(…)`; a rounded node clips what's inside it again. An outline hides while its node has keyboard focus, so the theme's focus ring shows. `examples/borders.la`.
+
 ## [0.12.0] — 2026-10-19
 
 ### Added

@@ -16,6 +16,10 @@ import kivuli {
     Background,
     Gradient,
     Image,
+    Border,
+    Side,
+    Width,
+    Radius,
     button,
     button_with,
     checkbox,
@@ -152,4 +156,27 @@ fun painting_gives_a_backgrounds_classes_and_refuses_its_bad_values() {
         text("a").style([Background { gradient: Gradient.Radial([]), ..Background.theme() }]),
     ]);
     assert_eq(painted(bad).map(fun(v) = 0), Err("Gradient: a gradient needs at least two stops"));
+}
+
+@test
+fun painting_gives_a_borders_classes_and_refuses_its_bad_values() {
+    let framed: View<i64> = text("a").style([
+        Border {
+            bottom: Side { width: Width.Px(1), ..Side.theme() },
+            radius: Radius.All(6),
+            ..Border.theme(),
+        },
+    ]);
+    assert_eq(classes_of(framed), [
+        "kv-bw-bottom-1",
+        "kv-bs-bottom-solid",
+        "kv-br-tl-6",
+        "kv-br-tr-6",
+        "kv-br-br-6",
+        "kv-br-bl-6",
+    ]);
+    let bad: View<i64> = column([
+        text("a").style([Border { radius: Radius.All(-1), ..Border.theme() }]),
+    ]);
+    assert_eq(painted(bad).map(fun(v) = 0), Err("Radius.All(-1): a radius can't be negative"));
 }

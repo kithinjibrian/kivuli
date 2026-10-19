@@ -74,7 +74,8 @@ fun paint_style<Msg>(node: View<Msg>, s: Style): Result<Style, string> {
         _ => {}
     }
     check(s.sheet)?;
-    let mut classes = rules(s.sheet).map(fun(rule) = rule.0);
+    // A rule's key may carry its selector's tail (`:not(:focus-visible)`): the class is before it.
+    let mut classes = rules(s.sheet).map(fun(rule) = rule.0.split(":")[0]);
     match picture(s.sheet) {
         Some((class, _, _, _)) => classes.push(class),
         None => {}

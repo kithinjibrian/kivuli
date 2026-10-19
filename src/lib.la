@@ -26,6 +26,12 @@ public import styles {
     Gradient,
     Stop,
     Fill,
+    Border,
+    Side,
+    Outline,
+    Width,
+    Line,
+    Radius,
 };
 public import pictures { Image };
 public import menus { MenuEntry, item, menu_separator };

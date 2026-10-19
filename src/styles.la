@@ -13,7 +13,7 @@
 import theming { Paint };
 import pictures { Image };
 
-/** Something `.style([…])` can apply: a `Font`, a `Text` or a `Background`. */
+/** Something `.style([…])` can apply: a `Font`, a `Text`, a `Background`, a `Border` or an `Outline`. */
 public interface Styling {
     /** `s` with this value's fields over it; fields left `Theme` are skipped. */
     fun apply(self, s: Sheet): Sheet;
@@ -24,6 +24,9 @@ public struct Sheet {
     public font: Font,
     public text: Text,
     public background: Background,
+    /** The four sides resolved (`all` folded in), and the corners. */
+    public border: Border,
+    public outline: Outline,
 }
 
 impl Sheet {
@@ -32,6 +35,8 @@ impl Sheet {
         font: Font.theme(),
         text: Text.theme(),
         background: Background.theme(),
+        border: Border.theme(),
+        outline: Outline.theme(),
     };
 }
 
@@ -275,6 +280,141 @@ impl Background {
             },
             image: if self.image.is_some() { self.image } else { s.background.image },
             fill: if self.fill == Fill.Theme { s.background.fill } else { self.fill },
+        },
+        ..s,
+    };
+}
+
+/** A border's or outline's width. */
+public enum Width {
+    Theme,
+    /** Pixels. */
+    Px(i64),
+}
+
+/** How a border or outline is drawn. A width with the line left `Theme` is drawn `Solid`. */
+public enum Line {
+    Theme,
+    /** Not drawn. */
+    None,
+    Solid,
+    Dashed,
+    Dotted,
+    Double,
+    Groove,
+    Ridge,
+    Inset,
+    Outset,
+}
+
+/** How round a node's corners are, in pixels. A rounded node clips what's inside it. */
+public enum Radius {
+    Theme,
+    /** Every corner. */
+    All(i64),
+    /** Top left, top right, bottom right, bottom left. */
+    Corners(i64, i64, i64, i64),
+}
+
+/** One side of a border. Fields left `Theme` stay the theme's. */
+public struct Side {
+    public width: Width,
+    /** `Faded(x)` is a hairline of the theme's text colour, following light and dark. */
+    public color: Paint,
+    public style: Line,
+}
+
+impl Side {
+    /** Every field the theme's. */
+    public fun theme(): Side = Side { width: Width.Theme, color: Paint.Theme, style: Line.Theme };
+
+    /** `under` with every field this side sets. */
+    public fun over(self, under: Side): Side = Side {
+        width: if self.width == Width.Theme { under.width } else { self.width },
+        color: if self.color == Paint.Theme { under.color } else { self.color },
+        style: if self.style == Line.Theme { under.style } else { self.style },
+    };
+}
+
+/**
+ * A node's border: `all` for every side, each side on its own over it (field
+ * by field), and the corners' radius. Across a style's values the later
+ * wins, so a later `all` resets sides an earlier value set.
+ *
+ * Example:
+ *     card.style([Border { all: hairline, radius: Radius.All(12), ..Border.theme() }])
+ */
+public struct Border {
+    public all: Side,
+    public top: Side,
+    public right: Side,
+    public bottom: Side,
+    public left: Side,
+    public radius: Radius,
+}
+
+impl Border {
+    /** Every field the theme's: start here and change what you need. */
+    public fun theme(): Border = Border {
+        all: Side.theme(),
+        top: Side.theme(),
+        right: Side.theme(),
+        bottom: Side.theme(),
+        left: Side.theme(),
+        radius: Radius.Theme,
+    };
+
+    /** `s` with every side and corner this border sets; `all` is folded into the sides. */
+    public fun apply(self, s: Sheet): Sheet {
+        let was = s.border;
+        // A side's own field beats `all`; both beat what was there.
+        let side = fun(own: Side, before: Side): Side = own.over(self.all.over(before));
+        Sheet {
+            border: Border {
+                all: Side.theme(),
+                top: side(self.top, was.top),
+                right: side(self.right, was.right),
+                bottom: side(self.bottom, was.bottom),
+                left: side(self.left, was.left),
+                radius: if self.radius == Radius.Theme { was.radius } else { self.radius },
+            },
+            ..s,
+        }
+    }
+}
+
+/**
+ * A line around a node, outside its border, that doesn't take room: for
+ * "selected" or a drop target. It hides while the node has keyboard focus,
+ * so the theme's focus ring shows.
+ *
+ * Example:
+ *     tile.style([Outline { width: Width.Px(2), color: Paint.Color(hex("#2a5298")), style: Line.Solid, offset: 2 }])
+ */
+public struct Outline {
+    public width: Width,
+    public color: Paint,
+    public style: Line,
+    /** Pixels outside the border; negative draws inside; 0 is the theme's. */
+    public offset: i64,
+}
+
+impl Outline {
+    /** Every field the theme's. */
+    public fun theme(): Outline = Outline {
+        width: Width.Theme,
+        color: Paint.Theme,
+        style: Line.Theme,
+        offset: 0,
+    };
+
+    /** `s` with every field this outline sets. */
+    public fun apply(self, s: Sheet): Sheet = Sheet {
+        outline: Outline {
+            width: if self.width == Width.Theme { s.outline.width } else { self.width },
+            color: if self.color == Paint.Theme { s.outline.color } else { self.color },
+            style: if self.style == Line.Theme { s.outline.style } else { self.style },
+            offset: if self.offset == 0 { s.outline.offset } else { self.offset },
         },
         ..s,
     };
