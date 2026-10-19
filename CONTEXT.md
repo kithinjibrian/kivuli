@@ -396,6 +396,12 @@ Branch: main (PRP-015 on prp-015-clickable_rows, merged)
 
 ---
 
+## SESSION 17 — 2026-10-19 — Styling through one door: discovery — open
+
+Branch: main
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.

@@ -12,6 +12,18 @@ Rules:
 
 ## OPEN — Requires human input before implementation
 
+### DECISION-023 — Styling has one door
+
+**Status:** open (direction chosen; details in a PRP)
+**Raised:** 2026-10-19 — Session 17 (the user)
+**Blocks:** any new appearance modifier or `Surface` field until the PRP is approved
+
+**Question:** Appearance comes through three overlapping ways: modifiers (`.bold`, `.dim`, `.size` on text, `.button_style`), `ButtonStyle`, and `Surface` fields (`text`, `flat`) that compete with them. Which one wins depends on the order kivuli applies them.
+
+**Direction (the user's choice, breaking changes accepted):** modifiers keep layout, behaviour and text flow only; all appearance goes through `.style(looks)`. kivuli ships a `Role` enum of looks the GTK theme draws (its own classes: theme-following, no `.theme` needed); app looks are `Surface`s that can build on roles (`roles: […]`) and use theme colours. `.bold`, `.dim`, `.size` on text, `.button_style`, `ButtonStyle`, `Surface.flat` and `.header_style` go. A role on a node it doesn't fit stops the app with a message.
+
+**Open details, for the PRP's interview:** the exact `Role` list (checked against GTK 4.22's default theme); theme and adaptive colours (DECISION-017); how `.style` mixes roles and app looks; the migration of examples, README and Rapidkoi.
+
 ---
 
 ## DEFERRED — Acknowledged, not yet needed
