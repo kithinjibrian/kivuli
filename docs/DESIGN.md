@@ -132,13 +132,15 @@ Everything is made once per widget: an update re-points the actions' messages (o
 
 A keyed move takes a child out and puts it back at its new place (a flow box can't reorder), holding the widget alive meanwhile. "Selected" tiles are the app's model plus a look.
 
-### Header bar (`.header`)
+### Header bar (`.header(header_bar(…))`; PRP-023)
 
 | kivuli | GTK |
 | --- | --- |
-| `.header(start, title, end)` on the root | a `GtkHeaderBar` set as the window's titlebar, `show-title-buttons` on: GTK draws the window's controls |
+| `.header(header_bar(start, title, end))` on the root | a `GtkHeaderBar` set as the window's titlebar, `show-title-buttons` on: GTK draws the window's controls |
 | each `start` / `end` view | packed into the bar itself (`pack_start` / `pack_end`), so the theme's spacing between them applies |
 | `title` | the bar's title widget; `.expand()` lets it take the bar's spare width |
+
+**The bar's style** (`header_bar(…).style([...])`, PRP-023): a `Bar` is not a view node; its style rides in the root's `Style` (`bar`, apart from the page's `sheet`), and `paint` gives it its own classes (`bar_classes`), which go on the `headerbar` node only, so its window controls stay GTK's. GTK draws the bar's own background, bottom line and shadow: an app replacing them sets those three (`Background`, `Border { bottom: … }`, `Shadow.off()`). An exact or maximum size, a gap and a background image are refused on a bar.
 
 Dark mode: apps follow the desktop's preference. Forcing dark from an app is deferred (DECISION-017).
 

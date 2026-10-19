@@ -7,7 +7,8 @@
  * Used by: build, lib; `snap` by build and testing, styling, testing
  */
 
-import views { View };
+import views { Bar, View };
+import styles { Sheet };
 import pictures { Image };
 
 /**
@@ -253,3 +254,19 @@ fun snap(value: i64, min: i64, max: i64, step: i64): i64 {
     let near = min + (clamped - min + by / 2) / by * by;
     if near > max { near - by } else { near }
 }
+
+/**
+ * A header bar: `start` views at its start, `title` in the middle
+ * (`.expand()` lets it fill the bar, as for an address box) and `end` views
+ * at its end. Put it in the window's title bar with `.header(…)` on the root;
+ * style it with `.style([...])`.
+ *
+ * Example:
+ *     page.header(header_bar([back], address(m).expand(), [menu]))
+ */
+public fun header_bar<Msg>(start: View<Msg>[], title: View<Msg>, end: View<Msg>[]): Bar<Msg> = Bar {
+    start: start,
+    title: title,
+    end: end,
+    sheet: Sheet.theme(),
+};

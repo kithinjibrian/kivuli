@@ -7,7 +7,7 @@
  */
 
 import looks { Style, Window, Align, Fit, plain };
-import styles { Styling, applied };
+import styles { Sheet, Styling, applied };
 import pictures { Image };
 import menus { MenuEntry };
 // The one import cycle kivuli allows (DECISION-018): mapping maps views.
@@ -336,25 +336,23 @@ impl View<Msg> {
     );
 
     /**
-     * On the root of `view`: a header bar as the window's title bar, with
-     * `start` views at its start, `title` in the middle (`.expand()` lets it
-     * fill the bar, as for an address box) and `end` views at its end. GTK
-     * draws the window's controls. Its widgets send messages like any others.
-     * Anywhere but the root, the app stops with a message.
+     * On the root of `view`: `bar` (`header_bar(…)`) as the window's title
+     * bar; GTK draws the window's controls in it. The bar's style goes on the
+     * bar, the root's on the page. Anywhere but the root, the app stops with
+     * a message.
      *
      * Example:
-     *     column([...]).header([back, forward], address(m).expand(), [menu])
+     *     column([...]).header(header_bar([back], address(m).expand(), [menu]).style([dark()]))
      */
-    public fun header(
-        self,
-        start: View<Msg>[],
-        title: View<Msg>,
-        end: View<Msg>[],
-    ): View<Msg> = match self {
-        // Modifiers stay outside the frame, where the runtime reads the root's.
-        Styled(inside, s) => View.Styled(inside.header(start, title, end), s),
-        _ => View.Framed(self, start, title, end),
-    };
+    public fun header(self, bar: Bar<Msg>): View<Msg> {
+        // Modifiers stay outside the frame, where the runtime reads the root's;
+        // the bar's style rides there too, apart from the page's.
+        let framed = match self {
+            Styled(inside, s) => View.Styled(View.Framed(inside, bar.start, bar.title, bar.end), s),
+            _ => View.Framed(self, bar.start, bar.title, bar.end),
+        };
+        restyle(framed, fun(s: Style) = Style { bar: bar.sheet, ..s })
+    }
 
     /** In a `wrap`: every child as wide as the widest, a tidy grid. Ignored elsewhere. */
     public fun equal(self): View<Msg> = restyle(self, fun(s: Style) = Style { equal: true, ..s });
@@ -392,4 +390,31 @@ impl View<Msg> {
      *     row([counter.view(m.left).map(Msg.Left), counter.view(m.right).map(Msg.Right)])
      */
     public fun map<B>(self, f: fun(Msg): B): View<B> = mapped(self, f);
+}
+
+/**
+ * A header bar, before it goes in `.header(…)`: the views at its start, its
+ * title view and the views at its end, and its own style. Made by
+ * `header_bar`; styled like a node.
+ */
+public struct Bar<Msg> {
+    start: View<Msg>[],
+    title: View<Msg>,
+    end: View<Msg>[],
+    sheet: Sheet,
+}
+
+impl Bar<Msg> {
+    /**
+     * How the bar looks, as `.style` on a node: its window controls stay
+     * GTK's. An exact or maximum size, a gap and a background image are the
+     * window's, and stop the app with a message.
+     *
+     * Example:
+     *     header_bar([back], title, []).style([Background { color: Paint.Color(hex("#242424")), ..Background.theme() }])
+     */
+    public fun style(self, items: Styling[]): Bar<Msg> = Bar {
+        sheet: applied(self.sheet, items),
+        ..self,
+    };
 }

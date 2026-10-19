@@ -8,7 +8,7 @@
  * Depends on: views, looks, theming, styles, style_groups, style_values, pictures, menus, widgets, effects, testing, live
  */
 
-public import views { View };
+public import views { Bar, View };
 public import looks { Align, Fit };
 public import theming { Color, Paint, hex, rgb };
 public import styles {
@@ -68,6 +68,7 @@ public import widgets {
     slider,
     icon,
     image,
+    header_bar,
 };
 public import effects { Cmd, Sub, App };
 public import testing;

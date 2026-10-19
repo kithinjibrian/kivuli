@@ -25,6 +25,7 @@ import kivuli {
     button_with,
     item,
     Fit,
+    header_bar,
 };
 
 // Views and commands can hold functions, which have no `==`: compare what
@@ -130,7 +131,7 @@ fun mapped_fields_send_mapped_messages_and_disabled_ones_stay_silent() {
 
 @test
 fun a_mapped_header_sends_mapped_messages() {
-    let part: View<Part> = text("body").header([button("Go", Part.Go)], text("T"), []);
+    let part: View<Part> = text("body").header(header_bar([button("Go", Part.Go)], text("T"), []));
     assert_eq(click(part.map(App.Left), "Go"), Ok(App.Left(Part.Go)));
 }
 

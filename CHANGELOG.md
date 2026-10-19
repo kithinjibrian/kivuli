@@ -8,6 +8,11 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.18.0] — 2026-10-20
+
+### Breaking
+- The header bar is built and styled as a node (PRP-023): `.header(start, title, end)` becomes `.header(header_bar(start, title, end))`, and `header_bar(…).style([...])` styles the bar itself (its window controls stay GTK's). For Rapidkoi: wrap its `.header(…)` arguments in `header_bar(…)`.
+
 ## [0.17.0] — 2026-10-20
 
 ### Added

@@ -154,7 +154,7 @@ lughac run examples/split.la      # one component, two copies, through map
 | `.name(id)` | A name tests find a text field, text area, drop-down or slider by (not shown). |
 | `.window(title, width, height)` | On the root of `view`: the window's title (it may follow the model) and size. |
 | `.maximized()` | On the root: the window opens maximized; `.window`'s size is its size when unmaximized. |
-| `.header(start, title, end)` | On the root: a header bar as the window's title bar, with `start` views, a `title` view (`.expand()` fills the bar) and `end` views; GTK draws the window's controls. Its widgets send messages like any others. |
+| `.header(header_bar(start, title, end))` | On the root: a header bar as the window's title bar, with `start` views, a `title` view (`.expand()` fills the bar) and `end` views; GTK draws the window's controls. `header_bar(…).style([...])` styles the bar itself (its controls stay GTK's); the root's `.style` styles the page. An exact or maximum size, a gap and a background image are the window's, and refused on a bar. |
 
 Everything visual comes from the GTK theme unless a node's `.style` says otherwise, and apps follow the user's light or dark theme. kivuli ships no colours.
 

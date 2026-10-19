@@ -1,6 +1,6 @@
 # PRP-023 — The header bar as a node you style
 
-Status: approved by the user (session 28); building on branch prp-023-header_bar
+Status: built (session 28) on branch prp-023-header_bar; merged into main
 Discovery: session 28, 2026-10-20. *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: `header_bar(start, title, end)` builds the bar; `.style([...])` styles it; `.header(bar)` puts it in the window's title bar.
@@ -27,10 +27,16 @@ fun view(m: Model): View<Msg> = page(m).header(
 - A bar style change is a restyle of the root, as the old header looks were.
 
 ## TESTS (narrow)
-- [ ] `test/lib.la`: `.header(header_bar(…))` makes the framed root; the bar's style lands in the root's style; `.header(header_bar(…).style(…))` and the page's `.style` stay apart.
-- [ ] `test/theming.la`: paint gives the bar's classes; the refusals.
-- [ ] `test/live_header.la`: the bar carries its classes (and the window controls are still shown); a style change re-classes the same bar; the existing header tests, rewritten to `header_bar`.
-- [ ] Every example builds; `examples/browser.la` styles its bar. No full suite (the user's call).
+- [x] `test/lib.la`: `.header(header_bar(…))` makes the framed root; the bar's style lands in the root's style; `.header(header_bar(…).style(…))` and the page's `.style` stay apart.
+- [x] `test/theming.la`: paint gives the bar's classes; the refusals.
+- [x] `test/live_header.la`: the bar carries its classes (and the window controls are still shown); a style change re-classes the same bar; the existing header tests, rewritten to `header_bar`.
+- [x] Every example builds; `examples/browser.la` styles its bar. No full suite (the user's call).
 
 ## ACCEPTANCE
-- [ ] The OBJECTIVE compiles; fmt clean; no file over 500 lines; README, DESIGN, CHANGELOG 0.18.0 (Breaking: `.header(start, title, end)` → `.header(header_bar(start, title, end))`); merged, tagged; pushed only on your go.
+- [x] The OBJECTIVE compiles; fmt clean; no file over 500 lines; README, DESIGN, CHANGELOG 0.18.0 (Breaking: `.header(start, title, end)` → `.header(header_bar(start, title, end))`); merged, tagged; pushed only on your go.
+
+## NOTES FROM THE BUILD
+
+- **`Bar` lives in `views.la`**: `View`'s `.header` takes one and a `Bar` holds views, so no other module can hold it without an import cycle. `header_bar` is in `widgets.la`.
+- **The bar's style rides in the root's `Style`** (`bar`, `bar_classes`), as 0.10's header looks did; `paint` checks it and gives its classes; `stylesheet` collects its rules; `apply_style`'s `Framed` arm puts them on the bar.
+- **Narrow runs only** (the user's call): lib, theming, map, testing, diff, live_header, the browser example's tests; every example built.

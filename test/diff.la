@@ -28,6 +28,7 @@ import kivuli {
     icon,
     image,
     Fit,
+    header_bar,
 };
 
 // Views and patches can hold functions, which have no `==`: compare what they
@@ -455,9 +456,7 @@ fun a_disabled_fields_value_still_updates() {
 }
 
 fun framed(title: string, start: View<Msg>[], end: View<Msg>[]): View<Msg> = text("body").header(
-    start,
-    text(title),
-    end,
+    header_bar(start, text(title), end),
 );
 
 @test
@@ -475,7 +474,10 @@ fun a_headers_parts_diff_in_place() {
         removed,
     );
     let body: Patch<Msg>[] = [Patch.SetText([0], "other")];
-    assert_same(patches(framed("T", [], []), text("other").header([], text("T"), [])), body);
+    assert_same(
+        patches(framed("T", [], []), text("other").header(header_bar([], text("T"), []))),
+        body,
+    );
 }
 
 @test
