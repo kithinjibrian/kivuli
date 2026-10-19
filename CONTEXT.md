@@ -552,9 +552,17 @@ Branch: main (cleanup, merged)
 
 ---
 
-## SESSION 27 — 2026-10-20 — Style utilities: discovery — open
+## SESSION 27 — 2026-10-20 — Style utilities: parked — closed
 
 Branch: main
+
+### WHAT WAS DONE
+- Started the style-utilities interview. Question 1 (where they live): A, a `kivuli.tw` module of free functions with Tailwind-style names (`tw.bold()`, `tw.p(16)`, `tw.rounded(12)`; module-qualified calls checked with lughac), or B, statics on each group with names avoiding the fields (E0310). The user parked it before answering. No code, no PRP.
+
+### STILL OPEN AT CLOSE
+- Style utilities parked at question 1.
+- Next, whenever the user picks: motion (transitions, animations); the file dialog (013); test/live_forms.la split (562 lines); DECISION-007 to close. For the lugha session: DECISIONS 020-022.
+- `reports/.gitkeep` deleted in the working tree, not by Claude; left alone.
 
 ---
 
