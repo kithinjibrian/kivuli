@@ -445,6 +445,12 @@ Branch: main (PRP-017 on prp-017-backgrounds, merged)
 
 ---
 
+## SESSION 20 — 2026-10-19 — Borders and outlines through .style: discovery — open
+
+Branch: main
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
