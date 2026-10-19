@@ -1,6 +1,6 @@
 # PRP-022 — Shadows and effects through `.style`
 
-Status: draft, for the user's approval (session 25)
+Status: approved by the user (session 25), with the second import cycle (DECISION-025); building on branch prp-022-shadows_and_effects
 Discovery: session 25, 2026-10-20. *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: `Shadow` (box and text shadows, each a list of `Drop`s) and `Effects` (opacity, filters, transforms) in `.style([...])`.
