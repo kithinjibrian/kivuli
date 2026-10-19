@@ -1,6 +1,6 @@
 # PRP-023 — The header bar as a node you style
 
-Status: draft, for the user's approval (session 28)
+Status: approved by the user (session 28); building on branch prp-023-header_bar
 Discovery: session 28, 2026-10-20. *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: `header_bar(start, title, end)` builds the bar; `.style([...])` styles it; `.header(bar)` puts it in the window's title bar.
