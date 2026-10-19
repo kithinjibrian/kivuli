@@ -1,6 +1,6 @@
 # PRP-018 — Borders and outlines through `.style`
 
-Status: draft, for the user's approval (session 20)
+Status: approved by the user (session 20); building on branch prp-018-borders_and_outlines
 Discovery: session 20, 2026-10-19 (DECISION-023's next group). *(you)*: chosen in the interview; *(proposed)*: for you to confirm or change with this PRP.
 
 ## FEATURE: `Border` (each side, or all of them, and the corners' radius) and `Outline` values in `.style([...])`, merged like every other style value.
