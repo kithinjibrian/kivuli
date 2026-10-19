@@ -1,6 +1,6 @@
 /**
  * The CSS for a node's box: its border's sides and corners and its outline
- * (and its padding and margin), one class per side, property and value.
+ * and its padding and margin, one class per side, property and value.
  * Moved out of `sheets` (file size). Pure.
  *
  * Depends on: styles, style_values, theming
@@ -8,7 +8,7 @@
  */
 
 import styles { Sheet, Border };
-import style_values { Side, Width, Line, Radius };
+import style_values { Side, Width, Line, Radius, Edges };
 import theming { Paint, digits, permille };
 
 /** The rules for `s`'s border and outline, in that order. */
@@ -60,6 +60,31 @@ fun box_css(s: Sheet): (string, string)[] {
     if o.offset != 0 {
         let id = if o.offset < 0 { "m{-o.offset}" } else { "{o.offset}" };
         out.push(("kv-oo-{id}:not(:focus-visible)", "outline-offset: {o.offset}px;"));
+    }
+    // Padding and margin, side by side; a margin may be negative.
+    let room = fun(e: Edges): (string, Width)[] {
+        // `all` folded into the sides, as `.style` leaves it.
+        let resolved = e.over(Edges.theme());
+        [
+            ("top", resolved.top),
+            ("right", resolved.right),
+            ("bottom", resolved.bottom),
+            ("left", resolved.left),
+        ]
+    };
+    for (side, w) of room(s.spacing.padding) {
+        match w {
+            Px(n) => out.push(("kv-p-{side}-{n}", "padding-{side}: {n}px;")),
+            Theme => {}
+        }
+    }
+    for (side, w) of room(s.spacing.margin) {
+        match w {
+            Px(n) => out.push(
+                ("kv-m-{side}-{if n < 0 { "m{-n}" } else { "{n}" }}", "margin-{side}: {n}px;"),
+            ),
+            Theme => {}
+        }
     }
     out
 }

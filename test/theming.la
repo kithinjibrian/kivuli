@@ -17,6 +17,8 @@ import kivuli {
     Gradient,
     Image,
     Border,
+    Spacing,
+    Edges,
     Side,
     Width,
     Radius,
@@ -65,7 +67,7 @@ fun painting_gives_each_node_the_classes_of_its_values() {
         ),
         ["kv-fw-700", "kv-tt-upper"],
     );
-    assert_eq(classes_of(text("a").padding(4)), []);
+    assert_eq(classes_of(text("a").width(4)), []);
     // A value changed by a later `.style` call gives the new class only.
     assert_eq(
         classes_of(
@@ -179,4 +181,19 @@ fun painting_gives_a_borders_classes_and_refuses_its_bad_values() {
         text("a").style([Border { radius: Radius.All(-1), ..Border.theme() }]),
     ]);
     assert_eq(painted(bad).map(fun(v) = 0), Err("Radius.All(-1): a radius can't be negative"));
+}
+
+@test
+fun painting_gives_a_spacings_classes_and_refuses_its_bad_values() {
+    let room: View<i64> = text("a").style([
+        Spacing { padding: Edges { top: Width.Px(2), ..Edges.theme() }, ..Spacing.theme() },
+    ]);
+    assert_eq(classes_of(room), ["kv-p-top-2"]);
+    let bad: View<i64> = column([
+        column([]).style([Spacing { gap: Width.Px(-1), ..Spacing.theme() }]),
+    ]);
+    assert_eq(
+        painted(bad).map(fun(v) = 0),
+        Err("Spacing.gap: Width.Px(-1): a gap can't be negative"),
+    );
 }

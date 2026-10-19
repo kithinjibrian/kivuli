@@ -43,10 +43,6 @@ public enum Align {
  * that doesn't fit a node is kept and ignored when it's shown.
  */
 public struct Style {
-    /** Pixels of empty room on all four sides. */
-    padding: i64,
-    /** Pixels between a column's or row's children. */
-    spacing: i64,
     /** Whether the node takes spare room along its column (down) or row (across). */
     expand: bool,
     align: Align,
@@ -96,8 +92,6 @@ public struct Style {
 
 /** The style of a node with no modifiers: what GTK does by default. */
 fun plain(): Style = Style {
-    padding: 0,
-    spacing: 0,
     expand: false,
     align: Align.Fill,
     width: -1,

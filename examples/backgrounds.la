@@ -5,6 +5,9 @@
 // the picture's path is relative to where the app starts.
 import kivuli {
     View,
+    Width,
+    Edges,
+    Spacing,
     Background,
     Gradient,
     Stop,
@@ -24,6 +27,15 @@ import kivuli {
     wrap,
 };
 
+/** The same room on every side, inside the node. */
+fun pad(n: i64): Spacing = Spacing {
+    padding: Edges { all: Width.Px(n), ..Edges.theme() },
+    ..Spacing.theme(),
+};
+
+/** Room between a column's, row's or wrap's children. */
+fun gap(n: i64): Spacing = Spacing { gap: Width.Px(n), ..Spacing.theme() };
+
 fun heading(s: string): View<()> = text(s).style([
     Font { size: Size.Pt(16), weight: Weight.Bold, ..Font.theme() },
 ]);
@@ -35,7 +47,7 @@ fun swatch(label: string, b: Background): View<()> = column([
         Font { size: Size.Scale(0.85), ..Font.theme() },
         Text { color: Paint.Faded(0.7), ..Text.theme() },
     ]),
-]).spacing(4);
+]).style([gap(4)]);
 
 fun two(a: string, b: string): Stop[] = [
     Stop { color: Paint.Color(hex(a)), at: 0.0 },
@@ -66,7 +78,7 @@ fun view(m: ()): View<()> = scroll(
                 ..Background.theme(),
             }),
             swatch("Faded(0.25)", Background { color: Paint.Faded(0.25), ..Background.theme() }),
-        ]).spacing(12),
+        ]).style([gap(12)]),
         heading("Gradients"),
         wrap([
             swatch("Linear(180, …): down", Background {
@@ -92,7 +104,7 @@ fun view(m: ()): View<()> = scroll(
                 ]),
                 ..Background.theme(),
             }),
-        ]).spacing(12),
+        ]).style([gap(12)]),
         heading("Pictures"),
         wrap([
             swatch("Fill.Cover", sample(Fill.Cover)),
@@ -109,13 +121,13 @@ fun view(m: ()): View<()> = scroll(
                 image: Some(Image.File("no/such.png")),
                 ..Background.theme(),
             }),
-        ]).spacing(12),
+        ]).style([gap(12)]),
         heading("All three layers"),
         column([
             text("A picture, darkened at the bottom by a gradient, over a colour").style([
                 Font { weight: Weight.Bold, ..Font.theme() },
                 Text { color: Paint.Color(hex("#ffffff")), ..Text.theme() },
-            ]).padding(16),
+            ]).style([pad(16)]),
         ]).height(160).style([
             Background {
                 color: Paint.Color(hex("#101010")),
@@ -124,7 +136,7 @@ fun view(m: ()): View<()> = scroll(
                 fill: Fill.Cover,
             },
         ]),
-    ]).spacing(12).padding(24),
+    ]).style([gap(12), pad(24)]),
 ).window("Backgrounds", 720, 760);
 
 fun main(): i32 = sandbox("org.kivuli.backgrounds", (), fun(m: (), msg: ()): () = (), view);

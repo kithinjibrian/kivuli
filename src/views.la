@@ -90,28 +90,6 @@ fun restyle<Msg>(v: View<Msg>, f: fun(Style): Style): View<Msg> = match v {
 
 impl View<Msg> {
     /**
-     * Leaves `n` pixels of empty room on all four sides.
-     *
-     * Example:
-     *     column(rows).padding(24)
-     */
-    public fun padding(self, n: i64): View<Msg> = restyle(
-        self,
-        fun(s: Style) = Style { padding: n, ..s },
-    );
-
-    /**
-     * Puts `n` pixels between a column's or row's children; ignored on other nodes.
-     *
-     * Example:
-     *     row([button("Add", Msg.Add), button("Reset", Msg.Reset)]).spacing(8)
-     */
-    public fun spacing(self, n: i64): View<Msg> = restyle(
-        self,
-        fun(s: Style) = Style { spacing: n, ..s },
-    );
-
-    /**
      * Lets the node take the spare room along its column (down) or row (across).
      *
      * Example:

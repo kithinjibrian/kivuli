@@ -24,6 +24,7 @@ import style_values {
     Width,
     Line,
     Radius,
+    Edges,
 };
 import pictures { Image, data_url, identity };
 import theming { Paint, digits, permille, two_digits };
@@ -92,6 +93,21 @@ fun check(s: Sheet): Result<(), string> {
         Theme => {}
     }
     check_width(s.outline.width)?;
+    let p = s.spacing.padding.over(Edges.theme());
+    for w of [p.top, p.right, p.bottom, p.left] {
+        match w {
+            Px(n) => if n < 0 {
+                return Err("Spacing.padding: Width.Px({n}): padding can't be negative");
+            },
+            Theme => {}
+        }
+    }
+    match s.spacing.gap {
+        Px(n) => if n < 0 {
+            return Err("Spacing.gap: Width.Px({n}): a gap can't be negative");
+        },
+        Theme => {}
+    }
     check_paint(s.outline.color)?;
     match s.background.image {
         Some(Icon(name)) => if breaks_css(name) {

@@ -2,6 +2,9 @@
 // messages, update and view, and `map` turns its messages into the app's.
 import kivuli {
     Align,
+    Width,
+    Edges,
+    Spacing,
     View,
     Font,
     Text,
@@ -16,6 +19,15 @@ import kivuli {
     separator,
     text,
 };
+
+/** The same room on every side, inside the node. */
+fun pad(n: i64): Spacing = Spacing {
+    padding: Edges { all: Width.Px(n), ..Edges.theme() },
+    ..Spacing.theme(),
+};
+
+/** Room between a column's, row's or wrap's children. */
+fun gap(n: i64): Spacing = Spacing { gap: Width.Px(n), ..Spacing.theme() };
 
 // The component.
 struct Counter {
@@ -41,8 +53,8 @@ fun counter(title: string, c: Counter): View<Step> = lazy(
         text("{c.count}").style([
             Font { size: Size.Pt(28), weight: Weight.Bold, tabular: true, ..Font.theme() },
         ]).align(Align.Center),
-        row([button("−", Step.Down), button("+", Step.Up)]).spacing(6).align(Align.Center),
-    ]).spacing(6),
+        row([button("−", Step.Down), button("+", Step.Up)]).style([gap(6)]).align(Align.Center),
+    ]).style([gap(6)]),
 );
 
 // The app.
@@ -66,9 +78,9 @@ fun view(m: Model): View<Msg> = column([
         counter("Left", m.left).map(Msg.Left),
         separator(),
         counter("Right", m.right).map(Msg.Right),
-    ]).spacing(16).align(Align.Center),
+    ]).style([gap(16)]).align(Align.Center),
     text("Total {m.left.count + m.right.count}").align(Align.Center),
-]).padding(24).spacing(16).window("Split", 360, 220);
+]).style([pad(24), gap(16)]).window("Split", 360, 220);
 
 fun main(): i32 = sandbox(
     "org.kivuli.split",

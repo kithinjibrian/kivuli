@@ -5,7 +5,32 @@
 A declarative UI framework for [Lugha](https://github.com/kithinjibrian/lugha), built on the Elm architecture and rendered to real GTK 4 widgets through [lugha-gtk](https://github.com/kithinjibrian/lugha-gtk). An app is three pure functions: a model, `update` making the next model from a message, and `view` describing the screen. kivuli shows the view, turns clicks and keystrokes into messages, and on each one diffs the new view against the last and changes only the widgets that differ.
 
 ```
-import kivuli { View, Font, Text, Size, Weight, Paint, button, column, input, row, sandbox, text };
+import kivuli {
+    View,
+    Width,
+    Edges,
+    Spacing,
+    Font,
+    Text,
+    Weight,
+    Size,
+    Paint,
+    button,
+    column,
+    input,
+    row,
+    sandbox,
+    text,
+};
+
+/** The same room on every side, inside the node. */
+fun pad(n: i64): Spacing = Spacing {
+    padding: Edges { all: Width.Px(n), ..Edges.theme() },
+    ..Spacing.theme(),
+};
+
+/** Room between a column's, row's or wrap's children. */
+fun gap(n: i64): Spacing = Spacing { gap: Width.Px(n), ..Spacing.theme() };
 
 struct Model {
     count: i64,
@@ -26,10 +51,14 @@ fun update(m: Model, msg: Msg): Model = match msg {
 
 fun view(m: Model): View<Msg> = column([
     input(m.name, Msg.Named).placeholder("Your name"),
-    text("Hello, {m.name}").style([Font { size: Size.Pt(18), weight: Weight.Bold, ..Font.theme() }]),
+    text("Hello, {m.name}").style([
+        Font { size: Size.Pt(18), weight: Weight.Bold, ..Font.theme() },
+    ]),
     text("Clicked {m.count} times").style([Text { color: Paint.Faded(0.55), ..Text.theme() }]),
-    row([button("Add", Msg.Add), button("Reset", Msg.Reset).disabled(m.count == 0)]).spacing(8),
-]).padding(24).spacing(8).window("Hello", 320, 240);
+    row([button("Add", Msg.Add), button("Reset", Msg.Reset).disabled(m.count == 0)]).style([
+        gap(8),
+    ]),
+]).style([pad(24), gap(8)]).window("Hello", 320, 240);
 
 fun main(): i32 = sandbox("org.kivuli.hello", Model { count: 0, name: "" }, update, view);
 ```
@@ -106,7 +135,6 @@ lughac run examples/split.la      # one component, two copies, through map
 
 | | |
 | --- | --- |
-| `.padding(n)`, `.spacing(n)` | Room around a node; between a column's or row's children, or across and down in a wrap (pixels). |
 | `.expand()`, `.align(Align.Start \| Center \| End)` | Take spare room along the parent; place across it. |
 | `.width(n)`, `.height(n)` | A minimum size in pixels. |
 | `.style([...])` | How the node looks: typed values (`Font`, `Text`), the last that sets a field winning. See **Styles** below. |
@@ -146,6 +174,7 @@ text("Price").style([Text { decoration: Decoration.Strikethrough, ..Text.theme()
 | `Font` (the typeface) | `family` (`Sans`, `Serif`, `Monospace`, `Named("Inter", Family.Sans)`: a named font names its fallback), `size` (`Pt(14)` points, or `Scale(1.5)` times the theme's), `weight` (`Thin`, `Light`, `Normal`, `Medium`, `Semibold`, `Bold`, `Black`), `style` (`Normal`, `Italic`), `tabular` (digits all one width) |
 | `Background` (behind the content) | `color` (a `Paint`: `Faded(0.08)` is a tint of the theme's text colour that follows light and dark), `gradient` (`Linear(180, stops)` in degrees, 0 up and 90 right, or `Radial(stops)`; each `Stop { color, at }`, `at` from 0.0 to 1.0), `image` (`Some(Image.File(…))`, `Image.Bytes(…)` or `Image.Icon(…)`), `fill` (`Cover`, `Contain`, `Tile`, `Stretch`; always centred). The image sits over the gradient, over the colour. |
 | `Border` (around the content) | `all` (every side) and `top`, `right`, `bottom`, `left` (each a `Side { width: Width.Px(n), color, style }`; a side's own fields beat `all`), `radius` (`Radius.All(12)` or `Radius.Corners(tl, tr, br, bl)`; a rounded node clips what's inside it). `Line` is `Solid`, `Dashed`, `Dotted`, `Double`, `Groove`, `Ridge`, `Inset`, `Outset` or `None`; a width with no line is drawn solid. |
+| `Spacing` (room around and between things) | `padding` (inside the border) and `margin` (outside it; may be negative), each an `Edges { all, top, right, bottom, left }` of `Width.Px(n)` (a side's own value beats `all`), and `gap` (between a column's, row's or wrap's children). |
 | `Outline` (a line outside the border that takes no room) | `width`, `color`, `style` (a `Line`), `offset` (pixels; negative draws inside). It hides while the node has keyboard focus, so the theme's focus ring still shows. |
 | `Text` (what's done with the letters) | `color` (`Paint.Color(hex("#e0e0e0"))`, or `Paint.Faded(0.55)`: the theme's text colour at that opacity, so it follows light and dark), `line_height` (`Times(1.4)`), `letter_spacing` (pixels; negative tightens), `decoration` (`Underline`, `Strikethrough`, `None`), `transform` (`Uppercase`, `Lowercase`, `Capitalize`, `None`) |
 

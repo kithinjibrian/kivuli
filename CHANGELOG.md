@@ -8,6 +8,18 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.14.0] — 2026-10-19
+
+### Breaking
+- Spacing is a style value (PRP-019): `Spacing { padding, margin, gap }` in `.style([...])`. The `.padding(n)` and `.spacing(n)` modifiers are gone. `.padding(n)` was really a margin (room outside the node); `padding` is now inside the border, `margin` outside it.
+- For Rapidkoi: `.padding(n)` becomes `.style([Spacing { margin: Edges { all: Width.Px(n), ..Edges.theme() }, ..Spacing.theme() }])` to keep today's room exactly (or `padding`, for room inside a border), and `.spacing(n)` becomes `Spacing { gap: Width.Px(n), ..Spacing.theme() }`.
+
+### Added
+- `Edges { all, top, right, bottom, left }` (a side's own value beats `all`, as for borders) and `Spacing`; a negative margin pulls a node toward its neighbour. `examples/borders.la` shows padding inside a border and margin outside it.
+
+### Changed
+- `src/styles.la`'s plain value types moved to `src/style_values.la`, and `src/sheets.la`'s border and outline CSS to `src/box_rules.la` (file size); no change for apps.
+
 ## [0.13.0] — 2026-10-19
 
 ### Added

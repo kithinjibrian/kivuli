@@ -160,3 +160,47 @@ impl Side {
         style: if self.style == Line.Theme { under.style } else { self.style },
     };
 }
+
+/**
+ * Room on each side of a node, in pixels: `all` for every side, a side's own
+ * value over it. A `Spacing`'s padding or margin.
+ */
+public struct Edges {
+    public all: Width,
+    public top: Width,
+    public right: Width,
+    public bottom: Width,
+    public left: Width,
+}
+
+impl Edges {
+    /** Every side the theme's. */
+    public fun theme(): Edges = Edges {
+        all: Width.Theme,
+        top: Width.Theme,
+        right: Width.Theme,
+        bottom: Width.Theme,
+        left: Width.Theme,
+    };
+
+    /**
+     * `under` with this value's sides over it: a side's own value beats `all`,
+     * and both beat what was there. `all` is folded into the sides.
+     */
+    public fun over(self, under: Edges): Edges {
+        let side = fun(own: Width, before: Width): Width = if own != Width.Theme {
+            own
+        } else if self.all != Width.Theme {
+            self.all
+        } else {
+            before
+        };
+        Edges {
+            all: Width.Theme,
+            top: side(self.top, under.top),
+            right: side(self.right, under.right),
+            bottom: side(self.bottom, under.bottom),
+            left: side(self.left, under.left),
+        }
+    }
+}

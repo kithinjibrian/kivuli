@@ -3,6 +3,9 @@
 // font. Nothing here is interactive; scroll to see it all.
 import kivuli {
     View,
+    Width,
+    Edges,
+    Spacing,
     Styling,
     Font,
     Text,
@@ -21,6 +24,15 @@ import kivuli {
     separator,
     text,
 };
+
+/** The same room on every side, inside the node. */
+fun pad(n: i64): Spacing = Spacing {
+    padding: Edges { all: Width.Px(n), ..Edges.theme() },
+    ..Spacing.theme(),
+};
+
+/** Room between a column's, row's or wrap's children. */
+fun gap(n: i64): Spacing = Spacing { gap: Width.Px(n), ..Spacing.theme() };
 
 /** A section's heading. */
 fun heading(s: string): View<()> = text(s).style([
@@ -88,7 +100,7 @@ fun view(m: ()): View<()> = scroll(
             Font { size: Size.Pt(20), ..Font.theme() },
             Font { weight: Weight.Thin, ..Font.theme() },
         ]),
-    ]).spacing(6).padding(24),
+    ]).style([gap(6), pad(24)]),
 ).window("Type", 640, 800);
 
 fun main(): i32 = sandbox("org.kivuli.type", (), fun(m: (), msg: ()): () = (), view);

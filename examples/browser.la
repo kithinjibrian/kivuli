@@ -7,6 +7,9 @@
 import std.task;
 import kivuli {
     Align,
+    Width,
+    Edges,
+    Spacing,
     App,
     Cmd,
     Sub,
@@ -32,6 +35,15 @@ import kivuli {
 };
 // For the tests at the bottom; `lughac build` leaves tests out.
 import kivuli.testing { click, is_disabled, pick, submit, texts, type_into };
+
+/** The same room on every side, inside the node. */
+fun pad(n: i64): Spacing = Spacing {
+    padding: Edges { all: Width.Px(n), ..Edges.theme() },
+    ..Spacing.theme(),
+};
+
+/** Room between a column's, row's or wrap's children. */
+fun gap(n: i64): Spacing = Spacing { gap: Width.Px(n), ..Spacing.theme() };
 
 struct Browser {
     /** Each tab's history of addresses; the last is shown. */
@@ -171,7 +183,9 @@ fun tab(b: Browser, i: i64): View<Msg> {
 
 /** One row of the info panel: a label, a summary and an arrow, all one button. */
 fun panel_row(label: string, summary: string, msg: Msg): View<Msg> = button_with(
-    row([text(label).expand(), text(summary).style([dim()]), icon("go-next-symbolic")]).spacing(8),
+    row([text(label).expand(), text(summary).style([dim()]), icon("go-next-symbolic")]).style([
+        gap(8),
+    ]),
     msg,
 );
 
@@ -183,18 +197,21 @@ fun info_panel(b: Browser): View<Msg> {
         text("Tab {b.current + 1} of {b.tabs.len}, {history.len} page(s)").style([dim()]),
         panel_row("Go back", "to {previous}", Msg.Back).disabled(history.len < 2),
         panel_row("Open a new tab", "home", Msg.NewTab),
-    ]).spacing(8).padding(16).width(280)
+    ]).style([gap(8), pad(16)]).width(280)
 }
 
 fun page(b: Browser): View<Msg> {
     let body = column([
         text("You're at {shown(b)}").style([Font { size: Size.Pt(20), ..bold() }]),
         // Equal tiles, at most six across; fewer on a narrow window.
-        keyed_wrap(b.tiles.map(fun(t) = (t, button(t, Msg.Visit(t)).width(120).height(72)))).equal().max_per_line(6).spacing(12),
-    ]).spacing(12).padding(24).expand();
+        keyed_wrap(b.tiles.map(fun(t) = (t, button(t, Msg.Visit(t)).width(120).height(72)))).equal().max_per_line(6).style([gap(12)]),
+    ]).style([gap(12), pad(24)]).expand();
     let note: View<Msg>[] = match b.loading {
         Some(address) => [
-            text("Loading {address}…").style([dim()]).padding(16).place(Align.Center, Align.End),
+            text("Loading {address}…").style([dim()]).style([pad(16)]).place(
+                Align.Center,
+                Align.End,
+            ),
         ],
         None => [],
     };
@@ -214,7 +231,7 @@ fun view(b: Browser): View<Msg> {
         parts.push(info_panel(b));
     }
     parts.push(separator());
-    parts.push(column(tabs).spacing(4).padding(8).width(160));
+    parts.push(column(tabs).style([gap(4), pad(8)]).width(160));
     row(parts).window("{shown(b)} — Browser", 1000, 640).header(
         [
             button("", Msg.Back).icon("go-previous-symbolic").tooltip("Back").disabled(

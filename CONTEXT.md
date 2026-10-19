@@ -460,9 +460,18 @@ Branch: main (PRP-018 on prp-018-borders_and_outlines, merged)
 
 ---
 
-## SESSION 21 — 2026-10-19 — Spacing (padding, margin): discovery — open
+## SESSION 21 — 2026-10-19 — PRP-019: spacing as a style, kivuli 0.14.0 — closed
 
-Branch: main
+Branch: main (PRP-019 on prp-019-spacing, merged)
+
+### WHAT WAS DONE
+- Found that `.padding(n)` was a margin (GTK widget margins). Interview: padding and margin in `.style` as `Spacing`, shaped like `Border` (`Edges` with `all` and each side); the gap moves in too; `.padding` and `.spacing` removed (breaking). PRP-019 approved and built. Splits first: src/style_values.la (plain value types) and src/box_rules.la (box CSS), `permille` to theming. `Edges`, `Spacing`, `Sheet.spacing`; padding and margin as CSS (negative margins), the gap through GTK's spacing properties; kivuli no longer sets widget margins. Tests: spacing (new), sheets_border, theming, live_style, live_wrap; every `.padding`/`.spacing` use migrated. Examples use `pad(n)`/`gap(n)` helpers; borders.la shows padding and margin. Docs and the tutorial page updated. kivuli 0.14.0, tagged locally.
+
+### STILL OPEN AT CLOSE
+- Not pushed, waiting for the user's go: main and tags v0.11.0 through v0.14.0.
+- For the user to check by hand: `lughac run examples/borders.la`'s "Padding and margin" section; any example: the room looks as before.
+- Next: button looks through `.style`; style utilities (names free of the fields, E0310). Queued: file dialog (013). For the lugha session: DECISIONS 020-022. test/live_forms.la split awaiting the user.
+- `reports/.gitkeep` deleted in the working tree, not by Claude; left alone.
 
 ---
 

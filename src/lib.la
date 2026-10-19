@@ -11,7 +11,7 @@
 public import views { View };
 public import looks { Align, Fit };
 public import theming { Color, Paint, hex, rgb };
-public import styles { Styling, Font, Text, Background, Border, Outline };
+public import styles { Styling, Font, Text, Background, Border, Outline, Spacing };
 public import style_values {
     Family,
     Size,
@@ -27,6 +27,7 @@ public import style_values {
     Width,
     Line,
     Radius,
+    Edges,
 };
 public import pictures { Image };
 public import menus { MenuEntry, item, menu_separator };

@@ -1,0 +1,110 @@
+// Spacing as a style value (PRP-019): padding inside the border, margin
+// outside, the gap between children; `all` and each side, merged as a
+// border's are. (test/styles.la is nearly full.) No GTK.
+import kivuli.styles { Sheet };
+import kivuli { View, Spacing, Edges, Width, Border, Side, Line, Radius, Paint, column, row, text };
+
+fun sheet_of<M>(v: View<M>): Sheet = match v {
+    Styled(_, s) => s.sheet,
+    _ => panic("expected a styled node"),
+};
+
+fun spacing_of(v: View<i64>): Spacing = sheet_of(v).spacing;
+
+@test
+fun the_theme_values_set_nothing() {
+    assert_eq(Edges.theme(), Edges {
+        all: Width.Theme,
+        top: Width.Theme,
+        right: Width.Theme,
+        bottom: Width.Theme,
+        left: Width.Theme,
+    });
+    assert_eq(Spacing.theme(), Spacing {
+        padding: Edges.theme(),
+        margin: Edges.theme(),
+        gap: Width.Theme,
+    });
+    assert_eq(Sheet.theme().spacing, Spacing.theme());
+}
+
+@test
+fun all_folds_into_each_side_and_a_sides_own_value_beats_it() {
+    let v: View<i64> = column([]).style([
+        Spacing {
+            padding: Edges { all: Width.Px(4), left: Width.Px(12), ..Edges.theme() },
+            ..Spacing.theme(),
+        },
+    ]);
+    let p = spacing_of(v).padding;
+    assert_eq(
+        (p.top, p.right, p.bottom, p.left, p.all),
+        (Width.Px(4), Width.Px(4), Width.Px(4), Width.Px(12), Width.Theme),
+    );
+}
+
+@test
+fun a_later_all_resets_the_sides_and_the_groups_merge_apart() {
+    let v: View<i64> = column([]).style([
+        Spacing {
+            padding: Edges { bottom: Width.Px(20), ..Edges.theme() },
+            gap: Width.Px(6),
+            ..Spacing.theme(),
+        },
+        Spacing { padding: Edges { all: Width.Px(2), ..Edges.theme() }, ..Spacing.theme() },
+        Spacing { margin: Edges { top: Width.Px(-4), ..Edges.theme() }, ..Spacing.theme() },
+    ]);
+    let s = spacing_of(v);
+    assert_eq((s.padding.bottom, s.padding.top), (Width.Px(2), Width.Px(2)));
+    assert_eq((s.margin.top, s.margin.bottom), (Width.Px(-4), Width.Theme));
+    assert_eq(s.gap, Width.Px(6));
+}
+
+// PRP-019's OBJECTIVE, as written there.
+enum Msg {
+    Go,
+}
+
+fun hairline(): Side = Side { width: Width.Px(1), color: Paint.Faded(0.15), style: Line.Solid };
+
+/** The same room on every side. */
+fun pad(n: i64): Edges = Edges { all: Width.Px(n), ..Edges.theme() };
+
+fun view(rows: View<Msg>[]): View<Msg> = column([
+    // Padding is inside the border: the rows don't touch the line.
+    column(rows).style([
+        Border { all: hairline(), radius: Radius.All(12), ..Border.theme() },
+        Spacing { padding: pad(16), gap: Width.Px(8), ..Spacing.theme() },
+    ]),
+    // Margin is outside: room below this row only; a side's own value beats all.
+    row([text("a"), text("b")]).style([Spacing {
+        padding: Edges { all: Width.Px(4), left: Width.Px(12), ..Edges.theme() },
+        margin: Edges { bottom: Width.Px(8), ..Edges.theme() },
+        gap: Width.Px(6),
+    }]),
+    // A negative margin pulls a node toward its neighbour.
+    text("tucked").style([Spacing { margin: Edges { top: Width.Px(-4), ..Edges.theme() }, ..Spacing.theme() }]),
+]).style([Spacing { padding: pad(24), gap: Width.Px(12), ..Spacing.theme() }]);
+
+fun kids(v: View<Msg>): View<Msg>[] = match v {
+    Styled(Column(xs), _) => xs,
+    _ => panic("expected a styled column"),
+};
+
+@test
+fun the_objective_reads_as_written() {
+    let root = view([text("row")]);
+    assert_eq(
+        (sheet_of(root).spacing.padding.left, sheet_of(root).spacing.gap),
+        (Width.Px(24), Width.Px(12)),
+    );
+    let k = kids(root);
+    assert_eq(sheet_of(k[0]).spacing.padding.top, Width.Px(16));
+    assert_eq(sheet_of(k[0]).border.radius, Radius.All(12));
+    let r = sheet_of(k[1]).spacing;
+    assert_eq(
+        (r.padding.left, r.padding.right, r.margin.bottom, r.gap),
+        (Width.Px(12), Width.Px(4), Width.Px(8), Width.Px(6)),
+    );
+    assert_eq(sheet_of(k[2]).spacing.margin.top, Width.Px(-4));
+}
