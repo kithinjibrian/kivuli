@@ -1,0 +1,144 @@
+// Sizes on real GTK widgets: a node with a maximum or an exact size sits in
+// a clamp the parent holds, and measures within it; a minimum alone is a
+// class, no clamp; how the node sits (`.align`) is the clamp's; new numbers
+// reset the clamp's limits on the same widgets. Needs a display, so it is
+// skipped without one. (How sizes look: examples/borders.la.)
+import std.env;
+import gtk {
+    GtkApplication,
+    GtkWidget,
+    connect_app,
+    emit_widget,
+    g_application_quit,
+    g_application_run,
+    g_object_unref,
+    gtk_application_new,
+    gtk_application_window_new,
+    gtk_widget_get_halign,
+    gtk_widget_has_css_class,
+    gtk_widget_measure,
+    lgtk_clamp_get_child,
+};
+import kivuli.live { mount, live_of };
+import kivuli.effects { sandbox_app };
+import kivuli.live_tree { Live, widget };
+import kivuli { Align, View, Sizing, Width, button, column, text };
+
+fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
+
+fun note(seen: Ref<string[]>, s: string) {
+    seen.update(fun(xs) {
+        let mut ys = xs;
+        ys.push(s);
+        ys
+    });
+}
+
+/** The widget's minimum and natural width. */
+fun across(w: GtkWidget): (i32, i32) {
+    let mut minimum: i32 = 0;
+    let mut natural: i32 = 0;
+    let mut minimum_baseline: i32 = 0;
+    let mut natural_baseline: i32 = 0;
+    gtk_widget_measure(
+        w,
+        0,
+        -1,
+        out minimum,
+        out natural,
+        out minimum_baseline,
+        out natural_baseline,
+    );
+    (minimum, natural)
+}
+
+enum Narrow {
+    Narrower,
+}
+
+fun view_sizes(narrow: bool): View<Narrow> = column([
+    text("a long line of text that wants to be very wide when it is laid out").wrap().style([
+        Sizing { max_width: Width.Px(if narrow { 120 } else { 200 }), ..Sizing.theme() },
+    ]).align(Align.Center),
+    text("x").style([Sizing { width: Width.Px(150), ..Sizing.theme() }]),
+    text("y").style([Sizing { min_width: Width.Px(90), ..Sizing.theme() }]),
+    button("Narrower", Narrow.Narrower),
+]);
+
+@test
+fun maximums_and_exact_sizes_clamp_and_minimums_are_classes() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen: Ref<string[]> = Ref.new([]);
+    let application = gtk_application_new("org.kivuli.test.sizing", 0);
+    connect_app(
+        application,
+        "activate",
+        fun(a: GtkApplication) {
+            let window = gtk_application_window_new(a);
+            let app = mount(
+                a,
+                window,
+                sandbox_app(
+                    "org.kivuli.test",
+                    false,
+                    fun(narrow: bool, msg: Narrow): bool = true,
+                    view_sizes,
+                ),
+            );
+            let kids = fun(): Live<Narrow>[] = match live_of(app) {
+                Box(_, _, ks) => ks,
+                _ => panic("expected a column"),
+            };
+            match kids()[0] {
+                Clamp(node, clamp) => {
+                    let (_, natural) = across(clamp);
+                    note(
+                        seen,
+                        "capped: in a clamp {lgtk_clamp_get_child(clamp) == Some(widget(node))}, natural {natural <= 200}",
+                    );
+                    // GtkAlign: 0 fill, 3 center. The parent holds the clamp.
+                    note(
+                        seen,
+                        "align on the clamp {gtk_widget_get_halign(clamp)}, the node fills it {gtk_widget_get_halign(widget(node))}",
+                    );
+                    emit_widget(widget(kids()[3]), "clicked");
+                    match kids()[0] {
+                        Clamp(_, same) => {
+                            let (_, now) = across(same);
+                            note(
+                                seen,
+                                "narrower: same clamp {same == clamp}, natural {now <= 120}",
+                            );
+                        }
+                        _ => note(seen, "no clamp after the update"),
+                    }
+                }
+                _ => note(seen, "no clamp"),
+            }
+            match kids()[1] {
+                Clamp(_, clamp) => note(seen, "exact {across(clamp)}"),
+                _ => note(seen, "no clamp"),
+            }
+            match kids()[2] {
+                Label(w) => note(
+                    seen,
+                    "minimum: a class {gtk_widget_has_css_class(w, "kv-minw-90")}, no clamp",
+                ),
+                _ => note(seen, "the minimum was clamped"),
+            }
+            g_application_quit(a);
+        },
+        0,
+    );
+    g_application_run(application, 0, None);
+    g_object_unref(application);
+    assert_eq(seen.get(), [
+        "capped: in a clamp true, natural true",
+        "align on the clamp 3, the node fills it 0",
+        "narrower: same clamp true, natural true",
+        "exact (150, 150)",
+        "minimum: a class 1, no clamp",
+    ]);
+}

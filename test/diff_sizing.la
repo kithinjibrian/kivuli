@@ -1,0 +1,42 @@
+// Diffing sizes: a node that gains its first exact size or maximum, or loses
+// its last, is rebuilt (it moves into or out of a clamp); new numbers are a
+// restyle; a minimum alone never rebuilds. (test/diff.la is at the limit.)
+import kivuli.diff { Patch, diff as patches };
+import kivuli { View, Sizing, Width, text };
+
+fun assert_same<T>(actual: T, expected: T) {
+    assert_eq("{actual}", "{expected}");
+}
+
+fun sized(z: Sizing): View<i64> = text("a").style([z]);
+
+fun is_replace(ps: Patch<i64>[]): bool = ps.len == 1 && match ps[0] {
+    Replace(_, _) => true,
+    _ => false,
+};
+
+fun is_restyle(ps: Patch<i64>[]): bool = ps.len == 1 && match ps[0] {
+    SetStyle(_, _) => true,
+    _ => false,
+};
+
+@test
+fun gaining_or_losing_the_clamp_rebuilds_the_node() {
+    let capped = sized(Sizing { max_width: Width.Px(400), ..Sizing.theme() });
+    let plain: View<i64> = text("a");
+    assert(is_replace(patches(plain, capped)));
+    assert(is_replace(patches(capped, plain)));
+    let exact = sized(Sizing { width: Width.Px(10), ..Sizing.theme() });
+    let at_least = sized(Sizing { min_width: Width.Px(10), ..Sizing.theme() });
+    assert(is_replace(patches(at_least, exact)));
+}
+
+@test
+fun new_numbers_or_a_minimum_alone_are_a_restyle() {
+    let a = sized(Sizing { max_width: Width.Px(400), ..Sizing.theme() });
+    let b = sized(Sizing { max_width: Width.Px(300), ..Sizing.theme() });
+    assert(is_restyle(patches(a, b)));
+    let none: View<i64> = text("a");
+    let at_least = sized(Sizing { min_width: Width.Px(10), ..Sizing.theme() });
+    assert(is_restyle(patches(none, at_least)));
+}

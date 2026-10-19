@@ -475,9 +475,20 @@ Branch: main (PRP-019 on prp-019-spacing, merged)
 
 ---
 
-## SESSION 22 — 2026-10-19 — Sizing (width, min, max): discovery — open
+## SESSION 22 — 2026-10-19 — PRP-020: sizing, kivuli 0.15.0 — closed
 
-Branch: main
+Branch: main (PRP-020 on prp-020-sizing, merged)
+
+### WHAT WAS DONE
+- Found GTK 4.22's CSS has only `min-width`/`min-height` (no width, max-width, max-height), and size requests are minimums. Interview: a clamp widget in lugha-gtk for exact and maximum sizes; `.width`/`.height` (minimums) move into `Sizing` (breaking). PRP-020 approved and built.
+- lugha-gtk 0.1.30 pushed: `src/c/clamp.c` (one child, measured within limits, never below its minimum; mutation-checked), `lgtk_clamp_*`, `gtk_widget_measure`.
+- kivuli: `Sizing`, `Sheet.sizing`; minimums as CSS; `needs_clamp`/`clamp_limits` (CSS's combining rule); `Live.Clamp` (looked through by paths; `at_outer` for restyles); the diff rebuilds a node gaining or losing the clamp; layout props move onto the clamp. Tests: sizing, sheets_border, diff_sizing, live_sizing (new); every `.width`/`.height` migrated. Examples use `at_least(w, h)`; borders.la shows sizes. Docs and the tutorial page updated. kivuli 0.15.0, tagged locally.
+
+### STILL OPEN AT CLOSE
+- Not pushed, waiting for the user's go: main and tags v0.11.0 through v0.15.0.
+- For the user to check by hand: `lughac run examples/borders.la`'s "Sizing" section: resize the window; the readable column stops at 560 px.
+- Next: button looks through `.style`; style utilities (names free of the fields, E0310). Queued: file dialog (013). For the lugha session: DECISIONS 020-022. test/live_forms.la split awaiting the user.
+- `reports/.gitkeep` deleted in the working tree, not by Claude; left alone.
 
 ---
 

@@ -173,11 +173,11 @@ public fun lazy<Msg>(key: string, build: fun(): View<Msg>): View<Msg> = View.Laz
 /**
  * Builds a multi-line text field showing `value`, scrolling inside itself and
  * wrapping long lines. Each edit sends `on_change(text)`, the whole new text;
- * Enter starts a new line. `.height(n)` sets its height (80 pixels by default);
+ * Enter starts a new line. It's 80 pixels tall unless a `Sizing` sets its height;
  * `.name(id)` lets tests find it.
  *
  * Example:
- *     text_area(m.notes, Msg.Notes).height(120).name("notes")
+ *     text_area(m.notes, Msg.Notes).name("notes").style([Sizing { min_height: Width.Px(120), ..Sizing.theme() }])
  */
 public fun text_area<Msg>(value: string, on_change: fun(string): Msg): View<Msg> = View.TextArea(
     value,
@@ -234,7 +234,7 @@ public fun icon<Msg>(name: string): View<Msg> = View.Image(Image.Icon(name));
  * bytes a new key.
  *
  * Example:
- *     image(Image.Bytes("counter:banner", banner)).width(320).height(120).fit(Fit.Cover)
+ *     image(Image.Bytes("counter:banner", banner)).fit(Fit.Cover).style([Sizing { width: Width.Px(320), height: Width.Px(120), ..Sizing.theme() }])
  */
 public fun image<Msg>(img: Image): View<Msg> = View.Image(img);
 

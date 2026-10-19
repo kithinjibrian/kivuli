@@ -30,7 +30,7 @@ import kivuli.live { mount, live_of };
 import kivuli.effects { sandbox_app };
 import kivuli.live_tree { Live, widget };
 import fixtures;
-import kivuli { Fit, Image, View, button, column, icon, image };
+import kivuli { Fit, Width, Sizing, Image, View, button, column, icon, image };
 
 fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
 
@@ -260,7 +260,9 @@ enum Tap {
 // A fixed-width icon button, a stretched labelled one (a column fills its
 // children across), and a natural-size one with icon and label.
 fun view_wide(n: i64): View<Tap> = column([
-    button("", Tap.Tapped).icon("list-add-symbolic").width(200),
+    button("", Tap.Tapped).icon("list-add-symbolic").style([
+        Sizing { min_width: Width.Px(200), ..Sizing.theme() },
+    ]),
     button("Stretched", Tap.Tapped),
     button("Both", Tap.Tapped).icon("list-add-symbolic"),
 ]);

@@ -7,6 +7,7 @@
 import std.task;
 import kivuli {
     Align,
+    Sizing,
     Width,
     Edges,
     Spacing,
@@ -35,6 +36,13 @@ import kivuli {
 };
 // For the tests at the bottom; `lughac build` leaves tests out.
 import kivuli.testing { click, is_disabled, pick, submit, texts, type_into };
+
+/** At least `w` by `h` pixels; 0 leaves that way to the theme. */
+fun at_least(w: i64, h: i64): Sizing = Sizing {
+    min_width: if w > 0 { Width.Px(w) } else { Width.Theme },
+    min_height: if h > 0 { Width.Px(h) } else { Width.Theme },
+    ..Sizing.theme(),
+};
 
 /** The same room on every side, inside the node. */
 fun pad(n: i64): Spacing = Spacing {
@@ -197,14 +205,14 @@ fun info_panel(b: Browser): View<Msg> {
         text("Tab {b.current + 1} of {b.tabs.len}, {history.len} page(s)").style([dim()]),
         panel_row("Go back", "to {previous}", Msg.Back).disabled(history.len < 2),
         panel_row("Open a new tab", "home", Msg.NewTab),
-    ]).style([gap(8), pad(16)]).width(280)
+    ]).style([gap(8), pad(16)]).style([at_least(280, 0)])
 }
 
 fun page(b: Browser): View<Msg> {
     let body = column([
         text("You're at {shown(b)}").style([Font { size: Size.Pt(20), ..bold() }]),
         // Equal tiles, at most six across; fewer on a narrow window.
-        keyed_wrap(b.tiles.map(fun(t) = (t, button(t, Msg.Visit(t)).width(120).height(72)))).equal().max_per_line(6).style([gap(12)]),
+        keyed_wrap(b.tiles.map(fun(t) = (t, button(t, Msg.Visit(t)).style([at_least(120, 72)])))).equal().max_per_line(6).style([gap(12)]),
     ]).style([gap(12), pad(24)]).expand();
     let note: View<Msg>[] = match b.loading {
         Some(address) => [
@@ -231,7 +239,7 @@ fun view(b: Browser): View<Msg> {
         parts.push(info_panel(b));
     }
     parts.push(separator());
-    parts.push(column(tabs).style([gap(4), pad(8)]).width(160));
+    parts.push(column(tabs).style([gap(4), pad(8)]).style([at_least(160, 0)]));
     row(parts).window("{shown(b)} — Browser", 1000, 640).header(
         [
             button("", Msg.Back).icon("go-previous-symbolic").tooltip("Back").disabled(

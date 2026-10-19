@@ -7,7 +7,7 @@
  * Used by: sheets
  */
 
-import styles { Sheet, Border };
+import styles { Sheet, Border, Sizing };
 import style_values { Side, Width, Line, Radius, Edges };
 import theming { Paint, digits, permille };
 
@@ -78,6 +78,15 @@ fun box_css(s: Sheet): (string, string)[] {
             Theme => {}
         }
     }
+    // A minimum is GTK's CSS; an exact size and a maximum are the clamp's (`clamp_limits`).
+    match s.sizing.min_width {
+        Px(n) => out.push(("kv-minw-{n}", "min-width: {n}px;")),
+        Theme => {}
+    }
+    match s.sizing.min_height {
+        Px(n) => out.push(("kv-minh-{n}", "min-height: {n}px;")),
+        Theme => {}
+    }
     for (side, w) of room(s.spacing.margin) {
         match w {
             Px(n) => out.push(
@@ -144,4 +153,44 @@ fun keyword(l: Line): Option<string> = match l {
     Ridge => Some("ridge"),
     Inset => Some("inset"),
     Outset => Some("outset"),
+};
+
+/** Whether a node with `z` needs a clamp: an exact size or a maximum (GTK's CSS has neither). */
+fun needs_clamp(
+    z: Sizing,
+): bool = z.width != Width.Theme || z.max_width != Width.Theme || z.height != Width.Theme || z.max_height != Width.Theme;
+
+/**
+ * A clamp's limits for `z`, as (min width, max width, min height, max height),
+ * -1 for none: an exact size is kept within the minimum and the maximum (the
+ * minimum winning) and becomes both limits.
+ */
+fun clamp_limits(z: Sizing): (i64, i64, i64, i64) {
+    let (min_w, max_w) = limits(z.width, z.min_width, z.max_width);
+    let (min_h, max_h) = limits(z.height, z.min_height, z.max_height);
+    (min_w, max_w, min_h, max_h)
+}
+
+fun limits(exact: Width, low: Width, high: Width): (i64, i64) {
+    let lo = px(low);
+    let hi = px(high);
+    match exact {
+        Px(n) => {
+            let mut size = n;
+            if hi >= 0 && size > hi {
+                size = hi;
+            }
+            if lo >= 0 && size < lo {
+                size = lo;
+            }
+            (size, size)
+        }
+        Theme => (lo, hi),
+    }
+}
+
+/** A width in pixels; -1 for the theme's. */
+fun px(w: Width): i64 = match w {
+    Px(n) => n,
+    Theme => -1,
 };

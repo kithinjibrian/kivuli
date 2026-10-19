@@ -1,0 +1,111 @@
+// Sizing as a style value (PRP-020): an exact size, a minimum and a maximum
+// each way, merged field by field; the limits a clamp gets from them, as CSS
+// combines them (the exact size kept within min and max, the min winning).
+// No GTK.
+import kivuli.styles { Sheet };
+import kivuli.box_rules { clamp_limits, needs_clamp };
+import kivuli { View, Sizing, Width, column, row, text };
+
+fun sheet_of<M>(v: View<M>): Sheet = match v {
+    Styled(_, s) => s.sheet,
+    _ => panic("expected a styled node"),
+};
+
+@test
+fun the_theme_value_sets_nothing() {
+    assert_eq(Sizing.theme(), Sizing {
+        width: Width.Theme,
+        min_width: Width.Theme,
+        max_width: Width.Theme,
+        height: Width.Theme,
+        min_height: Width.Theme,
+        max_height: Width.Theme,
+    });
+    assert_eq(Sheet.theme().sizing, Sizing.theme());
+}
+
+@test
+fun fields_merge_one_by_one() {
+    let v: View<i64> = column([]).style([
+        Sizing { min_width: Width.Px(200), max_width: Width.Px(400), ..Sizing.theme() },
+        Sizing { max_width: Width.Px(300), height: Width.Px(50), ..Sizing.theme() },
+    ]);
+    assert_eq(sheet_of(v).sizing, Sizing {
+        min_width: Width.Px(200),
+        max_width: Width.Px(300),
+        height: Width.Px(50),
+        ..Sizing.theme(),
+    });
+}
+
+@test
+fun an_exact_size_or_a_maximum_needs_the_clamp_a_minimum_alone_doesnt() {
+    assert_eq(needs_clamp(Sizing.theme()), false);
+    assert_eq(
+        needs_clamp(Sizing { min_width: Width.Px(70), min_height: Width.Px(40), ..Sizing.theme() }),
+        false,
+    );
+    assert_eq(needs_clamp(Sizing { width: Width.Px(320), ..Sizing.theme() }), true);
+    assert_eq(needs_clamp(Sizing { max_height: Width.Px(200), ..Sizing.theme() }), true);
+}
+
+@test
+fun the_clamps_limits_combine_as_css_does() {
+    // (min width, max width, min height, max height); -1 is no limit.
+    assert_eq(
+        clamp_limits(Sizing { max_width: Width.Px(560), ..Sizing.theme() }),
+        (-1, 560, -1, -1),
+    );
+    assert_eq(clamp_limits(Sizing { width: Width.Px(320), ..Sizing.theme() }), (320, 320, -1, -1));
+    assert_eq(
+        clamp_limits(Sizing {
+            min_width: Width.Px(200),
+            max_width: Width.Px(400),
+            ..Sizing.theme(),
+        }),
+        (200, 400, -1, -1),
+    );
+    // An exact size is kept within the minimum and the maximum.
+    assert_eq(
+        clamp_limits(Sizing { width: Width.Px(600), max_width: Width.Px(400), ..Sizing.theme() }),
+        (400, 400, -1, -1),
+    );
+    assert_eq(
+        clamp_limits(Sizing { width: Width.Px(50), min_width: Width.Px(80), ..Sizing.theme() }),
+        (80, 80, -1, -1),
+    );
+    assert_eq(clamp_limits(Sizing { height: Width.Px(30), ..Sizing.theme() }), (-1, -1, 30, 30));
+}
+
+// PRP-020's OBJECTIVE, as written there.
+enum Msg {
+    Go,
+}
+
+fun view(rows: View<Msg>[], body: string): View<Msg> = column([
+    // Exactly 320 wide.
+    column(rows).style([Sizing { width: Width.Px(320), ..Sizing.theme() }]),
+    // A readable column: never wider than 560, however wide the window.
+    text(body).wrap().style([Sizing { max_width: Width.Px(560), ..Sizing.theme() }]),
+    // Between the two.
+    column(rows).style([Sizing { min_width: Width.Px(200), max_width: Width.Px(400), ..Sizing.theme() }]),
+    // What `.width(70).height(40)` meant: at least.
+    text("Size").style([Sizing { min_width: Width.Px(70), min_height: Width.Px(40), ..Sizing.theme() }]),
+    // Heights the same way.
+    column(rows).style([Sizing { max_height: Width.Px(200), ..Sizing.theme() }]),
+]);
+
+fun kids(v: View<Msg>): View<Msg>[] = match v {
+    Column(xs) => xs,
+    _ => panic("expected a column"),
+};
+
+@test
+fun the_objective_reads_as_written() {
+    let k = kids(view([text("row")], "long text"));
+    assert_eq(clamp_limits(sheet_of(k[0]).sizing), (320, 320, -1, -1));
+    assert_eq(clamp_limits(sheet_of(k[1]).sizing), (-1, 560, -1, -1));
+    assert_eq(clamp_limits(sheet_of(k[2]).sizing), (200, 400, -1, -1));
+    assert_eq(needs_clamp(sheet_of(k[3]).sizing), false);
+    assert_eq(clamp_limits(sheet_of(k[4]).sizing), (-1, -1, -1, 200));
+}

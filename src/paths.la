@@ -44,6 +44,8 @@ fun update_in<Msg>(
     } else {
         Live.Menu(update_in(inner, path, depth, f, with_menu), popup)
     },
+    // A clamp takes no place in a path either; a menu is set on the node in it.
+    Clamp(inner, clamp) => Live.Clamp(update_in(inner, path, depth, f, with_menu), clamp),
     _ => if depth == path.len { f(node) } else { step(node, path, depth, f, with_menu) },
 };
 
@@ -120,11 +122,14 @@ fun axis_of<Msg>(live: Live<Msg>, path: i64[]): i32 = if path.len == 0 {
     }
 };
 
-/** The node at `path`, without its menu (`Live.Menu`), if it has one. */
-fun at<Msg>(node: Live<Msg>, path: i64[]): Live<Msg> {
-    let mut here = bare(node);
+/** The node at `path`, without its menu (`Live.Menu`) or clamp (`Live.Clamp`), if it has them. */
+fun at<Msg>(node: Live<Msg>, path: i64[]): Live<Msg> = bare(at_outer(node, path));
+
+/** The node at `path` with its clamp and menu, if it has them: what a restyle needs. */
+fun at_outer<Msg>(node: Live<Msg>, path: i64[]): Live<Msg> {
+    let mut here = node;
     for i of path {
-        here = bare(match here {
+        here = match bare(here) {
             Box(_, _, kids) => kids[i],
             Scroll(_, kid) => kid,
             ButtonWith(_, _, _, _, kid) => kid,
@@ -139,7 +144,7 @@ fun at<Msg>(node: Live<Msg>, path: i64[]): Live<Msg> {
             },
             Pack(_, _, kids) => kids[i],
             _ => panic("kivuli: a patch's path leads through something with no children"),
-        });
+        };
     }
     here
 }
@@ -147,6 +152,7 @@ fun at<Msg>(node: Live<Msg>, path: i64[]): Live<Msg> {
 /** `node` without its menu: a menu takes no place in a path. */
 fun bare<Msg>(node: Live<Msg>): Live<Msg> = match node {
     Menu(inner, _) => bare(inner),
+    Clamp(inner, _) => bare(inner),
     _ => node,
 };
 

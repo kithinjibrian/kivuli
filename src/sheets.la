@@ -102,6 +102,33 @@ fun check(s: Sheet): Result<(), string> {
             Theme => {}
         }
     }
+    let z = s.sizing;
+    for (name, w) of [
+        ("width", z.width),
+        ("min_width", z.min_width),
+        ("max_width", z.max_width),
+        ("height", z.height),
+        ("min_height", z.min_height),
+        ("max_height", z.max_height),
+    ] {
+        match w {
+            Px(n) => if n < 0 {
+                return Err("Sizing.{name}: Width.Px({n}): a size can't be negative");
+            },
+            Theme => {}
+        }
+    }
+    for (way, low, high) of [
+        ("width", z.min_width, z.max_width),
+        ("height", z.min_height, z.max_height),
+    ] {
+        match (low, high) {
+            (Px(lo), Px(hi)) => if lo > hi {
+                return Err("Sizing: min_{way} {lo} is more than max_{way} {hi}");
+            },
+            _ => {}
+        }
+    }
     match s.spacing.gap {
         Px(n) => if n < 0 {
             return Err("Spacing.gap: Width.Px({n}): a gap can't be negative");

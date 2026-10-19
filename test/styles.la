@@ -4,6 +4,7 @@
 import kivuli.styles { Sheet };
 import kivuli {
     View,
+    Sizing,
     Styling,
     Font,
     Text,
@@ -69,6 +70,7 @@ fun the_theme_values_set_nothing() {
         border: Border.theme(),
         outline: Outline.theme(),
         spacing: Spacing.theme(),
+        sizing: Sizing.theme(),
     });
     assert_eq(Side.theme(), Side { width: Width.Theme, color: Paint.Theme, style: Line.Theme });
     assert_eq(Border.theme(), Border {
@@ -142,11 +144,11 @@ fun fonts_and_text_merge_separately_in_one_list() {
 @test
 fun two_style_calls_are_one_longer_list() {
     let wide = Text { letter_spacing: 1, ..Text.theme() };
-    let split: View<i64> = text("x").style([big(), wide]).style([weight(Weight.Thin)]).width(4);
-    let whole: View<i64> = text("x").width(4).style([big(), wide, weight(Weight.Thin)]);
+    let split: View<i64> = text("x").style([big(), wide]).style([weight(Weight.Thin)]).tooltip("t");
+    let whole: View<i64> = text("x").tooltip("t").style([big(), wide, weight(Weight.Thin)]);
     assert_eq(sheet_of(split), sheet_of(whole));
     // Nothing set: the theme's.
-    let none: View<i64> = text("x").width(4);
+    let none: View<i64> = text("x").tooltip("t");
     assert_eq(sheet_of(none), Sheet.theme());
 }
 
@@ -293,7 +295,8 @@ fun backgrounds_view(rows: View<Pick>[]): View<Pick> = column([
         Background { color: Paint.Color(hex("#c0392b")), ..Background.theme() },
         Text { color: Paint.Color(hex("#ffffff")), ..Text.theme() },
     ]),
-    column([]).height(120).style([
+    column([]).style([
+        Sizing { min_height: Width.Px(120), ..Sizing.theme() },
         Background {
             gradient: Gradient.Linear(180, [
                 Stop { color: Paint.Color(hex("#1e3c72")), at: 0.0 },
@@ -302,7 +305,8 @@ fun backgrounds_view(rows: View<Pick>[]): View<Pick> = column([
             ..Background.theme(),
         },
     ]),
-    column([]).height(160).style([
+    column([]).style([
+        Sizing { min_height: Width.Px(160), ..Sizing.theme() },
         Background {
             color: Paint.Color(hex("#101010")),
             gradient: Gradient.Linear(180, [
@@ -313,7 +317,8 @@ fun backgrounds_view(rows: View<Pick>[]): View<Pick> = column([
             fill: Fill.Cover,
         },
     ]),
-    column([]).height(80).style([
+    column([]).style([
+        Sizing { min_height: Width.Px(80), ..Sizing.theme() },
         Background {
             image: Some(Image.Icon("starred-symbolic")),
             fill: Fill.Tile,
@@ -433,7 +438,8 @@ fun borders_view(rows: View<Pick>[]): View<Pick> = column([
             ..Border.theme(),
         },
     ]),
-    column([]).height(80).style([
+    column([]).style([
+        Sizing { min_height: Width.Px(80), ..Sizing.theme() },
         Border {
             all: Side {
                 width: Width.Px(2),

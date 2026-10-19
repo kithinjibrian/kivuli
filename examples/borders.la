@@ -1,9 +1,11 @@
 // A specimen of borders, outlines and spacing: each line style, one side at
 // a time, `all` with one side overridden, each radius, padding inside a
-// border and margin outside it, and outlines that step aside for the theme's
-// focus ring: Tab to an outlined button and its focus ring shows instead.
+// border and margin outside it, exact, minimum and maximum sizes, and
+// outlines that step aside for the theme's focus ring: Tab to an outlined
+// button and its focus ring shows instead.
 import kivuli {
     View,
+    Sizing,
     Edges,
     Spacing,
     Border,
@@ -26,6 +28,13 @@ import kivuli {
     wrap,
 };
 
+/** At least `w` by `h` pixels; 0 leaves that way to the theme. */
+fun at_least(w: i64, h: i64): Sizing = Sizing {
+    min_width: if w > 0 { Width.Px(w) } else { Width.Theme },
+    min_height: if h > 0 { Width.Px(h) } else { Width.Theme },
+    ..Sizing.theme(),
+};
+
 /** The same room on every side, inside the node. */
 fun pad(n: i64): Spacing = Spacing {
     padding: Edges { all: Width.Px(n), ..Edges.theme() },
@@ -42,7 +51,7 @@ fun heading(s: string): View<()> = text(s).style([
 /** A tile with `b` as its border, its label inside. */
 fun tile(label: string, b: Border): View<()> = column([
     text(label).style([Font { size: Size.Scale(0.85), ..Font.theme() }]),
-]).width(150).height(70).style([pad(10)]).style([b]);
+]).style([at_least(150, 70)]).style([pad(10)]).style([b]);
 
 fun side(n: i64, line: Line): Side = Side {
     width: Width.Px(n),
@@ -131,6 +140,25 @@ fun view(m: ()): View<()> = scroll(
             text("above"),
             text("pulled up 6").style([Spacing { margin: Edges { top: Width.Px(-6), ..Edges.theme() }, ..Spacing.theme() }]),
         ]).style([all(hairline()), pad(8)]),
+    ]).style([gap(12)]),
+    heading("Sizing (resize the window)"),
+    column([
+        text("width 320: exactly, however wide the window").style([
+            all(hairline()),
+            pad(8),
+            Sizing { width: Width.Px(320), ..Sizing.theme() },
+        ]),
+        text("max_width 560: a readable column. This text wraps and never runs wider than 560 pixels, so lines stay easy to follow on a wide window.").wrap().style([
+            all(hairline()),
+            pad(8),
+            Sizing { max_width: Width.Px(560), ..Sizing.theme() },
+        ]),
+        text("min_width 200, max_width 400: between the two").style([
+            all(hairline()),
+            pad(8),
+            Sizing { min_width: Width.Px(200), max_width: Width.Px(400), ..Sizing.theme() },
+        ]),
+        text("min_height 60: at least").style([all(hairline()), pad(8), at_least(0, 60)]),
     ]).style([gap(12)]),
     heading("Outlines (Tab to the buttons: the focus ring shows instead)"),
         wrap([
