@@ -21,6 +21,7 @@ import kivuli {
     button_with,
     item,
     menu_separator,
+    header_bar,
 };
 import kivuli.testing {
     Lookup,
@@ -255,9 +256,7 @@ fun is_field_disabled_finds_fields_as_type_into_does() {
 }
 
 fun framed_app(): View<Msg> = column([text("body")]).header(
-    [button("Clear", Msg.Clear)],
-    input("", Msg.Draft).placeholder("Address"),
-    [],
+    header_bar([button("Clear", Msg.Clear)], input("", Msg.Draft).placeholder("Address"), []),
 );
 
 @test

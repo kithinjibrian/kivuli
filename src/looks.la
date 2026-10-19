@@ -76,6 +76,10 @@ public struct Style {
     sheet: Sheet,
     /** The CSS classes `sheet` gives: filled in by `paint`, never by hand. */
     classes: string[],
+    /** The header bar's own style (`header_bar(…).style`). Root only, with `.header`. */
+    bar: Sheet,
+    /** The CSS classes `bar` gives: filled in by `paint`. */
+    bar_classes: string[],
     /** The window opens maximized (`.maximized()`). Root only. */
     maximized: bool,
     /** Every child as wide as the widest (`.equal()`). Wraps only. */
@@ -106,6 +110,8 @@ fun plain(): Style = Style {
     fit: Fit.Contain,
     sheet: Sheet.theme(),
     classes: [],
+    bar: Sheet.theme(),
+    bar_classes: [],
     maximized: false,
     equal: false,
     max_per_line: 0,

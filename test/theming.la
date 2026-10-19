@@ -33,6 +33,11 @@ import kivuli {
     row,
     spacer,
     text,
+    header_bar,
+    When,
+    State,
+    Sizing,
+    Bar,
 };
 
 @test
@@ -104,7 +109,7 @@ fun the_stylesheet_has_every_rule_the_view_uses_once() {
 
 @test
 fun painting_refuses_what_the_app_got_wrong() {
-    let deep: View<i64> = column([text("a").header([], text("T"), [])]);
+    let deep: View<i64> = column([text("a").header(header_bar([], text("T"), []))]);
     assert_eq(
         painted(deep).map(fun(v) = 0),
         Err(".header(…) belongs on the root of the view only"),
@@ -195,5 +200,40 @@ fun painting_gives_a_spacings_classes_and_refuses_its_bad_values() {
     assert_eq(
         painted(bad).map(fun(v) = 0),
         Err("Spacing.gap: Width.Px(-1): a gap can't be negative"),
+    );
+}
+
+/** An empty bar with the tests' message type. */
+fun blank(): Bar<i64> = header_bar([], text("T"), []);
+
+fun root_classes(v: View<i64>): string[] = match painted(v) {
+    Ok(Styled(_, s)) => s.bar_classes,
+    _ => [],
+};
+
+@test
+fun painting_gives_the_bar_its_classes_and_refuses_what_it_cant_take() {
+    let bar: Bar<i64> = header_bar([], text("T"), []).style([
+        Background { color: Paint.Color(rgb(36, 36, 36)), ..Background.theme() },
+        When(State.Hover, [Font { weight: Weight.Bold, ..Font.theme() }]),
+    ]);
+    assert_eq(root_classes(text("body").header(bar)), [
+        "kv-bg-242424ff",
+        "kv-bgi-none",
+        "kv-hover-fw-700",
+    ]);
+    let wide: View<i64> = text("body").header(
+        blank().style([Sizing { max_width: Width.Px(10), ..Sizing.theme() }]),
+    );
+    assert_eq(
+        painted(wide).map(fun(v) = 0),
+        Err("header_bar(…): a header bar's size and gap are the window's"),
+    );
+    let pictured: View<i64> = text("body").header(
+        blank().style([Background { image: Some(Image.Icon("a")), ..Background.theme() }]),
+    );
+    assert_eq(
+        painted(pictured).map(fun(v) = 0),
+        Err("header_bar(…): a header bar can't have a background image"),
     );
 }

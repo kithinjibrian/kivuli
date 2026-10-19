@@ -566,9 +566,18 @@ Branch: main
 
 ---
 
-## SESSION 28 — 2026-10-20 — The header bar as a node — open
+## SESSION 28 — 2026-10-20 — PRP-023: the header bar as a node, kivuli 0.18.0 — closed
 
-Branch: main
+Branch: main (PRP-023 on prp-023-header_bar, merged)
+
+### WHAT WAS DONE
+- The user asked whether the header bar can be styled; chose the bar as a node over a second `.header_style` door. PRP-023 approved and built, narrow runs only (the user's call): `header_bar(start, title, end)` gives a `Bar` with `.style([...])`; `.header(bar)` (breaking); the bar's style rides in the root's `Style` (`bar`, `bar_classes`), checked by paint (size, gap and image refused), on the bar only. Tests: lib, theming, live_header (new test), plus every `.header` use migrated; browser.la styles its bar. Docs updated. kivuli 0.18.0, tagged locally.
+
+### STILL OPEN AT CLOSE
+- Not pushed, waiting for the user's go: main and tag v0.18.0. The full suite wasn't run (the user's call): run it before the push.
+- For the user to check by hand: `lughac run examples/browser.la`: the bar's faint tint and hairline, the window controls still GTK's.
+- Next: motion; style utilities (parked); the file dialog (013); test/live_forms.la split; DECISION-007 to close.
+- `reports/.gitkeep` deleted in the working tree, not by Claude; left alone.
 
 ---
 

@@ -20,6 +20,8 @@ import kivuli {
     Size,
     Weight,
     Paint,
+    Background,
+    hex,
     Spacing,
     Width,
     text_area,
@@ -35,6 +37,7 @@ import kivuli {
     button_with,
     item,
     menu_separator,
+    header_bar,
 };
 
 // Views and patches can hold functions, which have no `==`: compare what they
@@ -319,11 +322,15 @@ fun a_header_frames_the_node_and_its_styles_stay_outside() {
         Style { tooltip: "t", ..plain() },
     );
     assert_same(
-        text("body").tooltip("t").header([button("Back", Msg.Reset)], text("Title"), []),
+        text("body").tooltip("t").header(
+            header_bar([button("Back", Msg.Reset)], text("Title"), []),
+        ),
         framed,
     );
     assert_same(
-        text("body").header([button("Back", Msg.Reset)], text("Title"), []).tooltip("t"),
+        text("body").header(header_bar([button("Back", Msg.Reset)], text("Title"), [])).tooltip(
+            "t",
+        ),
         framed,
     );
 }
@@ -428,4 +435,22 @@ fun a_button_with_holds_its_content_and_takes_button_modifiers() {
     );
     // The content is the app's: an icon doesn't go in.
     assert_same(button_with(content, Msg.Add).icon("go-next-symbolic"), plain_one);
+}
+
+@test
+fun a_bars_style_rides_in_the_roots_style_apart_from_the_pages() {
+    let dark = Background { color: Paint.Color(hex("#242424")), ..Background.theme() };
+    let v: View<Msg> = text("body").tooltip("page").header(
+        header_bar([button("Back", Msg.Reset)], text("Title"), []).style([dark]),
+    );
+    match v {
+        Styled(Framed(_, start, _, _), s) => {
+            assert_eq(start.len, 1);
+            assert_eq(s.tooltip, "page");
+            assert_eq(s.bar.background, dark);
+            // The page's own style is the page's: the bar's isn't in it.
+            assert_eq(s.sheet.background, Background.theme());
+        }
+        _ => panic("expected a styled, framed root"),
+    }
 }

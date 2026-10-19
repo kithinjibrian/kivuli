@@ -33,6 +33,12 @@ import kivuli {
     row,
     separator,
     text,
+    header_bar,
+    Background,
+    Border,
+    Side,
+    Line,
+    Shadow,
 };
 // For the tests at the bottom; `lughac build` leaves tests out.
 import kivuli.testing { click, is_disabled, pick, submit, texts, type_into };
@@ -241,16 +247,27 @@ fun view(b: Browser): View<Msg> {
     parts.push(separator());
     parts.push(column(tabs).style([gap(4), pad(8)]).style([at_least(160, 0)]));
     row(parts).window("{shown(b)} — Browser", 1000, 640).header(
-        [
-            button("", Msg.Back).icon("go-previous-symbolic").tooltip("Back").disabled(
-                b.tabs[b.current].len < 2,
-            ),
-        ],
-        input(b.draft, Msg.Draft).placeholder("Address").on_submit(Msg.Go).expand(),
-        [
-            button("", Msg.NewTab).icon("tab-new-symbolic").tooltip("New tab"),
-            button("", Msg.ToggleInfo).icon("dialog-information-symbolic").tooltip("Info"),
-        ],
+        header_bar(
+            [
+                button("", Msg.Back).icon("go-previous-symbolic").tooltip("Back").disabled(
+                    b.tabs[b.current].len < 2,
+                ),
+            ],
+            input(b.draft, Msg.Draft).placeholder("Address").on_submit(Msg.Go).expand(),
+            [
+                button("", Msg.NewTab).icon("tab-new-symbolic").tooltip("New tab"),
+                button("", Msg.ToggleInfo).icon("dialog-information-symbolic").tooltip("Info"),
+            ],
+        ).style([
+            // The bar's own look: a faint tint and a hairline under it, in
+            // place of the theme's shadow; its window controls stay GTK's.
+            Background { color: Paint.Faded(0.04), ..Background.theme() },
+            Border {
+                bottom: Side { width: Width.Px(1), color: Paint.Faded(0.12), style: Line.Solid },
+                ..Border.theme()
+            },
+            Shadow.off(),
+        ]),
     )
 }
 

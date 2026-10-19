@@ -12,6 +12,9 @@ import views { View };
 import walk { check_content, nodes };
 import looks { Style };
 import sheets { check, picture, rules };
+import box_rules { needs_clamp };
+import style_values { Width };
+import styles { Sheet };
 import pictures { Image };
 
 /**
@@ -20,7 +23,10 @@ import pictures { Image };
  */
 fun painted<Msg>(v: View<Msg>): Result<View<Msg>, string> = match v {
     // The root alone may be framed by a header.
-    Styled(inside, s) => Ok(View.Styled(painted(inside)?, paint_style(inside, s)?)),
+    Styled(inside, s) => {
+        let own = paint_style(inside, s)?;
+        Ok(View.Styled(painted(inside)?, Style { bar_classes: bar_classes(s.bar)?, ..own }))
+    }
     Framed(body, start, title, end) => Ok(
         View.Framed(paint(body)?, paint_all(start)?, paint(title)?, paint_all(end)?),
     ),
@@ -84,6 +90,18 @@ fun paint_style<Msg>(node: View<Msg>, s: Style): Result<Style, string> {
     Ok(Style { classes: classes, ..s })
 }
 
+/** A header bar's classes, its values checked: what the window decides is refused. */
+fun bar_classes(bar: Sheet): Result<string[], string> {
+    if needs_clamp(bar.sizing) || bar.spacing.gap != Width.Theme {
+        return Err("header_bar(…): a header bar's size and gap are the window's");
+    }
+    if bar.background.image.is_some() {
+        return Err("header_bar(…): a header bar can't have a background image");
+    }
+    check(bar)?;
+    Ok(rules(bar).map(fun(rule) = rule.0.split(":")[0].split(".")[0]))
+}
+
 /**
  * Every CSS rule a painted view's classes need, as (class, declarations),
  * each once, in the order nodes first use them.
@@ -92,9 +110,12 @@ fun stylesheet<Msg>(v: View<Msg>): (string, string)[] {
     let mut seen: Set<string> = #{};
     let mut out: (string, string)[] = [];
     for (_, style) of nodes(v) {
-        for rule of rules(style.sheet) {
-            if seen.insert(rule.0) {
-                out.push(rule);
+        // A root with a header bar carries the bar's rules too.
+        for sheet of [style.sheet, style.bar] {
+            for rule of rules(sheet) {
+                if seen.insert(rule.0) {
+                    out.push(rule);
+                }
             }
         }
     }
