@@ -27,6 +27,8 @@ import kivuli {
     Width,
     Line,
     Radius,
+    Shadow,
+    Effects,
     Spacing,
     Edges,
     button,
@@ -72,6 +74,8 @@ fun the_theme_values_set_nothing() {
         spacing: Spacing.theme(),
         sizing: Sizing.theme(),
         states: [],
+        shadow: Shadow.theme(),
+        effects: Effects.theme(),
     });
     assert_eq(Side.theme(), Side { width: Width.Theme, color: Paint.Theme, style: Line.Theme });
     assert_eq(Border.theme(), Border {

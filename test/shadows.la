@@ -1,0 +1,220 @@
+// Shadows and effects (PRP-022): box and text shadows as lists of drops,
+// opacity, filters and transforms; a later list replaces the earlier; one
+// CSS class per value list; `Shadow.off()` removes the theme's shadow; bad
+// values refused; all of it inside `When` too. No GTK.
+import kivuli.styles { Sheet };
+import kivuli.sheets { check, rules };
+import kivuli {
+    View,
+    Shadow,
+    Drop,
+    Effects,
+    Filter,
+    Move,
+    When,
+    State,
+    Paint,
+    button,
+    column,
+    hex,
+    text,
+};
+
+fun sheet_of<M>(v: View<M>): Sheet = match v {
+    Styled(_, s) => s.sheet,
+    _ => panic("expected a styled node"),
+};
+
+/** A text node with a message type, for tests that only read its sheet. */
+fun t(s: string): View<i64> = text(s);
+
+fun bodies(s: Sheet): string[] = rules(s).map(fun(r) = r.1);
+
+fun soft(): Drop = Drop { y: 2, blur: 8, color: Paint.Color(hex("#00000040")), ..Drop.theme() };
+
+@test
+fun the_theme_values_set_nothing() {
+    assert_eq(Drop.theme(), Drop {
+        x: 0,
+        y: 0,
+        blur: 0,
+        spread: 0,
+        color: Paint.Theme,
+        inset: false,
+    });
+    assert_eq(Shadow.theme(), Shadow { boxes: [], text: [] });
+    assert_eq(Effects.theme(), Effects { opacity: None, filters: [], transform: [] });
+    assert_eq(rules(Sheet.theme()), []);
+}
+
+@test
+fun a_later_list_replaces_the_earlier_and_boxes_and_text_merge_apart() {
+    let hard = Drop { y: 1, blur: 1, ..Drop.theme() };
+    let v: View<i64> = text("x").style([
+        Shadow { boxes: [soft()], text: [hard] },
+        Shadow { boxes: [hard], ..Shadow.theme() },
+        Effects { opacity: Some(0.5), filters: [Filter.Blur(2)], ..Effects.theme() },
+        Effects { filters: [Filter.Sepia(1.0)], ..Effects.theme() },
+    ]);
+    let s = sheet_of(v);
+    assert_eq((s.shadow.boxes, s.shadow.text), ([hard], [hard]));
+    assert_eq((s.effects.opacity, s.effects.filters), (Some(0.5), [Filter.Sepia(1.0)]));
+}
+
+@test
+fun shadows_are_one_rule_per_list() {
+    let s = sheet_of(
+        t("x").style([
+            Shadow {
+                boxes: [
+                    soft(),
+                    Drop {
+                        blur: 3,
+                        spread: 1,
+                        inset: true,
+                        color: Paint.Faded(0.2),
+                        ..Drop.theme(),
+                    },
+                ],
+                text: [
+                    Drop { y: 1, blur: 2, color: Paint.Color(hex("#000000aa")), ..Drop.theme() },
+                ],
+            },
+        ]),
+    );
+    assert_eq(bodies(s), [
+        "box-shadow: 0px 2px 8px 0px #00000040, 0px 0px 3px 1px alpha(currentColor, 0.2) inset;",
+        "text-shadow: 0px 1px 2px #000000aa;",
+    ]);
+    let classes = rules(s).map(fun(r) = r.0);
+    assert(classes[0].starts_with("kv-bsh-") && classes[1].starts_with("kv-tsh-"));
+    // Off: the theme's own shadow goes.
+    assert_eq(bodies(sheet_of(button("x", 1).style([Shadow.off()]))), [
+        "box-shadow: 0px 0px 0px 0px #00000000;",
+    ]);
+}
+
+@test
+fun effects_are_opacity_filter_and_transform_rules() {
+    let s = sheet_of(
+        t("x").style([
+            Effects {
+                opacity: Some(0.5),
+                filters: [
+                    Filter.Blur(6),
+                    Filter.Brightness(1.1),
+                    Filter.Contrast(0.9),
+                    Filter.Grayscale(1.0),
+                    Filter.HueRotate(30),
+                    Filter.Invert(0.5),
+                    Filter.Saturate(2.0),
+                    Filter.Sepia(0.3),
+                ],
+                transform: [
+                    Move.Translate(4, 2),
+                    Move.Rotate(-8),
+                    Move.Scale(1.05),
+                    Move.ScaleXY(1.1, 0.9),
+                ],
+            },
+        ]),
+    );
+    assert_eq(bodies(s), [
+        "opacity: 0.5;",
+        "filter: blur(6px) brightness(1.1) contrast(0.9) grayscale(1.0) hue-rotate(30deg) invert(0.5) saturate(2.0) sepia(0.3);",
+        "transform: translate(4px, 2px) rotate(-8deg) scale(1.05) scale(1.1, 0.9);",
+    ]);
+    assert_eq(rules(s)[0].0, "kv-op-500");
+}
+
+@test
+fun shadows_and_effects_work_in_states() {
+    let s = sheet_of(
+        button("x", 1).style([
+            When(State.Hover, [
+                Shadow { boxes: [soft()], ..Shadow.theme() },
+                Effects { transform: [Move.Scale(1.05)], ..Effects.theme() },
+            ]),
+        ]),
+    );
+    assert_eq(check(s), Ok(()));
+    let keys = rules(s).map(fun(r) = r.0);
+    assert(keys.all(fun(k) = k.starts_with("kv-hover-") && k.ends_with(":hover")));
+    assert_eq(keys.len, 2);
+}
+
+@test
+fun bad_values_say_what_is_wrong() {
+    let sheet = fun(e: Effects): Sheet = Sheet { effects: e, ..Sheet.theme() };
+    assert_eq(
+        check(sheet(Effects { opacity: Some(1.5), ..Effects.theme() })),
+        Err("Effects.opacity: 1.5: an opacity is between 0 and 1"),
+    );
+    assert_eq(
+        check(sheet(Effects { filters: [Filter.Blur(-2)], ..Effects.theme() })),
+        Err("Filter.Blur(-2): a blur can't be negative"),
+    );
+    assert_eq(
+        check(sheet(Effects { filters: [Filter.Grayscale(2.0)], ..Effects.theme() })),
+        Err("Filter.Grayscale(2.0): Grayscale, Invert and Sepia are between 0 and 1"),
+    );
+    assert_eq(
+        check(sheet(Effects { filters: [Filter.Brightness(-1.0)], ..Effects.theme() })),
+        Err("Filter.Brightness(-1.0): Brightness, Contrast and Saturate can't be negative"),
+    );
+    let shadowed = fun(sh: Shadow): Sheet = Sheet { shadow: sh, ..Sheet.theme() };
+    assert_eq(
+        check(shadowed(Shadow { boxes: [Drop { blur: -1, ..Drop.theme() }], ..Shadow.theme() })),
+        Err("Drop: a shadow's blur can't be negative"),
+    );
+    assert_eq(
+        check(shadowed(Shadow { text: [Drop { inset: true, ..Drop.theme() }], ..Shadow.theme() })),
+        Err("Shadow.text: a text shadow has no spread or inset"),
+    );
+}
+
+// PRP-022's OBJECTIVE, as written there.
+enum Msg {
+    Open,
+}
+
+fun lifted(): Shadow = Shadow {
+    boxes: [
+        Drop { y: 8, blur: 24, color: Paint.Color(hex("#00000026")), ..Drop.theme() },
+        Drop { y: 1, blur: 2, color: Paint.Color(hex("#00000033")), ..Drop.theme() },
+    ],
+    ..Shadow.theme(),
+};
+
+fun view(rows: View<Msg>[]): View<Msg> = column([
+    column(rows).style([lifted()]),
+    text("Over a picture").style([
+        Shadow {
+            text: [Drop { y: 1, blur: 2, color: Paint.Color(hex("#000000aa")), ..Drop.theme() }],
+            ..Shadow.theme(),
+        },
+    ]),
+    column(rows).style([Effects { opacity: Some(0.5), ..Effects.theme() }]),
+    text("avatar").style([
+        Effects { filters: [Filter.Grayscale(1.0), Filter.Brightness(1.1)], ..Effects.theme() },
+    ]),
+    button("Tile", Msg.Open).style([
+        lifted(),
+        When(State.Hover, [Effects { transform: [Move.Scale(1.05)], ..Effects.theme() }]),
+    ]),
+    button("Flat", Msg.Open).style([Shadow.off()]),
+]);
+
+@test
+fun the_objective_reads_as_written() {
+    let k = match view([text("row")]) {
+        Column(xs) => xs,
+        _ => panic("expected a column"),
+    };
+    assert_eq(sheet_of(k[0]).shadow, lifted());
+    assert_eq(sheet_of(k[2]).effects.opacity, Some(0.5));
+    assert_eq(sheet_of(k[4]).states.len, 1);
+    for node of k {
+        assert_eq(check(sheet_of(node)), Ok(()));
+    }
+}

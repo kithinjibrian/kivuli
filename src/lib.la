@@ -24,6 +24,7 @@ public import styles {
     StateStyle,
     When,
 };
+public import style_groups { Shadow, Effects };
 public import style_values {
     Family,
     Size,
@@ -40,6 +41,9 @@ public import style_values {
     Line,
     Radius,
     Edges,
+    Drop,
+    Filter,
+    Move,
 };
 public import pictures { Image };
 public import menus { MenuEntry, item, menu_separator };

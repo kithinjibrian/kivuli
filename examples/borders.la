@@ -31,6 +31,12 @@ import kivuli {
     When,
     State,
     checkbox,
+    Shadow,
+    Drop,
+    Effects,
+    Filter,
+    Move,
+    Image,
 };
 
 /** At least `w` by `h` pixels; 0 leaves that way to the theme. */
@@ -184,6 +190,34 @@ fun view(m: ()): View<()> = scroll(
             When(State.Checked, [Text { color: Paint.Color(hex("#27ae60")), ..Text.theme() }]),
         ]),
     ]).style([gap(16)]),
+    heading("Shadows and effects (hover the tile)"),
+    wrap([
+        column([text("A card lifted off the page")]).style([
+            pad(16),
+            Border { radius: Radius.All(12), ..Border.theme() },
+            Background { color: Paint.Color(hex("#ffffff")), ..Background.theme() },
+            Text { color: Paint.Color(hex("#222222")), ..Text.theme() },
+            Shadow { boxes: [
+                Drop { y: 8, blur: 24, color: Paint.Color(hex("#00000026")), ..Drop.theme() },
+                Drop { y: 1, blur: 2, color: Paint.Color(hex("#00000033")), ..Drop.theme() },
+            ], ..Shadow.theme() },
+        ]),
+        button("Grows on hover", ()).style([
+            When(State.Hover, [
+                Effects { transform: [Move.Scale(1.08)], ..Effects.theme() },
+                Shadow { boxes: [Drop { y: 4, blur: 12, color: Paint.Color(hex("#00000040")), ..Drop.theme() }], ..Shadow.theme() },
+            ]),
+        ]),
+        button("No theme shadow", ()).style([Shadow.off()]),
+        text("Text with a shadow").style([
+            Font { size: Size.Pt(18), weight: Weight.Bold, ..Font.theme() },
+            Shadow { text: [Drop { x: 1, y: 2, blur: 3, color: Paint.Faded(0.5), ..Drop.theme() }], ..Shadow.theme() },
+        ]),
+        text("Half see-through").style([Effects { opacity: Some(0.5), ..Effects.theme() }]),
+        column([]).style([at_least(80, 60), Background { image: Some(Image.File("examples/assets/sample.png")), ..Background.theme() }, Effects { filters: [Filter.Grayscale(1.0)], ..Effects.theme() }]),
+        column([]).style([at_least(80, 60), Background { image: Some(Image.File("examples/assets/sample.png")), ..Background.theme() }, Effects { filters: [Filter.Blur(3)], ..Effects.theme() }]),
+        text("Tilted").style([Effects { transform: [Move.Rotate(-8)], ..Effects.theme() }]),
+    ]).style([gap(24)]),
     heading("Outlines (Tab to the buttons: the focus ring shows instead)"),
         wrap([
             button("Outlined, offset 2", ()).style([

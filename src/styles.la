@@ -12,6 +12,8 @@
 
 import theming { Paint };
 import pictures { Image };
+// The second allowed cycle (DECISION-025): style_groups holds more groups.
+import style_groups { Shadow, Effects };
 import style_values {
     Family,
     Size,
@@ -49,6 +51,8 @@ public struct Sheet {
     public sizing: Sizing,
     /** Each state's own values (`When`), merged over these while it's on; in the order first given. */
     public states: (State, Sheet)[],
+    public shadow: Shadow,
+    public effects: Effects,
 }
 
 impl Sheet {
@@ -62,6 +66,8 @@ impl Sheet {
         spacing: Spacing.theme(),
         sizing: Sizing.theme(),
         states: [],
+        shadow: Shadow.theme(),
+        effects: Effects.theme(),
     };
 }
 

@@ -8,8 +8,9 @@
  */
 
 import styles { Sheet, Border, Sizing };
-import style_values { Side, Width, Line, Radius, Edges };
-import theming { Paint, digits, permille };
+import style_values { Side, Width, Line, Radius, Edges, Drop, Filter, Move };
+import theming { Paint, digits, hexed, paint_css, permille };
+import style_groups { Shadow, Effects };
 
 /** The rules for `s`'s border and outline, in that order. */
 fun box_css(s: Sheet): (string, string)[] {
@@ -86,6 +87,27 @@ fun box_css(s: Sheet): (string, string)[] {
     match s.sizing.min_height {
         Px(n) => out.push(("kv-minh-{n}", "min-height: {n}px;")),
         Theme => {}
+    }
+    // Each list is one rule: CSS draws its shadows, filters and moves together.
+    if s.shadow.boxes.len > 0 {
+        let css = s.shadow.boxes.map(fun(d) = drop_css(d, true)).join(", ");
+        out.push(("kv-bsh-{hexed(css)}", "box-shadow: {css};"));
+    }
+    if s.shadow.text.len > 0 {
+        let css = s.shadow.text.map(fun(d) = drop_css(d, false)).join(", ");
+        out.push(("kv-tsh-{hexed(css)}", "text-shadow: {css};"));
+    }
+    match s.effects.opacity {
+        Some(x) => out.push(("kv-op-{permille(x)}", "opacity: {x};")),
+        None => {}
+    }
+    if s.effects.filters.len > 0 {
+        let css = s.effects.filters.map(filter_css).join(" ");
+        out.push(("kv-flt-{hexed(css)}", "filter: {css};"));
+    }
+    if s.effects.transform.len > 0 {
+        let css = s.effects.transform.map(move_css).join(" ");
+        out.push(("kv-tf-{hexed(css)}", "transform: {css};"));
     }
     for (side, w) of room(s.spacing.margin) {
         match w {
@@ -194,3 +216,73 @@ fun px(w: Width): i64 = match w {
     Px(n) => n,
     Theme => -1,
 };
+
+/** A shadow as CSS; a box's has its spread and inset. */
+fun drop_css(d: Drop, box: bool): string = if box {
+    "{d.x}px {d.y}px {d.blur}px {d.spread}px {paint_css(d.color)}{if d.inset { " inset" } else { "" }}"
+} else {
+    "{d.x}px {d.y}px {d.blur}px {paint_css(d.color)}"
+};
+
+fun filter_css(f: Filter): string = match f {
+    Blur(n) => "blur({n}px)",
+    Brightness(x) => "brightness({x})",
+    Contrast(x) => "contrast({x})",
+    Grayscale(x) => "grayscale({x})",
+    HueRotate(n) => "hue-rotate({n}deg)",
+    Invert(x) => "invert({x})",
+    Saturate(x) => "saturate({x})",
+    Sepia(x) => "sepia({x})",
+};
+
+fun move_css(m: Move): string = match m {
+    Translate(x, y) => "translate({x}px, {y}px)",
+    Rotate(n) => "rotate({n}deg)",
+    Scale(x) => "scale({x})",
+    ScaleXY(x, y) => "scale({x}, {y})",
+};
+
+/** Whether `s`'s shadows and effects can be shown; `Err` naming the first that can't. */
+fun check_effects(s: Sheet): Result<(), string> {
+    let mut drops = s.shadow.boxes;
+    for d of s.shadow.text {
+        if d.spread != 0 || d.inset {
+            return Err("Shadow.text: a text shadow has no spread or inset");
+        }
+        drops.push(d);
+    }
+    for d of drops {
+        if d.blur < 0 {
+            return Err("Drop: a shadow's blur can't be negative");
+        }
+    }
+    match s.effects.opacity {
+        Some(x) => if x < 0.0 || x > 1.0 {
+            return Err("Effects.opacity: {x}: an opacity is between 0 and 1");
+        },
+        None => {}
+    }
+    for f of s.effects.filters {
+        let problem = match f {
+            Blur(n) => if n < 0 { Some("a blur can't be negative") } else { None },
+            Grayscale(x) | Invert(x) | Sepia(x) => if x < 0.0 || x > 1.0 {
+                Some("Grayscale, Invert and Sepia are between 0 and 1")
+            } else {
+                None
+            },
+            Brightness(x) | Contrast(x) | Saturate(x) => if x < 0.0 {
+                Some("Brightness, Contrast and Saturate can't be negative")
+            } else {
+                None
+            },
+            HueRotate(_) => None,
+        };
+        match problem {
+            Some(why) => {
+                return Err("Filter.{f}: {why}");
+            }
+            None => {}
+        }
+    }
+    Ok(())
+}

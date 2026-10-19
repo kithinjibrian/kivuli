@@ -521,9 +521,18 @@ Branch: main
 
 ---
 
-## SESSION 25 — 2026-10-20 — Shadows and effects: discovery — open
+## SESSION 25 — 2026-10-20 — PRP-022: shadows and effects, kivuli 0.17.0 — closed
 
-Branch: main
+Branch: main (PRP-022 on prp-022-shadows_and_effects, merged)
+
+### WHAT WAS DONE
+- Interview (one `Shadow` with box and text lists of `Drop`s; one `Effects` with opacity, filters, transforms), PRP-022 approved with a second allowed import cycle, `styles` ↔ `style_groups` (DECISION-025; CLAUDE.md rule 2). `Drop`, `Filter`, `Move` (style_values); `Shadow`, `Effects` (style_groups); `Sheet.shadow`, `Sheet.effects`; CSS one rule per list, checks, all of it in `When`; `Shadow.off()`. `paint_css` and `hexed` moved to theming. GTK parsed every generated kind (C probe). Narrow runs only: shadows (new), styles, states, sheets, sheets_border, theming, spacing, sizing, live_type; every example built. borders.la has a "Shadows and effects" section. Docs and the tutorial page updated. kivuli 0.17.0, tagged locally.
+
+### STILL OPEN AT CLOSE
+- Not pushed, waiting for the user's go: main and tags v0.11.0 through v0.17.0. The full suite hasn't run since 0.15.0: run it before any push.
+- For the user to check by hand: `lughac run examples/borders.la`'s "Shadows and effects": the lifted card, the tile growing on hover, the greyscale and blurred pictures, the tilted text.
+- Next: motion (transitions, animations); style utilities. Queued: file dialog (013). For the lugha session: DECISIONS 020-022. test/live_forms.la split awaiting the user.
+- `reports/.gitkeep` deleted in the working tree, not by Claude; left alone.
 
 ---
 

@@ -1,0 +1,81 @@
+/**
+ * Style groups beyond `styles` (file size): `Shadow` and `Effects`. Each
+ * group's `apply` takes a `Sheet` and `Sheet` holds every group, so this
+ * module and `styles` import each other: the second allowed cycle
+ * (DECISION-025). Pure.
+ *
+ * Depends on: styles (`Sheet`), style_values, theming
+ * Used by: styles, lib
+ */
+
+import styles { Sheet };
+import style_values { Drop, Filter, Move };
+import theming { Color, Paint };
+
+/**
+ * A node's shadows: under its box (a card lifting off the page), and under
+ * its text (readable over a picture), each a list of `Drop`s drawn together.
+ * `[]` is the theme's; a later list replaces the earlier.
+ *
+ * Example:
+ *     card.style([Shadow { boxes: [Drop { y: 2, blur: 8, color: Paint.Color(hex("#00000040")), ..Drop.theme() }], ..Shadow.theme() }])
+ */
+public struct Shadow {
+    public boxes: Drop[],
+    public text: Drop[],
+}
+
+impl Shadow {
+    /** The theme's shadows. */
+    public fun theme(): Shadow = Shadow { boxes: [], text: [] };
+
+    /** No box shadow at all: removes the theme's own (a button's). */
+    public fun off(): Shadow = Shadow {
+        boxes: [
+            Drop {
+                color: Paint.Color(Color { red: 0, green: 0, blue: 0, alpha: 0 }),
+                ..Drop.theme(),
+            },
+        ],
+        text: [],
+    };
+
+    /** `s` with every list this shadow sets. */
+    public fun apply(self, s: Sheet): Sheet = Sheet {
+        shadow: Shadow {
+            boxes: if self.boxes.len > 0 { self.boxes } else { s.shadow.boxes },
+            text: if self.text.len > 0 { self.text } else { s.shadow.text },
+        },
+        ..s,
+    };
+}
+
+/**
+ * How the whole node is drawn: its opacity (children and all), filters in
+ * order, and transforms in order. A transform never changes the room the
+ * node takes, so its neighbours don't move.
+ *
+ * Example:
+ *     tile.style([When(State.Hover, [Effects { transform: [Move.Scale(1.05)], ..Effects.theme() }])])
+ */
+public struct Effects {
+    /** 0 (invisible) to 1. */
+    public opacity: Option<f64>,
+    public filters: Filter[],
+    public transform: Move[],
+}
+
+impl Effects {
+    /** The theme's: nothing changed. */
+    public fun theme(): Effects = Effects { opacity: None, filters: [], transform: [] };
+
+    /** `s` with every field these effects set. */
+    public fun apply(self, s: Sheet): Sheet = Sheet {
+        effects: Effects {
+            opacity: if self.opacity.is_some() { self.opacity } else { s.effects.opacity },
+            filters: if self.filters.len > 0 { self.filters } else { s.effects.filters },
+            transform: if self.transform.len > 0 { self.transform } else { s.effects.transform },
+        },
+        ..s,
+    };
+}

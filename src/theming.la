@@ -104,3 +104,19 @@ fun two_digits(n: i64): string {
 
 /** A positive number in thousandths, rounded: a class name can't hold a dot. */
 fun permille(x: f64): i64 = (x * 1000.0 + 0.5) as i64;
+
+/** A colour as CSS: the theme's text colour for `Theme`, faded for `Faded`. */
+fun paint_css(p: Paint): string = match p {
+    Theme => "currentColor",
+    Color(c) => "#{digits(c)}",
+    Faded(x) => "alpha(currentColor, {x})",
+};
+
+/** `s` in hex: any text as a valid, unique part of a class name. */
+fun hexed(s: string): string {
+    let mut out = "";
+    for b of s {
+        out = out + two_digits(b as i64);
+    }
+    out
+}
