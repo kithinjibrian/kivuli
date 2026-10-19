@@ -508,7 +508,20 @@ Branch: main (PRP-021 on prp-021-states, merged)
 
 ---
 
-## SESSION 24 — 2026-10-20 — Theme colours and button looks: discovery — open
+## SESSION 24 — 2026-10-20 — Theme colours and button looks: skipped — closed
+
+Branch: main
+
+### WHAT WAS DONE
+- Discussed theme colours in `Paint` (`Paint.Accent` and GTK's other named colours) and button looks (the theme's own classes, or kivuli presets). The user's call: skip both; apps build their looks from their own values (a palette is ordinary functions). No code, no PRP.
+
+### STILL OPEN AT CLOSE
+- Not pushed, waiting for the user's go: main and tags v0.11.0 through v0.16.0; the full suite before any push.
+- Next: shadows and effects (session 25).
+
+---
+
+## SESSION 25 — 2026-10-20 — Shadows and effects: discovery — open
 
 Branch: main
 

@@ -38,7 +38,7 @@ fun main() {
 
 ### DECISION-023 — Styling has one door
 
-**Status:** resolved for fonts and text (PRP-016, session 18) backgrounds (PRP-017, session 19) borders and outlines (PRP-018, session 20) spacing (PRP-019, session 21: `.padding` and `.spacing` moved into `Spacing`) and sizing (PRP-020, session 22: `.width` and `.height` moved into `Sizing`, exact and maximum sizes through a clamp in lugha-gtk) and states (PRP-021, session 23: `When`); button looks come through the same door in a later PRP
+**Status:** resolved for fonts and text (PRP-016, session 18) backgrounds (PRP-017, session 19) borders and outlines (PRP-018, session 20) spacing (PRP-019, session 21: `.padding` and `.spacing` moved into `Spacing`) and sizing (PRP-020, session 22: `.width` and `.height` moved into `Sizing`, exact and maximum sizes through a clamp in lugha-gtk) and states (PRP-021, session 23: `When`); button looks and theme colours in `Paint` were considered and skipped (session 24, the user's call: apps build their looks from their own values)
 **Raised:** 2026-10-19 — Session 17 (the user)
 
 **Question:** Appearance comes through three overlapping ways: modifiers (`.bold`, `.dim`, `.size` on text, `.button_style`), `ButtonStyle`, and `Surface` fields (`text`, `flat`) that compete with them. Which one wins depends on the order kivuli applies them.
