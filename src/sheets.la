@@ -21,6 +21,11 @@ import styles {
     Gradient,
     Stop,
     Fill,
+    Border,
+    Side,
+    Width,
+    Line,
+    Radius,
 };
 import pictures { Image, data_url, identity };
 import theming { Paint, digits, two_digits };
@@ -73,6 +78,22 @@ fun check(s: Sheet): Result<(), string> {
         Radial(stops) => check_stops(stops)?,
         Theme => {}
     }
+    let b = sides(s.border);
+    for side of [b.top, b.right, b.bottom, b.left] {
+        check_width(side.width)?;
+        check_paint(side.color)?;
+    }
+    match s.border.radius {
+        All(n) => if n < 0 {
+            return Err("Radius.All({n}): a radius can't be negative");
+        },
+        Corners(a, b, c, d) => if a < 0 || b < 0 || c < 0 || d < 0 {
+            return Err("Radius.Corners({a}, {b}, {c}, {d}): a radius can't be negative");
+        },
+        Theme => {}
+    }
+    check_width(s.outline.width)?;
+    check_paint(s.outline.color)?;
     match s.background.image {
         Some(Icon(name)) => if breaks_css(name) {
             return Err(
@@ -83,6 +104,11 @@ fun check(s: Sheet): Result<(), string> {
     }
     Ok(())
 }
+
+fun check_width(w: Width): Result<(), string> = match w {
+    Px(n) => if n < 0 { Err("Width.Px({n}): a width can't be negative") } else { Ok(()) },
+    Theme => Ok(()),
+};
 
 fun check_paint(p: Paint): Result<(), string> = match p {
     Faded(x) => if x < 0.0 || x > 1.0 {
@@ -205,8 +231,112 @@ fun rules(s: Sheet): (string, string)[] {
             out.push(("kv-bgi-none", "background-image: none;"));
         }
     }
+    let edges = sides(s.border);
+    for (name, side) of [
+        ("top", edges.top),
+        ("right", edges.right),
+        ("bottom", edges.bottom),
+        ("left", edges.left),
+    ] {
+        for rule of line_rules(
+            "b",
+            "border-{name}",
+            "-{name}",
+            side.width,
+            side.style,
+            side.color,
+        ) {
+            out.push(rule);
+        }
+    }
+    let corners = match s.border.radius {
+        Theme => [],
+        All(n) => [n, n, n, n],
+        Corners(a, b, c, d) => [a, b, c, d],
+    };
+    let names = [
+        ("tl", "top-left"),
+        ("tr", "top-right"),
+        ("br", "bottom-right"),
+        ("bl", "bottom-left"),
+    ];
+    let mut i = 0;
+    while i < corners.len {
+        out.push(
+            ("kv-br-{names[i].0}-{corners[i]}", "border-{names[i].1}-radius: {corners[i]}px;"),
+        );
+        i = i + 1;
+    }
+    // Only while the node doesn't have keyboard focus: the theme's focus ring
+    // is an outline too, and must still show. The key carries the selector's
+    // tail; `paint` takes the class before the `:`.
+    let o = s.outline;
+    for (class, body) of line_rules("o", "outline", "", o.width, o.style, o.color) {
+        out.push(("{class}:not(:focus-visible)", body));
+    }
+    if o.offset != 0 {
+        let id = if o.offset < 0 { "m{-o.offset}" } else { "{o.offset}" };
+        out.push(("kv-oo-{id}:not(:focus-visible)", "outline-offset: {o.offset}px;"));
+    }
     out
 }
+
+/**
+ * The rules for one border side or an outline (`kind` "b" or "o", `prop` the
+ * CSS property's stem, `tail` the class's side): width, line, colour. A width
+ * whose line is left `Theme` is drawn solid: CSS draws nothing without a style.
+ */
+fun line_rules(
+    kind: string,
+    prop: string,
+    tail: string,
+    width: Width,
+    style: Line,
+    color: Paint,
+): (string, string)[] {
+    let mut out: (string, string)[] = [];
+    match width {
+        Px(n) => out.push(("kv-{kind}w{tail}-{n}", "{prop}-width: {n}px;")),
+        Theme => {}
+    }
+    let line = if style == Line.Theme && width != Width.Theme { Line.Solid } else { style };
+    match keyword(line) {
+        Some(k) => out.push(("kv-{kind}s{tail}-{k}", "{prop}-style: {k};")),
+        None => {}
+    }
+    match color {
+        Theme => {}
+        Color(c) => out.push(("kv-{kind}c{tail}-{digits(c)}", "{prop}-color: #{digits(c)};")),
+        Faded(x) => out.push(
+            ("kv-{kind}cfade{tail}-{permille(x)}", "{prop}-color: alpha(currentColor, {x});"),
+        ),
+    }
+    out
+}
+
+/** `b` with `all` folded into each side (a side's own fields over it), as `.style` leaves it. */
+fun sides(b: Border): Border = Border {
+    all: Side.theme(),
+    top: b.top.over(b.all),
+    right: b.right.over(b.all),
+    bottom: b.bottom.over(b.all),
+    left: b.left.over(b.all),
+    radius: b.radius,
+};
+
+/** A line's CSS keyword; `None` for the theme's. */
+fun keyword(l: Line): Option<string> = match l {
+    Theme => None,
+    None => Some("none"),
+    Solid => Some("solid"),
+    Dashed => Some("dashed"),
+    Dotted => Some("dotted"),
+    Double => Some("double"),
+    Groove => Some("groove"),
+    Ridge => Some("ridge"),
+    Inset => Some("inset"),
+    Outset => Some("outset"),
+};
 
 /**
  * A background's picture, when it has one: its class, the image, the

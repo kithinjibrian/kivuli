@@ -20,6 +20,12 @@ import kivuli {
     Stop,
     Fill,
     Image,
+    Border,
+    Side,
+    Outline,
+    Width,
+    Line,
+    Radius,
     button,
     column,
     row,
@@ -58,6 +64,23 @@ fun the_theme_values_set_nothing() {
         font: Font.theme(),
         text: Text.theme(),
         background: Background.theme(),
+        border: Border.theme(),
+        outline: Outline.theme(),
+    });
+    assert_eq(Side.theme(), Side { width: Width.Theme, color: Paint.Theme, style: Line.Theme });
+    assert_eq(Border.theme(), Border {
+        all: Side.theme(),
+        top: Side.theme(),
+        right: Side.theme(),
+        bottom: Side.theme(),
+        left: Side.theme(),
+        radius: Radius.Theme,
+    });
+    assert_eq(Outline.theme(), Outline {
+        width: Width.Theme,
+        color: Paint.Theme,
+        style: Line.Theme,
+        offset: 0,
     });
     assert_eq(Background.theme(), Background {
         color: Paint.Theme,
@@ -309,4 +332,122 @@ fun the_backgrounds_objective_reads_as_written() {
         fill: Fill.Tile,
         ..Background.theme(),
     });
+}
+
+/** A hairline that follows light and dark. */
+fun hairline(): Side = Side { width: Width.Px(1), color: Paint.Faded(0.15), style: Line.Solid };
+
+fun thick(): Side = Side { width: Width.Px(3), ..Side.theme() };
+
+fun border_of(v: View<i64>): Border = sheet_of(v).border;
+
+@test
+fun all_sets_every_side_and_a_sides_own_field_beats_it() {
+    let card: View<i64> = column([]).style([
+        Border { all: hairline(), radius: Radius.All(12), ..Border.theme() },
+    ]);
+    let b = border_of(card);
+    assert_eq(
+        (b.top, b.right, b.bottom, b.left, b.radius),
+        (hairline(), hairline(), hairline(), hairline(), Radius.All(12)),
+    );
+    // all is folded into the sides: the sheet keeps the sides.
+    assert_eq(b.all, Side.theme());
+    // Within one value, field by field: the bottom's width is its own, the rest all's.
+    let tab: View<i64> = text("Tab").style([
+        Border { all: hairline(), bottom: thick(), ..Border.theme() },
+    ]);
+    let t = border_of(tab);
+    assert_eq(t.bottom, Side { width: Width.Px(3), color: Paint.Faded(0.15), style: Line.Solid });
+    assert_eq(t.top, hairline());
+}
+
+@test
+fun a_later_all_resets_the_sides_and_a_later_radius_every_corner() {
+    let blue = Side { width: Width.Px(2), color: Paint.Color(hex("#2a5298")), style: Line.Dashed };
+    let v: View<i64> = column([]).style([
+        Border { bottom: thick(), radius: Radius.Corners(8, 8, 0, 0), ..Border.theme() },
+        Border { all: blue, radius: Radius.All(4), ..Border.theme() },
+    ]);
+    let b = border_of(v);
+    assert_eq((b.bottom, b.top, b.radius), (blue, blue, Radius.All(4)));
+    // A later side alone changes only that side, field by field.
+    let w: View<i64> = column([]).style([
+        Border { all: hairline(), ..Border.theme() },
+        Border {
+            left: Side { color: Paint.Color(hex("#ff0000")), ..Side.theme() },
+            ..Border.theme(),
+        },
+    ]);
+    let c = border_of(w);
+    assert_eq(c.left, Side { color: Paint.Color(hex("#ff0000")), ..hairline() });
+    assert_eq(c.right, hairline());
+}
+
+@test
+fun outlines_merge_field_by_field() {
+    let v: View<i64> = text("x").style([
+        Outline {
+            width: Width.Px(2),
+            color: Paint.Color(hex("#2a5298")),
+            style: Line.Solid,
+            offset: 2,
+        },
+        Outline { style: Line.Dotted, ..Outline.theme() },
+    ]);
+    assert_eq(sheet_of(v).outline, Outline {
+        width: Width.Px(2),
+        color: Paint.Color(hex("#2a5298")),
+        style: Line.Dotted,
+        offset: 2,
+    });
+}
+
+// PRP-018's OBJECTIVE, as written there.
+fun borders_view(rows: View<Pick>[]): View<Pick> = column([
+    column(rows).style([
+        Border { all: hairline(), radius: Radius.All(12), ..Border.theme() },
+    ]).padding(16),
+    text("Settings").padding(8).style([Border { bottom: hairline(), ..Border.theme() }]),
+    text("Tab").style([
+        Border {
+            all: hairline(),
+            bottom: Side { width: Width.Px(3), ..Side.theme() },
+            radius: Radius.Corners(8, 8, 0, 0),
+            ..Border.theme(),
+        },
+    ]),
+    column([]).height(80).style([
+        Border {
+            all: Side {
+                width: Width.Px(2),
+                color: Paint.Color(hex("#2a5298")),
+                style: Line.Dashed,
+            },
+            ..Border.theme(),
+        },
+    ]),
+    text("Selected").style([
+        Outline {
+            width: Width.Px(2),
+            color: Paint.Color(hex("#2a5298")),
+            style: Line.Solid,
+            offset: 2,
+        },
+    ]),
+]);
+
+@test
+fun the_borders_objective_reads_as_written() {
+    let k = pick_kids(borders_view([text("row")]));
+    assert_eq(sheet_of(k[0]).border.radius, Radius.All(12));
+    assert_eq(sheet_of(k[0]).border.left, hairline());
+    assert_eq(
+        (sheet_of(k[1]).border.bottom, sheet_of(k[1]).border.top),
+        (hairline(), Side.theme()),
+    );
+    assert_eq(sheet_of(k[2]).border.bottom.width, Width.Px(3));
+    assert_eq(sheet_of(k[2]).border.radius, Radius.Corners(8, 8, 0, 0));
+    assert_eq(sheet_of(k[3]).border.right.style, Line.Dashed);
+    assert_eq(sheet_of(k[4]).outline.offset, 2);
 }

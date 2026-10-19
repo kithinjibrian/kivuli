@@ -1,0 +1,131 @@
+// A specimen of borders and outlines: each line style, one side at a time,
+// `all` with one side overridden, each radius, a card that follows the theme,
+// and outlines that step aside for the theme's focus ring: Tab to the
+// outlined button and its focus ring shows instead.
+import kivuli {
+    View,
+    Border,
+    Side,
+    Outline,
+    Width,
+    Line,
+    Radius,
+    Paint,
+    Font,
+    Text,
+    Size,
+    Weight,
+    button,
+    column,
+    hex,
+    sandbox,
+    scroll,
+    text,
+    wrap,
+};
+
+fun heading(s: string): View<()> = text(s).style([
+    Font { size: Size.Pt(16), weight: Weight.Bold, ..Font.theme() },
+]);
+
+/** A tile with `b` as its border, its label inside. */
+fun tile(label: string, b: Border): View<()> = column([
+    text(label).style([Font { size: Size.Scale(0.85), ..Font.theme() }]),
+]).width(150).height(70).padding(10).style([b]);
+
+fun side(n: i64, line: Line): Side = Side {
+    width: Width.Px(n),
+    color: Paint.Faded(0.6),
+    style: line,
+};
+
+/** A hairline that follows light and dark. */
+fun hairline(): Side = Side { width: Width.Px(1), color: Paint.Faded(0.2), style: Line.Solid };
+
+fun all(s: Side): Border = Border { all: s, ..Border.theme() };
+
+fun view(m: ()): View<()> = scroll(
+    column([
+        heading("Line styles (all sides, 3 px)"),
+        wrap([
+            tile("Solid", all(side(3, Line.Solid))),
+            tile("Dashed", all(side(3, Line.Dashed))),
+            tile("Dotted", all(side(3, Line.Dotted))),
+            tile("Double", all(side(4, Line.Double))),
+            tile("Groove", all(side(4, Line.Groove))),
+            tile("Ridge", all(side(4, Line.Ridge))),
+            tile("Inset", all(side(4, Line.Inset))),
+            tile("Outset", all(side(4, Line.Outset))),
+            tile("Width only: drawn solid", all(Side { width: Width.Px(2), ..Side.theme() })),
+        ]).spacing(12),
+        heading("One side at a time"),
+        wrap([
+            tile("top", Border { top: side(3, Line.Solid), ..Border.theme() }),
+            tile("right", Border { right: side(3, Line.Solid), ..Border.theme() }),
+            tile("bottom", Border { bottom: side(3, Line.Solid), ..Border.theme() }),
+            tile("left", Border { left: side(3, Line.Solid), ..Border.theme() }),
+            tile("all, bottom thicker", Border {
+                all: hairline(),
+                bottom: Side { width: Width.Px(4), ..Side.theme() },
+                ..Border.theme(),
+            }),
+            tile("all, left red", Border {
+                all: hairline(),
+                left: Side {
+                    width: Width.Px(3),
+                    color: Paint.Color(hex("#c0392b")),
+                    ..Side.theme(),
+                },
+                ..Border.theme(),
+            }),
+        ]).spacing(12),
+        heading("Corners (a rounded node clips what's inside)"),
+        wrap([
+            tile("All(12)", Border { all: hairline(), radius: Radius.All(12), ..Border.theme() }),
+            tile("Corners(8, 8, 0, 0)", Border {
+                all: hairline(),
+                radius: Radius.Corners(8, 8, 0, 0),
+                ..Border.theme(),
+            }),
+            tile("Corners(24, 0, 24, 0)", Border {
+                all: side(2, Line.Solid),
+                radius: Radius.Corners(24, 0, 24, 0),
+                ..Border.theme(),
+            }),
+            tile("All(35): a pill", Border {
+                all: hairline(),
+                radius: Radius.All(35),
+                ..Border.theme(),
+            }),
+        ]).spacing(12),
+        heading("Outlines (Tab to the buttons: the focus ring shows instead)"),
+        wrap([
+            button("Outlined, offset 2", ()).style([
+                Outline {
+                    width: Width.Px(2),
+                    color: Paint.Color(hex("#2a5298")),
+                    style: Line.Solid,
+                    offset: 2,
+                },
+            ]),
+            button("Dashed, offset 4", ()).style([
+                Outline {
+                    width: Width.Px(2),
+                    color: Paint.Color(hex("#c0392b")),
+                    style: Line.Dashed,
+                    offset: 4,
+                },
+            ]),
+            button("Inside: offset -4", ()).style([
+                Outline {
+                    width: Width.Px(1),
+                    color: Paint.Faded(0.6),
+                    style: Line.Dotted,
+                    offset: -4,
+                },
+            ]),
+        ]).spacing(16),
+    ]).spacing(12).padding(24),
+).window("Borders", 720, 760);
+
+fun main(): i32 = sandbox("org.kivuli.borders", (), fun(m: (), msg: ()): () = (), view);

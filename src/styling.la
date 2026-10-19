@@ -37,6 +37,9 @@ import gtk {
     gtk_shortcut_trigger_parse_string,
     gtk_picture_set_content_fit,
     gtk_widget_add_css_class,
+    gtk_widget_get_overflow,
+    gtk_widget_has_css_class,
+    gtk_widget_set_overflow,
     gtk_widget_get_visible,
     gtk_widget_set_visible,
     lgtk_remove_css_classes_with_prefix,
@@ -54,6 +57,7 @@ import gtk {
 };
 import live_tree { Live, widget };
 import looks { Style, Align, Fit };
+import styles { Radius };
 import keys { parse };
 import widgets { snap };
 
@@ -76,10 +80,24 @@ fun apply_style<Msg>(node: Live<Msg>, style: Style, axis: i32) {
         _ => {}
     }
     let w = widget(node);
+    // Read before kivuli's classes go: whether kivuli turned clipping on here.
+    let clipped_by_us = gtk_widget_has_css_class(w, "kv-clip") != 0;
     // The style's values: only kivuli's own classes are replaced.
     lgtk_remove_css_classes_with_prefix(w, "kv-");
     for class of style.classes {
         gtk_widget_add_css_class(w, class);
+    }
+    // A rounded node clips its content to the curve (GTK rounds the node's own
+    // background and border, not its children: probed, PRP-009). Only where
+    // it was visible, marked so it can be undone; a widget GTK itself clips is
+    // left as it is.
+    if rounds(style.sheet.border.radius) {
+        if clipped_by_us || gtk_widget_get_overflow(w) == 0 {
+            gtk_widget_set_overflow(w, 1);
+            gtk_widget_add_css_class(w, "kv-clip");
+        }
+    } else if clipped_by_us {
+        gtk_widget_set_overflow(w, 0);
     }
     // The label kivuli puts in a button or check box takes them too: CSS
     // doesn't inherit every text property (`text-decoration` isn't).
@@ -277,6 +295,13 @@ fun content_fit(fit: Fit): i32 = match fit {
     Contain => 1,
     Cover => 2,
     ScaleDown => 3,
+};
+
+/** Whether `r` rounds any corner. */
+fun rounds(r: Radius): bool = match r {
+    Theme => false,
+    All(n) => n > 0,
+    Corners(a, b, c, d) => a > 0 || b > 0 || c > 0 || d > 0,
 };
 
 /** Gives a widget's own label the style's classes, and only those of kivuli's. */
