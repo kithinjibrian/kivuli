@@ -8,6 +8,14 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.17.0] — 2026-10-20
+
+### Added
+- Shadows and effects (PRP-022): `Shadow { boxes, text }` (lists of `Drop { x, y, blur, spread, color, inset }`; `Shadow.off()` removes the theme's) and `Effects { opacity, filters, transform }` (`Filter.Blur`, `Brightness`, `Contrast`, `Grayscale`, `HueRotate`, `Invert`, `Saturate`, `Sepia`; `Move.Translate`, `Rotate`, `Scale`, `ScaleXY`) in `.style([...])`, inside `When` too. `examples/borders.la` has a "Shadows and effects" section.
+
+### Changed
+- New style groups live in `src/style_groups.la`, which `src/styles.la` imports back: a second allowed import cycle (DECISION-025). No change for apps.
+
 ## [0.16.0] — 2026-10-20
 
 ### Added

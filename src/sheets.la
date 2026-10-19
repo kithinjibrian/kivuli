@@ -27,8 +27,8 @@ import style_values {
     Edges,
 };
 import pictures { Image, data_url, identity };
-import theming { Paint, digits, permille, two_digits };
-import box_rules { box_css, needs_clamp, sides };
+import theming { Paint, digits, hexed, paint_css, permille, two_digits };
+import box_rules { box_css, check_effects, needs_clamp, sides };
 
 /**
  * Whether every value in `s` can be shown.
@@ -93,6 +93,7 @@ fun check(s: Sheet): Result<(), string> {
         Theme => {}
     }
     check_width(s.outline.width)?;
+    check_effects(s)?;
     let p = s.spacing.padding.over(Edges.theme());
     for w of [p.top, p.right, p.bottom, p.left] {
         match w {
@@ -388,13 +389,6 @@ fun stops_css(stops: Stop[]): string = stops.map(fun(stop) {
     "{paint_css(stop.color)} {p / 10}.{p % 10}%"
 }).join(", ");
 
-/** A colour as CSS: the theme's text colour for `Theme`, faded for `Faded`. */
-fun paint_css(p: Paint): string = match p {
-    Theme => "currentColor",
-    Color(c) => "#{digits(c)}",
-    Faded(x) => "alpha(currentColor, {x})",
-};
-
 /** How an image fills the node; the theme's is `Cover`. Always centred. */
 fun fill_css(f: Fill): string = match f {
     Contain => "background-size: contain; background-position: center; background-repeat: no-repeat;",
@@ -402,15 +396,6 @@ fun fill_css(f: Fill): string = match f {
     Stretch => "background-size: 100% 100%; background-position: center; background-repeat: no-repeat;",
     _ => "background-size: cover; background-position: center; background-repeat: no-repeat;",
 };
-
-/** `s` in hex: any text as a valid, unique part of a class name. */
-fun hexed(s: string): string {
-    let mut out = "";
-    for b of s {
-        out = out + two_digits(b as i64);
-    }
-    out
-}
 
 /** CSS's numeric `font-weight`; `None` for the theme's. */
 fun number(w: Weight): Option<i64> = match w {

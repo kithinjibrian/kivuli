@@ -204,3 +204,57 @@ impl Edges {
         }
     }
 }
+
+/** One shadow, in pixels: across, down, how soft, how far it spreads (boxes only), its colour, and whether it falls inside (boxes only). */
+public struct Drop {
+    public x: i64,
+    public y: i64,
+    public blur: i64,
+    public spread: i64,
+    /** `Theme` is the node's text colour. */
+    public color: Paint,
+    public inset: bool,
+}
+
+impl Drop {
+    /** A shadow right under the node, sharp, in the node's text colour: change what you need. */
+    public fun theme(): Drop = Drop {
+        x: 0,
+        y: 0,
+        blur: 0,
+        spread: 0,
+        color: Paint.Theme,
+        inset: false,
+    };
+}
+
+/** A CSS filter, applied to the node as drawn. */
+public enum Filter {
+    /** Pixels. */
+    Blur(i64),
+    /** 1.0 unchanged; 0 or more. */
+    Brightness(f64),
+    /** 1.0 unchanged; 0 or more. */
+    Contrast(f64),
+    /** 0 to 1. */
+    Grayscale(f64),
+    /** Degrees around the colour wheel. */
+    HueRotate(i64),
+    /** 0 to 1. */
+    Invert(f64),
+    /** 1.0 unchanged; 0 or more. */
+    Saturate(f64),
+    /** 0 to 1. */
+    Sepia(f64),
+}
+
+/** A transform: changes how the node is drawn, never the room it takes. */
+public enum Move {
+    /** Pixels across and down. */
+    Translate(i64, i64),
+    /** Degrees, clockwise. */
+    Rotate(i64),
+    Scale(f64),
+    /** Across and down. */
+    ScaleXY(f64, f64),
+}

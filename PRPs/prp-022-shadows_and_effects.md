@@ -1,6 +1,6 @@
 # PRP-022 — Shadows and effects through `.style`
 
-Status: draft, for the user's approval (session 25)
+Status: built (session 25) on branch prp-022-shadows_and_effects; merged into main
 Discovery: session 25, 2026-10-20. *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: `Shadow` (box and text shadows, each a list of `Drop`s) and `Effects` (opacity, filters, transforms) in `.style([...])`.
@@ -62,10 +62,16 @@ Drop.theme(), Shadow.theme(), Effects.theme(), Shadow.off()
 - No transitions or animations (next), no `backdrop-filter` (GTK has none), no 3D transforms, no transform origin other than the centre.
 
 ## TESTS (narrow, per the user: only what this changes)
-- [ ] Before the module move: the style tests pass unchanged after it (styles, states, spacing, sizing).
-- [ ] `test/shadows.la` (new, pure): the theme values; merging (a later list replaces; boxes and text apart); the CSS for each value (several drops, inset, faded colours, every filter, every move, `Shadow.off()`); paint's classes; each check message; a shadow and an effect inside `When`; the OBJECTIVE reads as written.
-- [ ] `test/live_type.la`: a shadow's and an effect's classes land and their rules join the stylesheet; GTK parses each generated kind (C probe).
+- [x] Before the module move: the style tests pass unchanged after it (styles, states, spacing, sizing).
+- [x] `test/shadows.la` (new, pure): the theme values; merging (a later list replaces; boxes and text apart); the CSS for each value (several drops, inset, faded colours, every filter, every move, `Shadow.off()`); paint's classes; each check message; a shadow and an effect inside `When`; the OBJECTIVE reads as written.
+- [x] `test/live_type.la`: a shadow's and an effect's classes land and their rules join the stylesheet; GTK parses each generated kind (C probe).
 - [ ] Every example builds; no full suite (the user's call). How it looks: by hand in `examples/borders.la` ("Shadows and effects").
 
 ## ACCEPTANCE
-- [ ] The OBJECTIVE compiles and its test passes; fmt clean; no file over 500 lines; README, DESIGN, CHANGELOG 0.17.0, CLAUDE.md, DECISIONS; merged, tagged; pushed only on your go.
+- [x] The OBJECTIVE compiles and its test passes; fmt clean; no file over 500 lines; README, DESIGN, CHANGELOG 0.17.0, CLAUDE.md, DECISIONS; merged, tagged; pushed only on your go.
+
+## NOTES FROM THE BUILD
+
+- **No existing group moved**: the cycle is in place for new groups only (`Shadow`, `Effects`); `styles.la` stays at about 435 lines.
+- **`paint_css` and `hexed` moved down to `theming`**, so `box_rules` can write shadow colours and class names without importing `sheets`.
+- **Narrow runs only** (the user's call): shadows (7), styles, states, sheets, sheets_border, theming, spacing, sizing, live_type; GTK parsed every generated rule kind (C probe); every example built. No full suite.

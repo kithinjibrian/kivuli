@@ -32,6 +32,10 @@ import kivuli {
     Image,
     Border,
     When,
+    Shadow,
+    Drop,
+    Effects,
+    Move,
     State,
     Side,
     Outline,
@@ -381,6 +385,22 @@ fun a_states_classes_land_and_its_rules_join_the_stylesheet() {
                     fun(m: bool, msg: Swap): bool = m,
                     fun(m: bool): View<Swap> = column([
                         button("Save", Swap.Next).style([
+                            Shadow {
+                                boxes: [
+                                    Drop {
+                                        y: 2,
+                                        blur: 8,
+                                        color: Paint.Color(hex("#00000040")),
+                                        ..Drop.theme(),
+                                    },
+                                ],
+                                ..Shadow.theme(),
+                            },
+                            Effects {
+                                opacity: Some(0.9),
+                                transform: [Move.Rotate(-2)],
+                                ..Effects.theme(),
+                            },
                             Background { color: Paint.Color(hex("#2a5298")), ..Background.theme() },
                             When(State.Hover, [
                                 Background {
@@ -415,11 +435,20 @@ fun a_states_classes_land_and_its_rules_join_the_stylesheet() {
                 seen,
                 "press rule {css.any(fun(r) = r == ".kv-press-bg-1e3c72ff.kv-press-bg-1e3c72ff.kv-press-bg-1e3c72ff:active {{ background-color: #1e3c72ff; }}")}",
             );
+            note(
+                seen,
+                "effects {gtk_widget_has_css_class(save, "kv-op-900")} {css.any(fun(r) = r == ".kv-op-900 {{ opacity: 0.9; }}") && css.any(fun(r) = r.contains("box-shadow: 0px 2px 8px 0px #00000040;")) && css.any(fun(r) = r.contains("transform: rotate(-2deg);"))}",
+            );
             g_application_quit(a);
         },
         0,
     );
     g_application_run(application, 0, None);
     g_object_unref(application);
-    assert_eq(seen.get(), ["classes 1 1 1", "hover rule true", "press rule true"]);
+    assert_eq(seen.get(), [
+        "classes 1 1 1",
+        "hover rule true",
+        "press rule true",
+        "effects 1 true",
+    ]);
 }

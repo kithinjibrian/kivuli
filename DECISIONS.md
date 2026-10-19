@@ -38,7 +38,7 @@ fun main() {
 
 ### DECISION-023 — Styling has one door
 
-**Status:** resolved for fonts and text (PRP-016, session 18) backgrounds (PRP-017, session 19) borders and outlines (PRP-018, session 20) spacing (PRP-019, session 21: `.padding` and `.spacing` moved into `Spacing`) and sizing (PRP-020, session 22: `.width` and `.height` moved into `Sizing`, exact and maximum sizes through a clamp in lugha-gtk) and states (PRP-021, session 23: `When`); button looks and theme colours in `Paint` were considered and skipped (session 24, the user's call: apps build their looks from their own values)
+**Status:** resolved for fonts and text (PRP-016, session 18) backgrounds (PRP-017, session 19) borders and outlines (PRP-018, session 20) spacing (PRP-019, session 21: `.padding` and `.spacing` moved into `Spacing`) and sizing (PRP-020, session 22: `.width` and `.height` moved into `Sizing`, exact and maximum sizes through a clamp in lugha-gtk) states (PRP-021, session 23: `When`) and shadows and effects (PRP-022, session 25); button looks and theme colours in `Paint` were considered and skipped (session 24, the user's call: apps build their looks from their own values)
 **Raised:** 2026-10-19 — Session 17 (the user)
 
 **Question:** Appearance comes through three overlapping ways: modifiers (`.bold`, `.dim`, `.size` on text, `.button_style`), `ButtonStyle`, and `Surface` fields (`text`, `flat`) that compete with them. Which one wins depends on the order kivuli applies them.
@@ -172,6 +172,16 @@ fun main() {
 ---
 
 ## RESOLVED
+
+### DECISION-025 — A second allowed import cycle: styles ↔ style_groups
+
+**Status:** resolved
+**Raised:** 2026-10-20 — Session 25 (PRP-022)
+**Resolved:** 2026-10-20 — Session 25 (the user approved PRP-022)
+
+**Question:** `src/styles.la` is near 500 lines, and every style group must sit with `Sheet`: `Sheet` holds each group, and each group's `apply` takes a `Sheet`. Moving groups out makes the two modules import each other, which architecture rule 2 forbids (one exception: `views` ↔ `mapping`).
+
+**Outcome:** a second exception, `styles` ↔ `style_groups`: new style groups (from `Shadow` and `Effects` on) live in `src/style_groups.la`, which imports `styles` for `Sheet` while `styles` imports it for `Sheet`'s fields. No other cycle.
 
 ### DECISION-014 — An overlay
 
