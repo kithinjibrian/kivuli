@@ -1,0 +1,93 @@
+// Clicking away clears keyboard focus (PRP-024): the window watches primary
+// clicks no widget under the pointer took (the bubble phase), and a press
+// there leaves nothing focused; `Cmd.focus` still focuses afterwards. Needs
+// a display, so it is skipped without one. (How a real click feels:
+// examples/search_bar.la.)
+import std.env;
+import gtk {
+    GtkApplication,
+    GtkWidget,
+    connect_app,
+    g_application_quit,
+    g_application_run,
+    g_object_unref,
+    gtk_application_new,
+    gtk_application_window_new,
+    gtk_root_get_focus,
+    gtk_widget_grab_focus,
+    gtk_widget_is_ancestor,
+    lgtk_emit_pressed,
+};
+import kivuli.live { dispatch, mount, live_of };
+import kivuli.live_tree { widget };
+import kivuli { App, Cmd, Sub, View, column, input, text };
+
+fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
+
+fun note(seen: Ref<string[]>, s: string) {
+    seen.update(fun(xs) {
+        let mut ys = xs;
+        ys.push(s);
+        ys
+    });
+}
+
+/** Whether the window's focus is in `w` (an entry's sits on a widget inside it). */
+fun focused_in(window: GtkWidget, w: GtkWidget): bool = match gtk_root_get_focus(window) {
+    Some(f) => f == w || gtk_widget_is_ancestor(f, w) == 1,
+    None => false,
+};
+
+enum Go {
+    Typed(string),
+    Focus,
+}
+
+@test
+fun a_click_no_widget_takes_clears_focus() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen: Ref<string[]> = Ref.new([]);
+    let application = gtk_application_new("org.kivuli.test.blur", 0);
+    connect_app(
+        application,
+        "activate",
+        fun(a: GtkApplication) {
+            let window = gtk_application_window_new(a);
+            let app = mount(a, window, App {
+                id: "org.kivuli.test",
+                init: (0, Cmd.none()),
+                update: fun(m: i64, msg: Go): (i64, Cmd<Go>) = match msg {
+                    Focus => (m, Cmd.focus("address")),
+                    _ => (m, Cmd.none()),
+                },
+                view: fun(m: i64): View<Go> = column([
+                    input("", Go.Typed).name("address"),
+                    text("beside it"),
+                ]),
+                subscriptions: fun(m: i64): Sub<Go> = Sub.none(),
+            });
+            let field = match live_of(app) {
+                Box(_, _, kids) => widget(kids[0]),
+                _ => panic("expected a column"),
+            };
+            gtk_widget_grab_focus(field);
+            note(seen, "focused {focused_in(window, field)}");
+            // A primary click that reached the window: nothing under it took it.
+            lgtk_emit_pressed(app.blur, 1, 5.0, 5.0);
+            note(seen, "after a click away: none {gtk_root_get_focus(window).is_none()}");
+            dispatch(app, Go.Focus);
+            note(seen, "Cmd.focus still works {focused_in(window, field)}");
+            g_application_quit(a);
+        },
+        0,
+    );
+    g_application_run(application, 0, None);
+    g_object_unref(application);
+    assert_eq(seen.get(), [
+        "focused true",
+        "after a click away: none true",
+        "Cmd.focus still works true",
+    ]);
+}
