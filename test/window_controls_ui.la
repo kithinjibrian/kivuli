@@ -64,6 +64,9 @@ fun the_close_turns_red_and_the_icons_circle_goes() {
     let i = part(looked(), Part.WindowIcon);
     assert(i.background.color != Paint.Theme);
     assert_eq(i.border.radius, Radius.All(0));
+    // 24 px by default, in place of the themes' 30.
+    assert_eq(i.sizing.min_width, Width.Px(24));
+    assert_eq(i.sizing.min_height, Width.Px(24));
 }
 
 @test
