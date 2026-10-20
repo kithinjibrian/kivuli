@@ -21,7 +21,7 @@ public enum Lookup {
     NotFound(string),
     /** More than one thing matches, this many. */
     Ambiguous(string, i64),
-    /** It's there but sends nothing: a disabled button, text field, check box or slider, or a text field without `.on_submit`. */
+    /** It's there but sends nothing: a disabled button, text field, check box, switch or slider, or a text field without `.on_submit`. */
     Silent(string),
 }
 
@@ -247,6 +247,32 @@ public fun choose<Msg>(v: View<Msg>, name: string, label: string): Result<Msg, L
         }
     }
     Err(Lookup.NotFound("choice \"{label}\" in \"{name}\""))
+}
+
+/**
+ * The message flipping the switch named `name` (`.name(…)`) sends: its
+ * `on_toggle` of the opposite of its state.
+ * @returns `Ok(msg)`; `Err(NotFound)`, `Err(Ambiguous)`, or `Err(Silent)` when it's disabled
+ *
+ * Example:
+ *     assert_eq(kivuli.testing.flip(view(m), "wifi"), Ok(Msg.Wifi(true)));
+ */
+public fun flip<Msg>(v: View<Msg>, name: string): Result<Msg, Lookup> {
+    let mut found: (bool, Option<fun(bool): Msg>)[] = [];
+    for (node, style) of nodes(v) {
+        match node {
+            Switch(on, on_toggle) => if style.name == name {
+                found.push((on, on_toggle));
+            },
+            _ => {}
+        }
+    }
+    let what = "switch \"{name}\"";
+    let (on, on_toggle) = only(found, what)?;
+    match on_toggle {
+        Some(f) => Ok(f(!on)),
+        None => Err(Lookup.Silent(what)),
+    }
 }
 
 /**

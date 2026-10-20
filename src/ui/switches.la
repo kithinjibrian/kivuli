@@ -1,0 +1,79 @@
+/**
+ * Switch (PRP-040): kivuli's native switch in the palette's colours: the
+ * switch itself is the track, its thumb a part (`Part.Knob`, GTK's
+ * `slider`). GTK slides the thumb. Pure.
+ *
+ * Depends on: views, widgets, styles, theming, values, boxes, drawing, motion
+ * Used by: ui
+ */
+
+// The public items the entry re-exports, by their own modules (rule 2: no `lib`).
+import view.views { View };
+import view.widgets { switch as native_switch };
+import styles { Inside, Part, When, State };
+import styles.theming { Color, Paint, Token };
+import styles.values { Drop, Line, Radius };
+import styles.boxes { Background, Border, Outline, Sizing };
+import styles.drawing { Effects, Shadow };
+import styles.motion { Motion };
+
+fun clear(): Color = Color { red: 0, green: 0, blue: 0, alpha: 0 };
+
+fun round(): Border = Border { radius: Radius.All(999), ..Border.theme() };
+
+/** The faint shadow under the track: one pixel down, black at 5%. */
+fun hairline_shadow(): Shadow = Shadow {
+    boxes: [
+        Drop {
+            y: 1,
+            blur: 2,
+            color: Paint.Color(Color { red: 0, green: 0, blue: 0, alpha: 13 }),
+            ..Drop.theme(),
+        },
+    ],
+    text: [],
+};
+
+/** A 3 px halo of `Ring` at 50%: the focus ring. */
+fun halo(): Shadow = Shadow {
+    boxes: [Drop { spread: 3, color: Token.Ring.alpha(0.5), ..Drop.theme() }],
+    text: [],
+};
+
+/**
+ * A switch in the palette's colours, on when `on`; each flip sends
+ * `on_toggle(on)`. Put its label beside it.
+ *
+ * Example:
+ *     field_horizontal([ui.switch(m.airplane, Msg.Airplane), field_label("Airplane mode")])
+ */
+public fun switch<Msg>(on: bool, on_toggle: fun(bool): Msg): View<Msg> = native_switch(on, on_toggle).style([
+    // The track.
+    Sizing.min_width(32),
+    Sizing.min_height(18),
+    round(),
+    Border.all(1, clear()),
+    Background.color(Token.Input),
+    hairline_shadow(),
+    Motion.colors(150),
+    Motion.shadow(150),
+    // The thumb, which GTK slides.
+    Inside(Part.Knob, [
+        Sizing.min_width(16),
+        Sizing.min_height(16),
+        round(),
+        Background.color(Token.Background),
+        Shadow.off(),
+    ]),
+    // GTK's switch is `:checked` while on.
+    When(State.Checked, [
+        Background.color(Token.Primary),
+        Inside(Part.Knob, [Background.color(Token.PrimaryForeground)]),
+    ]),
+    When(State.Focus, [
+        Border.all(1, Token.Ring),
+        halo(),
+        Outline { style: Line.None, ..Outline.theme() },
+    ]),
+    When(State.Disabled, [Effects.opacity(0.5)]),
+]);

@@ -1,0 +1,108 @@
+// The native switch on a real GtkSwitch (PRP-040): a flip reaches the model,
+// an update moves it with no echo, disabled is insensitive and sends
+// nothing, and the widget is kept throughout. Needs a display, so it is
+// skipped without one.
+import std.env;
+import gtk {
+    GtkApplication,
+    connect_app,
+    emit_widget,
+    g_application_quit,
+    g_application_run,
+    g_object_unref,
+    gtk_application_new,
+    gtk_application_window_new,
+    gtk_switch_get_active,
+    gtk_switch_set_active,
+    gtk_widget_get_sensitive,
+};
+import kivuli.render.live { mount, live_of };
+import kivuli.core.effects { sandbox_app };
+import kivuli.core.live_tree { Live, widget };
+import kivuli { View, button, column, switch };
+
+fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
+
+fun note(seen: Ref<string[]>, s: string) {
+    seen.update(fun(xs) {
+        let mut ys = xs;
+        ys.push(s);
+        ys
+    });
+}
+
+enum Power {
+    Set(bool),
+    Toggle,
+    Lock,
+}
+
+struct Plug {
+    on: bool,
+    locked: bool,
+}
+
+fun update(p: Plug, msg: Power): Plug = match msg {
+    Set(b) => Plug { on: b, ..p },
+    Toggle => Plug { on: !p.on, ..p },
+    Lock => Plug { locked: true, ..p },
+};
+
+fun view(p: Plug): View<Power> = column([
+    switch(p.on, Power.Set).disabled(p.locked),
+    button("Toggle", Power.Toggle),
+    button("Lock", Power.Lock),
+]);
+
+@test
+fun a_switch_flips_follows_the_model_and_disables() {
+    if !has_display() {
+        skip("no display");
+    }
+    let received: Ref<string[]> = Ref.new([]);
+    let seen: Ref<string[]> = Ref.new([]);
+    let application = gtk_application_new("org.kivuli.test.switch", 0);
+    connect_app(
+        application,
+        "activate",
+        fun(a: GtkApplication) {
+            let window = gtk_application_window_new(a);
+            let app = mount(a, window, sandbox_app(
+                "org.kivuli.test",
+                Plug { on: false, locked: false },
+                fun(p: Plug, msg: Power): Plug {
+                    received.update(fun(xs) {
+                        let mut ys = xs;
+                        ys.push("{msg}");
+                        ys
+                    });
+                    update(p, msg)
+                },
+                view,
+            ));
+            let kids = fun(): Live<Power>[] = match live_of(app) {
+                Box(_, _, ks) => ks,
+                _ => panic("expected a column"),
+            };
+            let sw = widget(kids()[0]);
+            note(
+                seen,
+                "starts {gtk_switch_get_active(sw)} sensitive {gtk_widget_get_sensitive(sw)}",
+            );
+            // The user flips it.
+            gtk_switch_set_active(sw, 1);
+            // The model flips it back: kivuli moves the switch without an echo.
+            emit_widget(widget(kids()[1]), "clicked");
+            note(seen, "same {widget(kids()[0]) == sw} now {gtk_switch_get_active(sw)}");
+            emit_widget(widget(kids()[2]), "clicked");
+            note(seen, "locked sensitive {gtk_widget_get_sensitive(sw)}");
+            gtk_switch_set_active(sw, 1);
+            g_application_quit(a);
+        },
+        0,
+    );
+    g_application_run(application, 0, None);
+    g_object_unref(application);
+    assert_eq(seen.get(), ["starts 0 sensitive 1", "same true now 0", "locked sensitive 0"]);
+    assert_eq(received.get(), ["Set(true)", "Toggle", "Lock"]);
+}

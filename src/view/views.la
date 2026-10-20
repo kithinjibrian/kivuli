@@ -45,6 +45,8 @@ public enum View<Msg> {
     TextArea(string, Option<fun(string): Msg>),
     /** A check box: its label, whether it's ticked, and the message each toggle sends. */
     Checkbox(string, bool, Option<fun(bool): Msg>),
+    /** A switch, on or off, and what flipping it sends (`None`: disabled). */
+    Switch(bool, Option<fun(bool): Msg>),
     /** A drop-down: each choice's label and the message picking it sends, and the label shown picked. */
     Dropdown((string, Msg)[], string),
     /** A whole-number slider: its least and greatest value, its value, and the message each move sends. */

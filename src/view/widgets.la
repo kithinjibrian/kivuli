@@ -74,6 +74,19 @@ public fun input<Msg>(value: string, on_change: fun(string): Msg): View<Msg> = V
 );
 
 /**
+ * Builds a switch, on when `on`. Each flip sends `on_toggle(on)`; store it in
+ * the model and pass it back as `on`. It has no label of its own: put one
+ * beside it, and `.name(…)` lets tests find it.
+ *
+ * Example:
+ *     row([switch(m.wifi, Msg.Wifi), text("Wi-Fi")])
+ */
+public fun switch<Msg>(on: bool, on_toggle: fun(bool): Msg): View<Msg> = View.Switch(
+    on,
+    Some(on_toggle),
+);
+
+/**
  * Builds a check box labelled `label`, ticked when `checked`. Each toggle
  * sends `on_toggle(ticked)`; store it in the model and pass it back as
  * `checked`.

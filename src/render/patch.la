@@ -29,6 +29,7 @@ import gtk {
     gtk_range_set_range,
     gtk_scrolled_window_set_child,
     gtk_text_buffer_set_text,
+    gtk_switch_set_active,
     gtk_widget_set_sensitive,
     gtk_widget_ref,
     gtk_widget_unref,
@@ -130,7 +131,10 @@ fun apply<Msg>(
     SetChecked(path, checked) => {
         // GTK fires `toggled` only on a real change, and while patching the
         // echo is dropped, so this needs no same-state check of its own.
-        gtk_check_button_set_active(widget(at(live, path)), flag(checked));
+        match at(live, path) {
+            Switch(sw, _) => gtk_switch_set_active(sw, flag(checked)),
+            _ => gtk_check_button_set_active(widget(at(live, path)), flag(checked)),
+        }
         live
     }
     SetOnToggle(path, on_toggle) => {
@@ -138,6 +142,10 @@ fun apply<Msg>(
             Checkbox(check, _, current) => {
                 current.set(on_toggle);
                 gtk_widget_set_sensitive(check, flag(on_toggle.is_some()));
+            }
+            Switch(sw, current) => {
+                current.set(on_toggle);
+                gtk_widget_set_sensitive(sw, flag(on_toggle.is_some()));
             }
             _ => panic("kivuli: a SetOnToggle patch points at something that isn't a check box"),
         }

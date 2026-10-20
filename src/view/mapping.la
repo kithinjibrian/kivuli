@@ -37,6 +37,10 @@ fun mapped<Msg, B>(v: View<Msg>, f: fun(Msg): B): View<B> = match v {
         choices.map(fun(choice) = (choice.0, f(choice.1))),
         selected,
     ),
+    Switch(on, on_toggle) => View.Switch(on, match on_toggle {
+        Some(g) => Some(fun(b: bool): B = f(g(b))),
+        None => None,
+    }),
     Slider(min, max, value, on_change) => View.Slider(min, max, value, match on_change {
         Some(g) => Some(fun(n: i64): B = f(g(n))),
         None => None,
@@ -76,6 +80,7 @@ fun disabled_node<Msg>(v: View<Msg>, off: bool): View<Msg> = if !off {
         TextArea(value, _) => View.TextArea(value, None),
         Checkbox(label, checked, _) => View.Checkbox(label, checked, None),
         Slider(min, max, value, _) => View.Slider(min, max, value, None),
+        Switch(on, _) => View.Switch(on, None),
         Styled(inside, s) => View.Styled(disabled_node(inside, true), s),
         Menu(inside, entries) => View.Menu(disabled_node(inside, true), entries),
         _ => v,

@@ -1,6 +1,6 @@
 # PRP-040 — Switch: a native switch, and kivuli.ui's
 
-Status: draft, for the user's approval (session 81)
+Status: built (session 82) on branch prp-040-switch
 Discovery: session 81, 2026-10-20 (the user's next component; the reference is shadcn's current switch). *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: a native `switch(on, on_toggle)` on GtkSwitch (disableable from the start, rule 6), `kivuli.testing.flip`, and `ui.switch` in the palette's colours.
@@ -42,12 +42,18 @@ assert_eq(kivuli.testing.flip(view(m), "power"), Ok(Msg.On(true)));
 - No label inside the switch (a `field_horizontal` beside a `field_label`), no sizes, no "on/off" text.
 
 ## TESTS (narrow; type-check every test and example, run once the user's faster tests are in)
-- [ ] lugha-gtk `test/switch.la`: set and read back the state; `notify::active` fires.
-- [ ] `test/lib.la` or a new `test/switches.la` (pure): `switch(…)`'s node, `.disabled`, `map`; `test/diff_switch.la` (new): on/off and disabled patches.
-- [ ] `test/testing.la`: `flip`'s message and each error.
-- [ ] `test/live_switch.la` (new, GTK): a flip reaches the model, an update moves it with no echo, disabled sends nothing and is insensitive, the widget is kept; `test/live.la`'s `shown()` covers it.
-- [ ] `test/switches_ui.la` (new, pure): `ui.switch`'s track and thumb values, on, focus, disabled.
-- [ ] GTK parses the generated rules; `examples/components.la` gains a Switch section; only it built. How it looks and slides: by hand.
+- [x] lugha-gtk `test/switch.la`: set and read back the state; `notify::active` fires.
+- [x] `test/lib.la` or a new `test/switches.la` (pure): `switch(…)`'s node, `.disabled`, `map`; `test/diff_switch.la` (new): on/off and disabled patches.
+- [x] `test/testing.la`: `flip`'s message and each error.
+- [x] `test/live_switch.la` (new, GTK): a flip reaches the model, an update moves it with no echo, disabled sends nothing and is insensitive, the widget is kept; `test/live.la`'s `shown()` covers it.
+- [x] `test/switches_ui.la` (new, pure): `ui.switch`'s track and thumb values, on, focus, disabled.
+- [x] GTK parses the generated rules; `examples/components.la` gains a Switch section; only it built. How it looks and slides: by hand.
 
 ## ACCEPTANCE
 - [ ] The OBJECTIVE compiles; fmt clean; no file over 500 lines; README, DESIGN, CHANGELOG 0.35.0, CLAUDE.md; merged, tagged; pushed only on your go.
+
+## NOTES FROM THE BUILD
+
+- **lugha-gtk 0.1.36**: its switch test passes (set, read back, `notify::active` fires); pushed and tagged.
+- **The diff's switch arm is `diff_switch`** (a block can't be a match arm there); `SetChecked` in `patch` now asks which node it is (a `GtkSwitch` or a check box).
+- **Every test and example type-checks** (the rule from session 79). Tests not run (the user's call); GTK parsed the switch's CSS (51 lines, 0 errors); only components built.

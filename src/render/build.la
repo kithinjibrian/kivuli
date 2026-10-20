@@ -39,6 +39,9 @@ import gtk {
     gtk_header_bar_set_title_widget,
     gtk_image_new_from_icon_name,
     gtk_label_new,
+    gtk_switch_get_active,
+    gtk_switch_new,
+    gtk_switch_set_active,
     gtk_overlay_add_overlay,
     gtk_overlay_new,
     gtk_overlay_set_child,
@@ -189,6 +192,26 @@ fun create_in<Msg>(v: View<Msg>, axis: i32, send: fun(Msg)): Live<Msg> = match v
             0,
         );
         Live.Checkbox(check, text, current)
+    }
+    Switch(on, on_toggle) => {
+        let sw = gtk_switch_new();
+        // Set before connecting, so the first state isn't sent as a flip.
+        gtk_switch_set_active(sw, flag(on));
+        let current = Ref.new(on_toggle);
+        // Disabled means no message (rule 6): greyed, and nothing sent.
+        gtk_widget_set_sensitive(sw, flag(on_toggle.is_some()));
+        connect_notify(
+            sw,
+            "notify::active",
+            fun(w: GtkWidget, spec: Option<GParamSpec>) {
+                match current.get() {
+                    Some(f) => send(f(gtk_switch_get_active(w) != 0)),
+                    None => {}
+                }
+            },
+            0,
+        );
+        Live.Switch(sw, current)
     }
     Dropdown(choices, selected) => {
         let drop = gtk_drop_down_new(None, None);
