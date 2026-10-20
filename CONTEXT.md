@@ -1184,6 +1184,12 @@ Branch: prp-036-ui-checkbox (the split; PRP-036 still not merged)
 
 ---
 
+## SESSION 73 — 2026-10-20 — Merge PRP-036; PRP-037: disabled check boxes — open
+
+Branch: prp-037-disabled-checkboxes
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
