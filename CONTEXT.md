@@ -1809,6 +1809,18 @@ Branch: main
 
 ---
 
+## SESSION 122 — 2026-10-21 — Window controls: discovery, PRP-054 draft — closed
+
+Branch: main
+
+### WHAT WAS DONE
+- Interview: style GTK's own controls (A), two parts, `WindowButton` and `WindowClose`, plus `WindowControls.look()` (A). PRP-054 drafted.
+
+### STILL OPEN AT CLOSE
+- PRP-054 awaits approval. Rapidkoi's DECISION-034 (`.size(n)` on a picture is a minimum) as a separate bug-fix PRP, if wanted.
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
