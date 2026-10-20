@@ -218,7 +218,7 @@ fun main() {
 
 **Outcome:** A. External resources stay off; kivuli refuses, before GTK sees the bytes, any SVG holding an `<image` element (with or without a namespace prefix, even in a comment: conservative), so it shows nothing. Probed too: GTK's parser doesn't expand `<!ENTITY>`s (a syntax error), and a prefixed `<s:image>` is an unknown element, skipped. An SVG GTK reports a syntax error for shows nothing. Reporting the crash to GTK: only on the user's go.
 
-**Copied to MEMORY.md:** no
+**Copied to MEMORY.md:** yes (decision 17)
 
 
 ### DECISION-025 — A second allowed import cycle: styles ↔ styles/ (was style_groups)

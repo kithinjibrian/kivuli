@@ -10,7 +10,7 @@
 
 import styles { Sheet, State, Part };
 import styles.values { TextAlign, Family, Size, LineHeight, Gradient, Stop, Width, Radius, Edges };
-import view.pictures { Image };
+import view.pictures { Image, is_svg };
 import styles.motion_rules { check_motion };
 import styles.theming { Paint, token_title };
 import styles.box_rules { check_effects, needs_clamp, sides };
@@ -128,6 +128,11 @@ fun check(s: Sheet): Result<(), string> {
             return Err(
                 "Image.Icon(\"{name}\"): an icon name can't hold quotes, backslashes, ; {{ }} or line breaks",
             );
+        },
+        // GTK's CSS draws an SVG with outside files allowed: no SVG there
+        // (PRP-053). A file's bytes are read only when shown: it shows nothing.
+        Some(Bytes(key, bytes)) => if is_svg(bytes) {
+            return Err("Background.image(Image.Bytes(\"{key}\", …)): an SVG can't be a background");
         },
         _ => {}
     }

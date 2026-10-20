@@ -1,6 +1,6 @@
 # PRP-053 — SVG images
 
-Status: approved (session 116); amended by DECISION-030 (session 118)
+Status: built (session 118); amended by DECISION-030; merged into main in session 118 (its own tests run and pass)
 Discovery: session 116, 2026-10-20 (GTK 4.22's own SVG renderer, `GtkSvg` in `gtk/gtksvg.h`: a `GdkPaintable`, so pictures and button images show it sharp at any size; its `GtkSvgFeatures` turn off external resources, animations and GTK's extensions). *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: `Image.File` and `Image.Bytes` take SVG beside PNG and JPEG, everywhere an image is shown but backgrounds.
@@ -36,12 +36,20 @@ ui.avatar(Some(Image.File("me.svg")), "BK")
 - No animated SVGs, no SVG states or symbolic recolouring, no SVG backgrounds, no `.svg` icons by theme name (theme icons are unchanged).
 
 ## TESTS (narrow; type-check every test and example; run this PRP's own)
-- [ ] `test/pictures.la`: `kind_of` for an SVG with and without the XML prolog, with a byte-order mark and leading space, `<?xml` without `<svg`, text that isn't an image, over 16 MB, an SVG holding `<image` or `<s:image` refused; `size_of` and `data_url` still refuse an SVG.
-- [ ] `test/sheets.la` (or `checks`): a background of SVG bytes is refused with its reason.
-- [ ] `test/live_pictures.la`: an SVG file and SVG bytes shown in a picture (a paintable of their size); in a button image; its features are system resources only; an SVG pointing at an external image doesn't load it; a broken SVG, one with no size and one claiming 10000 px show nothing.
-- [ ] lugha-gtk: an SVG loaded with features set first; its intrinsic size; features read back.
+- [x] `test/pictures.la`: `kind_of` for an SVG with and without the XML prolog, with a byte-order mark and leading space, `<?xml` without `<svg`, text that isn't an image, over 16 MB, an SVG holding `<image` or `<s:image` refused; `size_of` and `data_url` still refuse an SVG.
+- [x] `test/sheets.la` (or `checks`): a background of SVG bytes is refused with its reason.
+- [x] `test/live_pictures.la`: an SVG file and SVG bytes shown in a picture (a paintable of their size); in a button image; its features are system resources only; an SVG pointing at an external image doesn't load it; a broken SVG, one with no size and one claiming 10000 px show nothing.
+- [x] lugha-gtk: an SVG loaded with features set first; its intrinsic size; features read back.
 - [x] A C probe first (session 117–118; found the crash, DECISION-030): GtkSvg's intrinsic size for width/height, `viewBox` only and broken input, and that external `<image>` isn't fetched with the feature off.
-- [ ] `examples/controls.la` (pictures) gains an SVG (`examples/assets/sample.svg`, written for it); only it built. How it looks: by hand.
+- [x] `examples/controls.la` (pictures) gains an SVG (`examples/assets/sample.svg`, written for it); only it built. How it looks: by hand.
 
 ## ACCEPTANCE
 - [ ] The OBJECTIVE compiles; fmt clean; no file over 500 lines; README, DESIGN, CHANGELOG 0.48.0, CLAUDE.md; merged, tagged; pushed only on your go.
+
+## NOTES FROM THE BUILD
+
+- **The probe found GTK 4.22.4's crash** (DECISION-030): `<image>` with external resources off segfaults; the user chose A, so kivuli refuses any SVG holding `<image` first. GTK doesn't expand `<!ENTITY>`s (a syntax error) and skips a prefixed `<s:image>`, so neither gets one past.
+- **A broken SVG gets GTK's 200 × 200 default size**, so a size check alone wouldn't catch it: `lgtk_svg_load` (lugha-gtk 0.1.43, `src/c/svg.c`) counts syntax errors through the `error` signal and returns `None` on one. A `viewBox`-only SVG takes the viewBox's size.
+- **The tests are their own files**: `test/svgs.la` (pure: 4) and `test/live_svgs.la` (GTK: 1), not pictures.la and live_pictures.la; live_pictures' `shown` reads a picture's paintable as a texture, which an SVG isn't.
+- **`texture_of` is gone**: `drawn_of` gives a texture or an SVG.
+- **Tests run and pass**: svgs, pictures, live_svgs, live_pictures, live_images (17); the controls example's own (3). Every test and example type-checks; controls built (an SVG at 32 and 96 px).

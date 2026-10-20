@@ -1,0 +1,111 @@
+// SVG images on real GTK widgets (PRP-053): an SVG file and SVG bytes show
+// as GTK's own SVG, at their size, drawing with system fonts only; in a
+// button's image too; a broken one, one claiming 10000 px and one holding
+// `<image>` show nothing. Needs a display, so it is skipped without one.
+import std.env;
+import gtk {
+    GtkApplication,
+    GtkWidget,
+    connect_app,
+    g_application_quit,
+    g_application_run,
+    g_object_unref,
+    gtk_application_new,
+    gtk_application_window_new,
+    gtk_picture_get_paintable,
+    gtk_svg_get_features,
+    gtk_svg_get_intrinsic_height,
+    gtk_svg_get_intrinsic_width,
+    lgtk_image_get_svg,
+    lgtk_picture_get_svg,
+};
+import kivuli.render.live { mount, live_of };
+import kivuli.core.effects { sandbox_app };
+import kivuli.core.live_tree { Live, widget };
+import kivuli { Image, View, button, column, image };
+
+fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
+
+fun note(seen: Ref<string[]>, s: string) {
+    seen.update(fun(xs) {
+        let mut ys = xs;
+        ys.push(s);
+        ys
+    });
+}
+
+enum Msg {
+    Save,
+}
+
+fun bytes(key: string, text: string): View<Msg> = image(Image.Bytes(key, text.to_bytes()));
+
+fun view_svgs(n: i64): View<Msg> = column([
+    image(Image.File("examples/assets/sample.svg")),
+    bytes(
+        "logo",
+        "<svg xmlns='http://www.w3.org/2000/svg' width='24' height='16'><rect width='24' height='16'/></svg>",
+    ),
+    bytes("broken", "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'><rect"),
+    bytes("huge", "<svg xmlns='http://www.w3.org/2000/svg' width='10000' height='10'/>"),
+    bytes(
+        "held",
+        "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'><image href='examples/assets/sample.png' width='10' height='10'/></svg>",
+    ),
+    button("Save", Msg.Save).image(Image.File("examples/assets/sample.svg")),
+]);
+
+/** What a picture shows: an SVG's size and features, something else, or nothing. */
+fun shown(w: GtkWidget): string = match lgtk_picture_get_svg(w) {
+    Some(s) => "svg {gtk_svg_get_intrinsic_width(s)}x{gtk_svg_get_intrinsic_height(s)} features {gtk_svg_get_features(s)}",
+    None => if gtk_picture_get_paintable(w).is_some() { "not an svg" } else { "nothing" },
+};
+
+@test
+fun svgs_show_as_gtks_own_and_hostile_ones_show_nothing() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen: Ref<string[]> = Ref.new([]);
+    let application = gtk_application_new("org.kivuli.test.svgs", 0);
+    connect_app(
+        application,
+        "activate",
+        fun(a: GtkApplication) {
+            let window = gtk_application_window_new(a);
+            let app = mount(
+                a,
+                window,
+                sandbox_app("org.kivuli.test", 0, fun(n: i64, msg: Msg): i64 = n, view_svgs),
+            );
+            let kids = match live_of(app) {
+                Box(_, _, ks) => ks,
+                _ => panic("expected a column"),
+            };
+            let mut i = 0;
+            while i < 5 {
+                note(seen, shown(widget(kids[i])));
+                i = i + 1;
+            }
+            match kids[5] {
+                Button(_, _, _, _, _, img) => note(
+                    seen,
+                    "button svg {lgtk_image_get_svg(img).is_some()}",
+                ),
+                _ => note(seen, "not a button"),
+            }
+            g_application_quit(a);
+        },
+        0,
+    );
+    g_application_run(application, 0, None);
+    g_object_unref(application);
+    assert_eq(seen.get(), [
+        "svg 64x64 features 2",
+        "svg 24x16 features 2",
+        "nothing",
+        "nothing",
+        "nothing",
+        "button svg true",
+    ]);
+}

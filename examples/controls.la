@@ -1,9 +1,10 @@
 // Controls: a preview whose size follows a slider and whose weight follows a
-// drop-down, a check box, a text area, theme icons, and one picture from a
-// file and from bytes in memory. Run it from the repository's root
-// (`lughac run examples/controls.la`): the picture's path is relative to
-// where the app starts. examples/assets/sample.png was generated for kivuli,
-// GPL-3.0-only like the rest of the repository.
+// drop-down, a check box, a text area, theme icons, one picture from a file
+// and from bytes in memory, and an SVG drawn at two sizes. Run it from the
+// repository's root (`lughac run examples/controls.la`): the pictures' paths
+// are relative to where the app starts. examples/assets/sample.png and
+// sample.svg were made for kivuli, GPL-3.0-only like the rest of the
+// repository.
 import kivuli {
     Align,
     Sizing,
@@ -126,6 +127,9 @@ fun view(m: Model): View<Msg> = column([
         image(Image.File("examples/assets/sample.png")).style([at_least(120, 80)]).fit(Fit.Cover),
         // The key names the bytes: the same key, and they're never decoded again.
         image(Image.Bytes("sample", m.sample)).size(64),
+        // An SVG is drawn, not decoded: sharp at any size.
+        image(Image.File("examples/assets/sample.svg")).size(32),
+        image(Image.File("examples/assets/sample.svg")).size(96),
     ]).style([gap(12)]),
 ]).style([pad(16), gap(10)]).window("Controls", 440, 560);
 

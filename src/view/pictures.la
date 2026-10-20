@@ -1,9 +1,10 @@
 /**
  * Images, without GTK: where one comes from (`Image`), what makes two the
- * same (their identity, never their bytes), and the size an image's header
- * claims, read before anything is decoded, so hostile bytes (a small file
- * claiming a huge image, a cut header, an unknown format) never reach GTK's
- * decoder. Pure.
+ * same (their identity, never their bytes), what kind of image bytes are
+ * (PNG, JPEG or SVG: PRP-053), and the size a PNG's or JPEG's header claims,
+ * read before anything is decoded, so hostile bytes (a small file claiming a
+ * huge image, a cut header, an unknown format, an SVG GTK would crash on)
+ * never reach GTK. Pure.
  *
  * Depends on: nothing
  * Used by: buttons, diff, lib, mapping, paint, sheets, styles, textures, views, widgets
@@ -20,10 +21,17 @@
 public enum Image {
     /** A theme icon, by name (`"user-trash-symbolic"`). */
     Icon(string),
-    /** A PNG or JPEG file, by path. A file changed on disk under the same path isn't noticed. */
+    /** A PNG, JPEG or SVG file, by path. A file changed on disk under the same path isn't noticed. */
     File(string),
-    /** PNG or JPEG bytes, with a key naming them: a new key for new bytes. */
+    /** PNG, JPEG or SVG bytes, with a key naming them: a new key for new bytes. */
     Bytes(string, u8[]),
+}
+
+/** What kind of image bytes are, told from how they start. */
+public enum Kind {
+    Png,
+    Jpeg,
+    Svg,
 }
 
 /** The widest or tallest image shown, in pixels: larger ones show nothing. */
@@ -63,6 +71,107 @@ fun size_of(bytes: u8[]): Result<(i64, i64), string> {
     }
     Ok((width, height))
 }
+
+/** How far into an SVG with an XML prolog its `<svg` may start: 1 KB. */
+const SVG_START: i64 = 1024;
+
+/**
+ * What kind of image `bytes` are, or why they won't be shown: over
+ * `MAX_BYTES`, none of the three, or an SVG holding an `<image>` element
+ * (GTK 4.22 crashes on one with outside files turned off: DECISION-030).
+ * A PNG's or JPEG's size is `size_of`'s to check; an SVG's is read by GTK.
+ */
+fun kind_of(bytes: u8[]): Result<Kind, string> {
+    if bytes.len > MAX_BYTES {
+        return Err("the image is over 16 MB");
+    }
+    if starts(bytes, [137, 80, 78, 71]) {
+        return Ok(Kind.Png);
+    }
+    if starts(bytes, [255, 216]) {
+        return Ok(Kind.Jpeg);
+    }
+    if !is_svg(bytes) {
+        return Err("not a PNG, JPEG or SVG image");
+    }
+    if holds_image(bytes) {
+        return Err("an SVG holding <image> isn't shown");
+    }
+    Ok(Kind.Svg)
+}
+
+/**
+ * Whether `bytes` start, after a UTF-8 byte-order mark and white space, with
+ * `<svg`, or with `<?xml` and hold `<svg` in their first `SVG_START` bytes.
+ */
+fun is_svg(bytes: u8[]): bool {
+    let mut i = if starts(bytes, [239, 187, 191]) { 3 } else { 0 };
+    while i < bytes.len && is_space(bytes[i]) {
+        i = i + 1;
+    }
+    if at(bytes, i, "<svg") {
+        return true;
+    }
+    if !at(bytes, i, "<?xml") {
+        return false;
+    }
+    let mut j = i;
+    while j < bytes.len && j < SVG_START {
+        if at(bytes, j, "<svg") {
+            return true;
+        }
+        j = j + 1;
+    }
+    false
+}
+
+/**
+ * Whether an `<image` element appears anywhere, with or without a namespace
+ * prefix (`<s:image`), comments too: an element only named like one
+ * (`<imagery`) doesn't count. Erring on the side of refusing.
+ */
+fun holds_image(bytes: u8[]): bool {
+    let mut i = 0;
+    while i < bytes.len {
+        if bytes[i] == 60 {
+            // `<`, then an optional `prefix:`, then `image` and the name's end.
+            let mut j = i + 1;
+            while j < bytes.len && is_name(bytes[j]) {
+                j = j + 1;
+            }
+            let name_at = if j < bytes.len && bytes[j] == 58 { j + 1 } else { i + 1 };
+            let end = name_at + 5;
+            if at(bytes, name_at, "image") && (end >= bytes.len || !is_name(bytes[end])) {
+                return true;
+            }
+        }
+        i = i + 1;
+    }
+    false
+}
+
+/** Whether `bytes` hold `text` at `i`. */
+fun at(bytes: u8[], i: i64, text: string): bool {
+    if i < 0 || i + text.len > bytes.len {
+        return false;
+    }
+    let mut k = 0;
+    while k < text.len {
+        if bytes[i + k] != text[k] {
+            return false;
+        }
+        k = k + 1;
+    }
+    true
+}
+
+/** XML white space: space, tab, line feed, carriage return. */
+fun is_space(b: u8): bool = b == 32 || b == 9 || b == 10 || b == 13;
+
+/** A byte of an XML name (ASCII letters, digits, `-`, `_`, `.`) or any byte of a UTF-8 one. */
+fun is_name(
+    b: u8,
+): bool = b >= 97 && b <= 122 || b >= 65 && b <= 90 || b >= 48 && b <= 57 || b == 45 || b == 95 || b == 46 || b >= 128;
 
 /** A PNG's size: its first chunk is IHDR, width then height, big-endian. */
 fun png_size(bytes: u8[]): Result<(i64, i64), string> {

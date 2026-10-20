@@ -8,6 +8,11 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.48.0] — 2026-10-20
+
+### Added
+- SVG images (PRP-053): `Image.File` and `Image.Bytes` take SVG beside PNG and JPEG, in pictures, button images and avatars, drawn by GTK 4.22's own renderer with outside files, animations and extensions off. An SVG holding `<image>` shows nothing (DECISION-030: GTK crashes on one). Not as a background. Needs lugha-gtk 0.1.43.
+
 ## [0.47.0] — 2026-10-20
 
 ### Added

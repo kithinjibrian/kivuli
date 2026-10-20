@@ -143,7 +143,7 @@ Decisions 1–12 were agreed in the design discussion in the lugha repository (a
 
 ### 17. Images show bytes they already have (session 11, PRP-010)
 
-**Decision:** one `Image` type (`Icon(name)`, `File(path)`, `Bytes(key, bytes)`) for `image(…)` and a button's `.image(…)`. kivuli never fetches from the network: an app downloads with a non-blocking command and shows the bytes (model B, DECISION-019). Every file or bytes image is header-checked in pure Lugha (PNG, JPEG; 4096 × 4096 px; 16 MB) before GTK decodes it. The diff compares an image's kind and name, path or key, never its bytes.
+**Decision:** one `Image` type (`Icon(name)`, `File(path)`, `Bytes(key, bytes)`) for `image(…)` and a button's `.image(…)`. kivuli never fetches from the network: an app downloads with a non-blocking command and shows the bytes (model B, DECISION-019). Every file or bytes image is header-checked in pure Lugha (PNG, JPEG; 4096 × 4096 px; 16 MB) before GTK decodes it. The diff compares an image's kind and name, path or key, never its bytes. SVG (PRP-053) is drawn by GTK's own `GtkSvg` with outside files, animations and extensions off; an SVG holding `<image>` is refused before GTK sees it (DECISION-030: GTK 4.22.4 crashes on one); no SVG backgrounds.
 
 **Rules out:** `Image.Url`, kivuli-side HTTP, decoding unchecked bytes.
 

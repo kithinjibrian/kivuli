@@ -1,0 +1,72 @@
+// SVG images, without GTK (PRP-053): an SVG told apart by its first bytes,
+// one holding `<image>` refused (DECISION-030), the 16 MB cap, PNG and JPEG
+// unchanged, and no SVG as a background.
+import fixtures;
+import kivuli.view.pictures { Kind, MAX_BYTES, data_url, kind_of, size_of };
+import kivuli.styles { Sheet };
+import kivuli.styles.checks { check };
+import kivuli { Background, Image };
+
+fun svg(text: string): u8[] = text.to_bytes();
+
+const LOGO: string = "<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24'><circle r='8'/></svg>";
+
+@test
+fun an_svg_is_told_apart_by_how_it_starts() {
+    assert_eq(kind_of(svg(LOGO)), Ok(Kind.Svg));
+    assert_eq(
+        kind_of(svg("<?xml version='1.0' encoding='UTF-8'?>\n<!-- a logo -->\n{LOGO}")),
+        Ok(Kind.Svg),
+    );
+    // A byte-order mark and leading space.
+    let mut marked: u8[] = [239, 187, 191];
+    marked = marked + svg("  \n\t{LOGO}");
+    assert_eq(kind_of(marked), Ok(Kind.Svg));
+    assert_eq(kind_of(fixtures.png()), Ok(Kind.Png));
+    assert_eq(kind_of(fixtures.jpeg()), Ok(Kind.Jpeg));
+}
+
+@test
+fun what_isnt_an_svg_or_holds_an_image_is_refused() {
+    assert_eq(kind_of(svg("<?xml version='1.0'?><html/>")), Err("not a PNG, JPEG or SVG image"));
+    assert_eq(kind_of(svg("hello <svg")), Err("not a PNG, JPEG or SVG image"));
+    let empty: u8[] = [];
+    assert_eq(kind_of(empty), Err("not a PNG, JPEG or SVG image"));
+    let held = "an SVG holding <image> isn't shown";
+    assert_eq(
+        kind_of(svg("<svg xmlns='http://www.w3.org/2000/svg'><image href='/etc/passwd'/></svg>")),
+        Err(held),
+    );
+    assert_eq(
+        kind_of(svg("<svg xmlns:s='http://www.w3.org/2000/svg'><s:image href='a.png'/></svg>")),
+        Err(held),
+    );
+    assert_eq(kind_of(svg("<svg><!-- <image href='a.png'/> --></svg>")), Err(held));
+    // An element whose name only starts with "image" isn't one.
+    assert_eq(kind_of(svg("<svg><imagery/></svg>")), Ok(Kind.Svg));
+    let mut big: u8[] = [32; MAX_BYTES + 1];
+    let head = svg(LOGO);
+    let mut i = 0;
+    while i < head.len {
+        big[i] = head[i];
+        i = i + 1;
+    }
+    assert_eq(kind_of(big), Err("the image is over 16 MB"));
+}
+
+@test
+fun png_and_jpeg_checks_still_refuse_an_svg() {
+    assert_eq(size_of(svg(LOGO)), Err("not a PNG or JPEG image"));
+    assert_eq(data_url(svg(LOGO)), None);
+}
+
+@test
+fun an_svg_cant_be_a_background() {
+    let s = Background.image(Image.Bytes("logo", svg(LOGO))).apply(Sheet.theme());
+    assert_eq(
+        check(s),
+        Err("Background.image(Image.Bytes(\"logo\", …)): an SVG can't be a background"),
+    );
+    let png = Background.image(Image.Bytes("photo", fixtures.png())).apply(Sheet.theme());
+    assert_eq(check(png), Ok(()));
+}
