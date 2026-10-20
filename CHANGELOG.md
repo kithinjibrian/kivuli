@@ -8,6 +8,11 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.28.0] — 2026-10-20
+
+### Added
+- `kivuli.ui`'s Field (PRP-033): `field`, `field_horizontal`, `field_label`, `field_description`, `field_error`, `field_group`, `Field.invalid()`.
+
 ## [0.27.0] — 2026-10-20
 
 ### Added

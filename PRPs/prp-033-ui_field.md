@@ -1,6 +1,6 @@
 # PRP-033 — kivuli.ui: Field
 
-Status: approved (session 61)
+Status: built (session 61) on branch prp-033-ui-field
 Discovery: session 60, 2026-10-20 (the fifth component; the reference is ui.shadcn.com/docs/components/base/field). The input group follows (the user's order: Field, then the group; GTK's own field icons later). *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: `field([...])` and `field_horizontal([...])` with `field_label`, `field_description`, `field_error`, `field_group([...])`, and `Field.invalid()`.
@@ -45,8 +45,13 @@ field_group([
 - No FieldSet, FieldLegend, FieldSeparator, FieldContent or FieldTitle (long settings forms; later), no disabled field styling (the reference doesn't define it), no responsive orientation.
 
 ## TESTS (narrow; type-check now, run once the user's faster tests are in)
-- [ ] `test/fields.la` (new, pure): each part's values; a field's and a group's gaps; `field_horizontal` is a row with centred parts; `Field.invalid()` colours the field, the label has no colour of its own, the description keeps muted; the OBJECTIVE reads as written.
-- [ ] `examples/components.la` built, the only one. How it looks: by hand.
+- [x] (written, type-checked) `test/fields.la` (new, pure): each part's values; a field's and a group's gaps; `field_horizontal` is a row with centred parts; `Field.invalid()` colours the field, the label has no colour of its own, the description keeps muted; the OBJECTIVE reads as written.
+- [x] `examples/components.la` built, the only one. How it looks: by hand.
 
 ## ACCEPTANCE
 - [ ] The OBJECTIVE compiles; fmt clean; no file over 500 lines; README, DESIGN, CHANGELOG 0.28.0, CLAUDE.md; merged, tagged; pushed only on your go.
+
+## NOTES FROM THE BUILD
+
+- **The example's password field swaps** between a described field and an invalid one with an error; the input sits at the same place in both, so the diff keeps its widget and cursor.
+- **Tests not run** (the user's call): fields type-checks; only components built.
