@@ -213,6 +213,8 @@ So far:
 
 - `ui.input(value, on_change)` beside the native `input`: an `Input` border, a ring while typed in, `Input.invalid()` (red). `.placeholder`, `.on_submit`, `.disabled` work as on any field.
 
+- `field([field_label(…), control, field_description(…)])`, `field_horizontal([...])` (a check box beside its text), `field_error(…)`, `field_group([...])` (fields 24 px apart) and `Field.invalid()` (the label turns red; mark the control with `Input.invalid()`).
+
 A token can be used at an opacity: `Token.Primary.alpha(0.9)` (a hover), `Token.Ring.alpha(0.5)` (a focus halo). `look([...])` makes an app's own variant. `examples/components.la` shows each in light and dark.
 
 **Motion.** What eases when a style changes, how a node comes in, and what loops: GTK's own CSS transitions and animations.

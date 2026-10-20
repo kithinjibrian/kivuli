@@ -1,0 +1,111 @@
+// kivuli.ui's Field (PRP-033): each part's values, the gaps, a horizontal
+// field, and `Field.invalid()` turning the label red while the description
+// stays muted. No GTK.
+import kivuli.styles { Sheet };
+import kivuli.view.looks { Style, Align };
+import kivuli { View, Token, Paint, Width, Weight, Size, checkbox, text };
+import kivuli.ui {
+    field,
+    field_horizontal,
+    field_label,
+    field_description,
+    field_error,
+    field_group,
+    Field,
+    Input,
+};
+
+fun style_of<M>(v: View<M>): Style = match v {
+    Styled(_, s) => s,
+    _ => panic("expected a styled node"),
+};
+
+fun sheet_of<M>(v: View<M>): Sheet = style_of(v).sheet;
+
+fun inner<M>(v: View<M>): View<M> = match v {
+    Styled(x, _) => inner(x),
+    _ => v,
+};
+
+fun kids<M>(v: View<M>): View<M>[] = match inner(v) {
+    Column(xs) => xs,
+    Row(xs) => xs,
+    _ => panic("expected a column or a row"),
+};
+
+fun label(t: string): View<i64> = field_label(t);
+
+@test
+fun each_part_has_its_look() {
+    let l = sheet_of(label("Email"));
+    assert_eq(l.font.size, Size.Scale(0.875));
+    assert_eq(l.font.weight, Weight.Medium);
+    // No colour of its own: it takes the field's.
+    assert_eq(l.text.color, Paint.Theme);
+    let d: View<i64> = field_description("Choose one.");
+    assert_eq(sheet_of(d).text.color, Paint.Token(Token.MutedForeground));
+    assert_eq(sheet_of(d).font.size, Size.Scale(0.875));
+    assert(style_of(d).wrap);
+    let e: View<i64> = field_error("Too short.");
+    assert_eq(sheet_of(e).text.color, Paint.Token(Token.Destructive));
+    assert(style_of(e).wrap);
+}
+
+@test
+fun fields_stack_their_parts_and_groups_their_fields() {
+    let f: View<i64> = field([label("Email"), text("control")]);
+    assert_eq(sheet_of(f).spacing.gap, Width.Px(12));
+    match inner(f) {
+        Column(xs) => assert_eq(xs.len, 2),
+        _ => panic("a field is a column"),
+    }
+    let g: View<i64> = field_group([f, f]);
+    assert_eq(sheet_of(g).spacing.gap, Width.Px(24));
+    assert_eq(kids(g).len, 2);
+}
+
+@test
+fun a_horizontal_field_is_a_row_of_centred_parts() {
+    let h: View<i64> = field_horizontal([
+        checkbox("Same", true, fun(b: bool): i64 = 1),
+        label("x"),
+    ]);
+    match inner(h) {
+        Row(xs) => {
+            assert_eq(xs.len, 2);
+            assert_eq(style_of(xs[0]).align, Align.Center);
+            assert_eq(style_of(xs[1]).align, Align.Center);
+        }
+        _ => panic("a horizontal field is a row"),
+    }
+    assert_eq(sheet_of(h).spacing.gap, Width.Px(12));
+}
+
+@test
+fun an_invalid_field_turns_its_label_red_and_keeps_its_description_muted() {
+    let f: View<i64> = field([label("Password"), field_description("Hint")]).style([
+        Field.invalid(),
+    ]);
+    assert_eq(sheet_of(f).text.color, Paint.Token(Token.Destructive));
+    let parts = kids(f);
+    assert_eq(sheet_of(parts[0]).text.color, Paint.Theme);
+    assert_eq(sheet_of(parts[1]).text.color, Paint.Token(Token.MutedForeground));
+}
+
+@test
+fun the_objective_reads_as_written() {
+    let v: View<i64> = field_group([
+        field([
+            field_label("Username"),
+            ui.input("", fun(s: string): i64 = 1),
+            field_description("Choose a unique username for your account."),
+        ]),
+        field([
+            field_label("Password"),
+            ui.input("", fun(s: string): i64 = 2).style([Input.invalid()]),
+            field_error("Must be at least 8 characters."),
+        ]).style([Field.invalid()]),
+        field_horizontal([checkbox("Same as shipping address", false, fun(b: bool): i64 = 3)]),
+    ]);
+    assert_eq(kids(v).len, 3);
+}

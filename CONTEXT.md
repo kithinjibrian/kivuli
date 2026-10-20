@@ -1031,6 +1031,24 @@ Branch: main
 
 ---
 
+## SESSION 61 — 2026-10-20 — PRP-033: kivuli.ui Field, built, not merged — closed
+
+Branch: prp-033-ui-field (not merged: waiting for the user's look)
+
+### WHAT WAS DONE
+- src/ui/fields.la (`field`, `field_horizontal`, `field_label`, `field_description`, `field_error`, `field_group`, `Field.invalid()`); a live Field section in components.la and the login card on fields. Docs; 0.28.0 (not tagged). Tests type-checked only.
+
+### STILL OPEN AT CLOSE
+- The user to look; then merge, tag v0.28.0. Next: the input group (the user's order).
+
+---
+
+## SESSION 62 — 2026-10-20 — Merge PRP-033 — open
+
+Branch: main (merging prp-033-ui-field)
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
