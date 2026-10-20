@@ -289,6 +289,12 @@ impl View<Msg> {
         fun(s: Style) = Style { step: if n <= 0 { 1 } else { n }, ..s },
     );
 
+    /** Whether a slider draws its number beside the handle: `slider(…).show_value(false)`. */
+    public fun show_value(self, on: bool): View<Msg> = restyle(
+        self,
+        fun(s: Style) = Style { show_value: on, ..s },
+    );
+
     /**
      * Shows a theme icon on a button, before its label: `.image(Image.Icon(name))`.
      * `""` takes the button's image away, as it always has.

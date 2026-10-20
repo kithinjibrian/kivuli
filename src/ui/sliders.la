@@ -39,8 +39,9 @@ fun halo(): Shadow = Shadow {
 
 /**
  * A slider in the palette's colours from `min` to `max`, showing `value`;
- * each move sends `on_change(n)`. `.step(…)`, `.disabled(…)` and `.name(…)`
- * work as on kivuli's own `slider`.
+ * each move sends `on_change(n)`; its number isn't drawn unless
+ * `.show_value(true)`. `.step(…)`, `.disabled(…)` and `.name(…)` work as on
+ * kivuli's own `slider`.
  *
  * Example:
  *     ui.slider(0, 100, m.volume, Msg.Volume)
@@ -50,7 +51,7 @@ public fun slider<Msg>(min: i64, max: i64, value: i64, on_change: fun(i64): Msg)
     max,
     value,
     on_change,
-).style([
+).show_value(false).style([
     Inside(Part.Trough, [Sizing.min_height(6), round(), Background.color(Token.Muted)]),
     Inside(Part.Highlight, [round(), Background.color(Token.Primary)]),
     Inside(Part.Knob, [

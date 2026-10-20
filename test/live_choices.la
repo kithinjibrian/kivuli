@@ -1,6 +1,7 @@
 // Drop-downs and sliders on real GTK widgets: what a user picks or slides
 // reaches the model, updates move the widgets, and kivuli's own patches don't
-// echo back as messages; a disabled drop-down (PRP-050). Needs a display, so
+// echo back as messages; a disabled drop-down (PRP-050); a slider's number
+// shown or hidden (PRP-051). Needs a display, so
 // it is skipped without one.
 import std.env;
 import gtk {
@@ -19,6 +20,7 @@ import gtk {
     gtk_drop_down_set_selected,
     gtk_range_get_value,
     gtk_range_set_value,
+    gtk_scale_get_draw_value,
     gtk_string_list_get_n_items,
     gtk_string_list_get_string,
     gtk_widget_get_sensitive,
@@ -302,4 +304,33 @@ fun a_disabled_dropdown_is_greyed_and_sends_nothing_until_enabled() {
     });
     assert_eq(seen.get(), ["sensitive 0", "same true sensitive 1", "picked 0"]);
     assert_eq(received.get(), ["Grow", "Size(\"Large\")"]);
+}
+
+/** A slider showing its number, one hiding it, and one hiding it once Grow is clicked. */
+fun view_numbers(s: Sizes): View<Pick> = column([
+    slider(0, 10, 5, fun(n: i64) = Pick.Grow),
+    slider(0, 10, 5, fun(n: i64) = Pick.Grow).show_value(false),
+    slider(0, 10, 5, fun(n: i64) = Pick.Grow).show_value(!s.big),
+    button("Grow", Pick.Grow),
+]);
+
+@test
+fun a_slider_draws_its_number_unless_told_not_to() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen: Ref<string[]> = Ref.new([]);
+    let received: Ref<string[]> = Ref.new([]);
+    with_app("org.kivuli.test.slider_number", Sizes {
+        size: "",
+        big: false,
+    }, update_sizes, view_numbers, received, fun(kids: Live<Pick>[], done: fun()) {
+        let third = widget(kids[2]);
+        let draws = fun(): string = "{gtk_scale_get_draw_value(widget(kids[0]))} {gtk_scale_get_draw_value(widget(kids[1]))} {gtk_scale_get_draw_value(third)}";
+        note(seen, draws());
+        emit_widget(widget(kids[3]), "clicked");
+        note(seen, "{draws()} same {widget(kids[2]) == third}");
+        done();
+    });
+    assert_eq(seen.get(), ["1 0 1", "1 0 0 same true"]);
 }

@@ -223,7 +223,7 @@ So far:
 
 - `ui.slider(min, max, value, on_change)`: a round track, a primary fill and a round thumb with a halo on hover and focus. `.disabled(…)` works on any slider.
 
-- `ui.dropdown(choices, selected, placeholder)`: a trigger like `ui.input`, a list in the popover colours, items that turn `Accent` on hover; `Dropdown.invalid()`. (`dropdown`, not `select`: `select` is a Lugha keyword.) `.placeholder(…)` on any drop-down labels its blank item. `dropdown_grouped([(heading, choices), …], selected)` and `ui.dropdown_grouped(…, placeholder)` show the choices under headings, a line between groups. `.disabled(on)` greys any drop-down, which then sends nothing (`kivuli.testing.choose` gives `Err(Lookup.Silent(…))`).
+- `ui.dropdown(choices, selected, placeholder)`: a trigger like `ui.input`, a list in the popover colours, items that turn `Accent` on hover; `Dropdown.invalid()`. (`dropdown`, not `select`: `select` is a Lugha keyword.) `.placeholder(…)` on any drop-down labels its blank item. `.show_value(on)` shows or hides a slider's number (`slider` shows it, `ui.slider` hides it). `dropdown_grouped([(heading, choices), …], selected)` and `ui.dropdown_grouped(…, placeholder)` show the choices under headings, a line between groups. `.disabled(on)` greys any drop-down, which then sends nothing (`kivuli.testing.choose` gives `Err(Lookup.Silent(…))`).
 
 - `ui.switch(on, on_toggle)`: a round track (`Input` off, `Primary` on) and a thumb GTK slides; put its label beside it in a `field_horizontal`.
 

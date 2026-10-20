@@ -159,7 +159,7 @@ public fun sections(m: Model): View<Msg>[] = [
                 ui.slider(0, 100, m.volume, Msg.Volume).expand(),
                 text("{m.volume}").style([Text.color(Token.MutedForeground)]).align(Align.Center),
             ]).style([Spacing.gap(12)]),
-            ui.slider(0, 100, m.volume, Msg.Volume).disabled(m.same),
+            ui.slider(0, 100, m.volume, Msg.Volume).show_value(true).disabled(m.same),
             slider(0, 100, m.volume, Msg.Volume),
         ]).style([Spacing.gap(16), Sizing.max_width(420)]),
     ),
