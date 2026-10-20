@@ -1120,9 +1120,15 @@ Branch: main
 
 ---
 
-## SESSION 68 — 2026-10-20 — PRP-035: kivuli.ui Separator — open
+## SESSION 68 — 2026-10-20 — PRP-035: kivuli.ui Separator, built, not merged — closed
 
-Branch: prp-035-ui-separator
+Branch: prp-035-ui-separator (not merged: waiting for the user's look)
+
+### WHAT WAS DONE
+- src/ui/separators.la (`separator`, `separator_with`); a Separator section in components.la. Docs; 0.30.0 (not tagged). Tests type-checked only.
+
+### STILL OPEN AT CLOSE
+- The user to look; then merge and tag v0.30.0. Next: Checkbox, Select, Slider.
 
 ---
 

@@ -1,6 +1,6 @@
 # PRP-035 — kivuli.ui: Separator
 
-Status: approved (session 68)
+Status: built (session 68) on branch prp-035-ui-separator
 Discovery: session 67, 2026-10-20 (the seventh component). *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: `ui.separator()`, kivuli's native separator as a 1 px line in `Border`, and `separator_with(label)`, a line with text in its middle.
@@ -29,8 +29,14 @@ row([text("Blog"), ui.separator(), text("Docs"), ui.separator(), text("Source")]
 - No decorative separators (dashes, gradients), no spacing of their own (the parent's gap decides).
 
 ## TESTS (narrow; type-check now, run once the user's faster tests are in)
-- [ ] `test/separators.la` (new, pure): `ui.separator()` is the native separator with the `Border` colour and 1 px minimums; `separator_with`'s row, its two growing lines (1 px, `Border`), its muted centred label; the OBJECTIVE reads as written.
-- [ ] `examples/components.la` gains a Separator section, and the login card a "Or continue with" separator; only it built. How it looks: by hand.
+- [x] (written, type-checked) `test/separators.la` (new, pure): `ui.separator()` is the native separator with the `Border` colour and 1 px minimums; `separator_with`'s row, its two growing lines (1 px, `Border`), its muted centred label; the OBJECTIVE reads as written.
+- [x] `examples/components.la` gains a Separator section, and the login card a "Or continue with" separator; only it built. How it looks: by hand.
 
 ## ACCEPTANCE
 - [ ] The OBJECTIVE compiles; fmt clean; no file over 500 lines; README, DESIGN, CHANGELOG 0.30.0, CLAUDE.md; merged, tagged; pushed only on your go.
+
+## NOTES FROM THE BUILD
+
+- **The login card keeps its footer**: its Login and Google buttons are both in the footer, so an "Or continue with" inside it would have nothing after it; the Separator section shows `separator_with` instead.
+- **The test and the module were written in one step** (the test first in the file, but not seen failing first).
+- **Tests not run** (the user's call): separators type-checks; only components built.

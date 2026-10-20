@@ -217,6 +217,8 @@ So far:
 
 - `input_group(start, control, end)`: one frame around a `group_input` and what sits beside it: icons, `group_text("https://")`, `group_button(…)` / `group_button_with([icon(…)], …)` (compact ghost buttons). `InputGroup.invalid()` turns the frame red.
 
+- `ui.separator()` (a 1 px `Border` line: across a column, down a row) and `separator_with("Or continue with")`.
+
 A token can be used at an opacity: `Token.Primary.alpha(0.9)` (a hover), `Token.Ring.alpha(0.5)` (a focus halo). `look([...])` makes an app's own variant. `examples/components.la` shows each in light and dark.
 
 **Motion.** What eases when a style changes, how a node comes in, and what loops: GTK's own CSS transitions and animations.
