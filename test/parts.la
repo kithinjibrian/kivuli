@@ -262,6 +262,17 @@ fun a_bars_window_controls_are_parts_with_their_own_hover() {
     );
     assert(k.iter().any(fun(x) = x == "kv-windowicon-bgt-muted windowcontrols > button > image"));
     assert_eq(check(s), Ok(()));
+    // The close control's icon alone: its circle can turn red on its own.
+    let red = Inside(Part.WindowCloseIcon, [
+        When(State.Hover, [Background.color(Token.Destructive)]),
+    ]).apply(Sheet.theme());
+    assert(
+        keys(red).iter().any(
+            fun(
+                x,
+            ) = x == "kv-windowcloseicon-hover-bgt-destructive windowcontrols > button.close > image:hover",
+        ),
+    );
 }
 
 @test

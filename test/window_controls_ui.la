@@ -46,7 +46,7 @@ fun looked(): Sheet = WindowControls.look().apply(Sheet.theme());
 fun the_controls_are_ghost_buttons_in_the_palette() {
     let b = part(looked(), Part.WindowButton);
     assert_eq(b.text.color, Paint.Token(Token.MutedForeground));
-    assert_eq(b.border.radius, Radius.Medium);
+    assert_eq(b.border.radius, Radius.All(99));
     assert_eq(b.sizing.min_width, Width.Px(32));
     assert_eq(b.sizing.min_height, Width.Px(32));
     let hovered = in_state(b, State.Hover);
@@ -85,5 +85,12 @@ fun the_look_goes_on_a_bar_and_the_parts_nowhere_else() {
     assert_eq(
         painted(close).map(fun(v) = 0),
         Err("Part.WindowClose belongs in a header bar's style"),
+    );
+    let icon: View<i64> = column([]).style([
+        Inside(Part.WindowCloseIcon, [Text.color(Token.Primary)]),
+    ]);
+    assert_eq(
+        painted(icon).map(fun(v) = 0),
+        Err("Part.WindowCloseIcon belongs in a header bar's style"),
     );
 }

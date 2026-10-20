@@ -25,8 +25,9 @@ public struct WindowControls {}
 impl WindowControls {
     /**
      * The window controls as ghost icon buttons: muted until hovered or
-     * pressed (`Accent`), the close one `Destructive` on hover, 32 px square
-     * with medium corners.
+     * pressed (`Accent`), the close one `Destructive` on hover, 32 px and
+     * round. For a circle behind each icon, add `Inside(Part.WindowIcon, …)`
+     * after it (`Part.WindowCloseIcon` for the close one's).
      *
      * Example:
      *     header_bar(start, title, end).style([WindowControls.look()])

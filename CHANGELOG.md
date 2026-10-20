@@ -8,6 +8,14 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.49.1] — 2026-10-21
+
+### Added
+- `Part.WindowCloseIcon`: the close control's icon alone, so its circle can turn red on its own (no PRP: the user's call).
+
+### Changed
+- `WindowControls.look()`'s controls are round (`Border.rounded(99)`).
+
 ## [0.49.0] — 2026-10-21
 
 ### Added
