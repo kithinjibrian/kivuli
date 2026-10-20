@@ -968,6 +968,12 @@ Branch: main (prp-031-ui-card merged)
 
 ---
 
+## SESSION 56 — 2026-10-20 — kivuli.ui Input: discovery — open
+
+Branch: main
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
