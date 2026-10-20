@@ -1,6 +1,6 @@
 # PRP-039 — kivuli.ui: Select
 
-Status: draft, for the user's approval (session 77)
+Status: approved (session 79)
 Discovery: session 77, 2026-10-20 (the tenth component; named `dropdown`/`Dropdown` throughout, not Select: `select` is a Lugha keyword, and the native widget is `dropdown` (the user: A); the reference is ui.shadcn.com/docs/components/base/select, its code collapsed; GTK's drop-down probed: `dropdown > button.toggle` (the shown item, an `arrow`), `popover.menu > contents > … listview > row` (each item: a label and a tick image), the pop-up a CSS descendant of the drop-down). *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: `ui.dropdown(choices, selected, placeholder)` with `Dropdown.invalid()`; the parts `Part.Trigger`, `Part.Arrow`, `Part.List`, `Part.Item`; states inside a part; and `.placeholder(…)` on any drop-down.
