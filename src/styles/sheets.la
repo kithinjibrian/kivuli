@@ -157,6 +157,8 @@ fun part_node(part: Part): string = match part {
     MenuLabel => "popover.menu label.title",
     MenuSeparator => "popover.menu separator",
     MenuHint => "popover.menu accelerator",
+    MenuCheck => "popover.menu check",
+    MenuRadio => "popover.menu radio",
 };
 
 /** The code a part's classes carry (`kv-item-…`). */
@@ -174,6 +176,8 @@ fun part_code(part: Part): string = match part {
     MenuLabel => "menulabel",
     MenuSeparator => "menuseparator",
     MenuHint => "menuhint",
+    MenuCheck => "menucheck",
+    MenuRadio => "menuradio",
 };
 
 /**

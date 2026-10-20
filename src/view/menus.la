@@ -18,6 +18,10 @@ public enum MenuEntry<Msg> {
     Label(string),
     /** An item opening its own entries beside the menu. */
     Submenu(string, MenuEntry<Msg>[]),
+    /** A check item: its label, whether it's ticked, what picking it sends with the new state (`None`: disabled), its hint. */
+    Check(string, bool, Option<fun(bool): Msg>, string),
+    /** A radio group: the label shown selected, and each choice's label and message (`None`: disabled). */
+    Radio(string, (string, Option<Msg>)[]),
 }
 
 impl MenuEntry<Msg> {
@@ -35,6 +39,11 @@ impl MenuEntry<Msg> {
         match self {
             Item(label, _) => MenuEntry.Item(label, None),
             Hinted(label, _, keys) => MenuEntry.Hinted(label, None, keys),
+            Check(label, checked, _, keys) => MenuEntry.Check(label, checked, None, keys),
+            Radio(selected, choices) => MenuEntry.Radio(
+                selected,
+                choices.map(fun(c) = (c.0, None)),
+            ),
             _ => self,
         }
     };
@@ -55,6 +64,7 @@ impl MenuEntry<Msg> {
         } else {
             MenuEntry.Hinted(label, msg, keys)
         },
+        Check(label, checked, on_toggle, _) => MenuEntry.Check(label, checked, on_toggle, keys),
         _ => self,
     };
 
@@ -65,6 +75,19 @@ impl MenuEntry<Msg> {
         Separator => MenuEntry.Separator,
         Label(text) => MenuEntry.Label(text),
         Submenu(label, entries) => MenuEntry.Submenu(label, entries.map(fun(e) = e.map(f))),
+        Check(label, checked, on_toggle, keys) => MenuEntry.Check(
+            label,
+            checked,
+            match on_toggle {
+                Some(g) => Some(fun(b: bool): B = f(g(b))),
+                None => None,
+            },
+            keys,
+        ),
+        Radio(selected, choices) => MenuEntry.Radio(
+            selected,
+            choices.map(fun(c) = (c.0, c.1.map(f))),
+        ),
     };
 }
 
@@ -103,13 +126,46 @@ public fun submenu<Msg>(
     entries: MenuEntry<Msg>[],
 ): MenuEntry<Msg> = MenuEntry.Submenu(label, entries);
 
-/** Every item, submenus' too, depth first: each one's label and message (the order actions are numbered in). */
+/**
+ * A check item labelled `label`, ticked when `checked`; picking it sends
+ * `on_toggle(!checked)`. Store the state in the model and pass it back.
+ *
+ * Example:
+ *     check_item("Status bar", m.status_bar, Msg.StatusBar)
+ */
+public fun check_item<Msg>(
+    label: string,
+    checked: bool,
+    on_toggle: fun(bool): Msg,
+): MenuEntry<Msg> = MenuEntry.Check(label, checked, Some(on_toggle), "");
+
+/**
+ * A radio group: an item per choice (its label and the message picking it
+ * sends), the one labelled `selected` dotted.
+ *
+ * Example:
+ *     radio_group(label_of(m.panel), [("Top", Msg.Panel(Pos.Top)), ("Bottom", Msg.Panel(Pos.Bottom))])
+ */
+public fun radio_group<Msg>(
+    selected: string,
+    choices: (string, Msg)[],
+): MenuEntry<Msg> = MenuEntry.Radio(selected, choices.map(fun(c) = (c.0, Some(c.1))));
+
+/** Every pickable item, submenus' too, depth first: its label and what picking it sends. */
 fun items<Msg>(entries: MenuEntry<Msg>[]): (string, Option<Msg>)[] {
     let mut out: (string, Option<Msg>)[] = [];
     for e of entries {
         match e {
             Item(label, msg) => out.push((label, msg)),
             Hinted(label, msg, _) => out.push((label, msg)),
+            Check(label, checked, on_toggle, _) => out.push(
+                (label, on_toggle.map(fun(f) = f(!checked))),
+            ),
+            Radio(_, choices) => {
+                for c of choices {
+                    out.push(c);
+                }
+            }
             Submenu(_, inner) => {
                 for i of items(inner) {
                     out.push(i);
@@ -121,10 +177,62 @@ fun items<Msg>(entries: MenuEntry<Msg>[]): (string, Option<Msg>)[] {
     out
 }
 
-/** The message of the item at `index` among the items (`items`' order), if it has one. */
+/** The plain items (not check or radio), depth first: the order their actions (`kv.item{n}`) are numbered in. */
+fun plain_items<Msg>(entries: MenuEntry<Msg>[]): Option<Msg>[] {
+    let mut out: Option<Msg>[] = [];
+    for e of entries {
+        match e {
+            Item(_, msg) => out.push(msg),
+            Hinted(_, msg, _) => out.push(msg),
+            Submenu(_, inner) => {
+                for m of plain_items(inner) {
+                    out.push(m);
+                }
+            }
+            _ => {}
+        }
+    }
+    out
+}
+
+/** The check items, depth first (`kv.check{n}`): each one's state and toggle. */
+fun check_items<Msg>(entries: MenuEntry<Msg>[]): (bool, Option<fun(bool): Msg>)[] {
+    let mut out: (bool, Option<fun(bool): Msg>)[] = [];
+    for e of entries {
+        match e {
+            Check(_, checked, on_toggle, _) => out.push((checked, on_toggle)),
+            Submenu(_, inner) => {
+                for c of check_items(inner) {
+                    out.push(c);
+                }
+            }
+            _ => {}
+        }
+    }
+    out
+}
+
+/** The radio groups, depth first (`kv.radio{n}`): each one's selected label and choices. */
+fun radio_groups<Msg>(entries: MenuEntry<Msg>[]): (string, (string, Option<Msg>)[])[] {
+    let mut out: (string, (string, Option<Msg>)[])[] = [];
+    for e of entries {
+        match e {
+            Radio(selected, choices) => out.push((selected, choices)),
+            Submenu(_, inner) => {
+                for r of radio_groups(inner) {
+                    out.push(r);
+                }
+            }
+            _ => {}
+        }
+    }
+    out
+}
+
+/** The message of the plain item at `index` (`plain_items`' order), if it has one. */
 fun message_of<Msg>(entries: MenuEntry<Msg>[], index: i64): Option<Msg> {
-    let all = items(entries);
-    if index < all.len { all[index].1 } else { None }
+    let all = plain_items(entries);
+    if index < all.len { all[index] } else { None }
 }
 
 /** What GTK's menu model shows for `entries`: one line per entry, `|` for a separator. */
@@ -134,4 +242,7 @@ fun layout<Msg>(entries: MenuEntry<Msg>[]): string[] = entries.map(fun(e) = matc
     Separator => "|",
     Label(text) => "label {text}",
     Submenu(label, inner) => "sub {label} [ {layout(inner).join(" ")} ]",
+    // Not whether it's ticked: that's the action's state, set on every refresh.
+    Check(label, _, _, keys) => if keys == "" { "check {label}" } else { "check {label} {keys}" },
+    Radio(_, choices) => "radio [ {choices.map(fun(c) = c.0).join(" ")} ]",
 });

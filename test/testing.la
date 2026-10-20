@@ -22,6 +22,8 @@ import kivuli {
     button_with,
     item,
     submenu,
+    check_item,
+    radio_group,
     menu_separator,
     header_bar,
 };
@@ -381,4 +383,16 @@ fun picking_finds_items_inside_submenus() {
         button("More", Msg.Clear).menu([submenu("Invite", [item("Email", Msg.Done(true))])]),
     ]);
     assert_eq(pick(v, "More", "Email"), Ok(Msg.Done(true)));
+}
+
+@test
+fun picking_a_check_item_toggles_and_a_radio_choice_sends_its_message() {
+    let v: View<Msg> = column([
+        button("View", Msg.Clear).menu([
+            check_item("Status bar", true, Msg.Done),
+            radio_group("Top", [("Top", Msg.Add), ("Bottom", Msg.Clear)]),
+        ]),
+    ]);
+    assert_eq(pick(v, "View", "Status bar"), Ok(Msg.Done(false)));
+    assert_eq(pick(v, "View", "Bottom"), Ok(Msg.Clear));
 }

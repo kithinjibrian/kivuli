@@ -12,15 +12,29 @@ import gtk {
     g_object_unref,
     gtk_application_new,
     gtk_application_window_new,
+    g_action_activate,
+    g_variant_new_string,
     gtk_popover_menu_get_flags,
     gtk_popover_popdown,
     gtk_widget_get_visible,
+    lgtk_action_state_bool,
+    lgtk_action_state_string,
     lgtk_emit_pressed,
 };
 import kivuli.render.live { mount, live_of };
 import kivuli.core.effects { sandbox_app };
 import kivuli.core.live_tree { Live, Popup };
-import kivuli { View, button, column, item, menu_label, menu_separator, submenu };
+import kivuli {
+    View,
+    button,
+    check_item,
+    column,
+    item,
+    menu_label,
+    menu_separator,
+    radio_group,
+    submenu,
+};
 
 fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
 
@@ -86,4 +100,69 @@ fun a_dropdown_menu_opens_on_a_click_and_a_context_menu_does_not() {
     g_application_run(application, 0, None);
     g_object_unref(application);
     assert_eq(seen.get(), ["nested 1 1", "dropdown open 1", "context open on a click 0"]);
+}
+
+struct Look {
+    bar: bool,
+    side: string,
+}
+
+enum Change {
+    Bar(bool),
+    Side(string),
+}
+
+fun view_look(l: Look): View<Change> = column([
+    button("View", Change.Bar(l.bar)).dropdown_menu([
+        check_item("Status bar", l.bar, Change.Bar),
+        radio_group(l.side, [("Left", Change.Side("Left")), ("Right", Change.Side("Right"))]),
+    ]),
+]);
+
+@test
+fun check_and_radio_states_follow_the_model() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen: Ref<string[]> = Ref.new([]);
+    let application = gtk_application_new("org.kivuli.test.check_radio_menu", 0);
+    connect_app(
+        application,
+        "activate",
+        fun(a: GtkApplication) {
+            let window = gtk_application_window_new(a);
+            let app = mount(a, window, sandbox_app(
+                "org.kivuli.test",
+                Look { bar: true, side: "Left" },
+                fun(l: Look, c: Change): Look = match c {
+                    Bar(b) => Look { bar: b, ..l },
+                    Side(s) => Look { side: s, ..l },
+                },
+                view_look,
+            ));
+            let popup = fun(): Popup<Change> = match live_of(app) {
+                Box(_, _, ks) => match ks[0] {
+                    Menu(_, p) => p,
+                    _ => panic("expected a node with a menu"),
+                },
+                _ => panic("expected a column"),
+            };
+            let check = popup().checks.get()[0];
+            let radio = popup().radios.get()[0];
+            note(seen, "starts {lgtk_action_state_bool(check)} {lgtk_action_state_string(radio)}");
+            // Picking sends the message; the model's answer sets the states.
+            g_action_activate(check, None);
+            g_action_activate(radio, Some(g_variant_new_string("Right")));
+            note(seen, "now {lgtk_action_state_bool(check)} {lgtk_action_state_string(radio)}");
+            note(
+                seen,
+                "same actions {popup().checks.get()[0] == check} {popup().radios.get()[0] == radio}",
+            );
+            g_application_quit(a);
+        },
+        0,
+    );
+    g_application_run(application, 0, None);
+    g_object_unref(application);
+    assert_eq(seen.get(), ["starts 1 Left", "now 0 Right", "same actions true true"]);
 }

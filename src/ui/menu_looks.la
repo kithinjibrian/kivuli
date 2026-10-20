@@ -17,7 +17,9 @@ import styles.theming { Color, Paint, Token };
 import styles.values { Drop, Radius };
 import styles.boxes { Background, Border, Sizing, Spacing };
 import styles.fonts { Font, Text };
-import styles.drawing { Shadow };
+import styles.drawing { Mark, Shadow };
+
+fun clear(): Color = Color { red: 0, green: 0, blue: 0, alpha: 0 };
 
 /** The menu's shadow: two layers, black at 10%. */
 fun lift(): Shadow = Shadow {
@@ -77,6 +79,21 @@ impl Menu {
             Spacing.margin_x(-4),
         ]),
         Inside(Part.MenuHint, [Font.xs(), Text.color(Token.MutedForeground), Text.letter_spacing(1)]),
+        // Drawn here, not by the theme: a 16 px tick, an 8 px dot, in the item's colour.
+        Inside(Part.MenuCheck, [
+            Sizing.min_width(16),
+            Sizing.min_height(16),
+            Background.color(clear()),
+            Border.all(0, clear()),
+            When(State.Checked, [Mark.icon("object-select-symbolic", 16)]),
+        ]),
+        Inside(Part.MenuRadio, [
+            Sizing.min_width(16),
+            Sizing.min_height(16),
+            Background.color(clear()),
+            Border.all(0, clear()),
+            When(State.Checked, [Mark.icon("media-record-symbolic", 8)]),
+        ]),
     ]);
 }
 

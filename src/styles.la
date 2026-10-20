@@ -179,6 +179,10 @@ public enum Part {
     MenuSeparator,
     /** The shortcut shown at a menu item's end (`popover.menu accelerator`, from `.hint`). */
     MenuHint,
+    /** A check item's box in a menu (`popover.menu check`): `:checked` while ticked. */
+    MenuCheck,
+    /** A radio item's circle in a menu (`popover.menu radio`): `:checked` while selected. */
+    MenuRadio,
 }
 
 /** Style values for one part: made by `Inside`. */

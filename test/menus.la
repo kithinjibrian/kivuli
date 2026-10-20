@@ -1,6 +1,6 @@
 // Menu entries, without GTK: items, separators, disabled items.
 import kivuli.view.menus { MenuEntry, items, layout };
-import kivuli { item, menu_label, menu_separator, submenu };
+import kivuli { item, menu_label, menu_separator, submenu, check_item, radio_group };
 
 fun assert_same<T>(actual: T, expected: T) {
     assert_eq("{actual}", "{expected}");
@@ -54,4 +54,35 @@ fun a_mapped_submenu_maps_inside() {
     let entries: MenuEntry<i64>[] = [submenu("More", [item("Two", 2).hint("Ctrl+2")])];
     let mapped = entries.map(fun(e) = e.map(fun(n: i64): string = "{n}"));
     assert_eq(items(mapped).map(fun(i) = i.1), [Some("2")]);
+}
+
+@test
+fun check_items_and_radio_groups_are_entries() {
+    let check: MenuEntry<i64> = check_item(
+        "Status bar",
+        true,
+        fun(b: bool): i64 = if b { 1 } else { 0 },
+    );
+    // Picking sends the toggle of the opposite.
+    assert_eq(items([check]), [("Status bar", Some(0))]);
+    assert_eq(items([check.disabled(true)]), [("Status bar", None)]);
+    let radio: MenuEntry<i64> = radio_group("Bottom", [("Top", 1), ("Bottom", 2)]);
+    assert_eq(items([radio]), [("Top", Some(1)), ("Bottom", Some(2))]);
+    assert_eq(items([radio.disabled(true)]), [("Top", None), ("Bottom", None)]);
+    // Ticks follow the model through the actions' states, not the model's layout.
+    assert_eq(layout([check, radio]), ["check Status bar", "radio [ Top Bottom ]"]);
+    assert_eq(layout([check_item("Status bar", false, fun(b: bool): i64 = 0)]), [
+        "check Status bar",
+    ]);
+    assert_eq(layout([check.hint("Ctrl+B")]), ["check Status bar Ctrl+B"]);
+}
+
+@test
+fun check_items_and_radio_groups_map() {
+    let entries: MenuEntry<i64>[] = [
+        check_item("A", false, fun(b: bool): i64 = if b { 1 } else { 0 }),
+        radio_group("X", [("X", 5)]),
+    ];
+    let mapped = entries.map(fun(e) = e.map(fun(n: i64): string = "{n}"));
+    assert_eq(items(mapped).map(fun(i) = i.1), [Some("1"), Some("5")]);
 }

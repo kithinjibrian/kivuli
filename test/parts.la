@@ -195,3 +195,25 @@ fun a_menus_parts_are_paths_into_its_popover() {
     assert(k.iter().any(fun(x) = x == "kv-menuseparator-bgt-border popover.menu separator"));
     assert(k.iter().any(fun(x) = x == "kv-menuhint-bgt-muted popover.menu accelerator"));
 }
+
+@test
+fun a_menus_check_and_radio_are_parts_with_their_own_checked_state() {
+    let s = Inside(Part.MenuRadio, [
+        When(State.Checked, [Mark.icon("media-record-symbolic", 8)]),
+    ]).apply(
+        Inside(Part.MenuCheck, [
+            When(State.Checked, [Mark.icon("object-select-symbolic", 16)]),
+        ]).apply(Sheet.theme()),
+    );
+    let k = keys(s);
+    assert(
+        k.iter().any(
+            fun(x) = x.starts_with("kv-menucheck-") && x.ends_with(" popover.menu check:checked"),
+        ),
+    );
+    assert(
+        k.iter().any(
+            fun(x) = x.starts_with("kv-menuradio-") && x.ends_with(" popover.menu radio:checked"),
+        ),
+    );
+}
