@@ -1,6 +1,6 @@
 # PRP-028 — kivuli.ui: the first component, Badge
 
-Status: draft, for the user's approval (session 41)
+Status: approved (session 42)
 Discovery: sessions 34 and 41, 2026-10-20 (the shadcn plan: a library module, A; one component first, the easiest). *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: `kivuli.ui`, a module of components drawn from palette tokens, starting with `badge(label)` and its variants as style values (`Badge.secondary()`, `outline()`, `destructive()`), shadcn v4's look.
