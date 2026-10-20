@@ -6,13 +6,19 @@
 import kivuli { View, Scheme, Font, Spacing, button, column, row, scroll, sandbox, text };
 import kivuli.ui { Tooltip };
 import gallery.state { Model, Msg, update, palette_of };
-import gallery.actions { sections as action_sections, delete_dialog };
+import gallery.actions { sections as action_sections, delete_dialog, edit_sheet };
 import gallery.choices { sections as choice_sections };
 import gallery.display { sections as display_sections };
 
 fun view(m: Model): View<Msg> = scroll(page(m))
-    // A dialog over the whole page while the model says so.
-    .dialog(if m.deleting { Some(delete_dialog()) } else { None })
+    // A dialog or a sheet over the whole page while the model says so.
+    .dialog(if m.deleting {
+        Some(delete_dialog())
+    } else if m.sheet >= 0 {
+        Some(edit_sheet(m))
+    } else {
+        None
+    })
     .palette(palette_of(m.base))
     .scheme(if m.dark { Scheme.Dark } else { Scheme.Light })
     // Every tooltip in the app, in the palette's look.
@@ -51,6 +57,7 @@ fun main(): i32 = sandbox(
         status_bar: true,
         panel: "Bottom",
         deleting: false,
+        sheet: -1,
     },
     update,
     view,

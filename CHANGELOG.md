@@ -8,6 +8,14 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.47.0] — 2026-10-20
+
+### Added
+- Sheets (PRP-052): `kivuli.ui`'s `sheet(close, edge, parts)`, a `Dialog` against an edge of the window, given to the root's `.dialog(…)`.
+
+### Changed
+- A `Dialog`'s card places itself: `ui.dialog` centres its own; `.dialog` no longer centres it.
+
 ## [0.46.0] — 2026-10-20
 
 ### Added

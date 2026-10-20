@@ -1,7 +1,8 @@
 // A dialog on real GTK widgets (PRP-047): opening keeps the page's widgets
 // and makes them inert, the backdrop and the ✕ send the close message, and
 // closing gives the page back its pointer and focus. Needs a display, so it
-// is skipped without one. (How it looks, and Escape: examples/components.la.)
+// is skipped without one; a sheet against an edge (PRP-052). (How it looks,
+// and Escape: examples/components.la.)
 import std.env;
 import gtk {
     GtkApplication,
@@ -16,11 +17,13 @@ import gtk {
     gtk_widget_get_can_focus,
     gtk_widget_get_can_target,
     gtk_widget_get_focusable,
+    gtk_widget_get_halign,
+    gtk_widget_get_valign,
 };
 import kivuli.render.live { mount, live_of };
 import kivuli.core.effects { sandbox_app };
 import kivuli.core.live_tree { Live, widget };
-import kivuli { View, button, column, text };
+import kivuli { View, Edge, button, column, text };
 import kivuli.ui { dialog_header };
 
 fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
@@ -129,4 +132,53 @@ fun a_dialog_makes_the_page_inert_and_its_backdrop_and_close_send_close() {
         "close",
         "x closed: layers 0",
     ]);
+}
+
+fun view_sheet(open: bool): View<Msg> = column([button("Open", Msg.Open), text("page")]).dialog(
+    if open { Some(ui.sheet(Msg.Close, Edge.Right, [dialog_header("Edit", "")])) } else { None },
+);
+
+@test
+fun a_sheet_sits_on_its_edge_over_an_inert_page_and_its_backdrop_closes_it() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen: Ref<string[]> = Ref.new([]);
+    let application = gtk_application_new("org.kivuli.test.sheet", 0);
+    connect_app(
+        application,
+        "activate",
+        fun(a: GtkApplication) {
+            let window = gtk_application_window_new(a);
+            let app = mount(a, window, sandbox_app(
+                "org.kivuli.test",
+                true,
+                fun(open: bool, msg: Msg): bool = match msg {
+                    Open => true,
+                    Close => {
+                        note(seen, "close");
+                        false
+                    }
+                },
+                view_sheet,
+            ));
+            let (page, layers) = parts(live_of(app));
+            let card = widget(layers[1]);
+            // GtkAlign: 0 fill, 2 end.
+            note(
+                seen,
+                "layers {layers.len} target {gtk_widget_get_can_target(page)} across {gtk_widget_get_halign(card)} down {gtk_widget_get_valign(card)}",
+            );
+            emit_widget(widget(layers[0]), "clicked");
+            note(
+                seen,
+                "layers {parts(live_of(app)).1.len} target {gtk_widget_get_can_target(page)}",
+            );
+            g_application_quit(a);
+        },
+        0,
+    );
+    g_application_run(application, 0, None);
+    g_object_unref(application);
+    assert_eq(seen.get(), ["layers 2 target 0 across 2 down 0", "close", "layers 0 target 1"]);
 }

@@ -1,8 +1,8 @@
 /**
- * Dialog (PRP-047): the card a root `.dialog(…)` shows over the page: the
- * palette's colours, a title and description, the app's parts, a footer of
- * buttons, and a ✕ that closes it (Escape too). One window only: the dialog
- * is drawn in it. Pure.
+ * Dialog (PRP-047) and sheet (PRP-052): the card a root `.dialog(…)` shows
+ * over the page, centred or against an edge: the palette's colours, a title
+ * and description, the app's parts, a footer of buttons, and a ✕ that closes
+ * it (Escape too). One window only: the dialog is drawn in it. Pure.
  *
  * Depends on: views, looks, mapping, widgets, styles, theming, boxes, fonts, drawing, motion, buttons
  * Used by: ui
@@ -17,7 +17,8 @@ import styles.theming { Token };
 import styles.boxes { Background, Border, Sizing, Spacing };
 import styles.fonts { Font, Text };
 import styles.drawing { Shadow };
-import styles.motion { Motion };
+import styles.motion { Edge, Motion };
+import styles.values { Radius };
 import ui.buttons { button_with as ui_button_with, Button };
 
 /**
@@ -39,16 +40,76 @@ public fun dialog<Msg>(close: Msg, parts: View<Msg>[]): Dialog<Msg> {
         Shadow.lg(),
         Motion.fade_in(150),
     ]);
-    let x: View<Msg> = ui_button_with([icon("window-close-symbolic")], close)
-        .style([Button.icon(), Button.ghost(), Button.sm(), Spacing.margin(12)])
-        .tooltip("Close")
-        // Escape closes the dialog from anywhere while it's open.
-        .shortcut("Escape")
-        .place(Align.End, Align.Start);
     Dialog {
         close: close,
-        card: overlay(body, [x]).style([Sizing.min_width(480), Sizing.max_width(512)]),
+        card: overlay(body, [close_button(close)]).style([
+            Sizing.min_width(480),
+            Sizing.max_width(512),
+        ]).place(Align.Center, Align.Center),
     }
+}
+
+/** The ✕ at a card's top end, sending `close`; Escape presses it from anywhere while it's open. */
+fun close_button<Msg>(close: Msg): View<Msg> = ui_button_with(
+    [icon("window-close-symbolic")],
+    close,
+).style([Button.icon(), Button.ghost(), Button.sm(), Spacing.margin(12)]).tooltip("Close").shortcut(
+    "Escape",
+).place(Align.End, Align.Start);
+
+/**
+ * A sheet: `parts` (`dialog_header`, the app's content, `dialog_footer`) on
+ * a panel against `edge` of the window, sliding in from it. On the left or
+ * right it's the window's height and 384 px wide, the last part (a footer)
+ * at its bottom; on the top or bottom, the window's width. The ✕, Escape and
+ * a click on the backdrop send `close`. Give it to the root's `.dialog(…)`.
+ *
+ * Example:
+ *     page(m).dialog(if m.editing { Some(ui.sheet(Msg.Close, Edge.Right, [dialog_header("Edit profile", ""), fields(m)])) } else { None })
+ */
+public fun sheet<Msg>(close: Msg, edge: Edge, parts: View<Msg>[]): Dialog<Msg> {
+    let side = edge == Edge.Left || edge == Edge.Right;
+    // On a side, the parts before the last take the spare room, so the
+    // footer sits at the bottom.
+    let laid: View<Msg>[] = if side && parts.len >= 2 {
+        [
+            column(parts.iter().take(parts.len - 1).collect()).style([Spacing.gap(16)]).expand(),
+            parts[parts.len - 1],
+        ]
+    } else {
+        parts
+    };
+    // The border on the edge facing the page.
+    let inner_edge = match edge {
+        Left => Border.right(1, Token.Border),
+        Right => Border.left(1, Token.Border),
+        Top => Border.bottom(1, Token.Border),
+        Bottom => Border.top(1, Token.Border),
+    };
+    let body: View<Msg> = column(laid).style([
+        Background.color(Token.Background),
+        Text.color(Token.Foreground),
+        Border { radius: Radius.All(0), ..Border.theme() },
+        inner_edge,
+        Spacing.padding(24),
+        Spacing.gap(16),
+        Shadow.lg(),
+        // From as far as its width on a side; a top or bottom sheet's height isn't known.
+        Motion.slide_in(edge, if side { 384 } else { 64 }, 300),
+    ]);
+    let card = overlay(body, [close_button(close)]);
+    Dialog { close: close, card: match edge {
+        Left => card.style([Sizing.min_width(384), Sizing.max_width(384)]).place(
+            Align.Start,
+            Align.Fill,
+        ),
+        Right => card.style([Sizing.min_width(384), Sizing.max_width(384)]).place(
+            Align.End,
+            Align.Fill,
+        ),
+        Top => card.place(Align.Fill, Align.Start),
+        Bottom => card.place(Align.Fill, Align.End),
+    } }
 }
 
 /**

@@ -2,11 +2,11 @@
 // open or not; while open the page is inert and the layers are the
 // backdrop and the centred card; the card's look, its ✕ and Escape; the
 // header and footer; refused below the root; opening adds layers and keeps
-// the page. No GTK.
+// the page; sheets against each edge (PRP-052). No GTK.
 import kivuli.core.diff { Patch, diff as patches };
 import kivuli.styles.paint { painted };
 import kivuli.view.looks { Style, Align };
-import kivuli { View, Color, Token, Paint, Width, Radius, Size, column, text, input };
+import kivuli { View, Color, Edge, Token, Paint, Width, Radius, Size, column, text, input };
 import kivuli.ui { Dialog, dialog_header, dialog_footer, Button };
 
 enum Msg {
@@ -133,5 +133,84 @@ fun opening_adds_layers_and_keeps_the_page() {
             Replace(path, _) => assert(path.len > 0),
             _ => {}
         }
+    }
+}
+
+fun edit(edge: Edge): Dialog<Msg> = ui.sheet(Msg.Close, edge, [
+    dialog_header("Edit profile", "Make changes here."),
+    input("", Msg.Typed),
+    dialog_footer([ui.button("Save", Msg.Open)]),
+]);
+
+/** A sheet's panel: the column inside the card's overlay. */
+fun panel(d: Dialog<Msg>): View<Msg> = match inner(d.card) {
+    Overlay(body, _) => body,
+    _ => panic("the card is an overlay with its close"),
+};
+
+@test
+fun a_sheet_on_a_side_fills_the_height_at_384_wide() {
+    let right = style_of(edit(Edge.Right).card);
+    assert_eq(right.place_across, Align.End);
+    assert_eq(right.place_down, Align.Fill);
+    assert_eq(right.sheet.sizing.min_width, Width.Px(384));
+    assert_eq(right.sheet.sizing.max_width, Width.Px(384));
+    let left = style_of(edit(Edge.Left).card);
+    assert_eq(left.place_across, Align.Start);
+    assert_eq(left.place_down, Align.Fill);
+    let p = style_of(panel(edit(Edge.Right))).sheet;
+    assert_eq(p.background.color, Paint.Token(Token.Background));
+    // The border on the inner edge only, no corners.
+    assert_eq(p.border.left.width, Width.Px(1));
+    assert_eq(p.border.left.color, Paint.Token(Token.Border));
+    assert_eq(p.border.radius, Radius.All(0));
+    assert_eq(p.spacing.padding.top, Width.Px(24));
+    assert(p.shadow.boxes.len > 0);
+    assert_eq(p.motion.slide, Some((Edge.Right, 384, 300)));
+    assert_eq(style_of(panel(edit(Edge.Left))).sheet.border.right.width, Width.Px(1));
+}
+
+@test
+fun a_sheet_on_the_top_or_bottom_is_the_full_width() {
+    let top = style_of(edit(Edge.Top).card);
+    assert_eq(top.place_across, Align.Fill);
+    assert_eq(top.place_down, Align.Start);
+    assert_eq(top.sheet.sizing.max_width, Width.Theme);
+    let bottom = style_of(edit(Edge.Bottom).card);
+    assert_eq(bottom.place_down, Align.End);
+    assert_eq(style_of(panel(edit(Edge.Top))).sheet.border.bottom.width, Width.Px(1));
+    assert_eq(style_of(panel(edit(Edge.Bottom))).sheet.border.top.width, Width.Px(1));
+    assert_eq(style_of(panel(edit(Edge.Bottom))).sheet.motion.slide, Some((Edge.Bottom, 64, 300)));
+}
+
+@test
+fun a_sheet_closes_with_its_x_and_escape_and_keeps_its_footer_at_the_bottom() {
+    let d = edit(Edge.Right);
+    assert_eq("{d.close}", "{Msg.Close}");
+    match inner(d.card) {
+        Overlay(_, layers) => {
+            let x = style_of(layers[0]);
+            assert_eq(x.place_across, Align.End);
+            assert_eq(x.place_down, Align.Start);
+            assert_eq(x.shortcut, "Escape");
+        }
+        _ => panic("the card is an overlay with its close"),
+    }
+    // On a side, the parts before the footer take the spare room.
+    match inner(panel(d)) {
+        Column(xs) => {
+            assert_eq(xs.len, 2);
+            assert(style_of(xs[0]).expand);
+            assert_eq(style_of(xs[1]).align, Align.End);
+        }
+        _ => panic("the panel is a column"),
+    }
+}
+
+@test
+fun through_dialog_a_sheet_keeps_its_place() {
+    match inner(page().dialog(Some(edit(Edge.Right)))) {
+        Overlay(_, layers) => assert_eq(style_of(layers[1]).place_across, Align.End),
+        _ => panic("the root is an overlay"),
     }
 }
