@@ -1,6 +1,6 @@
 # PRP-032 — kivuli.ui: Input
 
-Status: approved (session 57)
+Status: built (session 57) on branch prp-032-ui-input
 Discovery: session 56, 2026-10-20 (the fourth component; the reference is ui.shadcn.com/docs/components/base/input, whose page shows no class string: the look is shadcn's published input source). *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: `ui.input(value, on_change)`, a text field in the palette's colours, with `Input.invalid()`; and `State.FocusWithin`, a state for "focus is somewhere inside", which a GTK text field needs for its focus ring.
@@ -37,9 +37,14 @@ column([ui.input(m.query, Msg.Query).on_submit(Msg.Search)])
 - No Field, no input groups (prefixes inside the border), no file input, no text area restyle (later, with Field).
 
 ## TESTS (narrow; type-check now, run once the user's faster tests are in)
-- [ ] `test/states.la`: `State.FocusWithin`'s rule (`:focus-within`, its rank between Focus and Press), and the ranks after it.
-- [ ] `test/inputs_ui.la` (new, pure): the input's values, its focus-within and disabled states, `Input.invalid()`, an app's values after it winning, still a native input (`.placeholder`, `.on_submit`, `.disabled`).
-- [ ] GTK parses the generated rules (the C probe); `examples/components.la` gains an Input section (plain, placeholder, invalid, disabled) and its login card uses `ui.input`; only it built. How focus looks: by hand.
+- [x] `test/states.la`: `State.FocusWithin`'s rule (`:focus-within`, its rank between Focus and Press), and the ranks after it.
+- [x] `test/inputs_ui.la` (new, pure): the input's values, its focus-within and disabled states, `Input.invalid()`, an app's values after it winning, still a native input (`.placeholder`, `.on_submit`, `.disabled`).
+- [x] GTK parses the generated rules (the C probe); `examples/components.la` gains an Input section (plain, placeholder, invalid, disabled) and its login card uses `ui.input`; only it built. How focus looks: by hand.
 
 ## ACCEPTANCE
 - [ ] The OBJECTIVE compiles; fmt clean; no file over 500 lines; README, DESIGN, CHANGELOG 0.27.0, CLAUDE.md; merged, tagged; pushed only on your go.
+
+## NOTES FROM THE BUILD
+
+- **Disabled restates the background and text too**, not only the border: GTK's `entry:disabled` changes all three.
+- **GTK parsed the input's CSS** (71 lines, 19 of them `:focus-within`; 0 errors). Tests type-checked only; only examples/components.la built (an Input section; the login card's fields are `ui.input`, its model now holds them).

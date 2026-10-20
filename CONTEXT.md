@@ -981,9 +981,15 @@ Branch: main
 
 ---
 
-## SESSION 57 — 2026-10-20 — PRP-032: kivuli.ui Input — open
+## SESSION 57 — 2026-10-20 — PRP-032: kivuli.ui Input, built, not merged — closed
 
-Branch: prp-032-ui-input
+Branch: prp-032-ui-input (not merged: waiting for the user's look)
+
+### WHAT WAS DONE
+- `State.FocusWithin` (`:focus-within`, rank 3; Press, Checked, Disabled shift up one); src/ui/inputs.la (`input`, `Input.invalid()`), disabled border, background and text restated. GTK parsed the CSS. An Input section in components.la, the login card on `ui.input`. Docs; 0.27.0 (not tagged). Tests type-checked only.
+
+### STILL OPEN AT CLOSE
+- The user to look (type in a field: the ring; type without "@": invalid); then merge and tag v0.27.0. Next: Field.
 
 ---
 
