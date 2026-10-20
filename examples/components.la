@@ -22,6 +22,7 @@ import kivuli {
     input,
     Sizing,
     row,
+    scroll,
     sandbox,
     text,
 };
@@ -90,7 +91,12 @@ fun section(title: string, body: View<Msg>): View<Msg> = column([
 
 fun centred(v: View<Msg>): View<Msg> = v.align(Align.Center);
 
-fun view(m: Model): View<Msg> = column([
+fun view(m: Model): View<Msg> = scroll(page(m)).palette(palette_of(m.base)).scheme(
+    if m.dark { Scheme.Dark } else { Scheme.Light },
+).window("Components", 760, 720);
+
+/** Every component, top to bottom; the window scrolls through it. */
+fun page(m: Model): View<Msg> = column([
     text("Components").style([Font.h2()]),
     row([
         button(if m.dark { "Light" } else { "Dark" }, Msg.Dark(!m.dark)),
@@ -267,9 +273,7 @@ fun view(m: Model): View<Msg> = column([
             ]).style([Spacing.gap(16)]).expand(),
         ]).style([Spacing.gap(16)]),
     ),
-]).style([Spacing.padding(32), Spacing.gap(20)]).palette(palette_of(m.base)).scheme(
-    if m.dark { Scheme.Dark } else { Scheme.Light },
-).window("Components", 760, 720);
+]).style([Spacing.padding(32), Spacing.gap(20)]);
 
 fun main(): i32 = sandbox(
     "org.kivuli.components",
