@@ -1457,6 +1457,19 @@ Branch: main (prp-043-check-radio-menu merged)
 
 ---
 
+## SESSION 94 — 2026-10-20 — Tooltip look: discovery, PRP-044 draft — closed
+
+Branch: main
+
+### WHAT WAS DONE
+- `.tooltip` exists; GTK puts tooltips in their own window off the widget's surface, so a node's style can't reach its tooltip. Interview: one look for every tooltip, set on the root through a sibling part (A). A C probe couldn't show a tooltip without a real pointer: the sibling placement is from the session-77 drop-down probe, to check by hand.
+- PRP-044 drafted.
+
+### STILL OPEN AT CLOSE
+- PRP-044 awaits the user's approval.
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
