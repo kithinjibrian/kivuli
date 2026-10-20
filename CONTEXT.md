@@ -1290,9 +1290,16 @@ Branch: main (prp-039-ui-dropdown merged)
 
 ---
 
-## SESSION 81 — 2026-10-20 — Switch: discovery — open
+## SESSION 81 — 2026-10-20 — Switch: discovery, PRP-040 draft — closed
 
 Branch: main
+
+### WHAT WAS DONE
+- `switch` isn't a Lugha keyword; kivuli has no native switch and lugha-gtk no switch bindings. Interview: a native `switch` on GtkSwitch, then `ui.switch` (A).
+- PRP-040 drafted.
+
+### STILL OPEN AT CLOSE
+- PRP-040 awaits the user's approval.
 
 ---
 
