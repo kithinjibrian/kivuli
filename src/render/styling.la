@@ -50,6 +50,9 @@ import gtk {
     gtk_widget_remove_css_class,
     gtk_label_set_justify,
     gtk_label_set_xalign,
+    gtk_widget_set_can_focus,
+    gtk_widget_set_can_target,
+    gtk_widget_set_focusable,
     gtk_widget_set_halign,
     gtk_widget_set_hexpand,
     gtk_widget_set_size_request,
@@ -126,6 +129,16 @@ fun apply_style<Msg>(node: Live<Msg>, style: Style, axis: i32) {
         }
     } else if clipped_by_us {
         gtk_widget_set_overflow(w, 0);
+    }
+    // `.inert`: GTK applies both to what's inside too (a page behind a dialog).
+    gtk_widget_set_can_target(w, flag(!style.inert));
+    gtk_widget_set_can_focus(w, flag(!style.inert));
+    // `.focusable`: buttons only, which take focus by default; making a box
+    // or a label focusable would put it in the Tab order.
+    match node {
+        Button(_, _, _, _, _, _) => gtk_widget_set_focusable(w, flag(style.focusable)),
+        ButtonWith(_, _, _, _, _) => gtk_widget_set_focusable(w, flag(style.focusable)),
+        _ => {}
     }
     // The label kivuli puts in a button or check box takes its decoration
     // classes: CSS doesn't inherit `text-decoration`; everything else it does.

@@ -54,6 +54,9 @@ fun paint<Msg>(v: View<Msg>): Result<View<Msg>, string> = match v {
         if s.scheme.is_some() {
             return Err(".scheme(…) belongs on the root of the view only");
         }
+        if s.dialog_root {
+            return Err(".dialog(…) belongs on the root of the view only");
+        }
         Ok(View.Styled(paint(inside)?, paint_style(inside, s)?))
     }
     Column(xs) => Ok(View.Column(paint_all(xs)?)),

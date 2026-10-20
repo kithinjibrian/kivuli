@@ -9,6 +9,7 @@
  */
 
 public import view.views { Bar, View };
+public import view.mapping { Dialog };
 public import view.looks { Align, Fit, Scheme };
 public import styles.theming { Color, Colorish, Paint, Token, hex, rgb };
 public import styles.palettes { Palette };
