@@ -8,6 +8,14 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.34.0] — 2026-10-20
+
+### Added
+- `kivuli.ui`'s dropdown (PRP-039): `ui.dropdown(choices, selected, placeholder)`, `Dropdown.invalid()`; `Part.Trigger`, `Arrow`, `List`, `Item`; a `When` inside an `Inside` (the part's own state); `.placeholder(…)` on a drop-down.
+
+### Fixed
+- Three tests stale since earlier releases (missing new fields, handlers now `Option`s).
+
 ## [0.33.0] — 2026-10-20
 
 ### Added

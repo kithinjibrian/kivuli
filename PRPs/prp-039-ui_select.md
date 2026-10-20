@@ -1,6 +1,6 @@
 # PRP-039 — kivuli.ui: Select
 
-Status: approved (session 79)
+Status: built (session 79) on branch prp-039-ui-dropdown
 Discovery: session 77, 2026-10-20 (the tenth component; named `dropdown`/`Dropdown` throughout, not Select: `select` is a Lugha keyword, and the native widget is `dropdown` (the user: A); the reference is ui.shadcn.com/docs/components/base/select, its code collapsed; GTK's drop-down probed: `dropdown > button.toggle` (the shown item, an `arrow`), `popover.menu > contents > … listview > row` (each item: a label and a tick image), the pop-up a CSS descendant of the drop-down). *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: `ui.dropdown(choices, selected, placeholder)` with `Dropdown.invalid()`; the parts `Part.Trigger`, `Part.Arrow`, `Part.List`, `Part.Item`; states inside a part; and `.placeholder(…)` on any drop-down.
@@ -38,10 +38,18 @@ field([field_label("Fruit"), ui.dropdown(choices, m.fruit, "Select a fruit"), fi
 - No groups, labels or separators in the list; no disabled drop-downs (their messages are per choice: a later PRP); no item placed over the trigger (GTK places its pop-up below).
 
 ## TESTS (narrow; type-check now, run once the user's faster tests are in)
-- [ ] `test/parts.la`: the four new parts' selectors (a child, a path), under a widget state, and a state inside a part (`popover row:hover`); an `Inside` inside an `Inside` still refused.
-- [ ] `test/selects_ui.la` (new, pure): the trigger's, arrow's, list's and items' values, the focus ring, the muted placeholder when nothing is picked (and not when something is), `Dropdown.invalid()`, still native.
-- [ ] `test/live_choices.la`: a drop-down's placeholder reads as its blank item, and a changed placeholder updates the same widget.
-- [ ] GTK parses the generated rules (the C probe); `examples/components.la` gains a Select section (plain, a placeholder, invalid inside a field); only it built. How it looks: by hand.
+- [x] `test/parts.la`: the four new parts' selectors (a child, a path), under a widget state, and a state inside a part (`popover row:hover`); an `Inside` inside an `Inside` still refused.
+- [x] `test/selects_ui.la` (new, pure): the trigger's, arrow's, list's and items' values, the focus ring, the muted placeholder when nothing is picked (and not when something is), `Dropdown.invalid()`, still native.
+- [x] `test/live_choices.la`: a drop-down's placeholder reads as its blank item, and a changed placeholder updates the same widget.
+- [x] GTK parses the generated rules (the C probe); `examples/components.la` gains a Select section (plain, a placeholder, invalid inside a field); only it built. How it looks: by hand.
 
 ## ACCEPTANCE
 - [ ] The OBJECTIVE compiles; fmt clean; no file over 500 lines; README, DESIGN, CHANGELOG 0.34.0, CLAUDE.md; merged, tagged; pushed only on your go.
+
+## NOTES FROM THE BUILD
+
+- **The test is `test/dropdowns_ui.la`** (the component is `dropdown`).
+- **The placeholder** lives in the drop-down's live `Choices`; `styling` sets it on a restyle and syncs GTK's list (not while GTK is inside the drop-down's own signal: the next sync shows it).
+- **A part's state rule drops its rank repeats** (`c.c:active` → one class on the part).
+- **Three stale tests fixed** (found by type-checking every test, which earlier PRPs skipped): `test/styles.la`'s `Text` and `Sheet` literals lacked fields added by PRP-027/030/036; `test/lib.la` called a check box's and a slider's handler directly after PRP-037/038 made them `Option`s.
+- **GTK parsed the drop-down's CSS** (86 lines, 0 errors). Tests type-checked only; only components built.
