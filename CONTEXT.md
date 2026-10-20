@@ -1585,6 +1585,19 @@ Branch: main (prp-046-ui-avatar merged)
 
 ---
 
+## SESSION 104 — 2026-10-20 — Dialog: discovery, PRP-047 draft — closed
+
+Branch: main
+
+### WHAT WAS DONE
+- One window only (anti-pattern 9): a dialog is an overlay over the page. Interview: a root `.dialog(Option<Dialog>)` that kivuli makes modal (A). Design: the overlay always there (open/close adds layers, never rebuilds the page); the page `.inert` while open; a backdrop button `.focusable(false)`; a ✕ with `.shortcut("Escape")`.
+- PRP-047 drafted.
+
+### STILL OPEN AT CLOSE
+- PRP-047 awaits the user's approval.
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
