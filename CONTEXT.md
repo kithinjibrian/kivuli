@@ -720,6 +720,12 @@ Branch: main (the split on refactor-live-split, merged)
 
 ---
 
+## SESSION 38 — 2026-10-20 — Motion: discovery — open
+
+Branch: main
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
