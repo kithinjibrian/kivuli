@@ -1560,9 +1560,15 @@ Branch: main
 
 ---
 
-## SESSION 102 — 2026-10-20 — PRP-046: kivuli.ui Avatar — open
+## SESSION 102 — 2026-10-20 — PRP-046: kivuli.ui Avatar, built, not merged — closed
 
-Branch: prp-046-ui-avatar
+Branch: prp-046-ui-avatar (not merged: waiting for the user's look)
+
+### WHAT WAS DONE
+- src/ui/avatars.la (`avatar`, `Avatar.size`, `avatar_group`); an Avatar section in components.la (a picture, initials, a missing file, a group, a large one). Its test passes; GTK parsed the CSS. Docs; 0.41.0 (not tagged).
+
+### STILL OPEN AT CLOSE
+- The user to look; then merge, tag v0.41.0.
 
 ---
 
