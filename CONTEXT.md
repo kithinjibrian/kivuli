@@ -1749,9 +1749,15 @@ Branch: main
 
 ---
 
-## SESSION 117 — 2026-10-20 — PRP-053: SVG images — open
+## SESSION 117 — 2026-10-20 — PRP-053: SVG images, stopped on a GTK crash — closed
 
-Branch: prp-053-svg-images
+Branch: prp-053-svg-images (nothing built)
+
+### WHAT WAS DONE
+- Probed GtkSvg first: sizes fine (width/height, viewBox-only, prolog); broken input reports an error and a 200 × 200 default size; a 100000 px claim is kept as is. **Crash**: any non-`data:` `<image>` with external resources off segfaults in `gtk_svg_load_from_bytes` (GTK 4.22.4). Recorded as DECISION-030; stopped.
+
+### STILL OPEN AT CLOSE
+- DECISION-030: the user's choice (A: refuse SVGs holding `<image>`; B: external resources on; C: wait for GTK).
 
 ---
 
