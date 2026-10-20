@@ -1,6 +1,6 @@
 /**
  * kivuli.ui: components drawn from the palette's tokens
- * (`import kivuli.ui { badge, Badge };`). Each is built only from the public
+ * (`import kivuli.ui { badge, Badge };`, then `ui.button(…)` beside the native `button`). Each is built only from the public
  * style API, so an app can copy one and change it. A variant is a `Look`
  * given through `.style`.
  *
@@ -9,3 +9,4 @@
  */
 
 public import ui.badges { badge, badge_with, Badge };
+public import ui.buttons { button, button_with, Button };

@@ -1,4 +1,5 @@
-// kivuli.ui's components, one at a time as they arrive: today the badge in
+// kivuli.ui's components, one at a time as they arrive: the button in each
+// variant and size (Tab through them for the focus ring), and the badge in
 // each variant, beside text, with icons and on a card, in light and dark and in each
 // palette.
 import kivuli {
@@ -20,7 +21,7 @@ import kivuli {
     sandbox,
     text,
 };
-import kivuli.ui { badge, badge_with, Badge };
+import kivuli.ui { badge, badge_with, Badge, Button };
 
 struct Model {
     dark: bool,
@@ -64,6 +65,52 @@ fun view(m: Model): View<Msg> = column([
         button("Stone", Msg.Base(2)),
         button("Radius 4", Msg.Base(3)),
     ]).style([Spacing.gap(8)]),
+    section(
+        "Button",
+        column([
+            row([
+                centred(ui.button("Button", Msg.Base(m.base))),
+                centred(ui.button("Secondary", Msg.Base(m.base)).style([Button.secondary()])),
+                centred(ui.button("Destructive", Msg.Base(m.base)).style([Button.destructive()])),
+                centred(ui.button("Outline", Msg.Base(m.base)).style([Button.outline()])),
+                centred(ui.button("Ghost", Msg.Base(m.base)).style([Button.ghost()])),
+                centred(ui.button("Link", Msg.Base(m.base)).style([Button.link()])),
+            ]).style([Spacing.gap(8)]),
+            row([
+                centred(ui.button("Small", Msg.Base(m.base)).style([Button.sm()])),
+                centred(ui.button("Default", Msg.Base(m.base))),
+                centred(ui.button("Large", Msg.Base(m.base)).style([Button.lg()])),
+                centred(ui.button_with([icon("list-add-symbolic"), text("New")], Msg.Base(m.base))),
+                centred(
+                    ui.button_with(
+                        [text("Next"), icon("go-next-symbolic")],
+                        Msg.Base(m.base),
+                    ).style([Button.outline()]),
+                ),
+                centred(
+                    ui.button_with([icon("open-menu-symbolic")], Msg.Base(m.base)).style([
+                        Button.icon(),
+                        Button.outline(),
+                    ]),
+                ),
+                centred(
+                    ui.button_with([icon("edit-delete-symbolic")], Msg.Base(m.base)).style([
+                        Button.icon(),
+                        Button.ghost(),
+                    ]),
+                ),
+            ]).style([Spacing.gap(8)]),
+            row([
+                centred(ui.button("Disabled", Msg.Base(m.base)).disabled(true)),
+                centred(
+                    ui.button("Disabled", Msg.Base(m.base)).style([Button.outline()]).disabled(
+                        true,
+                    ),
+                ),
+                centred(button("Native GTK", Msg.Base(m.base))),
+            ]).style([Spacing.gap(8)]),
+        ]).style([Spacing.gap(12)]),
+    ),
     section(
         "Badge",
         row([
@@ -126,6 +173,6 @@ fun view(m: Model): View<Msg> = column([
     ]),
 ]).style([Spacing.padding(32), Spacing.gap(20)]).palette(palette_of(m.base)).scheme(
     if m.dark { Scheme.Dark } else { Scheme.Light },
-).window("Components", 640, 560);
+).window("Components", 760, 720);
 
 fun main(): i32 = sandbox("org.kivuli.components", Model { dark: false, base: 0 }, update, view);

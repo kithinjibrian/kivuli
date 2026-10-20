@@ -157,6 +157,12 @@ fun line_rules(
         Token(t) => out.push(
             ("kv-{kind}ct{tail}-{token_name(t)}", "{prop}-color: var(--kv-{token_name(t)});"),
         ),
+        Alpha(t, x) => out.push(
+            (
+                "kv-{kind}ct{tail}-{token_name(t)}-a{permille(x)}",
+                "{prop}-color: {paint_css(color)};",
+            ),
+        ),
     }
     out
 }

@@ -847,6 +847,40 @@ Branch: main
 
 ---
 
+## SESSION 47 — 2026-10-20 — PRP-029: kivuli.ui Button, built, not merged — closed
+
+Branch: prp-029-ui-button (not merged: waiting for the user's look)
+
+### WHAT WAS DONE
+- `Paint.Alpha` / `Token.X.alpha(x)` (color-mix), its classes and check. `kivuli.ui`'s `button`, `button_with`, `Button`'s six variants and three sizes (src/ui/buttons.la); each variant restates its colours in hover, press and disabled to outrank GTK's button rules. GTK parsed the generated CSS (101 lines). A Button section in examples/components.la (only it built). Docs; 0.24.0 (not tagged).
+- Tests (buttons_ui, palettes) written and type-checked only.
+
+### STILL OPEN AT CLOSE
+- The user to look at the buttons (hover, press, Tab focus, disabled, light/dark); then merge and tag v0.24.0.
+- Tests not run since session 32; main and tags v0.18.0–v0.23.0 not pushed.
+
+---
+
+## SESSION 48 — 2026-10-20 — Button fix: a box inside a box — closed
+
+Branch: prp-029-ui-button (not merged)
+
+### WHAT WAS DONE
+- The user's screenshot: styled buttons drew a second box inside and were twice as padded. Cause: `style_label` gave the label every class of its button. Now only text-decoration classes. test/live_buttons_ui.la (type-checked). components.la rebuilt. (Opened late: the fix was made before this entry was written.)
+- Then the icon-only button's icon sat at its left edge: `ui.button_with`'s content row filled the button. It's `.align(Align.Center)` now (a button's content aligns across its width). Test updated, type-checked.
+- Seen in the screenshot, not kivuli's: native GTK buttons draw as bare text because the system theme (Yaru-dark) can't load in this GTK.
+
+### STILL OPEN AT CLOSE
+- The user to look again; then merge PRP-029 and tag v0.24.0.
+
+---
+
+## SESSION 49 — 2026-10-20 — Merge PRP-029 — open
+
+Branch: main (merging prp-029-ui-button)
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.

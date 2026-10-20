@@ -1,0 +1,86 @@
+// kivuli.ui's Button on real GTK widgets (PRP-029): the button carries its
+// box classes, and its label only the text-decoration ones, so there's one
+// box, not one inside another. Needs a display, so it is skipped without one.
+// (How it looks: examples/components.la.)
+import std.env;
+import gtk {
+    GtkApplication,
+    connect_app,
+    g_application_quit,
+    g_application_run,
+    g_object_unref,
+    gtk_application_new,
+    gtk_application_window_new,
+    gtk_widget_has_css_class,
+};
+import kivuli.render.live { mount, live_of };
+import kivuli.core.effects { sandbox_app };
+import kivuli.core.live_tree { Live, widget };
+import kivuli { View, column };
+import kivuli.ui { Button };
+
+fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
+
+fun note(seen: Ref<string[]>, s: string) {
+    seen.update(fun(xs) {
+        let mut ys = xs;
+        ys.push(s);
+        ys
+    });
+}
+
+enum Tap {
+    Tap,
+}
+
+fun view_buttons(n: i64): View<Tap> = column([
+    ui.button("Outline", Tap.Tap).style([Button.outline()]),
+    ui.button("Link", Tap.Tap).style([Button.link()]),
+]);
+
+@test
+fun a_buttons_label_takes_only_its_decoration() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen: Ref<string[]> = Ref.new([]);
+    let application = gtk_application_new("org.kivuli.test.buttons_ui", 0);
+    connect_app(
+        application,
+        "activate",
+        fun(a: GtkApplication) {
+            let window = gtk_application_window_new(a);
+            let app = mount(
+                a,
+                window,
+                sandbox_app("org.kivuli.test", 0, fun(n: i64, msg: Tap): i64 = n + 1, view_buttons),
+            );
+            let kids = match live_of(app) {
+                Box(_, _, ks) => ks,
+                _ => panic("expected a column"),
+            };
+            match kids[0] {
+                Button(button, _, _, _, label, _) => note(
+                    seen,
+                    "button padded {gtk_widget_has_css_class(button, "kv-p-left-16")} label padded {gtk_widget_has_css_class(label, "kv-p-left-16")} label bordered {gtk_widget_has_css_class(label, "kv-bct-top-border")}",
+                ),
+                _ => note(seen, "not a button"),
+            }
+            match kids[1] {
+                Button(_, _, _, _, label, _) => note(
+                    seen,
+                    "link label underlines on hover {gtk_widget_has_css_class(label, "kv-hover-td-underline")}",
+                ),
+                _ => note(seen, "not a button"),
+            }
+            g_application_quit(a);
+        },
+        0,
+    );
+    g_application_run(application, 0, None);
+    g_object_unref(application);
+    assert_eq(seen.get(), [
+        "button padded 1 label padded 0 label bordered 0",
+        "link label underlines on hover 1",
+    ]);
+}
