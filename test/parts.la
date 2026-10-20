@@ -243,6 +243,28 @@ fun a_dropdowns_group_heading_and_line_are_its_header_parts() {
 }
 
 @test
+fun a_bars_window_controls_are_parts_with_their_own_hover() {
+    let s = Inside(Part.WindowIcon, [Background.color(Token.Muted)]).apply(
+        Inside(Part.WindowClose, [When(State.Hover, [Background.color(Token.Destructive)])]).apply(
+            Inside(Part.WindowButton, [Text.color(Token.MutedForeground)]).apply(Sheet.theme()),
+        ),
+    );
+    let k = keys(s);
+    assert(
+        k.iter().any(fun(x) = x == "kv-windowbutton-fgt-muted-foreground windowcontrols > button"),
+    );
+    assert(
+        k.iter().any(
+            fun(
+                x,
+            ) = x == "kv-windowclose-hover-bgt-destructive windowcontrols > button.close:hover",
+        ),
+    );
+    assert(k.iter().any(fun(x) = x == "kv-windowicon-bgt-muted windowcontrols > button > image"));
+    assert_eq(check(s), Ok(()));
+}
+
+@test
 fun a_progress_bars_fill_is_its_progress_node() {
     let s = Inside(Part.Fill, [Background.color(Token.Primary)]).apply(Sheet.theme());
     assert(keys(s).iter().any(fun(x) = x == "kv-fill-bgt-primary progress"));

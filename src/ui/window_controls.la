@@ -1,0 +1,62 @@
+/**
+ * Window controls (PRP-054): `WindowControls.look()`, GTK's own − □ × in a
+ * header bar as ghost icon buttons in the palette's colours, the close one
+ * red on hover. GTK still decides which controls show, their order and side,
+ * and what they do. Pure.
+ *
+ * Depends on: styles, theming, values, boxes, fonts, drawing, motion
+ * Used by: ui
+ */
+
+// The public items the entry re-exports, by their own modules (rule 2: no `lib`).
+import styles { Inside, Look, Part, State, When, look };
+import styles.theming { Color, Token };
+import styles.values { Radius };
+import styles.boxes { Background, Border, Sizing };
+import styles.fonts { Text };
+import styles.drawing { Shadow };
+import styles.motion { Motion };
+
+fun clear(): Color = Color { red: 0, green: 0, blue: 0, alpha: 0 };
+
+/** The window controls' looks, given through a header bar's `.style`. */
+public struct WindowControls {}
+
+impl WindowControls {
+    /**
+     * The window controls as ghost icon buttons: muted until hovered or
+     * pressed (`Accent`), the close one `Destructive` on hover, 32 px square
+     * with medium corners.
+     *
+     * Example:
+     *     header_bar(start, title, end).style([WindowControls.look()])
+     */
+    public fun look(): Look = look([
+        Inside(Part.WindowButton, [
+            Background.color(clear()),
+            Text.color(Token.MutedForeground),
+            Border.all(0, clear()),
+            Border.rounded_md(),
+            Shadow.off(),
+            Sizing.min_width(32),
+            Sizing.min_height(32),
+            // GTK's own button rules for these states: say the look again.
+            When(State.Hover, [Background.color(Token.Accent), Text.color(Token.AccentForeground)]),
+            When(State.Press, [Background.color(Token.Accent), Text.color(Token.AccentForeground)]),
+            Motion.colors(150),
+        ]),
+        Inside(Part.WindowClose, [
+            When(State.Hover, [
+                Background.color(Token.Destructive),
+                Text.color(Token.DestructiveForeground),
+            ]),
+        ]),
+        // The themes draw a round hover circle on the icon: cleared, so the
+        // button's own colours show. kivuli's rules outrank the theme's in
+        // every state, so once is enough.
+        Inside(Part.WindowIcon, [
+            Background.color(clear()),
+            Border { radius: Radius.All(0), ..Border.theme() },
+        ]),
+    ]);
+}

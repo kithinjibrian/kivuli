@@ -104,6 +104,7 @@ fun paint_style<Msg>(node: View<Msg>, s: Style): Result<Style, string> {
         _ => {}
     }
     check(s.sheet)?;
+    window_parts(s.sheet)?;
     // A rule's key may carry its selector's tail (`:not(:focus-visible)`): the class is before it.
     // A state's key repeats its class (`.c.c:active`): the class is before the first `.` too.
     let mut classes = rules(s.sheet).map(
@@ -114,6 +115,28 @@ fun paint_style<Msg>(node: View<Msg>, s: Style): Result<Style, string> {
         None => {}
     }
     Ok(Style { classes: classes, ..s })
+}
+
+/**
+ * Refuses the window controls' parts on a view node: they match only under
+ * a header bar, so there they'd do nothing.
+ */
+fun window_parts(s: Sheet): Result<(), string> {
+    let mut all = [s];
+    for (_, sub) of s.states {
+        all.push(sub);
+    }
+    for sheet of all {
+        for (part, _) of sheet.parts {
+            match part {
+                WindowButton | WindowClose | WindowIcon => {
+                    return Err("Part.{part} belongs in a header bar's style");
+                }
+                _ => {}
+            }
+        }
+    }
+    Ok(())
 }
 
 /** A header bar's classes, its values checked: what the window decides is refused. */

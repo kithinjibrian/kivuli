@@ -3,8 +3,20 @@
 // in it for its ring; no "@" marks it invalid), the badge in each variant,
 // and cards, in light and dark and in each palette.
 // Its sections are in examples/gallery/.
-import kivuli { View, Scheme, Font, Spacing, button, column, row, scroll, sandbox, text };
-import kivuli.ui { Tooltip };
+import kivuli {
+    View,
+    Scheme,
+    Font,
+    Spacing,
+    button,
+    column,
+    header_bar,
+    row,
+    scroll,
+    sandbox,
+    text,
+};
+import kivuli.ui { Tooltip, WindowControls };
 import gallery.state { Model, Msg, update, palette_of };
 import gallery.actions { sections as action_sections, delete_dialog, edit_sheet };
 import gallery.choices { sections as choice_sections };
@@ -23,7 +35,9 @@ fun view(m: Model): View<Msg> = scroll(page(m))
     .scheme(if m.dark { Scheme.Dark } else { Scheme.Light })
     // Every tooltip in the app, in the palette's look.
     .style([Tooltip.look()])
-    .window("Components", 760, 720);
+    .window("Components", 760, 720)
+    // GTK's window controls as ghost buttons in the palette's colours.
+    .header(header_bar([], text("Components").style([Font.semibold()]), []).style([WindowControls.look()]));
 
 /** Every component, top to bottom; the window scrolls through it. */
 fun page(m: Model): View<Msg> = column([

@@ -164,6 +164,10 @@ fun part_node(part: Part): string = match part {
     Fill => "progress",
     GroupHeading => "popover listview > header",
     GroupLine => "popover listview > header separator",
+    // Under the bar's `headerbar`: GTK's own controls, in the desktop's order.
+    WindowButton => "windowcontrols > button",
+    WindowClose => "windowcontrols > button.close",
+    WindowIcon => "windowcontrols > button > image",
 };
 
 /** The code a part's classes carry (`kv-item-…`). */
@@ -187,6 +191,9 @@ fun part_code(part: Part): string = match part {
     Fill => "fill",
     GroupHeading => "groupheading",
     GroupLine => "groupline",
+    WindowButton => "windowbutton",
+    WindowClose => "windowclose",
+    WindowIcon => "windowicon",
 };
 
 /**

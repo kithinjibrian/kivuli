@@ -194,6 +194,15 @@ public enum Part {
     GroupHeading,
     /** The line above each group but the first in a grouped drop-down's list (`popover listview > header separator`). */
     GroupLine,
+    /** A header bar's window controls, each of − □ × (`windowcontrols > button`): for a bar's `.style` only. */
+    WindowButton,
+    /** A header bar's close control alone (`windowcontrols > button.close`): for a bar's `.style` only. */
+    WindowClose,
+    /**
+     * The icon inside each window control (`windowcontrols > button > image`),
+     * where the themes draw their round hover circle: for a bar's `.style` only.
+     */
+    WindowIcon,
 }
 
 /** Style values for one part: made by `Inside`. */
