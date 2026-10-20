@@ -1,7 +1,7 @@
 /**
  * Dropdown (PRP-039): kivuli's native drop-down in the palette's colours:
  * its trigger like a `ui.input`, its pop-up list and items as parts, a
- * placeholder while nothing is picked. Named `dropdown`, as the native one
+ * placeholder while nothing is picked; groups' headings (PRP-049). Named `dropdown`, as the native one
  * is (`select` is a Lugha keyword). Pure.
  *
  * Depends on: views, widgets, styles, theming, values, boxes, fonts, drawing, motion
@@ -10,7 +10,7 @@
 
 // The public items the entry re-exports, by their own modules (rule 2: no `lib`).
 import view.views { View };
-import view.widgets { dropdown as native_dropdown };
+import view.widgets { dropdown as native_dropdown, dropdown_grouped as native_grouped };
 import styles { Inside, Look, Part, When, State, look };
 import styles.theming { Color, Paint, Token };
 import styles.values { Drop, Line, Radius };
@@ -64,10 +64,34 @@ public fun dropdown<Msg>(
     choices: (string, Msg)[],
     selected: string,
     placeholder: string,
-): View<Msg> {
-    let picked = choices.iter().any(fun(c) = c.0 == selected);
+): View<Msg> = dressed(
+    native_dropdown(choices, selected),
+    choices.iter().any(fun(c) = c.0 == selected),
+    placeholder,
+);
+
+/**
+ * A drop-down in the palette's colours whose list shows `groups`' choices
+ * under their headings (small and muted, a line between groups), `selected`
+ * shown picked; while it matches no label, `placeholder` shows, muted.
+ *
+ * Example:
+ *     ui.dropdown_grouped([("Fruits", [("Apple", Msg.Pick("apple"))]), ("Vegetables", [("Carrot", Msg.Pick("carrot"))])], m.picked, "Pick a food")
+ */
+public fun dropdown_grouped<Msg>(
+    groups: (string, (string, Msg)[])[],
+    selected: string,
+    placeholder: string,
+): View<Msg> = dressed(
+    native_grouped(groups, selected),
+    groups.iter().any(fun(g) = g.1.iter().any(fun(c) = c.0 == selected)),
+    placeholder,
+);
+
+/** `native` in the palette's look, its trigger's text muted unless a choice is `picked`. */
+fun dressed<Msg>(native: View<Msg>, picked: bool, placeholder: string): View<Msg> {
     let trigger_text = if picked { look([]) } else { look([Text.color(Token.MutedForeground)]) };
-    native_dropdown(choices, selected).placeholder(placeholder).style([
+    native.placeholder(placeholder).style([
         Inside(Part.Trigger, [
             Font.sm(),
             Border.rounded_md(),
@@ -101,6 +125,13 @@ public fun dropdown<Msg>(
                 Text.color(Token.AccentForeground),
             ]),
         ]),
+        Inside(Part.GroupHeading, [
+            Font.xs(),
+            Text.color(Token.MutedForeground),
+            Spacing.padding_y(6),
+            Spacing.padding_x(8),
+        ]),
+        Inside(Part.GroupLine, [Background.color(Token.Border)]),
     ])
 }
 

@@ -219,7 +219,29 @@ public fun text_area<Msg>(value: string, on_change: fun(string): Msg): View<Msg>
 public fun dropdown<Msg>(choices: (string, Msg)[], selected: string): View<Msg> = View.Dropdown(
     choices,
     selected,
+    [],
 );
+
+/**
+ * Builds a drop-down whose open list shows `groups`' choices under their
+ * headings, a line between groups; a heading `""` shows the line alone, and a
+ * group with no choices is left out. `selected` picks the first choice so
+ * labelled in any group, as `dropdown` does.
+ *
+ * Example:
+ *     dropdown_grouped([("Fruits", [("Apple", Msg.Pick("apple"))]), ("Vegetables", [("Carrot", Msg.Pick("carrot"))])], m.picked)
+ */
+public fun dropdown_grouped<Msg>(groups: (string, (string, Msg)[])[], selected: string): View<Msg> {
+    let mut choices: (string, Msg)[] = [];
+    let mut sizes: (string, i64)[] = [];
+    for (heading, members) of groups {
+        if members.len > 0 {
+            choices = choices + members;
+            sizes.push((heading, members.len));
+        }
+    }
+    View.Dropdown(choices, selected, sizes)
+}
 
 /**
  * Builds a horizontal slider from `min` to `max` showing `value` (clamped to

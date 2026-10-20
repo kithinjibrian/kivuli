@@ -1,22 +1,79 @@
 /**
- * The drop-down's and the slider's helpers: which choice is picked, keeping a
- * drop-down's GTK list in step with its choices, and rounding a slider's
- * value. Moved out of `build` (file size). Calls GTK (CLAUDE.md rule 4).
+ * The drop-down's and the slider's helpers: making a drop-down, which choice
+ * is picked, keeping a drop-down's GTK list (and its groups) in step with its
+ * choices, and rounding a slider's value. Moved out of `build` (file size).
+ * Calls GTK (CLAUDE.md rule 4).
  *
  * Depends on: live_tree, gtk.raw
  * Used by: build, patch
  */
 
 import gtk {
+    GParamSpec,
     GtkWidget,
+    connect_notify,
     gtk_drop_down_get_selected,
+    gtk_drop_down_new,
     gtk_drop_down_set_model,
     gtk_drop_down_set_selected,
     gtk_string_list_append,
     gtk_string_list_new,
     gtk_string_list_unref,
+    lgtk_drop_down_clear_groups,
+    lgtk_drop_down_set_groups,
+    lgtk_groups_add,
+    lgtk_groups_new,
+    lgtk_groups_unref,
 };
-import core.live_tree { Choices };
+import core.live_tree { Choices, Live };
+
+/**
+ * A drop-down offering `choices` in `groups` (none: plain), `selected` shown
+ * picked; a pick sends its choice's message through `send`.
+ */
+fun create_dropdown<Msg>(
+    choices: (string, Msg)[],
+    selected: string,
+    groups: (string, i64)[],
+    send: fun(Msg),
+): Live<Msg> {
+    let drop = gtk_drop_down_new(None, None);
+    let state = Ref.new(Choices {
+        offered: choices,
+        pick: picked(choices, selected),
+        groups: groups,
+        shown: [],
+        shown_groups: [],
+        busy: false,
+        placeholder: "",
+    });
+    // Filled before connecting, so the first pick isn't sent as a choice.
+    sync_choices(drop, state);
+    connect_notify(
+        drop,
+        "notify::selected",
+        fun(d: GtkWidget, spec: Option<GParamSpec>) {
+            let now = state.get();
+            let i = gtk_drop_down_get_selected(d) as i64;
+            // "None" (0xffffffff) and the blank item send nothing; positions
+            // count through every group.
+            if !now.busy && i < now.shown.len {
+                match now.shown[i].1 {
+                    Some(msg) => {
+                        // Busy while it's sent: the update's patch must not
+                        // replace GTK's list inside this signal.
+                        state.update(fun(s) = Choices { busy: true, ..s });
+                        send(msg);
+                        state.update(fun(s) = Choices { busy: false, ..s });
+                    }
+                    None => {}
+                }
+            }
+        },
+        0,
+    );
+    Live.Dropdown(drop, state)
+}
 
 /** The index of the first choice labelled `selected`, or `None` when no choice is. */
 fun picked<Msg>(choices: (string, Msg)[], selected: string): Option<i64> {
@@ -41,22 +98,34 @@ fun picked<Msg>(choices: (string, Msg)[], selected: string): Option<i64> {
 fun sync_choices<Msg>(drop: GtkWidget, state: Ref<Choices<Msg>>) {
     let now = state.get();
     let mut want: (string, Option<Msg>)[] = [];
+    let mut sections: (string, i64)[] = [];
     if now.pick.is_none() {
         // The blank item: the placeholder's text, picking it sends nothing.
+        // In a grouped drop-down it's a group of its own, with no heading.
         want.push((now.placeholder, None));
+        if now.groups.len > 0 {
+            sections.push(("", 1));
+        }
     }
     for (label, msg) of now.offered {
         want.push((label, Some(msg)));
     }
-    state.set(Choices { shown: want, busy: true, ..now });
-    if labels(now.shown) != labels(want) {
-        let list = gtk_string_list_new(None);
-        for (label, _) of want {
-            gtk_string_list_append(list, label);
+    sections = sections + now.groups;
+    state.set(Choices { shown: want, shown_groups: sections, busy: true, ..now });
+    if labels(now.shown) != labels(want) || now.shown_groups != sections {
+        if sections.len == 0 {
+            // Plain: one list, no headings.
+            lgtk_drop_down_clear_groups(drop);
+            let list = gtk_string_list_new(None);
+            for (label, _) of want {
+                gtk_string_list_append(list, label);
+            }
+            // The drop-down takes its own reference.
+            gtk_drop_down_set_model(drop, Some(list));
+            gtk_string_list_unref(list);
+        } else {
+            show_groups(drop, want, sections);
         }
-        // The drop-down takes its own reference.
-        gtk_drop_down_set_model(drop, Some(list));
-        gtk_string_list_unref(list);
     }
     let at: u32 = match now.pick {
         Some(i) => i as u32,
@@ -66,6 +135,26 @@ fun sync_choices<Msg>(drop: GtkWidget, state: Ref<Choices<Msg>>) {
         gtk_drop_down_set_selected(drop, at);
     }
     state.update(fun(s) = Choices { busy: false, ..s });
+}
+
+/** Shows `items` in `drop` as `sections` (each a heading and how many of the items, in order). */
+fun show_groups<Msg>(drop: GtkWidget, items: (string, Option<Msg>)[], sections: (string, i64)[]) {
+    let groups = lgtk_groups_new();
+    let mut next = 0;
+    for (heading, size) of sections {
+        let list = gtk_string_list_new(None);
+        let mut i = 0;
+        while i < size {
+            gtk_string_list_append(list, items[next + i].0);
+            i = i + 1;
+        }
+        next = next + size;
+        // The groups take their own reference, and the drop-down its own to them.
+        lgtk_groups_add(groups, heading, list);
+        gtk_string_list_unref(list);
+    }
+    lgtk_drop_down_set_groups(drop, groups);
+    lgtk_groups_unref(groups);
 }
 
 /** The labels of a list of items, in order. */

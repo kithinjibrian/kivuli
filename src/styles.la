@@ -190,6 +190,10 @@ public enum Part {
     Tooltip,
     /** A progress bar's filled part (`progress`); its track is `Trough`. */
     Fill,
+    /** A group's heading in a grouped drop-down's list (`popover listview > header`). */
+    GroupHeading,
+    /** The line above each group but the first in a grouped drop-down's list (`popover listview > header separator`). */
+    GroupLine,
 }
 
 /** Style values for one part: made by `Inside`. */

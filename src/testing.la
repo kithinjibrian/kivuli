@@ -232,7 +232,7 @@ public fun choose<Msg>(v: View<Msg>, name: string, label: string): Result<Msg, L
     let mut found: (string, Msg)[][] = [];
     for (node, style) of nodes(v) {
         match node {
-            Dropdown(choices, _) => if style.name == name {
+            Dropdown(choices, _, _) => if style.name == name {
                 found.push(choices);
             },
             _ => {}

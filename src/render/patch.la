@@ -156,11 +156,16 @@ fun apply<Msg>(
         }
         live
     }
-    SetChoices(path, choices, selected) => {
+    SetChoices(path, choices, selected, groups) => {
         match at(live, path) {
             Dropdown(drop, state) => {
                 let now = state.get();
-                state.set(Choices { offered: choices, pick: picked(choices, selected), ..now });
+                state.set(Choices {
+                    offered: choices,
+                    pick: picked(choices, selected),
+                    groups: groups,
+                    ..now,
+                });
                 if now.busy {
                     // Sent from the drop-down's own pick, inside GTK's signal:
                     // synced on the next turn, with the latest state then. The

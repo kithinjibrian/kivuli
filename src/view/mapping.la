@@ -40,9 +40,10 @@ fun mapped<Msg, B>(v: View<Msg>, f: fun(Msg): B): View<B> = match v {
         Some(g) => Some(fun(b: bool): B = f(g(b))),
         None => None,
     }),
-    Dropdown(choices, selected) => View.Dropdown(
+    Dropdown(choices, selected, groups) => View.Dropdown(
         choices.map(fun(choice) = (choice.0, f(choice.1))),
         selected,
+        groups,
     ),
     Progress(n) => View.Progress(n),
     Switch(on, on_toggle) => View.Switch(on, match on_toggle {

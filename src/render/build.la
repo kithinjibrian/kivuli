@@ -23,8 +23,6 @@ import gtk {
     gtk_check_button_new,
     gtk_check_button_set_active,
     gtk_check_button_set_child,
-    gtk_drop_down_get_selected,
-    gtk_drop_down_new,
     gtk_editable_get_text,
     gtk_editable_set_text,
     gtk_entry_new,
@@ -84,7 +82,7 @@ import render.styling { LAYER, NO_LINE_LIMIT, align_text, apply_style, flag, sho
 import styles.values { TextAlign };
 import render.textures { show_picture };
 import view.widgets { snap };
-import render.controls { nearest, picked, sync_choices };
+import render.controls { create_dropdown, nearest };
 
 /** Builds the GTK widgets for `v` at the top of a window; each widget sends its messages through `send`. */
 fun create<Msg>(v: View<Msg>, send: fun(Msg)): Live<Msg> = create_in(v, 1, send);
@@ -220,41 +218,7 @@ fun create_in<Msg>(v: View<Msg>, axis: i32, send: fun(Msg)): Live<Msg> = match v
         );
         Live.Switch(sw, current)
     }
-    Dropdown(choices, selected) => {
-        let drop = gtk_drop_down_new(None, None);
-        let state = Ref.new(Choices {
-            offered: choices,
-            pick: picked(choices, selected),
-            shown: [],
-            busy: false,
-            placeholder: "",
-        });
-        // Filled before connecting, so the first pick isn't sent as a choice.
-        sync_choices(drop, state);
-        connect_notify(
-            drop,
-            "notify::selected",
-            fun(d: GtkWidget, spec: Option<GParamSpec>) {
-                let now = state.get();
-                let i = gtk_drop_down_get_selected(d) as i64;
-                // "None" (0xffffffff) and the blank item send nothing.
-                if !now.busy && i < now.shown.len {
-                    match now.shown[i].1 {
-                        Some(msg) => {
-                            // Busy while it's sent: the update's patch must not
-                            // replace GTK's list inside this signal.
-                            state.update(fun(s) = Choices { busy: true, ..s });
-                            send(msg);
-                            state.update(fun(s) = Choices { busy: false, ..s });
-                        }
-                        None => {}
-                    }
-                }
-            },
-            0,
-        );
-        Live.Dropdown(drop, state)
-    }
+    Dropdown(choices, selected, groups) => create_dropdown(choices, selected, groups, send),
     Slider(min, max, value, on_change) => {
         // Made on 0..1 (GTK refuses an empty range here) and then given its own,
         // which may be a single number.

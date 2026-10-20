@@ -116,8 +116,12 @@ struct Choices<Msg> {
     offered: (string, Msg)[],
     /** The index of the one shown picked; `None` shows the blank item. */
     pick: Option<i64>,
+    /** The groups the view offers the choices in: each heading and how many choices it holds (none: plain). */
+    groups: (string, i64)[],
     /** GTK's list now, item by item: its label and the message picking it sends (`None`: the blank). */
     shown: (string, Option<Msg>)[],
+    /** GTK's groups now, the blank's own first when it shows. */
+    shown_groups: (string, i64)[],
     /** True while kivuli changes the widget or a pick is being sent: the handler then does nothing. */
     busy: bool,
     /** The blank item's label (`.placeholder`): `""` until a style gives one. */

@@ -162,6 +162,8 @@ fun part_node(part: Part): string = match part {
     // The root view's siblings in the window: GTK's tooltip windows.
     Tooltip => "~ tooltip",
     Fill => "progress",
+    GroupHeading => "popover listview > header",
+    GroupLine => "popover listview > header separator",
 };
 
 /** The code a part's classes carry (`kv-item-…`). */
@@ -183,6 +185,8 @@ fun part_code(part: Part): string = match part {
     MenuRadio => "menuradio",
     Tooltip => "tooltip",
     Fill => "fill",
+    GroupHeading => "groupheading",
+    GroupLine => "groupline",
 };
 
 /**
