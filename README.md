@@ -237,6 +237,8 @@ So far:
 
 - `ui.avatar(image, initials)`: a round 32 px picture over its initials, which show when the picture can't (`None`, a missing or broken file); `Avatar.size(px)`; `avatar_group([...])` stacks them, ringed in the page colour.
 
+- `page.dialog(if open { Some(ui.dialog(Msg.Close, [dialog_header(title, description), content, dialog_footer([buttons])])) } else { None })` on the root: a card over a dimmed page, which is inert while it's open; the ✕, Escape and a backdrop click send the close message. One window: the dialog is drawn in it. Any node takes `.inert(on)` and `.focusable(on)`.
+
 **A widget's parts.** `Inside(Part.Check, [...])` styles the part inside a widget: a check box's box (`Part.Check`), a slider's track, fill and thumb (`Part.Trough`, `Highlight`, `Knob`), a drop-down's trigger, arrow, list and items (`Part.Trigger`, `Arrow`, `List`, `Item`); a `When` inside an `Inside` is the part's own state (an item's hover); inside `When`, the state is the widget's (`When(State.Checked, [Inside(Part.Check, [...])])`). `Mark.icon(name, px)` is the icon GTK draws in a part (the tick). More parts come with the components that need them.
 
 A token can be used at an opacity: `Token.Primary.alpha(0.9)` (a hover), `Token.Ring.alpha(0.5)` (a focus halo). `look([...])` makes an app's own variant. `examples/components.la` shows each in light and dark.

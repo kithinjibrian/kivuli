@@ -11,6 +11,13 @@
 import view.views { View };
 import view.pictures { Image };
 import view.menus { MenuEntry };
+import view.looks { Align, Style, plain };
+import styles.theming { Color, Paint };
+import styles.boxes { Background, Border, Spacing };
+import styles.drawing { Shadow };
+import styles.motion { Motion };
+import styles.values { Radius };
+import styles { Sheet, When, State, applied };
 
 /** `v` sending `f(msg)` wherever it would send `msg`; what's shown is unchanged. */
 fun mapped<Msg, B>(v: View<Msg>, f: fun(Msg): B): View<B> = match v {
@@ -117,3 +124,46 @@ fun with_menu<Msg>(v: View<Msg>, entries: MenuEntry<Msg>[]): View<Msg> = match v
     Lazy(_, _, _) => v,
     _ => if entries.len == 0 { v } else { View.Menu(v, entries) },
 };
+
+/** A dialog (`ui.dialog`): its card and the message closing it (the backdrop, the ✕, Escape). */
+public struct Dialog<Msg> {
+    public close: Msg,
+    public card: View<Msg>,
+}
+
+/** `.dialog`: the root as an overlay over `page`, with `d`'s backdrop and card while it's `Some`. */
+fun with_dialog<Msg>(page: View<Msg>, d: Option<Dialog<Msg>>): View<Msg> {
+    let layers: View<Msg>[] = match d {
+        Some(dialog) => [backdrop(dialog.close), centred(dialog.card)],
+        None => [],
+    };
+    // The overlay is there open or not: opening adds layers, the page is kept.
+    View.Styled(View.Overlay(page.inert(d.is_some()), layers), Style {
+        dialog_root: true,
+        ..plain(),
+    })
+}
+
+/** The backdrop: the whole window, black at 50%; a click sends `close`; it never takes focus. */
+fun backdrop<Msg>(close: Msg): View<Msg> {
+    let dim = Paint.Color(Color { red: 0, green: 0, blue: 0, alpha: 128 });
+    let look = applied(Sheet.theme(), [
+        Background.color(dim),
+        Border { radius: Radius.All(0), ..Border.theme() },
+        Border.all(0, dim),
+        Spacing.padding(0),
+        Shadow.off(),
+        // GTK's own button rules for these states: the same dim.
+        When(State.Hover, [Background.color(dim)]),
+        When(State.Press, [Background.color(dim)]),
+        Motion.fade_in(150),
+    ]);
+    View.Styled(View.ButtonWith(View.Column([]), Some(close)), Style {
+        sheet: look,
+        focusable: false,
+        ..plain(),
+    })
+}
+
+/** `card` in the middle of the window. */
+fun centred<Msg>(card: View<Msg>): View<Msg> = card.place(Align.Center, Align.Center);

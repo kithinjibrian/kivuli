@@ -12,7 +12,15 @@ import styles { Sheet, Styling, applied };
 import view.pictures { Image };
 import view.menus { MenuEntry };
 // The one import cycle kivuli allows (DECISION-018): mapping maps views.
-import view.mapping { button_image, disabled_node, mapped, with_menu, with_submit };
+import view.mapping {
+    Dialog,
+    button_image,
+    disabled_node,
+    mapped,
+    with_dialog,
+    with_menu,
+    with_submit,
+};
 
 /**
  * A description of what's on screen. `Msg` is the app's message type: what a
@@ -421,6 +429,24 @@ impl View<Msg> {
      * Example:
      *     button("Open", Msg.Nothing).dropdown_menu([menu_label("My Account"), item("Profile", Msg.Profile)])
      */
+    /** While `on`, nothing in the node takes clicks or keyboard focus: a page behind a dialog. */
+    public fun inert(self, on: bool): View<Msg> = restyle(
+        self,
+        fun(s: Style) = Style { inert: on, ..s },
+    );
+
+    /** Whether the node itself takes keyboard focus (it still takes clicks); on by default. */
+    public fun focusable(self, on: bool): View<Msg> = restyle(
+        self,
+        fun(s: Style) = Style { focusable: on, ..s },
+    );
+
+    /**
+     * On the root: `d` (`ui.dialog`) over the page while `Some`, the page inert
+     * behind it. Give it every render, `None` while closed, so the page is kept.
+     */
+    public fun dialog(self, d: Option<Dialog<Msg>>): View<Msg> = with_dialog(self, d);
+
     public fun dropdown_menu(self, entries: MenuEntry<Msg>[]): View<Msg> = restyle(
         with_menu(self, entries),
         fun(s: Style) = Style { menu_on_click: true, ..s },

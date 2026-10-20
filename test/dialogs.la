@@ -1,0 +1,137 @@
+// Dialogs (PRP-047): `.dialog` makes the root an overlay over the page,
+// open or not; while open the page is inert and the layers are the
+// backdrop and the centred card; the card's look, its ✕ and Escape; the
+// header and footer; refused below the root; opening adds layers and keeps
+// the page. No GTK.
+import kivuli.core.diff { Patch, diff as patches };
+import kivuli.styles.paint { painted };
+import kivuli.view.looks { Style, Align };
+import kivuli { View, Color, Token, Paint, Width, Radius, Size, column, text, input };
+import kivuli.ui { Dialog, dialog_header, dialog_footer, Button };
+
+enum Msg {
+    Close,
+    Open,
+    Typed(string),
+}
+
+fun style_of<M>(v: View<M>): Style = match v {
+    Styled(_, s) => s,
+    _ => panic("expected a styled node"),
+};
+
+fun inner<M>(v: View<M>): View<M> = match v {
+    Styled(x, _) => inner(x),
+    _ => v,
+};
+
+fun page(): View<Msg> = column([input("", Msg.Typed), text("body")]);
+
+fun confirm(): Dialog<Msg> = ui.dialog(Msg.Close, [
+    dialog_header("Delete project?", "This can't be undone."),
+    dialog_footer([
+        ui.button("Cancel", Msg.Close).style([Button.outline()]),
+        ui.button("Delete", Msg.Open),
+    ]),
+]);
+
+fun view(open: bool): View<Msg> = page().dialog(if open { Some(confirm()) } else { None });
+
+@test
+fun closed_or_open_the_root_is_an_overlay_over_the_page() {
+    match inner(view(false)) {
+        Overlay(base, layers) => {
+            assert(!style_of(base).inert);
+            assert_eq(layers.len, 0);
+        }
+        _ => panic("the root is an overlay"),
+    }
+    match inner(view(true)) {
+        Overlay(base, layers) => {
+            assert(style_of(base).inert);
+            assert_eq(layers.len, 2);
+            // The backdrop: a button sending the close message, never focused.
+            let back = style_of(layers[0]);
+            assert(!back.focusable);
+            assert_eq(
+                back.sheet.background.color,
+                Paint.Color(Color { red: 0, green: 0, blue: 0, alpha: 128 }),
+            );
+            match inner(layers[0]) {
+                ButtonWith(_, msg) => assert_eq("{msg}", "{Some(Msg.Close)}"),
+                _ => panic("the backdrop is a button"),
+            }
+            // The card, centred.
+            let card = style_of(layers[1]);
+            assert_eq(card.place_across, Align.Center);
+            assert_eq(card.place_down, Align.Center);
+        }
+        _ => panic("the root is an overlay"),
+    }
+}
+
+@test
+fun the_card_has_its_look_and_a_close_with_escape() {
+    let d = confirm();
+    let s = style_of(d.card).sheet;
+    assert_eq(s.sizing.max_width, Width.Px(512));
+    assert_eq(s.sizing.min_width, Width.Px(480));
+    match inner(d.card) {
+        Overlay(body, layers) => {
+            let b = style_of(body).sheet;
+            assert_eq(b.background.color, Paint.Token(Token.Background));
+            assert_eq(b.border.top.color, Paint.Token(Token.Border));
+            assert_eq(b.border.radius, Radius.Large);
+            assert_eq(b.spacing.padding.top, Width.Px(24));
+            assert_eq(b.spacing.gap, Width.Px(16));
+            assert_eq(b.motion.fade, Some(150));
+            // The ✕, at the card's top end, closing on Escape too.
+            let x = style_of(layers[0]);
+            assert_eq(x.place_across, Align.End);
+            assert_eq(x.place_down, Align.Start);
+            assert_eq(x.shortcut, "Escape");
+            assert_eq(x.tooltip, "Close");
+        }
+        _ => panic("the card is an overlay with its close"),
+    }
+}
+
+@test
+fun a_header_and_a_footer() {
+    let h: View<Msg> = dialog_header("Title", "Words");
+    let parts = match inner(h) {
+        Column(xs) => xs,
+        _ => panic("a header is a column"),
+    };
+    assert_eq(parts.len, 2);
+    assert_eq(style_of(parts[0]).sheet.font.size, Size.Scale(1.125));
+    assert_eq(style_of(parts[1]).sheet.text.color, Paint.Token(Token.MutedForeground));
+    let bare: View<Msg> = dialog_header("Title", "");
+    match inner(bare) {
+        Column(xs) => assert_eq(xs.len, 1),
+        _ => panic("a header is a column"),
+    }
+    let f: View<Msg> = dialog_footer([text("a"), text("b")]);
+    assert_eq(style_of(f).align, Align.End);
+    assert_eq(style_of(f).sheet.spacing.gap, Width.Px(8));
+}
+
+@test
+fun a_dialog_belongs_on_the_root() {
+    let deep: View<Msg> = column([page().dialog(None)]);
+    assert_eq(
+        painted(deep).map(fun(v) = 0),
+        Err(".dialog(…) belongs on the root of the view only"),
+    );
+    assert(painted(view(true)).is_ok());
+}
+
+@test
+fun opening_adds_layers_and_keeps_the_page() {
+    for change of patches(view(false), view(true)) {
+        match change {
+            Replace(path, _) => assert(path.len > 0),
+            _ => {}
+        }
+    }
+}

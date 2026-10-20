@@ -93,6 +93,12 @@ public struct Style {
     maximized: bool,
     /** A primary click opens the node's menu too (`.dropdown_menu`), not only a right-click. */
     menu_on_click: bool,
+    /** Nothing in the node takes the pointer or focus (`.inert`): a page behind a dialog. */
+    inert: bool,
+    /** The node itself takes keyboard focus (`.focusable`); default true. */
+    focusable: bool,
+    /** This overlay is a `.dialog`'s: root only. */
+    dialog_root: bool,
     /** The app's colours by name (`.palette(…)`). Root only. */
     palette: Option<Palette>,
     /** Light, dark or the system's (`.scheme(…)`); `None` leaves GTK's setting alone. Root only. */
@@ -129,6 +135,9 @@ fun plain(): Style = Style {
     bar_classes: [],
     maximized: false,
     menu_on_click: false,
+    inert: false,
+    focusable: true,
+    dialog_root: false,
     palette: None,
     scheme: None,
     equal: false,

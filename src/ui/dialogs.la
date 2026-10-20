@@ -1,0 +1,76 @@
+/**
+ * Dialog (PRP-047): the card a root `.dialog(…)` shows over the page: the
+ * palette's colours, a title and description, the app's parts, a footer of
+ * buttons, and a ✕ that closes it (Escape too). One window only: the dialog
+ * is drawn in it. Pure.
+ *
+ * Depends on: views, looks, mapping, widgets, styles, theming, boxes, fonts, drawing, motion, buttons
+ * Used by: ui
+ */
+
+// The public items the entry re-exports, by their own modules (rule 2: no `lib`).
+import view.views { View };
+import view.looks { Align };
+import view.mapping { Dialog };
+import view.widgets { column, icon, overlay, row, text };
+import styles.theming { Token };
+import styles.boxes { Background, Border, Sizing, Spacing };
+import styles.fonts { Font, Text };
+import styles.drawing { Shadow };
+import styles.motion { Motion };
+import ui.buttons { button_with as ui_button_with, Button };
+
+/**
+ * A dialog showing `parts` (`dialog_header`, the app's content,
+ * `dialog_footer`) on a card; the ✕, Escape and a click on the backdrop
+ * send `close`. Give it to the root's `.dialog(…)`.
+ *
+ * Example:
+ *     page(m).dialog(if m.confirming { Some(ui.dialog(Msg.Cancel, [dialog_header("Delete?", "It can't be undone.")])) } else { None })
+ */
+public fun dialog<Msg>(close: Msg, parts: View<Msg>[]): Dialog<Msg> {
+    let body: View<Msg> = column(parts).style([
+        Background.color(Token.Background),
+        Text.color(Token.Foreground),
+        Border.all(1, Token.Border),
+        Border.rounded_lg(),
+        Spacing.padding(24),
+        Spacing.gap(16),
+        Shadow.lg(),
+        Motion.fade_in(150),
+    ]);
+    let x: View<Msg> = ui_button_with([icon("window-close-symbolic")], close)
+        .style([Button.icon(), Button.ghost(), Button.sm(), Spacing.margin(12)])
+        .tooltip("Close")
+        // Escape closes the dialog from anywhere while it's open.
+        .shortcut("Escape")
+        .place(Align.End, Align.Start);
+    Dialog {
+        close: close,
+        card: overlay(body, [x]).style([Sizing.min_width(480), Sizing.max_width(512)]),
+    }
+}
+
+/**
+ * A dialog's title over its description (left out when `""`).
+ *
+ * Example:
+ *     dialog_header("Delete project?", "This can't be undone.")
+ */
+public fun dialog_header<Msg>(title: string, description: string): View<Msg> {
+    let mut lines: View<Msg>[] = [text(title).style([Font.lg(), Font.semibold()])];
+    if description != "" {
+        lines.push(text(description).wrap().style([Font.sm(), Text.color(Token.MutedForeground)]));
+    }
+    column(lines).style([Spacing.gap(8)])
+}
+
+/**
+ * A dialog's buttons (`actions`), in a row at its end.
+ *
+ * Example:
+ *     dialog_footer([ui.button("Cancel", Msg.Cancel).style([Button.outline()]), ui.button("Delete", Msg.Delete)])
+ */
+public fun dialog_footer<Msg>(actions: View<Msg>[]): View<Msg> = row(actions).style([
+    Spacing.gap(8),
+]).align(Align.End);

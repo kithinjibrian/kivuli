@@ -1,0 +1,132 @@
+// A dialog on real GTK widgets (PRP-047): opening keeps the page's widgets
+// and makes them inert, the backdrop and the ✕ send the close message, and
+// closing gives the page back its pointer and focus. Needs a display, so it
+// is skipped without one. (How it looks, and Escape: examples/components.la.)
+import std.env;
+import gtk {
+    GtkApplication,
+    GtkWidget,
+    connect_app,
+    emit_widget,
+    g_application_quit,
+    g_application_run,
+    g_object_unref,
+    gtk_application_new,
+    gtk_application_window_new,
+    gtk_widget_get_can_focus,
+    gtk_widget_get_can_target,
+    gtk_widget_get_focusable,
+};
+import kivuli.render.live { mount, live_of };
+import kivuli.core.effects { sandbox_app };
+import kivuli.core.live_tree { Live, widget };
+import kivuli { View, button, column, text };
+import kivuli.ui { dialog_header };
+
+fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
+
+fun note(seen: Ref<string[]>, s: string) {
+    seen.update(fun(xs) {
+        let mut ys = xs;
+        ys.push(s);
+        ys
+    });
+}
+
+enum Msg {
+    Open,
+    Close,
+}
+
+fun view(open: bool): View<Msg> = column([button("Open", Msg.Open), text("page")]).dialog(
+    if open { Some(ui.dialog(Msg.Close, [dialog_header("Sure?", "")])) } else { None },
+);
+
+/** The page's widget and the dialog's layers, as kivuli holds them. */
+fun parts(root: Live<Msg>): (GtkWidget, Live<Msg>[]) = match root {
+    Overlay(_, base, layers) => match layers {
+        Layers(_, kids) => (widget(base), kids),
+        _ => panic("expected the overlay's layers"),
+    },
+    _ => panic("expected the root overlay"),
+};
+
+/** The ✕ inside the card: the card's own overlay's first layer. */
+fun close_of(card: Live<Msg>): GtkWidget = match card {
+    Clamp(inner, _) => close_of(inner),
+    Overlay(_, _, layers) => match layers {
+        Layers(_, kids) => widget(kids[0]),
+        _ => panic("expected the card's layers"),
+    },
+    _ => panic("expected the card"),
+};
+
+@test
+fun a_dialog_makes_the_page_inert_and_its_backdrop_and_close_send_close() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen: Ref<string[]> = Ref.new([]);
+    let application = gtk_application_new("org.kivuli.test.dialog", 0);
+    connect_app(
+        application,
+        "activate",
+        fun(a: GtkApplication) {
+            let window = gtk_application_window_new(a);
+            let app = mount(a, window, sandbox_app(
+                "org.kivuli.test",
+                false,
+                fun(open: bool, msg: Msg): bool = match msg {
+                    Open => {
+                        note(seen, "open");
+                        true
+                    }
+                    Close => {
+                        note(seen, "close");
+                        false
+                    }
+                },
+                view,
+            ));
+            let (page, layers) = parts(live_of(app));
+            note(seen, "closed: layers {layers.len} target {gtk_widget_get_can_target(page)}");
+            let open_button = match live_of(app) {
+                Overlay(_, base, _) => match base {
+                    Box(_, _, kids) => widget(kids[0]),
+                    _ => panic("expected the page"),
+                },
+                _ => panic("expected the root overlay"),
+            };
+            emit_widget(open_button, "clicked");
+            let (page_now, open_layers) = parts(live_of(app));
+            note(
+                seen,
+                "open: same page {page_now == page} layers {open_layers.len} target {gtk_widget_get_can_target(page)} focus {gtk_widget_get_can_focus(page)} backdrop focusable {gtk_widget_get_focusable(widget(open_layers[0]))}",
+            );
+            emit_widget(widget(open_layers[0]), "clicked");
+            let (_, after) = parts(live_of(app));
+            note(
+                seen,
+                "backdrop closed: layers {after.len} target {gtk_widget_get_can_target(page)}",
+            );
+            emit_widget(open_button, "clicked");
+            let (_, again) = parts(live_of(app));
+            emit_widget(close_of(again[1]), "clicked");
+            note(seen, "x closed: layers {parts(live_of(app)).1.len}");
+            g_application_quit(a);
+        },
+        0,
+    );
+    g_application_run(application, 0, None);
+    g_object_unref(application);
+    assert_eq(seen.get(), [
+        "closed: layers 0 target 1",
+        "open",
+        "open: same page true layers 2 target 0 focus 0 backdrop focusable 0",
+        "close",
+        "backdrop closed: layers 0 target 1",
+        "open",
+        "close",
+        "x closed: layers 0",
+    ]);
+}

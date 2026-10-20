@@ -69,6 +69,9 @@ import kivuli.ui {
     Tooltip,
     Avatar,
     avatar_group,
+    Dialog,
+    dialog_header,
+    dialog_footer,
 };
 
 struct Model {
@@ -85,6 +88,7 @@ struct Model {
     picked: string,
     status_bar: bool,
     panel: string,
+    deleting: bool,
 }
 
 enum Msg {
@@ -101,6 +105,7 @@ enum Msg {
     Picked(string),
     StatusBar(bool),
     Panel(string),
+    Deleting(bool),
 }
 
 fun update(m: Model, msg: Msg): Model = match msg {
@@ -114,9 +119,11 @@ fun update(m: Model, msg: Msg): Model = match msg {
     Fruit(f) => Model { fruit: f, ..m },
     Airplane(b) => Model { airplane: b, ..m },
     Tab(n) => Model { tab: n, ..m },
-    Picked(what) => Model { picked: what, ..m },
+    // Picking anything also closes the dialog (its Delete picks).
+    Picked(what) => Model { picked: what, deleting: false, ..m },
     StatusBar(b) => Model { status_bar: b, ..m },
     Panel(p) => Model { panel: p, ..m },
+    Deleting(on) => Model { deleting: on, ..m },
 };
 
 fun palette_of(n: i64): Palette = if n == 1 {
@@ -138,11 +145,25 @@ fun section(title: string, body: View<Msg>): View<Msg> = column([
 fun centred(v: View<Msg>): View<Msg> = v.align(Align.Center);
 
 fun view(m: Model): View<Msg> = scroll(page(m))
+    // A dialog over the whole page while the model says so.
+    .dialog(if m.deleting { Some(delete_dialog()) } else { None })
     .palette(palette_of(m.base))
     .scheme(if m.dark { Scheme.Dark } else { Scheme.Light })
     // Every tooltip in the app, in the palette's look.
     .style([Tooltip.look()])
     .window("Components", 760, 720);
+
+/** The dialog the Dialog section opens: Escape, the backdrop, the ✕ and Cancel close it. */
+fun delete_dialog(): Dialog<Msg> = ui.dialog(Msg.Deleting(false), [
+    dialog_header(
+        "Delete project?",
+        "This can't be undone. The project and its files will be removed for good.",
+    ),
+    dialog_footer([
+        ui.button("Cancel", Msg.Deleting(false)).style([Button.outline()]),
+        ui.button("Delete", Msg.Picked("Deleted the project")).style([Button.destructive()]),
+    ]),
+]);
 
 /** The fruit drop-downs' choices. */
 fun fruits(): (string, Msg)[] = ["Apple", "Banana", "Blueberry", "Grapes", "Pineapple"].map(
@@ -259,6 +280,12 @@ fun page(m: Model): View<Msg> = column([
             ]),
             ui.input("Disabled", Msg.Email).disabled(true),
         ]).style([Spacing.gap(8)]),
+    ),
+    section(
+        "Dialog",
+        row([
+            ui.button("Delete project…", Msg.Deleting(true)).style([Button.destructive()]),
+        ]),
     ),
     section(
         "Dropdown menu",
@@ -550,6 +577,7 @@ fun main(): i32 = sandbox(
         picked: "",
         status_bar: true,
         panel: "Bottom",
+        deleting: false,
     },
     update,
     view,
