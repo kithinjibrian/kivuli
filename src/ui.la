@@ -8,4 +8,4 @@
  * Used by: apps
  */
 
-public import ui.badges { badge, Badge };
+public import ui.badges { badge, badge_with, Badge };

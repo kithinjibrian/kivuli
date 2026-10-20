@@ -195,14 +195,15 @@ column(rows)
 **Components** (`kivuli.ui`). Ready-made pieces in the palette's colours, after shadcn, beside GTK's own widgets. A component's variant is a `Look` (several style values as one) given through `.style`, so an app's own values after it win; each component is built only from the public style API, so an app can copy one and change it.
 
 ```
-import kivuli.ui { badge, Badge };
+import kivuli.ui { badge, badge_with, Badge };
 
 row([text("Inbox"), badge("12").align(Align.Center)])
+badge_with([icon("emblem-ok-symbolic"), text("Verified")])
 badge("Draft").style([Badge.outline()])      // also Badge.secondary(), Badge.destructive()
 badge("Beta").style([Badge.outline(), Text.color(Token.Primary)])
 ```
 
-So far: `badge` (shadcn v4's: small, medium-weight, corners at the palette's radius − 4). `look([...])` makes an app's own variant. `examples/components.la` shows each in light and dark.
+So far: `badge` (small, medium-weight, corners at the palette's radius − 4) and `badge_with([icon(…), text(…)])` (icons shrink to 12 px). `look([...])` makes an app's own variant. `examples/components.la` shows each in light and dark.
 
 **Motion.** What eases when a style changes, how a node comes in, and what loops: GTK's own CSS transitions and animations.
 

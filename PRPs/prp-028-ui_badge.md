@@ -37,11 +37,14 @@ badge("Beta").style([Border.rounded(999)])                          // the v3 pi
 - **`Badge.secondary()`**: `Secondary` / `SecondaryForeground`. **`Badge.outline()`**: no background (`Paint.Theme` can't unset, so `Background.color(transparent)`), `Text.color(Token.Foreground)`, `Border.all(1, Token.Border)`. **`Badge.destructive()`**: `Destructive` / `DestructiveForeground`.
 - `Badge` is a namespace for its variants (an empty struct with statics).
 
+### Badge with content *(added in session 44, the user's request: A)*
+- `badge_with<Msg>(content: View<Msg>[]): View<Msg>`: the badge's look on a row of `content`, 4 px apart; icons shrink to 12 px unless given a size. Symbolic icons take the text colour.
+
 ### Must NOT Do
-- No other component (Button is next, reusing this convention); no icons inside a badge yet (`button_with`-style content later); no hover (shadcn's only applies to badges that are links).
+- No other component (Button is next, reusing this convention); no hover (shadcn's only applies to badges that are links).
 
 ## TESTS (narrow; run once the user's faster tests are in)
-- [x] (written, type-checked) `test/badges.la` (new, pure): a badge's sheet (padding, radius `Small`, border width, font, colours `Primary`/`PrimaryForeground`, align `Start`); each variant's colours over it; an app's values after a variant win; `Look` applies its items in order and merges like its items; the OBJECTIVE reads as written.
+- [x] (written, type-checked) `test/badges.la` (new, pure): `badge_with`'s row, gap, icon sizes and variants; a badge's sheet (padding, radius `Small`, border width, font, colours `Primary`/`PrimaryForeground`, align `Start`); each variant's colours over it; an app's values after a variant win; `Look` applies its items in order and merges like its items; the OBJECTIVE reads as written.
 - [ ] Every example builds; `examples/components.la` (new): every variant in light and dark, with a scheme toggle and a palette switch. How it looks next to shadcn's: by hand.
 
 ## ACCEPTANCE
