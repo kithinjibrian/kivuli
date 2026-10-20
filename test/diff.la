@@ -374,9 +374,9 @@ fun a_tooltip_or_wrapping_is_a_restyle() {
 @test
 fun a_dropdown_always_sets_its_choices() {
     let choices = [("Add", Msg.Add), ("Reset", Msg.Reset)];
-    let expected: Patch<Msg>[] = [Patch.SetChoices([], choices, "Add")];
+    let expected: Patch<Msg>[] = [Patch.SetChoices([], choices, "Add", [])];
     assert_same(patches(dropdown(choices, "Reset"), dropdown(choices, "Add")), expected);
-    let same: Patch<Msg>[] = [Patch.SetChoices([], choices, "Reset")];
+    let same: Patch<Msg>[] = [Patch.SetChoices([], choices, "Reset", [])];
     assert_same(patches(dropdown(choices, "Reset"), dropdown(choices, "Reset")), same);
 }
 

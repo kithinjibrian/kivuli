@@ -11,6 +11,7 @@ import kivuli {
     text,
     text_area,
     dropdown,
+    dropdown_grouped,
     slider,
     switch,
     icon,
@@ -203,6 +204,15 @@ fun choose_gives_the_message_of_a_choice() {
         choose(settings(), "nowhere", "Add it"),
         Err(Lookup.NotFound("drop-down \"nowhere\"")),
     );
+}
+
+@test
+fun choose_finds_a_choice_in_a_later_group() {
+    let v: View<Msg> = dropdown_grouped(
+        [("First", [("Add it", Msg.Add)]), ("Second", [("Clear it", Msg.Clear)])],
+        "",
+    ).name("grouped");
+    assert_eq(choose(v, "grouped", "Clear it"), Ok(Msg.Clear));
 }
 
 @test

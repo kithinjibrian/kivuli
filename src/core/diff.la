@@ -41,8 +41,8 @@ enum Patch<Msg> {
     SetProgress(i64[], i64),
     /** The check box at the path turns toggles into messages with this function from now on; `None` disables it. */
     SetOnToggle(i64[], Option<fun(bool): Msg>),
-    /** The drop-down at the path offers these choices, the one labelled so shown picked. */
-    SetChoices(i64[], (string, Msg)[], string),
+    /** The drop-down at the path offers these choices, the one labelled so shown picked, in these groups. */
+    SetChoices(i64[], (string, Msg)[], string, (string, i64)[]),
     /** The slider at the path runs from the first number to the second. */
     SetRange(i64[], i64, i64),
     /** The slider at the path shows this number. */
@@ -172,7 +172,9 @@ fun diff_inside<Msg>(
         on_toggle,
     ),
     // Always: the choices' messages can't be compared (`patch` touches GTK only on a real change).
-    (Dropdown(_, _), Dropdown(choices, selected)) => [Patch.SetChoices(path, choices, selected)],
+    (Dropdown(_, _, _), Dropdown(choices, selected, groups)) => [
+        Patch.SetChoices(path, choices, selected, groups),
+    ],
     (Slider(min_a, max_a, a, _), Slider(min_b, max_b, b, on_change)) => diff_slider(
         path,
         (min_a, max_a, a),

@@ -20,6 +20,7 @@ import kivuli {
     Sizing,
     Spacing,
     Image,
+    Text,
     checkbox,
 };
 
@@ -222,6 +223,23 @@ fun a_menus_check_and_radio_are_parts_with_their_own_checked_state() {
 fun a_tooltip_is_the_roots_sibling() {
     let s = Inside(Part.Tooltip, [Background.color(Token.Foreground)]).apply(Sheet.theme());
     assert(keys(s).iter().any(fun(x) = x == "kv-tooltip-bgt-foreground ~ tooltip"));
+}
+
+@test
+fun a_dropdowns_group_heading_and_line_are_its_header_parts() {
+    let s = Inside(Part.GroupLine, [Background.color(Token.Border)]).apply(
+        Inside(Part.GroupHeading, [Text.color(Token.MutedForeground)]).apply(Sheet.theme()),
+    );
+    let k = keys(s);
+    assert(
+        k.iter().any(
+            fun(x) = x == "kv-groupheading-fgt-muted-foreground popover listview > header",
+        ),
+    );
+    assert(
+        k.iter().any(fun(x) = x == "kv-groupline-bgt-border popover listview > header separator"),
+    );
+    assert_eq(check(s), Ok(()));
 }
 
 @test

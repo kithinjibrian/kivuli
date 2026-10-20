@@ -99,12 +99,37 @@ fun invalid_reddens_the_trigger() {
 fun it_is_still_a_native_drop_down() {
     match fruit("Banana") {
         Styled(inside, _) => match inside {
-            Dropdown(choices, selected) => {
+            Dropdown(choices, selected, _) => {
                 assert_eq(choices.len, 2);
                 assert_eq(selected, "Banana");
             }
             _ => panic("a ui dropdown is a native drop-down"),
         },
         _ => panic("a dropdown is styled"),
+    }
+}
+
+@test
+fun a_grouped_dropdown_has_the_look_and_muted_small_headings() {
+    let v: View<i64> = ui.dropdown_grouped(
+        [("Fruits", [("Apple", 1)]), ("Vegetables", [("Carrot", 2)])],
+        "",
+        "Pick a food",
+    );
+    assert_eq(style_of(v).placeholder, "Pick a food");
+    let s = sheet_of(v);
+    assert_eq(part(s, Part.Item).spacing.padding.left, Width.Px(8));
+    let h = part(s, Part.GroupHeading);
+    assert_eq(h.font.size, Size.Scale(0.75));
+    assert_eq(h.text.color, Paint.Token(Token.MutedForeground));
+    assert_eq(h.spacing.padding.top, Width.Px(6));
+    assert_eq(h.spacing.padding.left, Width.Px(8));
+    assert_eq(part(s, Part.GroupLine).background.color, Paint.Token(Token.Border));
+    match v {
+        Styled(inner, _) => match inner {
+            Dropdown(_, _, groups) => assert_eq(groups.len, 2),
+            _ => panic("still a native drop-down"),
+        },
+        _ => panic("expected a styled node"),
     }
 }

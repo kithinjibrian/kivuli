@@ -1,0 +1,158 @@
+// Drop-downs in groups on a real GtkDropDown (PRP-049): each choice under its
+// group's heading, a pick in a later group sent, regrouping and going plain
+// on the same widget. Needs a display, so it is skipped without one.
+import std.env;
+import gtk {
+    GtkApplication,
+    connect_app,
+    emit_widget,
+    g_application_quit,
+    g_application_run,
+    g_object_unref,
+    gtk_application_new,
+    gtk_application_window_new,
+    gtk_drop_down_get_selected,
+    gtk_drop_down_set_selected,
+    lgtk_drop_down_heading,
+    lgtk_drop_down_label,
+};
+import kivuli.render.live { mount, live_of };
+import kivuli.core.effects { sandbox_app };
+import kivuli.core.live_tree { Live, widget };
+import kivuli { View, button, column, dropdown, dropdown_grouped };
+
+fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
+
+/**
+ * Runs `steps` on the mounted app's top column, noting every message `update`
+ * receives; `steps` calls its `done` to end the app.
+ */
+fun with_app<Model, Msg>(
+    id: string,
+    model: Model,
+    update: fun(Model, Msg): Model,
+    view: fun(Model): View<Msg>,
+    received: Ref<string[]>,
+    steps: fun(Live<Msg>[], fun()),
+) {
+    let application = gtk_application_new(id, 0);
+    connect_app(
+        application,
+        "activate",
+        fun(a: GtkApplication) {
+            let window = gtk_application_window_new(a);
+            let app = mount(a, window, sandbox_app(
+                "org.kivuli.test",
+                model,
+                fun(m: Model, msg: Msg): Model {
+                    received.update(fun(xs) {
+                        let mut ys = xs;
+                        ys.push("{msg}");
+                        ys
+                    });
+                    update(m, msg)
+                },
+                view,
+            ));
+            let Box(_, _, kids) = live_of(app) else {
+                panic("expected a column");
+            };
+            steps(kids, fun() {
+                g_application_quit(a);
+            });
+        },
+        0,
+    );
+    g_application_run(application, 0, None);
+    g_object_unref(application);
+}
+
+fun note(seen: Ref<string[]>, s: string) {
+    seen.update(fun(xs) {
+        let mut ys = xs;
+        ys.push(s);
+        ys
+    });
+}
+
+enum Food {
+    Pick(string),
+    Regroup,
+    Plain,
+}
+
+struct Pantry {
+    food: string,
+    regrouped: bool,
+    plain: bool,
+}
+
+fun update_pantry(p: Pantry, msg: Food): Pantry = match msg {
+    Pick(f) => Pantry { food: f, ..p },
+    Regroup => Pantry { regrouped: true, ..p },
+    Plain => Pantry { plain: true, ..p },
+};
+
+fun pick(label: string): (string, Food) = (label, Food.Pick(label));
+
+fun view_pantry(p: Pantry): View<Food> = column([
+    if p.plain {
+        dropdown([pick("Apple"), pick("Carrot")], p.food)
+    } else if p.regrouped {
+        dropdown_grouped([("Everything", [pick("Apple"), pick("Banana"), pick("Carrot")])], p.food)
+    } else {
+        dropdown_grouped(
+            [("Fruits", [pick("Apple"), pick("Banana")]), ("Vegetables", [pick("Carrot")])],
+            p.food,
+        )
+    },
+    button("Regroup", Food.Regroup),
+    button("Plain", Food.Plain),
+]);
+
+/** A drop-down as GTK shows it: each label with its group's heading, "|"-separated, and the picked index. */
+fun shelves(node: Live<Food>): string {
+    let w = widget(node);
+    let mut out: string[] = [];
+    let mut i: u32 = 0;
+    while i < 8 {
+        match lgtk_drop_down_label(w, i) {
+            Some(label) => out.push("{label}/{lgtk_drop_down_heading(w, i).unwrap_or("-")}"),
+            None => {}
+        }
+        i = i + 1;
+    }
+    "{out.join("|")} @{gtk_drop_down_get_selected(w)}"
+}
+
+@test
+fun a_grouped_dropdown_shows_its_headings_and_sends_picks_from_any_group() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen: Ref<string[]> = Ref.new([]);
+    let received: Ref<string[]> = Ref.new([]);
+    with_app("org.kivuli.test.groups", Pantry {
+        food: "Apple",
+        regrouped: false,
+        plain: false,
+    }, update_pantry, view_pantry, received, fun(kids: Live<Food>[], done: fun()) {
+        let drop = widget(kids[0]);
+        note(seen, shelves(kids[0]));
+        // A pick in the second group, as a user's ends.
+        gtk_drop_down_set_selected(drop, 2);
+        note(seen, shelves(kids[0]));
+        emit_widget(widget(kids[1]), "clicked");
+        note(seen, "same {widget(kids[0]) == drop} {shelves(kids[0])}");
+        emit_widget(widget(kids[2]), "clicked");
+        note(seen, "same {widget(kids[0]) == drop} {shelves(kids[0])}");
+        done();
+    });
+    assert_eq(seen.get(), [
+        "Apple/Fruits|Banana/Fruits|Carrot/Vegetables @0",
+        "Apple/Fruits|Banana/Fruits|Carrot/Vegetables @2",
+        "same true Apple/Everything|Banana/Everything|Carrot/Everything @2",
+        "same true Apple/-|Carrot/- @1",
+    ]);
+    assert_eq(received.get(), ["Pick(\"Carrot\")", "Regroup", "Plain"]);
+}

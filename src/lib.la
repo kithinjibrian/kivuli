@@ -69,6 +69,7 @@ public import view.widgets {
     lazy,
     text_area,
     dropdown,
+    dropdown_grouped,
     slider,
     icon,
     image,

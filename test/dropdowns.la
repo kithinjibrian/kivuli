@@ -1,0 +1,69 @@
+// Drop-downs in groups (PRP-049): the node a grouped drop-down is, empty
+// groups left out, the pick across groups, `map`, a plain drop-down as no
+// groups, and the diff's SetChoices. No GTK.
+import kivuli.core.diff { Patch, diff as patches };
+import kivuli { View, dropdown, dropdown_grouped };
+
+enum Msg {
+    Pick(string),
+}
+
+fun food(selected: string): View<Msg> = dropdown_grouped(
+    [
+        ("Fruits", [("Apple", Msg.Pick("apple")), ("Banana", Msg.Pick("banana"))]),
+        ("Nothing", []),
+        ("Vegetables", [("Carrot", Msg.Pick("carrot"))]),
+    ],
+    selected,
+);
+
+@test
+fun a_grouped_dropdown_is_its_choices_in_order_and_its_groups() {
+    match food("Carrot") {
+        Dropdown(choices, selected, groups) => {
+            assert_eq(choices.map(fun(c) = c.0), ["Apple", "Banana", "Carrot"]);
+            assert_eq(choices[2].1, Msg.Pick("carrot"));
+            assert_eq(selected, "Carrot");
+            // The empty group is left out; each group is its heading and size.
+            assert_eq(groups, [("Fruits", 2), ("Vegetables", 1)]);
+        }
+        _ => panic("expected a drop-down"),
+    }
+}
+
+@test
+fun a_plain_dropdown_has_no_groups() {
+    let v: View<Msg> = dropdown([("Apple", Msg.Pick("apple"))], "Apple");
+    match v {
+        Dropdown(_, _, groups) => assert_eq(groups.len, 0),
+        _ => panic("expected a drop-down"),
+    }
+}
+
+@test
+fun map_keeps_the_groups() {
+    match food("").map(fun(m: Msg): string = match m {
+        Pick(s) => s,
+    }) {
+        Dropdown(choices, _, groups) => {
+            assert_eq(choices[1].1, "banana");
+            assert_eq(groups, [("Fruits", 2), ("Vegetables", 1)]);
+        }
+        _ => panic("expected a drop-down"),
+    }
+}
+
+@test
+fun the_diff_sends_the_groups_with_the_choices() {
+    let changes = patches(food(""), food("Apple"));
+    assert_eq(changes.len, 1);
+    match changes[0] {
+        SetChoices(path, choices, selected, groups) => {
+            assert_eq(path, []);
+            assert_eq(choices.len, 3);
+            assert_eq(selected, "Apple");
+            assert_eq(groups, [("Fruits", 2), ("Vegetables", 1)]);
+        }
+        _ => panic("expected SetChoices"),
+    }
+}

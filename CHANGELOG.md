@@ -8,6 +8,14 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.44.0] — 2026-10-20
+
+### Added
+- Drop-downs in groups (PRP-049): `dropdown_grouped(groups, selected)`, `kivuli.ui`'s `dropdown_grouped(groups, selected, placeholder)`; `Part.GroupHeading`, `Part.GroupLine`. Needs lugha-gtk 0.1.41.
+
+### Changed
+- `View.Dropdown` and `Patch.SetChoices` carry the groups (`[]` for a plain drop-down).
+
 ## [0.43.0] — 2026-10-20
 
 ### Added
