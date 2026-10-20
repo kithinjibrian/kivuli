@@ -1,6 +1,6 @@
 # PRP-026 — Palettes and colour tokens
 
-Status: draft, for the user's approval (session 34)
+Status: approved (session 35)
 Discovery: session 34, 2026-10-20 (shadcn-like components; this is the first of their PRPs). *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: named colour tokens (`Token.Primary`, `Token.Muted`, …) that follow light and dark mode, an app-wide `.palette(…)` with shadcn's five bases, a radius token, and `.scheme(…)` to follow the system or force light or dark.
