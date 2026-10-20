@@ -930,9 +930,16 @@ Branch: main (prp-030-text-align merged)
 
 ---
 
-## SESSION 53 — 2026-10-20 — kivuli.ui Card: discovery — open
+## SESSION 53 — 2026-10-20 — kivuli.ui Card: discovery, PRP-031 draft — closed
 
 Branch: main
+
+### WHAT WAS DONE
+- Read the user's reference (the current shadcn card). Interview: parts as functions (A); one size now, small later when a container's spacing can reach its parts (A).
+- PRP-031 drafted (`card`, `card_header`, `card_header_with`, `card_content`, `card_footer`; `Radius.XLarge` proposed).
+
+### STILL OPEN AT CLOSE
+- PRP-031 awaits the user's approval.
 
 ---
 
