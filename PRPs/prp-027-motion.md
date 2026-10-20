@@ -1,6 +1,6 @@
 # PRP-027 — Motion: transitions and named animations
 
-Status: approved (session 39)
+Status: built (session 39) on branch prp-027-motion
 Discovery: session 38, 2026-10-20 (the shadcn plan, after PRP-026). *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: a `Motion` style group: transitions by property group (`Motion.colors(150)`), easing and delay, entrance animations (`fade_in`, `slide_in`) and looping ones (`spin`, `pulse`), with reduced motion respected.
@@ -54,10 +54,18 @@ column([]).style([Sizing.height(16), Background.color(Token.Muted), Motion.pulse
 - No exit animations, no replay, no custom keyframes, no animating layout unless asked (`all` only); no timers or frame callbacks in kivuli.
 
 ## TESTS (narrow; run once the user's faster tests are in)
-- [ ] `test/motion.la` (new, pure): each utility's value; merging (groups by name, easing, delay, entrance parts, loops); each CSS: transition lists, easings, delays, keyframes for fade, slide (each edge), fade + slide, spin, pulse; an entrance and a loop together; the reduced-motion rules (transitions and entrances off, loops kept); a transition in `When`; each check's message; the OBJECTIVE reads as written.
-- [ ] `test/live_motion.la` (GTK): a node's transition and animation classes land and their rules (keyframes included) join the stylesheet; a kept widget keeps its classes across an update; `lgtk_set_reduced_motion` reaches the app's stylesheet.
-- [ ] lugha-gtk `test/settings.la`: reduced motion set, read back, reset; the provider follows it.
+- [x] (written, type-checked) `test/motion.la` (new, pure): each utility's value; merging (groups by name, easing, delay, entrance parts, loops); each CSS: transition lists, easings, delays, keyframes for fade, slide (each edge), fade + slide, spin, pulse; an entrance and a loop together; the reduced-motion rules (transitions and entrances off, loops kept); a transition in `When`; each check's message; the OBJECTIVE reads as written.
+- [x] (written, type-checked) `test/live_motion.la` (GTK): a node's transition and animation classes land and their rules (keyframes included) join the stylesheet; a kept widget keeps its classes across an update; `lgtk_set_reduced_motion` reaches the app's stylesheet.
+- [x] lugha-gtk `test/settings.la`: reduced motion set, read back, reset; the provider follows it.
 - [ ] Every example builds; `examples/motion.la` (hover colours, a lifting tile, a toast list that fades in, a spinner, skeleton lines). How motion feels: by hand.
 
 ## ACCEPTANCE
 - [ ] The OBJECTIVE compiles; fmt clean; no file over 500 lines; README, DESIGN, CHANGELOG 0.22.0, CLAUDE.md; merged, tagged; pushed only on your go.
+
+## NOTES FROM THE BUILD
+
+- **lugha-gtk 0.1.34**: the app's stylesheet (`lgtk_css_provider_new_for_scheme`) also binds `prefers-reduced-motion`; `lgtk_set_reduced_motion`, `lgtk_reset_reduced_motion`, `lgtk_reduced_motion`, `lgtk_css_provider_reduced_motion`. Its settings and clamp tests pass; pushed and tagged.
+- **Fade and slide are two keyframes** (opacity, transform), so each keeps its own duration; to the app they're still one entrance. A slide and `spin` both set `transform`, so together the later wins (as `Effects.transform` with either would).
+- **`rule_text`** (in `motion_rules`) writes a rule whole: `.key { body }`, and for a `transition:` or `animation:` body its keyframes before and its reduced-motion block after. `paint.stylesheet` uses it for every rule, so a transition inside `When` gets its block too.
+- **GTK parsed every generated rule** (C probe: 26 lines of transitions, keyframes, reduced-motion blocks, a state's transition, palette rules; 0 errors).
+- **Tests not run** (the user is fixing slow test runs): motion and live_motion type-check; every example builds; fmt clean. How it feels, and whether an entrance plays on a widget created before the window shows: by hand in `examples/motion.la`.
