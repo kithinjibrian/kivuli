@@ -875,6 +875,12 @@ Branch: prp-029-ui-button (not merged)
 
 ---
 
+## SESSION 49 — 2026-10-20 — Merge PRP-029 — open
+
+Branch: main (merging prp-029-ui-button)
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
