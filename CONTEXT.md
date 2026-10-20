@@ -1329,9 +1329,15 @@ Branch: main (prp-040-switch merged)
 
 ---
 
-## SESSION 84 — 2026-10-20 — kivuli.ui Tabs: discovery — open
+## SESSION 84 — 2026-10-20 — kivuli.ui Tabs: discovery, PRP-041 draft — closed
 
 Branch: main
+
+### WHAT WAS DONE
+- Read the reference tabs page. Interview: tabs from the model, built of buttons (A). Drafted PRP-041 with two proposals: triggers as views (`tab`, `tab_with`) picked by position, and the line variant as `ui.tabs_line` (a row's style can't reach its buttons: DECISION-028).
+
+### STILL OPEN AT CLOSE
+- PRP-041 awaits the user's approval.
 
 ---
 
