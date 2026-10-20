@@ -1341,6 +1341,12 @@ Branch: main
 
 ---
 
+## SESSION 85 — 2026-10-20 — PRP-041: kivuli.ui Tabs — open
+
+Branch: prp-041-ui-tabs
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.

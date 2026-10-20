@@ -1,6 +1,6 @@
 # PRP-041 — kivuli.ui: Tabs
 
-Status: draft, for the user's approval (session 84)
+Status: approved (session 85)
 Discovery: session 84, 2026-10-20 (the reference is ui.shadcn.com/docs/components/base/tabs: a list of triggers, a panel per trigger, a "line" variant, vertical, a disabled trigger, icons). *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: `ui.tabs(triggers, active)` and `ui.tabs_line(triggers, active)`, with `tab(label, msg)` and `tab_with(content, msg)`: tabs from the model, built of buttons.
