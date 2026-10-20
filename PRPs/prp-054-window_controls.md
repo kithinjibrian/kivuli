@@ -53,3 +53,4 @@ header_bar(start, title, end).style([WindowControls.look()])
 - **The look goes in `examples/components.la`**, on a new header bar: `browser.la` has no palette, so `WindowControls.look()`'s tokens would be unset there.
 - **The parts' refusal is in `paint`** (`window_parts`, for every view node's sheet and its states); a bar's sheet goes through `bar_classes`, which takes them.
 - **Tests run and pass**: parts, window_controls_ui (19 pure); live_header (the controls' colours read back: minimise, close and the close's icon), live_type, palettes (21). Every test and example type-checks; components built; GTK parsed the rules (43 lines, 0 errors).
+- **After the merge** (session 126, no PRP on the user's word): `Part.WindowCloseIcon` (`windowcontrols > button.close > image`), so the close one's icon circle can turn red alone; the user's own change made `WindowControls.look()` round (`Border.rounded(99)`), and its test now says so. 0.49.1.

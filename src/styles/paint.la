@@ -129,7 +129,7 @@ fun window_parts(s: Sheet): Result<(), string> {
     for sheet of all {
         for (part, _) of sheet.parts {
             match part {
-                WindowButton | WindowClose | WindowIcon => {
+                WindowButton | WindowClose | WindowIcon | WindowCloseIcon => {
                     return Err("Part.{part} belongs in a header bar's style");
                 }
                 _ => {}

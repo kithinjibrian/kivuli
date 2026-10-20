@@ -260,6 +260,7 @@ fun view_controls(n: i64): View<Plain> = column([text("page")]).header(
         Inside(Part.WindowButton, [Text.color(hex("#112233"))]),
         Inside(Part.WindowClose, [Text.color(hex("#ff0000"))]),
         Inside(Part.WindowIcon, [Text.color(hex("#00ff00"))]),
+        Inside(Part.WindowCloseIcon, [Text.color(hex("#0000ff"))]),
     ]),
 );
 
@@ -315,10 +316,18 @@ fun a_bars_style_reaches_its_window_controls() {
                 let icon = gtk_widget_get_first_child(close).expect(
                     "a window control holds its icon",
                 );
-                note(seen, "minimize {rgba(minimize)} close {rgba(close)} icon {rgba(icon)}");
+                let other = gtk_widget_get_first_child(minimize).expect(
+                    "a window control holds its icon",
+                );
+                note(
+                    seen,
+                    "minimize {rgba(minimize)} close {rgba(close)} icon {rgba(other)} close icon {rgba(icon)}",
+                );
             }
             _ => note(seen, "no window controls"),
         }
     });
-    assert_eq(seen.get(), ["minimize #112233ff close #ff0000ff icon #00ff00ff"]);
+    assert_eq(seen.get(), [
+        "minimize #112233ff close #ff0000ff icon #00ff00ff close icon #0000ffff",
+    ]);
 }

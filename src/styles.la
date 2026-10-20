@@ -203,6 +203,8 @@ public enum Part {
      * where the themes draw their round hover circle: for a bar's `.style` only.
      */
     WindowIcon,
+    /** The close control's icon alone (`windowcontrols > button.close > image`): for a bar's `.style` only. */
+    WindowCloseIcon,
 }
 
 /** Style values for one part: made by `Inside`. */
