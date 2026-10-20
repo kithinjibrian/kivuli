@@ -875,9 +875,18 @@ Branch: prp-029-ui-button (not merged)
 
 ---
 
-## SESSION 49 — 2026-10-20 — Merge PRP-029 — open
+## SESSION 49 — 2026-10-20 — Merge PRP-029 — closed
 
-Branch: main (merging prp-029-ui-button)
+Branch: main (prp-029-ui-button merged)
+
+### WHAT WAS DONE
+- PRP-029 (Button, Token.alpha, the label and centring fixes) merged on the user's go without running its tests; tagged v0.24.0 locally.
+- A first try failed at the checkout (an uncommitted `lughac fmt` of test/palettes.la) and, chained with `;`, still committed a false "merged" entry on the branch; it was undone (soft reset, local only) and the formatting committed before merging.
+
+### STILL OPEN AT CLOSE
+- Raised to the user: text inside a stretched label is centred (GTK's default) and kivuli can't left-align it; worth a small PRP before Card.
+- Next components: Card, Input, … one at a time.
+- Tests not run since session 32; main and tags v0.18.0–v0.24.0 not pushed.
 
 ---
 
@@ -885,7 +894,7 @@ Branch: main (merging prp-029-ui-button)
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
 2. Read CLAUDE.md, MEMORY.md, DECISIONS.md, then this file's last session; go by `git log` for what's merged.
-3. kivuli is at 0.23.0 on main, local; GitHub has up to v0.17.0. Tags v0.18.0–v0.23.0 wait for the user's go, after a full test run (none since session 32: the user is speeding tests up). lugha-gtk is at 0.1.34, pushed (standing go).
+3. kivuli is at 0.24.0 on main, local; GitHub has up to v0.17.0. Tags v0.18.0–v0.24.0 wait for the user's go, after a full test run (none since session 32: the user is speeding tests up). lugha-gtk is at 0.1.34, pushed (standing go).
 4. `src/` is in folders (view/, styles/, core/, render/; DECISION-026); `test/` stays flat (DECISION-027, open: a lughac change).
-5. The plan (session 34): shadcn-like components. Done: palettes and tokens (PRP-026), motion (PRP-027), `kivuli.ui` with Badge (PRP-028: variants are `Look`s through `.style`; component files import the entry's modules, not `lib`). Next: one component at a time, Button first, then the rest of `kivuli.ui` (button variants, input, card, badge, separator, select, checkbox, slider), then widgets kivuli lacks (switch, tabs, tooltip, dialog, progress, avatar).
-6. Gotchas: a named import binds the module's last name (E0311/E0314: no `styles.effects`); `lughac fmt` reflows text scripted edits expect: re-read first; Lugha strings interpolate `{…}`: write `{{`; an app's GtkCssProvider needs `lgtk_css_provider_new_for_scheme` for dark rules; files may not exceed 500 lines; gate any push on the test run's real exit status; never chain a bare `git push` in kivuli; no Co-Authored-By trailer on commits; no shadcn by name in code comments; check only affected examples and build only the one being run.
+5. The plan (session 34): shadcn-like components. Done: palettes and tokens (PRP-026), motion (PRP-027), `kivuli.ui` with Badge (PRP-028: variants are `Look`s through `.style`; component files import the entry's modules, not `lib`) and Button (PRP-029: `ui.button` beside the native one; variants restate colours in states to outrank GTK's button rules; `Token.alpha`). Next: text alignment inside labels (raised), then Card, Input, … one at a time (button variants, input, card, badge, separator, select, checkbox, slider), then widgets kivuli lacks (switch, tabs, tooltip, dialog, progress, avatar).
+6. Gotchas: a named import binds the module's last name (E0311/E0314: no `styles.effects`); `lughac fmt` reflows text scripted edits expect: re-read first; Lugha strings interpolate `{…}`: write `{{`; an app's GtkCssProvider needs `lgtk_css_provider_new_for_scheme` for dark rules; files may not exceed 500 lines; gate any push on the test run's real exit status; never chain a bare `git push` in kivuli; no Co-Authored-By trailer on commits; no shadcn by name in code comments; check only affected examples and build only the one being run; commit `lughac fmt` output before switching branches; chain git steps with `&&`, never `;`.

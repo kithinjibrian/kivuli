@@ -1,6 +1,6 @@
 # PRP-029 — kivuli.ui: Button
 
-Status: built (session 47) on branch prp-029-ui-button
+Status: built (sessions 47–48); merged into main in session 49 without running its tests (the user's call)
 Discovery: session 46, 2026-10-20 (the second component, on PRP-028's convention). *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: `ui.button(label, msg)` and `ui.button_with(content, msg)`, a GTK button in the palette's colours, with six variants and four sizes as `Look`s; and `Token.X.alpha(x)`, a token at an opacity, for hovers and the focus halo.
