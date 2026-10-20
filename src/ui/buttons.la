@@ -1,0 +1,192 @@
+/**
+ * Button (PRP-029): kivuli's native button in the palette's colours, so
+ * clicks, `.disabled`, shortcuts and tests work as on any button. Variants
+ * and sizes are `Look`s given through `.style`: a variant sets colours, a
+ * size sets size, so they combine in either order. Pure.
+ *
+ * GTK's own `button:hover`, `:active` and `:disabled` rules outrank a plain
+ * class, so every variant restates its colours inside `When(…)`, whose
+ * rules outrank GTK's.
+ *
+ * Depends on: views, looks, widgets, pictures, styles, theming, values, boxes, fonts, drawing, motion
+ * Used by: ui
+ */
+
+// The public items the entry re-exports, by their own modules (rule 2: no `lib`).
+import view.views { View };
+import view.widgets { row, button as native_button, button_with as native_button_with };
+import view.pictures { Image };
+import styles { Look, look, When, State };
+import styles.theming { Color, Paint, Token };
+import styles.values { Drop, Line };
+import styles.boxes { Background, Border, Outline, Sizing, Spacing };
+import styles.fonts { Font, Text };
+import styles.drawing { Effects, Shadow };
+import styles.motion { Motion };
+
+fun clear(): Color = Color { red: 0, green: 0, blue: 0, alpha: 0 };
+
+/** The faint shadow under a filled button: one pixel down, black at 5%. */
+fun hairline_shadow(): Shadow = Shadow {
+    boxes: [
+        Drop {
+            y: 1,
+            blur: 2,
+            color: Paint.Color(Color { red: 0, green: 0, blue: 0, alpha: 13 }),
+            ..Drop.theme(),
+        },
+    ],
+    text: [],
+};
+
+/** A 3 px halo of `paint`: the focus ring. */
+fun halo(paint: Paint): Shadow = Shadow {
+    boxes: [Drop { spread: 3, color: paint, ..Drop.theme() }],
+    text: [],
+};
+
+/**
+ * A variant's colours: `fill` on `ink` at rest; `hover_fill` on `hover_ink`
+ * while hovered or pressed; at rest but half see-through while disabled;
+ * `ring` around it while it has keyboard focus.
+ */
+fun colours(fill: Paint, ink: Paint, hover_fill: Paint, hover_ink: Paint, ring: Paint): Look = look(
+    [
+        Background.color(fill),
+        Text.color(ink),
+        When(State.Hover, [Background.color(hover_fill), Text.color(hover_ink)]),
+        When(State.Press, [Background.color(hover_fill), Text.color(hover_ink)]),
+        When(State.Disabled, [Background.color(fill), Text.color(ink), Effects.opacity(0.5)]),
+        When(State.Focus, [halo(ring)]),
+    ],
+);
+
+/** What every button looks like, before its variant and size. */
+fun button_look(): Look = look([
+    Font.sm(),
+    Font.medium(),
+    Border.rounded_md(),
+    Border.all(1, clear()),
+    Sizing.min_height(36),
+    Spacing.padding_x(16),
+    Spacing.padding_y(0),
+    hairline_shadow(),
+    colours(
+        Token.Primary.paint(),
+        Token.PrimaryForeground.paint(),
+        Token.Primary.alpha(0.9),
+        Token.PrimaryForeground.paint(),
+        Token.Ring.alpha(0.5),
+    ),
+    // The ring's border and halo instead of GTK's focus outline.
+    When(State.Focus, [Border.all(1, Token.Ring), Outline { style: Line.None, ..Outline.theme() }]),
+    Motion.colors(150),
+    Motion.shadow(150),
+]);
+
+/**
+ * A button in the palette's colours that sends `msg` each time it's clicked;
+ * `.disabled(…)` and `.shortcut(…)` work as on kivuli's own `button`.
+ *
+ * Example:
+ *     ui.button("Cancel", Msg.Cancel).style([Button.outline(), Button.sm()])
+ */
+public fun button<Msg>(label: string, msg: Msg): View<Msg> = native_button(label, msg).style([
+    button_look(),
+]);
+
+/**
+ * A button showing `content` in a row, 8 px apart: icons and text, in any
+ * order. Icons are 16 px unless given a size, and symbolic ones take the
+ * text colour.
+ *
+ * Example:
+ *     ui.button_with([icon("list-add-symbolic"), text("New")], Msg.New)
+ */
+public fun button_with<Msg>(content: View<Msg>[], msg: Msg): View<Msg> = native_button_with(
+    row(content.map(fun(v: View<Msg>): View<Msg> = sized(v))).style([Spacing.gap(8)]),
+    msg,
+).style([button_look()]);
+
+/** `v` at 16 pixels if it's an icon given no size of its own. */
+fun sized<Msg>(v: View<Msg>): View<Msg> = match v {
+    Image(Icon(_)) => v.size(16),
+    Styled(inner, s) => match inner {
+        Image(Icon(_)) => if s.size == 0 { v.size(16) } else { v },
+        _ => v,
+    },
+    _ => v,
+};
+
+/** A button's variants and sizes, given through `.style`: `ui.button("Cancel", Msg.Cancel).style([Button.outline()])`. */
+public struct Button {}
+
+impl Button {
+    /** Something that can't be undone: the palette's destructive colours. */
+    public fun destructive(): Look = colours(
+        Token.Destructive.paint(),
+        Token.DestructiveForeground.paint(),
+        Token.Destructive.alpha(0.9),
+        Token.DestructiveForeground.paint(),
+        Token.Destructive.alpha(0.2),
+    );
+
+    /** A bordered button on the page's colour, the accent on hover. */
+    public fun outline(): Look = look([
+        colours(
+            Token.Background.paint(),
+            Token.Foreground.paint(),
+            Token.Accent.paint(),
+            Token.AccentForeground.paint(),
+            Token.Ring.alpha(0.5),
+        ),
+        Border.all(1, Token.Border),
+    ]);
+
+    /** Quieter: the palette's secondary colours. */
+    public fun secondary(): Look = colours(
+        Token.Secondary.paint(),
+        Token.SecondaryForeground.paint(),
+        Token.Secondary.alpha(0.8),
+        Token.SecondaryForeground.paint(),
+        Token.Ring.alpha(0.5),
+    );
+
+    /** No background until hovered: toolbars and quiet actions. */
+    public fun ghost(): Look = look([
+        colours(
+            Paint.Color(clear()),
+            Token.Foreground.paint(),
+            Token.Accent.paint(),
+            Token.AccentForeground.paint(),
+            Token.Ring.alpha(0.5),
+        ),
+        Shadow.off(),
+    ]);
+
+    /** Looks like a link: primary text, underlined on hover. */
+    public fun link(): Look = look([
+        colours(
+            Paint.Color(clear()),
+            Token.Primary.paint(),
+            Paint.Color(clear()),
+            Token.Primary.paint(),
+            Token.Ring.alpha(0.5),
+        ),
+        Shadow.off(),
+        When(State.Hover, [Text.underline()]),
+    ]);
+
+    /** Smaller: 32 px high, 12 px across. */
+    public fun sm(): Look = look([Sizing.min_height(32), Spacing.padding_x(12)]);
+
+    /** Larger: 40 px high, 24 px across. */
+    public fun lg(): Look = look([Sizing.min_height(40), Spacing.padding_x(24)]);
+
+    /** A 36 px square, for an icon alone. */
+    public fun icon(): Look = look([
+        Sizing.min_width(36),
+        Sizing.min_height(36),
+        Spacing.padding_x(0),
+    ]);
+}

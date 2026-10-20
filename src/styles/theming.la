@@ -26,6 +26,8 @@ public enum Paint {
     Faded(f64),
     /** A named colour of the palette (`.palette(…)`), light or dark as the scheme is: `Paint.Token(Token.Primary)`. */
     Token(Token),
+    /** A palette colour at an opacity, 0 to 1: made by `Token.Primary.alpha(0.9)`. */
+    Alpha(Token, f64),
 }
 
 /**
@@ -71,6 +73,15 @@ public enum Token {
 impl Token {
     /** This token as a `Paint`: what a colour field holds. */
     public fun paint(self): Paint = Paint.Token(self);
+
+    /**
+     * This token at opacity `x`, 0 to 1, still following the palette and the
+     * scheme: a hover's lighter primary, a focus halo.
+     *
+     * Example:
+     *     When(State.Hover, [Background.color(Token.Primary.alpha(0.9))])
+     */
+    public fun alpha(self, x: f64): Paint = Paint.Alpha(self, x);
 }
 
 /**
@@ -90,6 +101,35 @@ impl Color {
 impl Paint {
     /** Itself: a `Paint` is a colour value too. */
     public fun paint(self): Paint = self;
+}
+
+/** A token as an app writes it: `MutedForeground`. */
+fun token_title(t: Token): string = match t {
+    Background => "Background",
+    Foreground => "Foreground",
+    Card => "Card",
+    CardForeground => "CardForeground",
+    Popover => "Popover",
+    PopoverForeground => "PopoverForeground",
+    Primary => "Primary",
+    PrimaryForeground => "PrimaryForeground",
+    Secondary => "Secondary",
+    SecondaryForeground => "SecondaryForeground",
+    Muted => "Muted",
+    MutedForeground => "MutedForeground",
+    Accent => "Accent",
+    AccentForeground => "AccentForeground",
+    Destructive => "Destructive",
+    DestructiveForeground => "DestructiveForeground",
+    Border => "Border",
+    Input => "Input",
+    Ring => "Ring",
+};
+
+/** `x` (0 to 1) as a percentage for CSS, to a tenth: 0.9 is `90`, 0.125 is `12.5`. */
+fun percent(x: f64): string {
+    let p = permille(x);
+    if p % 10 == 0 { "{p / 10}" } else { "{p / 10}.{p % 10}" }
 }
 
 /** A token's name in CSS: `MutedForeground` is `muted-foreground` (`var(--kv-muted-foreground)`). */
@@ -200,6 +240,8 @@ fun paint_css(p: Paint): string = match p {
     Color(c) => "#{digits(c)}",
     Faded(x) => "alpha(currentColor, {x})",
     Token(t) => "var(--kv-{token_name(t)})",
+    // GTK has no `rgb(from …)`; mixing with transparent is the same colour at that opacity.
+    Alpha(t, x) => "color-mix(in srgb, var(--kv-{token_name(t)}) {percent(x)}%, transparent)",
 };
 
 /** `s` in hex: any text as a valid, unique part of a class name. */

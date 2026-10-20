@@ -1,0 +1,177 @@
+// kivuli.ui's Button (PRP-029): the base look, each variant's colours and
+// its hover, press and disabled states, each size, a variant and a size in
+// either order, `button_with`'s icons, and that it is still a native button
+// (`.disabled` sends nothing). No GTK.
+import kivuli.styles { Sheet };
+import kivuli.view.looks { Style };
+import kivuli {
+    View,
+    State,
+    Token,
+    Paint,
+    Text,
+    Width,
+    Line,
+    Radius,
+    Weight,
+    Size,
+    Decoration,
+    icon,
+    text,
+};
+import kivuli.ui { Button };
+
+fun style_of<M>(v: View<M>): Style = match v {
+    Styled(_, s) => s,
+    _ => panic("expected a styled node"),
+};
+
+fun sheet_of<M>(v: View<M>): Sheet = style_of(v).sheet;
+
+/** The sheet `state` merges over the node's own. */
+fun in_state(s: Sheet, state: State): Sheet {
+    for (st, sub) of s.states {
+        if st == state {
+            return sub;
+        }
+    }
+    panic("no rules for that state")
+}
+
+fun b(label: string): View<i64> = ui.button(label, 1);
+
+fun bw(content: View<i64>[]): View<i64> = ui.button_with(content, 1);
+
+@test
+fun the_base_look_is_primary_small_and_rounded() {
+    let s = sheet_of(b("Save"));
+    assert_eq(s.font.size, Size.Scale(0.875));
+    assert_eq(s.font.weight, Weight.Medium);
+    assert_eq(s.border.radius, Radius.Medium);
+    assert_eq(s.border.top.width, Width.Px(1));
+    assert_eq(s.sizing.min_height, Width.Px(36));
+    assert_eq(s.spacing.padding.left, Width.Px(16));
+    assert_eq(s.spacing.padding.top, Width.Px(0));
+    assert_eq(s.background.color, Paint.Token(Token.Primary));
+    assert_eq(s.text.color, Paint.Token(Token.PrimaryForeground));
+    assert_eq(s.shadow.boxes.len, 1);
+    assert_eq(in_state(s, State.Hover).background.color, Token.Primary.alpha(0.9));
+    assert_eq(in_state(s, State.Press).background.color, Token.Primary.alpha(0.9));
+    let off = in_state(s, State.Disabled);
+    assert_eq(off.background.color, Paint.Token(Token.Primary));
+    assert_eq(off.effects.opacity, Some(0.5));
+    let focus = in_state(s, State.Focus);
+    assert_eq(focus.border.top.color, Paint.Token(Token.Ring));
+    assert_eq(focus.shadow.boxes[0].spread, 3);
+    assert_eq(focus.shadow.boxes[0].color, Token.Ring.alpha(0.5));
+    assert_eq(focus.outline.style, Line.None);
+    assert_eq(s.motion.transitions.len, 2);
+}
+
+@test
+fun each_variant_sets_its_colours_and_states() {
+    let d = sheet_of(b("x").style([Button.destructive()]));
+    assert_eq(d.background.color, Paint.Token(Token.Destructive));
+    assert_eq(in_state(d, State.Hover).background.color, Token.Destructive.alpha(0.9));
+    assert_eq(in_state(d, State.Focus).shadow.boxes[0].color, Token.Destructive.alpha(0.2));
+    let o = sheet_of(b("x").style([Button.outline()]));
+    assert_eq(o.background.color, Paint.Token(Token.Background));
+    assert_eq(o.border.top.color, Paint.Token(Token.Border));
+    assert_eq(o.text.color, Paint.Token(Token.Foreground));
+    assert_eq(in_state(o, State.Hover).background.color, Paint.Token(Token.Accent));
+    assert_eq(in_state(o, State.Hover).text.color, Paint.Token(Token.AccentForeground));
+    let s = sheet_of(b("x").style([Button.secondary()]));
+    assert_eq(s.background.color, Paint.Token(Token.Secondary));
+    assert_eq(in_state(s, State.Hover).background.color, Token.Secondary.alpha(0.8));
+    let g = sheet_of(b("x").style([Button.ghost()]));
+    assert_eq(in_state(g, State.Hover).background.color, Paint.Token(Token.Accent));
+    assert_eq(in_state(g, State.Press).background.color, Paint.Token(Token.Accent));
+    assert_eq(g.text.color, Paint.Token(Token.Foreground));
+    let l = sheet_of(b("x").style([Button.link()]));
+    assert_eq(l.text.color, Paint.Token(Token.Primary));
+    assert_eq(in_state(l, State.Hover).text.decoration, Decoration.Underline);
+    // A variant keeps the base's size and focus ring.
+    assert_eq(o.sizing.min_height, Width.Px(36));
+    assert_eq(in_state(g, State.Focus).border.top.color, Paint.Token(Token.Ring));
+}
+
+@test
+fun sizes_change_only_size_and_combine_with_a_variant() {
+    let sm = sheet_of(b("x").style([Button.sm()]));
+    assert_eq(sm.sizing.min_height, Width.Px(32));
+    assert_eq(sm.spacing.padding.left, Width.Px(12));
+    assert_eq(sm.background.color, Paint.Token(Token.Primary));
+    let lg = sheet_of(b("x").style([Button.lg()]));
+    assert_eq(lg.sizing.min_height, Width.Px(40));
+    assert_eq(lg.spacing.padding.right, Width.Px(24));
+    let sq = sheet_of(b("x").style([Button.icon()]));
+    assert_eq(sq.sizing.min_width, Width.Px(36));
+    assert_eq(sq.sizing.min_height, Width.Px(36));
+    assert_eq(sq.spacing.padding.left, Width.Px(0));
+    let one = sheet_of(b("x").style([Button.outline(), Button.sm()]));
+    let other = sheet_of(b("x").style([Button.sm(), Button.outline()]));
+    assert_eq(one.background.color, other.background.color);
+    assert_eq(one.sizing.min_height, other.sizing.min_height);
+    assert_eq(one.spacing.padding, other.spacing.padding);
+}
+
+@test
+fun a_button_with_content_shrinks_its_icons() {
+    let v = bw([icon("list-add-symbolic"), text("New"), icon("go-next-symbolic").size(24)]);
+    assert_eq(sheet_of(v).background.color, Paint.Token(Token.Primary));
+    match v {
+        Styled(inside, _) => match inside {
+            ButtonWith(content, msg) => {
+                assert_eq(msg, Some(1));
+                match content {
+                    Styled(r, rs) => {
+                        assert_eq(rs.sheet.spacing.gap, Width.Px(8));
+                        match r {
+                            Row(xs) => {
+                                assert_eq(style_of(xs[0]).size, 16);
+                                assert_eq(style_of(xs[2]).size, 24);
+                            }
+                            _ => panic("the content is a row"),
+                        }
+                    }
+                    _ => panic("the content row is styled"),
+                }
+            }
+            _ => panic("a button with content is a native button_with"),
+        },
+        _ => panic("a button is styled"),
+    }
+}
+
+@test
+fun it_is_still_a_native_button() {
+    let v = b("Save").disabled(true);
+    match v {
+        Styled(inside, _) => match inside {
+            Button(label, msg, _) => {
+                assert_eq(label, "Save");
+                assert(msg.is_none());
+            }
+            _ => panic("a ui button is a native button"),
+        },
+        _ => panic("a button is styled"),
+    }
+    let mine = sheet_of(b("x").style([Button.outline(), Text.color(Token.Primary)]));
+    assert_eq(mine.text.color, Paint.Token(Token.Primary));
+}
+
+@test
+fun the_objective_reads_as_written() {
+    let views: View<i64>[] = [
+        ui.button("Save", 1),
+        ui.button("Delete", 2).style([Button.destructive()]),
+        ui.button("Cancel", 3).style([Button.outline(), Button.sm()]),
+        ui.button("Later", 4).style([Button.secondary()]),
+        ui.button("Edit", 5).style([Button.ghost()]),
+        ui.button("Learn more", 6).style([Button.link()]),
+        ui.button_with([icon("list-add-symbolic"), text("New")], 7).style([Button.lg()]),
+        ui.button_with([icon("open-menu-symbolic")], 8).style([Button.icon(), Button.ghost()]),
+        ui.button("Save", 1).disabled(true),
+    ];
+    assert_eq(views.len, 9);
+}
