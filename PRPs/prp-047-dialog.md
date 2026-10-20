@@ -1,6 +1,6 @@
 # PRP-047 — Dialog: a modal over the page
 
-Status: draft, for the user's approval (session 104)
+Status: approved (session 105)
 Discovery: session 104, 2026-10-20 (the reference's dialog: a backdrop of black at 50%, a centred card (`Background`, a border, `rounded-lg`, 24 px padding, a large shadow, up to 512 px wide) with a title, a muted description, content and a footer of buttons, a close ✕ at its top right; Escape or a click on the backdrop closes it; it fades in). One window only (CLAUDE.md anti-pattern 9). *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: `.dialog(Option<Dialog<Msg>>)` on the root, `ui.dialog(close, parts)`, `dialog_header`, `dialog_footer`; and the native modifiers `.inert(bool)` and `.focusable(bool)` that make it modal.
