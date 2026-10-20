@@ -1406,6 +1406,12 @@ Branch: main (prp-042-dropdown-menu merged)
 
 ---
 
+## SESSION 90 — 2026-10-20 — Check and radio menu items: discovery — open
+
+Branch: main
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
