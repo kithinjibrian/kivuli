@@ -8,6 +8,11 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.23.0] — 2026-10-20
+
+### Added
+- `kivuli.ui` (PRP-028), components after shadcn, starting with `badge(label)` and its variants `Badge.secondary()`, `outline()`, `destructive()`, given through `.style`. `Look` / `look([...])`: several style values as one, a component's variant or an app's own. `examples/components.la`.
+
 ## [0.22.0] — 2026-10-20
 
 ### Added

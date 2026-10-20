@@ -1,6 +1,6 @@
 # PRP-028 — kivuli.ui: the first component, Badge
 
-Status: approved (session 42)
+Status: built (session 42) on branch prp-028-ui-badge
 Discovery: sessions 34 and 41, 2026-10-20 (the shadcn plan: a library module, A; one component first, the easiest). *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: `kivuli.ui`, a module of components drawn from palette tokens, starting with `badge(label)` and its variants as style values (`Badge.secondary()`, `outline()`, `destructive()`), shadcn v4's look.
@@ -41,8 +41,14 @@ badge("Beta").style([Border.rounded(999)])                          // the v3 pi
 - No other component (Button is next, reusing this convention); no icons inside a badge yet (`button_with`-style content later); no hover (shadcn's only applies to badges that are links).
 
 ## TESTS (narrow; run once the user's faster tests are in)
-- [ ] `test/badges.la` (new, pure): a badge's sheet (padding, radius `Small`, border width, font, colours `Primary`/`PrimaryForeground`, align `Start`); each variant's colours over it; an app's values after a variant win; `Look` applies its items in order and merges like its items; the OBJECTIVE reads as written.
+- [x] (written, type-checked) `test/badges.la` (new, pure): a badge's sheet (padding, radius `Small`, border width, font, colours `Primary`/`PrimaryForeground`, align `Start`); each variant's colours over it; an app's values after a variant win; `Look` applies its items in order and merges like its items; the OBJECTIVE reads as written.
 - [ ] Every example builds; `examples/components.la` (new): every variant in light and dark, with a scheme toggle and a palette switch. How it looks next to shadcn's: by hand.
 
 ## ACCEPTANCE
 - [ ] The OBJECTIVE compiles; fmt clean; no file over 500 lines; README (a `kivuli.ui` section), DESIGN, CHANGELOG 0.23.0, CLAUDE.md (module tree, rule 1); merged, tagged; pushed only on your go.
+
+## NOTES FROM THE BUILD
+
+- **A component file imports the modules the entry re-exports** (`view.views`, `styles.boxes`, …), not `kivuli`: inside the package the entry is `lib`, and rule 2 keeps package modules off it. The items are the same public ones an app uses.
+- **`Look`** lives in `styles.la` beside `applied`, which it calls.
+- **Tests not run** (the user is fixing slow test runs): badges type-checks; every example builds; fmt clean. How it looks next to shadcn's: by hand in `examples/components.la`.
