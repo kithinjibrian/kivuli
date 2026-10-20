@@ -1211,9 +1211,16 @@ Branch: main (prp-037-disabled-checkboxes merged)
 
 ---
 
-## SESSION 75 — 2026-10-20 — kivuli.ui Slider: discovery — open
+## SESSION 75 — 2026-10-20 — kivuli.ui Slider: discovery, PRP-038 draft — closed
 
 Branch: main
+
+### WHAT WAS DONE
+- Found: native sliders can't be disabled either. Interview: the slider, its parts and disabled sliders in one PRP (B).
+- PRP-038 drafted.
+
+### STILL OPEN AT CLOSE
+- PRP-038 awaits the user's approval.
 
 ---
 
