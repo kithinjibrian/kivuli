@@ -1,6 +1,7 @@
 // The header bar on real GTK widgets: the window's titlebar, its parts
 // patched in place and its buttons sending messages, and a replaced view
-// keeping the ones packed after it. Needs a display, so it is skipped
+// keeping the ones packed after it; the window controls styled through the
+// bar (PRP-054). Needs a display, so it is skipped
 // without one. Maximizing and an expanding title widget need a window on
 // screen: those are checked by hand.
 import std.env;
@@ -19,11 +20,27 @@ import gtk {
     gtk_widget_get_parent,
     gtk_window_get_titlebar,
     gtk_widget_has_css_class,
+    gtk_widget_get_first_child,
+    gtk_widget_get_next_sibling,
+    lgtk_widget_rgba,
 };
 import kivuli.render.live { mount, live_of };
 import kivuli.core.effects { sandbox_app };
 import kivuli.core.live_tree { Live, widget };
-import kivuli { View, button, column, input, text, header_bar, Background, Paint, hex };
+import kivuli {
+    View,
+    Inside,
+    Part,
+    Text,
+    button,
+    column,
+    input,
+    text,
+    header_bar,
+    Background,
+    Paint,
+    hex,
+};
 
 fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
 
@@ -232,4 +249,76 @@ fun a_bars_style_goes_on_the_bar_and_follows_the_model() {
         );
     });
     assert_eq(seen.get(), ["bar 1 page 0 controls 1", "after: same bar true, dark 0"]);
+}
+
+enum Plain {
+    Never,
+}
+
+fun view_controls(n: i64): View<Plain> = column([text("page")]).header(
+    header_bar([], text("Title"), []).style([
+        Inside(Part.WindowButton, [Text.color(hex("#112233"))]),
+        Inside(Part.WindowClose, [Text.color(hex("#ff0000"))]),
+        Inside(Part.WindowIcon, [Text.color(hex("#00ff00"))]),
+    ]),
+);
+
+/** The first widget under `w` (itself included) with the CSS class `css`. */
+fun find(w: GtkWidget, css: string): Option<GtkWidget> {
+    if gtk_widget_has_css_class(w, css) != 0 {
+        return Some(w);
+    }
+    let mut child = gtk_widget_get_first_child(w);
+    while child.is_some() {
+        let c = child.expect("checked above");
+        match find(c, css) {
+            Some(found) => {
+                return Some(found);
+            }
+            None => {}
+        }
+        child = gtk_widget_get_next_sibling(c);
+    }
+    None
+}
+
+/** A widget's text colour as hex, `#rrggbbaa`. */
+fun rgba(w: GtkWidget): string {
+    let n = lgtk_widget_rgba(w) as i64;
+    let digits = "0123456789abcdef";
+    let mut out = "#";
+    let mut shift = 28;
+    while shift >= 0 {
+        let d = n >> shift & 15;
+        out = out + digits.slice(d, d + 1);
+        shift = shift - 4;
+    }
+    out
+}
+
+@test
+fun a_bars_style_reaches_its_window_controls() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen: Ref<string[]> = Ref.new([]);
+    let received: Ref<string[]> = Ref.new([]);
+    with_app("org.kivuli.test.controls", 0, fun(
+        n: i64,
+        msg: Plain,
+    ): i64 = n, view_controls, received, fun(window: GtkWidget, root: fun(): Live<Plain>) {
+        let Framed(bar, _, _, _, _) = root() else {
+            panic("expected a header");
+        };
+        match (find(bar, "minimize"), find(bar, "close")) {
+            (Some(minimize), Some(close)) => {
+                let icon = gtk_widget_get_first_child(close).expect(
+                    "a window control holds its icon",
+                );
+                note(seen, "minimize {rgba(minimize)} close {rgba(close)} icon {rgba(icon)}");
+            }
+            _ => note(seen, "no window controls"),
+        }
+    });
+    assert_eq(seen.get(), ["minimize #112233ff close #ff0000ff icon #00ff00ff"]);
 }

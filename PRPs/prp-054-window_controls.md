@@ -1,6 +1,6 @@
 # PRP-054 — Styling the window controls
 
-Status: approved (session 122); `Part.WindowIcon` added on the user's yes (session 124)
+Status: built (session 124), `Part.WindowIcon` added on the user's yes; merged into main in session 124 (its own tests run and pass)
 Discovery: session 122, 2026-10-21 (rapidkoi's DECISION-035: its header bar is in its frame colour with 48 px icon buttons, but GTK's − □ × keep the desktop's look, and kivuli 0.48 can't reach them; a bar's classes go on `headerbar` only, so the controls stay GTK's: DESIGN, PRP-023). *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: `Part.WindowButton`, `Part.WindowClose` and `Part.WindowIcon`, inside a header bar's style; `kivuli.ui`'s `WindowControls.look()`.
@@ -37,11 +37,11 @@ header_bar(start, title, end).style([WindowControls.look()])
 
 ## TESTS (narrow; type-check every test and example; run this PRP's own)
 - [x] A C probe first: GTK 4.22's header bar's controls' nodes and classes (`windowcontrols.end > button.close` and the others) under the `headerbar`.
-- [ ] `test/parts.la`: the three parts' selectors, a hover inside each.
-- [ ] `test/window_controls_ui.la` (new, pure): `WindowControls.look()`'s values; it applies to a bar.
-- [ ] `test/palettes.la` or `checks`: the parts refused on a view node, allowed on a bar.
-- [ ] `test/live_header.la`: the bar's classes reach the controls' rules (GTK reads back the close button's colour and its icon's cleared background on a styled bar).
-- [ ] GTK parses the generated rules; `examples/browser.la`'s header bar takes `WindowControls.look()`; only it built. How it looks: by hand.
+- [x] `test/parts.la`: the three parts' selectors, a hover inside each.
+- [x] `test/window_controls_ui.la` (new, pure): `WindowControls.look()`'s values; it applies to a bar.
+- [x] `test/palettes.la` or `checks`: the parts refused on a view node, allowed on a bar.
+- [x] `test/live_header.la`: the bar's classes reach the controls' rules (GTK reads back the close button's colour and its icon's cleared background on a styled bar).
+- [x] GTK parses the generated rules; `examples/components.la` gains a header bar taking `WindowControls.look()` (not browser.la: it has no palette, so the tokens would be unset); only it built. How it looks: by hand.
 
 ## ACCEPTANCE
 - [ ] The OBJECTIVE compiles; fmt clean; no file over 500 lines; README, DESIGN, CHANGELOG 0.49.0, CLAUDE.md; merged, tagged; pushed only on your go. Then rapidkoi's DECISION-035 can take it (a kivuli bump there, in its own session).
@@ -50,3 +50,6 @@ header_bar(start, title, end).style([WindowControls.look()])
 
 - **Probed** (session 123, `scratchpad/probe/wc.c`): `headerbar > windowhandle > box > box.end > windowcontrols.end > button.image-button.{minimize,maximize,close} > image`; a rule on `.kv-… windowcontrols > button.close` reaches the button. The proposed selectors hold.
 - **Found: the themes draw the hover circle on the icon, not the button.** GTK's Default and Yaru-dark (this desktop's): `windowcontrols button > image { border-radius: 9999px; min-width/height: 30px }`, `button:hover > image { background-color: … }`, and `button:hover { background: none }`. So a background on `Part.WindowButton` sits behind the theme's round circle, which still shows. Stopped: a third part for the icon (`windowcontrols > button > image`) is beyond the PRP's two; asked the user.
+- **The look goes in `examples/components.la`**, on a new header bar: `browser.la` has no palette, so `WindowControls.look()`'s tokens would be unset there.
+- **The parts' refusal is in `paint`** (`window_parts`, for every view node's sheet and its states); a bar's sheet goes through `bar_classes`, which takes them.
+- **Tests run and pass**: parts, window_controls_ui (19 pure); live_header (the controls' colours read back: minimise, close and the close's icon), live_type, palettes (21). Every test and example type-checks; components built; GTK parsed the rules (43 lines, 0 errors).

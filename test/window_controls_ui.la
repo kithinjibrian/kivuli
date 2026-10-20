@@ -1,0 +1,89 @@
+// The window controls' look (PRP-054): `WindowControls.look()` in a header
+// bar's style: ghost buttons in the palette's colours, the close one red on
+// hover, the theme's circle on the icon cleared; the parts refused on a view
+// node. No GTK.
+import kivuli.styles { Sheet };
+import kivuli.styles.paint { painted };
+import kivuli.view.looks { Style };
+import kivuli {
+    View,
+    Animate,
+    Part,
+    State,
+    Token,
+    Paint,
+    Width,
+    Radius,
+    Inside,
+    Text,
+    column,
+    text,
+    header_bar,
+};
+import kivuli.ui { WindowControls };
+
+fun part(s: Sheet, p: Part): Sheet {
+    for (q, sub) of s.parts {
+        if q == p {
+            return sub;
+        }
+    }
+    panic("no rules for that part")
+}
+
+fun in_state(s: Sheet, state: State): Sheet {
+    for (st, sub) of s.states {
+        if st == state {
+            return sub;
+        }
+    }
+    panic("no rules for that state")
+}
+
+fun looked(): Sheet = WindowControls.look().apply(Sheet.theme());
+
+@test
+fun the_controls_are_ghost_buttons_in_the_palette() {
+    let b = part(looked(), Part.WindowButton);
+    assert_eq(b.text.color, Paint.Token(Token.MutedForeground));
+    assert_eq(b.border.radius, Radius.Medium);
+    assert_eq(b.sizing.min_width, Width.Px(32));
+    assert_eq(b.sizing.min_height, Width.Px(32));
+    let hovered = in_state(b, State.Hover);
+    assert_eq(hovered.background.color, Paint.Token(Token.Accent));
+    assert_eq(hovered.text.color, Paint.Token(Token.AccentForeground));
+    assert_eq(in_state(b, State.Press).background.color, Paint.Token(Token.Accent));
+    assert_eq(b.motion.transitions, [(Animate.Colors, 150)]);
+}
+
+@test
+fun the_close_turns_red_and_the_icons_circle_goes() {
+    let c = in_state(part(looked(), Part.WindowClose), State.Hover);
+    assert_eq(c.background.color, Paint.Token(Token.Destructive));
+    assert_eq(c.text.color, Paint.Token(Token.DestructiveForeground));
+    let i = part(looked(), Part.WindowIcon);
+    assert(i.background.color != Paint.Theme);
+    assert_eq(i.border.radius, Radius.All(0));
+}
+
+@test
+fun the_look_goes_on_a_bar_and_the_parts_nowhere_else() {
+    let page: View<i64> = column([text("x")]);
+    assert(
+        painted(page.header(header_bar([], text("t"), []).style([WindowControls.look()]))).is_ok(),
+    );
+    let wrong: View<i64> = column([
+        text("x").style([Inside(Part.WindowButton, [Text.color(Token.Primary)])]),
+    ]);
+    assert_eq(
+        painted(wrong).map(fun(v) = 0),
+        Err("Part.WindowButton belongs in a header bar's style"),
+    );
+    let close: View<i64> = column([]).style([
+        Inside(Part.WindowClose, [Text.color(Token.Primary)]),
+    ]);
+    assert_eq(
+        painted(close).map(fun(v) = 0),
+        Err("Part.WindowClose belongs in a header bar's style"),
+    );
+}

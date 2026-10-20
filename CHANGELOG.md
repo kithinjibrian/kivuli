@@ -8,6 +8,11 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.49.0] — 2026-10-21
+
+### Added
+- Styling the window controls (PRP-054): `Part.WindowButton`, `Part.WindowClose` and `Part.WindowIcon` in a header bar's `.style`; `kivuli.ui`'s `WindowControls.look()`. GTK keeps the controls themselves.
+
 ## [0.48.0] — 2026-10-20
 
 ### Added

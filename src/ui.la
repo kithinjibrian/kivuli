@@ -36,6 +36,7 @@ public import ui.switches { switch };
 public import ui.tab_bars { tab, tab_with, tabs, tabs_line, tabs_line_vertical, tabs_vertical };
 public import ui.menu_looks { dropdown_menu, Menu };
 public import ui.tooltip_looks { Tooltip };
+public import ui.window_controls { WindowControls };
 public import ui.progress_bars { progress };
 public import ui.avatars { avatar, avatar_group, Avatar };
 public import ui.dialogs { dialog, dialog_header, dialog_footer, sheet };
