@@ -1018,6 +1018,12 @@ Branch: main (prp-032-ui-input merged)
 
 ---
 
+## SESSION 60 — 2026-10-20 — kivuli.ui Field: discovery — open
+
+Branch: main
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
