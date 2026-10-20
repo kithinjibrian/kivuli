@@ -1,6 +1,6 @@
 # PRP-042 — Dropdown menu
 
-Status: draft, for the user's approval (session 87); one question in it for the user (destructive items)
+Status: approved (session 88), destructive items left out (the user: a)
 Discovery: session 87, 2026-10-20 (the reference: ui.shadcn.com/docs/components/base/dropdown-menu and its source; GTK's popover menu probed: `popover.menu > contents > … modelbutton` items, `label.title` section titles, `separator`, `accelerator` hints, `arrow.right` for a submenu, `check.left`; the popover a CSS descendant of the node it opens from). *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: `.dropdown_menu(entries)` opening kivuli's menu on a click; new entries (`menu_label`, `submenu`, `.hint(keys)`); menu parts; `ui.dropdown_menu(trigger, entries)` in the palette's look.
