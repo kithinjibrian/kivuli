@@ -764,9 +764,17 @@ Branch: main (prp-027-motion merged)
 
 ---
 
-## SESSION 41 — 2026-10-20 — kivuli.ui, first component: discovery — open
+## SESSION 41 — 2026-10-20 — kivuli.ui, first component: discovery, PRP-028 draft — closed
 
 Branch: main
+
+### WHAT WAS DONE
+- The user asked for one component first, the easiest. Interview: Badge (A); variants as style values through `.style` (C); shadcn v4's look, corners from the palette (A).
+- PRP-028 (kivuli.ui, Badge) drafted: `kivuli.ui` module, `Look` (a bundle of style values), `badge(label)`, `Badge.secondary/outline/destructive()`.
+
+### STILL OPEN AT CLOSE
+- PRP-028 awaits the user's approval.
+- Tests not run since session 32; main and tags v0.18.0–v0.22.0 not pushed.
 
 ---
 
