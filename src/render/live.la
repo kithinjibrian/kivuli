@@ -5,7 +5,7 @@
  * responsible for deciding what to show (the app's `view`) or what changed
  * (`diff`).
  *
- * Depends on: diff, lazies, views, looks, effects, build, patch, paths, keys, walk, live_tree, paint, sheets, gtk.raw
+ * Depends on: diff, lazies, views, effects, build, patch, paths, keys, walk, live_tree, paint, sheets, palettes, schemes, windows, gtk.raw
  * Used by: lib
  */
 
@@ -13,11 +13,6 @@ import gtk {
     GtkApplication,
     GtkCssProvider,
     GtkEventController,
-    connect_click,
-    gtk_gesture_click_new,
-    gtk_gesture_single_set_button,
-    gtk_widget_add_controller,
-    gtk_window_set_focus,
     GtkWidget,
     connect_app,
     g_application_quit,
@@ -34,17 +29,13 @@ import gtk {
     gtk_style_context_add_provider_for_display,
     gtk_widget_get_display,
     gtk_widget_grab_focus,
-    gtk_window_maximize,
     gtk_window_present,
     gtk_window_set_child,
-    gtk_window_set_default_size,
-    gtk_window_set_title,
     gtk_window_set_titlebar,
 };
 import core.diff;
 import view.lazies;
 import view.views { View };
-import view.looks { Window };
 import core.effects { App, Cmd, Timer, commands, receivers, timers };
 import std.task;
 import render.build { create, focus_target };
@@ -56,6 +47,7 @@ import core.live_tree { Live, titlebar, widget };
 import styles.paint { background_pictures, painted, stylesheet };
 import styles.palettes { default_tokens };
 import render.schemes { scheme_of, show_scheme };
+import render.windows { click_away, show_maximized, show_window, window_of };
 import styles.sheets { picture_css, url_of };
 
 /** What changes as the app runs: the model, the view it gave, and the widgets showing it. */
@@ -219,53 +211,11 @@ fun dispatch<Model, Msg>(app: Running<Model, Msg>, msg: Msg) {
     resubscribe(app, model);
 }
 
-/** The window a view's root asks for with `.window(…)`, if any. */
-fun window_of<Msg>(tree: View<Msg>): Option<Window> = match tree {
-    Styled(_, style) => style.window,
-    _ => None,
-};
-
-/** Retitles and resizes `window` when the root's `.window(…)` changed; a dropped one leaves it as it is. */
-fun show_window(window: GtkWidget, old: Option<Window>, new: Option<Window>) {
-    if new == old {
-        return;
-    }
-    match new {
-        Some(w) => {
-            gtk_window_set_title(window, w.title);
-            gtk_window_set_default_size(window, w.width as i32, w.height as i32);
-        }
-        None => {}
-    }
-}
-
 /** `v` with its looks' classes filled in (`paint`); what the app got wrong stops it. */
 fun paint_or_stop<Msg>(v: View<Msg>): View<Msg> = match painted(v) {
     Ok(p) => p,
     Err(problem) => panic("kivuli: {problem}"),
 };
-
-/**
- * Clicking away clears keyboard focus, as a web page blurs a field (PRP-024):
- * a primary-button gesture on the window, in the bubble phase (GTK's
- * default), so it sees only clicks no widget under the pointer took (buttons,
- * fields, text areas and the like take their own). GTK otherwise keeps a
- * field focused whatever is clicked beside it.
- */
-fun click_away(window: GtkWidget): GtkEventController {
-    let gesture = gtk_gesture_click_new();
-    gtk_gesture_single_set_button(gesture, 1);
-    connect_click(
-        gesture,
-        "pressed",
-        fun(g: GtkEventController, n: i32, x: f64, y: f64) {
-            gtk_window_set_focus(window, None);
-        },
-        0,
-    );
-    gtk_widget_add_controller(window, gesture);
-    gesture
-}
 
 /** The app's stylesheet, applied to `window`'s display; its `prefers-color-scheme` rules follow GTK's scheme. */
 fun styles_for(window: GtkWidget): Styles {
@@ -299,17 +249,6 @@ fun add_rules<Msg>(styles: Styles, tree: View<Msg>) {
         styles.classes.set(known);
         styles.css.set(css);
         gtk_css_provider_load_from_string(styles.provider, css.join("\n"));
-    }
-}
-
-/** On the root, `.maximized()`: the window opens maximized. Read once, when it opens. */
-fun show_maximized<Msg>(window: GtkWidget, tree: View<Msg>) {
-    let Styled(_, style) = tree else {
-        return;
-    };
-    if style.maximized {
-        // Before the window is shown: it opens maximized.
-        gtk_window_maximize(window);
     }
 }
 
