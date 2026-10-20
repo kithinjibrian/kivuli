@@ -1,6 +1,6 @@
 # PRP-052 — kivuli.ui: Sheet
 
-Status: draft (session 107)
+Status: approved (session 107, "build all")
 Discovery: session 107, 2026-10-20 (the reference's sheet: a panel against one edge of the window over a 50% backdrop, full height and at most 384 px wide on the sides, a border on its inner edge, a large shadow, sliding in; a ✕ at its top end; a header, content and a footer at its bottom). *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: `ui.sheet(close, edge, parts)`: a `Dialog` shown through the root's `.dialog(…)`, against an edge.

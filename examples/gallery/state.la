@@ -1,0 +1,78 @@
+// The components gallery's model, messages and update, and the helpers
+// every section uses (examples/components.la).
+import kivuli { View, Align, Token, Palette, Font, Spacing, Text, column, text };
+
+/** What the gallery's controls show. */
+public struct Model {
+    public dark: bool,
+    public base: i64,
+    public email: string,
+    public password: string,
+    public user: string,
+    public same: bool,
+    public volume: i64,
+    public fruit: string,
+    public airplane: bool,
+    public tab: i64,
+    public picked: string,
+    public status_bar: bool,
+    public panel: string,
+    public deleting: bool,
+}
+
+/** Everything the gallery's controls send. */
+public enum Msg {
+    Dark(bool),
+    Base(i64),
+    Email(string),
+    Password(string),
+    User(string),
+    Same(bool),
+    Volume(i64),
+    Fruit(string),
+    Airplane(bool),
+    Tab(i64),
+    Picked(string),
+    StatusBar(bool),
+    Panel(string),
+    Deleting(bool),
+}
+
+/** The gallery's update: each message sets its field. */
+public fun update(m: Model, msg: Msg): Model = match msg {
+    Dark(on) => Model { dark: on, ..m },
+    Base(n) => Model { base: n, ..m },
+    Email(s) => Model { email: s, ..m },
+    Password(s) => Model { password: s, ..m },
+    User(s) => Model { user: s, ..m },
+    Same(b) => Model { same: b, ..m },
+    Volume(n) => Model { volume: n, ..m },
+    Fruit(f) => Model { fruit: f, ..m },
+    Airplane(b) => Model { airplane: b, ..m },
+    Tab(n) => Model { tab: n, ..m },
+    // Picking anything also closes the dialog (its Delete picks).
+    Picked(what) => Model { picked: what, deleting: false, ..m },
+    StatusBar(b) => Model { status_bar: b, ..m },
+    Panel(p) => Model { panel: p, ..m },
+    Deleting(on) => Model { deleting: on, ..m },
+};
+
+/** The palette each Base button picks. */
+public fun palette_of(n: i64): Palette = if n == 1 {
+    Palette.slate()
+} else if n == 2 {
+    Palette.stone()
+} else if n == 3 {
+    Palette.zinc().radius(4)
+} else {
+    Palette.zinc()
+};
+
+/** A section's heading and what it shows. */
+public fun section(title: string, body: View<Msg>): View<Msg> = column([
+    text(title).style([Font.sm(), Font.medium(), Text.color(Token.MutedForeground)]),
+    body,
+]).style([Spacing.gap(8)]);
+
+/** `v` centred across its row. */
+public fun centred(v: View<Msg>): View<Msg> = v.align(Align.Center);

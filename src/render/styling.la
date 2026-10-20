@@ -53,6 +53,7 @@ import gtk {
     gtk_widget_set_can_focus,
     gtk_widget_set_can_target,
     gtk_widget_set_focusable,
+    gtk_widget_get_parent,
     gtk_widget_set_halign,
     gtk_widget_set_hexpand,
     gtk_widget_set_size_request,
@@ -143,7 +144,10 @@ fun apply_style<Msg>(node: Live<Msg>, style: Style, axis: i32) {
     // The label kivuli puts in a button or check box takes its decoration
     // classes: CSS doesn't inherit `text-decoration`; everything else it does.
     match node {
-        Button(_, _, _, _, label, _) => style_label(label, style),
+        Button(_, _, _, _, label, _) => {
+            style_label(label, style);
+            place_content(label, style.sheet.text.align);
+        }
         Checkbox(_, label, _) => style_label(label, style),
         // Where text sits is the label's own setting (GTK's CSS has no
         // `text-align`); set every time, so a changed value lands.
@@ -378,6 +382,22 @@ fun style_label(label: GtkWidget, style: Style) {
         if class.contains("-td-") {
             gtk_widget_add_css_class(label, class);
         }
+    }
+}
+
+/**
+ * Places a button's content (the box holding its image and `label`) across
+ * the button: GTK's centre unless the style says start or end.
+ */
+fun place_content(label: GtkWidget, a: TextAlign) {
+    let at = match a {
+        Theme | Center => 3,
+        Start => 1,
+        End => 2,
+    };
+    match gtk_widget_get_parent(label) {
+        Some(content) => gtk_widget_set_halign(content, at as i32),
+        None => {}
     }
 }
 

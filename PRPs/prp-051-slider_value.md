@@ -1,6 +1,6 @@
 # PRP-051 — Hiding a slider's number
 
-Status: draft (session 107)
+Status: approved (session 107, "build all")
 Discovery: session 107, 2026-10-20 (the reference's slider shows no number). *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: `.show_value(on)` on any slider; `ui.slider` hides its number by default.

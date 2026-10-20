@@ -227,7 +227,7 @@ So far:
 
 - `ui.switch(on, on_toggle)`: a round track (`Input` off, `Primary` on) and a thumb GTK slides; put its label beside it in a `field_horizontal`.
 
-- `ui.tabs([tab("Account", Msg.Tab(0)), …], m.tab)` (a muted pill, the active trigger raised) and `ui.tabs_line(…)` (the active one underlined); `tab_with([icon(…), text(…)], msg)`; `.disabled(…)` on a trigger. Which tab is open is the model's: show its panel beside the tabs.
+- `ui.tabs([tab("Account", Msg.Tab(0)), …], m.tab)` (a muted pill, the active trigger raised) and `ui.tabs_line(…)` (the active one underlined); `tab_with([icon(…), text(…)], msg)`; `.disabled(…)` on a trigger; `ui.tabs_vertical(…)` and `ui.tabs_line_vertical(…)` stack them. Which tab is open is the model's: show its panel beside the tabs.
 
 - `ui.dropdown_menu(trigger, entries)`: a click on `trigger` opens its menu below it, in the palette's look (`Menu.look()`, which a right-click `.menu` can take too). Entries: `item`, `.hint("Ctrl+P")` (a shortcut shown at its end), `.disabled`, `menu_label` (a group's title), `menu_separator`, `submenu(label, entries)` (opening beside), `check_item(label, checked, on_toggle)` and `radio_group(selected, choices)` (ticked from the model). Any view takes `.dropdown_menu(entries)`. GTK draws no icons beside menu items.
 

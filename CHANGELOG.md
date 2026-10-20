@@ -8,6 +8,15 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.43.0] — 2026-10-20
+
+### Added
+- Vertical tabs (PRP-048): `kivuli.ui`'s `tabs_vertical` and `tabs_line_vertical`.
+- `Text.start()` and `Text.end()` on a native button place its content at that side (GTK's centre otherwise, as before).
+
+### Changed
+- `examples/components.la`'s sections moved to `examples/gallery/`; `test/live_forms.la`'s shortcut and focus tests to `test/live_shortcuts.la` (the 500-line limit).
+
 ## [0.42.0] — 2026-10-20
 
 ### Added

@@ -15,6 +15,8 @@ import gtk {
     gtk_application_window_new,
     gtk_label_get_justify,
     gtk_label_get_xalign,
+    gtk_widget_get_halign,
+    gtk_widget_get_parent,
 };
 import kivuli.render.live { mount, live_of };
 import kivuli.core.effects { sandbox_app };
@@ -92,4 +94,62 @@ fun labels_take_their_alignment() {
         "same true now 5 2",
         "button label 5 0",
     ]);
+}
+
+/** A button's content's `GtkAlign` (1 start, 2 end, 3 center). */
+fun content_align<M>(node: Live<M>): i64 = match node {
+    Button(_, _, _, _, label, _) => match gtk_widget_get_parent(label) {
+        Some(box) => gtk_widget_get_halign(box) as i64,
+        None => -1,
+    },
+    _ => -2,
+};
+
+/** A plain button, one at the start, one whose end swaps to centred when flipped. */
+fun view_buttons(n: i64): View<Flip> = column([
+    button("plain", Flip.Flip),
+    button("start", Flip.Flip).style([Text.start()]),
+    button("end", Flip.Flip).style([if n == 0 { Text.end() } else { Text.center() }]),
+]);
+
+@test
+fun a_buttons_text_alignment_places_its_content() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen: Ref<string[]> = Ref.new([]);
+    let application = gtk_application_new("org.kivuli.test.button_align", 0);
+    connect_app(
+        application,
+        "activate",
+        fun(a: GtkApplication) {
+            let window = gtk_application_window_new(a);
+            let app = mount(
+                a,
+                window,
+                sandbox_app(
+                    "org.kivuli.test",
+                    0,
+                    fun(n: i64, msg: Flip): i64 = n + 1,
+                    view_buttons,
+                ),
+            );
+            let kids = fun(): Live<Flip>[] = match live_of(app) {
+                Box(_, _, ks) => ks,
+                _ => panic("expected a column"),
+            };
+            note(
+                seen,
+                "{content_align(kids()[0])} {content_align(kids()[1])} {content_align(kids()[2])}",
+            );
+            emit_widget(widget(kids()[0]), "clicked");
+            note(seen, "now {content_align(kids()[2])}");
+            g_application_quit(a);
+        },
+        0,
+    );
+    g_application_run(application, 0, None);
+    g_object_unref(application);
+    // GTK's centre by default; the style's start, end, then centre.
+    assert_eq(seen.get(), ["3 1 2", "now 3"]);
 }
