@@ -805,6 +805,12 @@ Branch: prp-028-ui-badge
 
 ---
 
+## SESSION 44 — 2026-10-20 — badge_with; no shadcn in comments; no co-author line — open
+
+Branch: prp-028-ui-badge
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
