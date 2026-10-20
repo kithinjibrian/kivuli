@@ -689,6 +689,12 @@ Branch: prp-026-palettes (not merged: its tests haven't run)
 
 ---
 
+## SESSION 36 — 2026-10-20 — PRP-026 fix: dark mode never applied — open
+
+Branch: prp-026-palettes
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
