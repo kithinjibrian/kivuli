@@ -214,15 +214,28 @@ fun a_token_at_an_opacity_is_a_colour_mix() {
         "color-mix(in srgb, var(--kv-ring) 50%, transparent)",
     );
     let s = Background.color(Token.Primary.alpha(0.9)).apply(Sheet.theme());
-    assert_eq(rules(s)[0], (
-        "kv-bgt-primary-a900",
-        "background-color: color-mix(in srgb, var(--kv-primary) 90%, transparent);",
-    ));
+    assert_eq(
+        rules(s)[0],
+        (
+            "kv-bgt-primary-a900",
+            "background-color: color-mix(in srgb, var(--kv-primary) 90%, transparent);",
+        ),
+    );
     let t = Text.color(Token.Muted.alpha(0.25)).apply(Sheet.theme());
-    assert_eq(rules(t), [("kv-fgt-muted-a250", "color: color-mix(in srgb, var(--kv-muted) 25%, transparent);")]);
+    assert_eq(rules(t), [
+        ("kv-fgt-muted-a250", "color: color-mix(in srgb, var(--kv-muted) 25%, transparent);"),
+    ]);
     let b = Border.all(1, Token.Border.alpha(0.5)).apply(Sheet.theme());
-    assert(rules(b).iter().any(fun(r) = r.1 == "border-top-color: color-mix(in srgb, var(--kv-border) 50%, transparent);"));
-    let hover: View<i64> = text("x").style([When(State.Hover, [Background.color(Token.Accent.alpha(0.8))])]);
+    assert(
+        rules(b).iter().any(
+            fun(
+                r,
+            ) = r.1 == "border-top-color: color-mix(in srgb, var(--kv-border) 50%, transparent);",
+        ),
+    );
+    let hover: View<i64> = text("x").style([
+        When(State.Hover, [Background.color(Token.Accent.alpha(0.8))]),
+    ]);
     assert(rules(sheet_of(hover))[0].0.contains("kv-hover-bgt-accent-a800"));
 }
 
