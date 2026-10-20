@@ -8,6 +8,11 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.38.0] — 2026-10-20
+
+### Added
+- Check and radio menu items (PRP-043): `check_item(label, checked, on_toggle)`, `radio_group(selected, choices)`, for `.menu` and `.dropdown_menu`; `Part.MenuCheck`, `Part.MenuRadio`; their marks in `Menu.look()`. Needs lugha-gtk 0.1.38.
+
 ## [0.37.0] — 2026-10-20
 
 ### Added

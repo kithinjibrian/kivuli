@@ -1419,6 +1419,37 @@ Branch: main
 
 ---
 
+## SESSION 91 — 2026-10-20 — PRP-043: check and radio menu items, built, not merged — closed
+
+Branch: prp-043-check-radio-menu (not merged: waiting for the user's look)
+
+### WHAT WAS DONE
+- lugha-gtk 0.1.38 (stateful actions, GVariant values, a menu item's target; pushed, tagged).
+- `MenuEntry.Check`/`Radio`, `check_item`, `radio_group`; plain, check and radio actions numbered apart; `sync_checks`/`sync_radios` set states each refresh; the model's radio items with targets; `Part.MenuCheck`/`MenuRadio` and marks in `Menu.look()`. A View menu in components.la. Docs; 0.38.0 (not tagged). Every test and example type-checks; tests not run.
+
+### STILL OPEN AT CLOSE
+- The user to look; then merge, tag v0.38.0.
+
+---
+
+## SESSION 92 — 2026-10-20 — Menu radio dot size — closed
+
+Branch: prp-043-check-radio-menu (not merged)
+
+### WHAT WAS DONE
+- From the user's screenshot: the menu works (labels, hint, disabled item, the dot on the selected radio), but the dot was ~14 px: GTK draws a radio's mark at the node's size. Now an 8 px node in a 4 px margin. Test updated (type-checked); components rebuilt.
+
+### STILL OPEN AT CLOSE
+- The user to look again (and tick Status bar); then merge PRP-043, tag v0.38.0.
+
+---
+
+## SESSION 93 — 2026-10-20 — Merge PRP-043 — open
+
+Branch: main (merging prp-043-check-radio-menu)
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.

@@ -1,6 +1,6 @@
 # PRP-043 — Check and radio menu items
 
-Status: draft, for the user's approval (session 90)
+Status: built (session 91) on branch prp-043-check-radio-menu
 Discovery: session 90, 2026-10-20 (PRP-042's follow-up; the reference's `DropdownMenuCheckboxItem` and `RadioGroup`/`RadioItem`: text indented 32 px, a 16 px tick or an 8 px dot at the start). *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: `check_item(label, checked, on_toggle)` and `radio_group(selected, choices)` menu entries, ticked from the model, for `.menu` and `.dropdown_menu`; their look in `Menu.look()`.
@@ -39,12 +39,20 @@ assert_eq(kivuli.testing.pick(view(m), "View", "Status bar"), Ok(Msg.StatusBar(f
 - No mixed (indeterminate) state, no check or radio items outside menus (check boxes are those).
 
 ## TESTS (narrow; type-check every test and example, run once the user's faster tests are in)
-- [ ] `test/menus.la`: the two entries, `.disabled`, `.hint` on a check item, `map`; `layout` shows them.
-- [ ] `test/testing.la`: `pick` of a check item (the toggle) and of a radio choice.
-- [ ] `test/live_dropdown_menu.la`: a check item's and a radio group's action states follow the model across an update; activating one sends its message and leaves the state to the model.
-- [ ] `test/menus_ui.la`, `test/parts.la`: the two parts and the look's marks.
-- [ ] lugha-gtk: a stateful action's state set and read back; a radio item's target.
-- [ ] GTK parses the generated rules; the Dropdown menu section in `examples/components.la` gains an Appearance group; only it built. How it looks: by hand.
+- [x] `test/menus.la`: the two entries, `.disabled`, `.hint` on a check item, `map`; `layout` shows them.
+- [x] `test/testing.la`: `pick` of a check item (the toggle) and of a radio choice.
+- [x] `test/live_dropdown_menu.la`: a check item's and a radio group's action states follow the model across an update; activating one sends its message and leaves the state to the model.
+- [x] `test/menus_ui.la`, `test/parts.la`: the two parts and the look's marks.
+- [x] lugha-gtk: a stateful action's state set and read back; a radio item's target.
+- [x] GTK parses the generated rules; the Dropdown menu section in `examples/components.la` gains an Appearance group; only it built. How it looks: by hand.
 
 ## ACCEPTANCE
 - [ ] The OBJECTIVE compiles; fmt clean; no file over 500 lines; README, DESIGN, CHANGELOG 0.38.0; merged, tagged; pushed only on your go.
+
+## NOTES FROM THE BUILD
+
+- **lugha-gtk 0.1.38**: `g_simple_action_new_stateful`, `g_simple_action_set_state`, `g_variant_new_boolean`/`_string`, `g_variant_type_new`/`_free`, `g_menu_item_set_action_and_target_value`, and C helpers `lgtk_variant_string`, `lgtk_action_state_bool`/`_string` (`src/c/menu.c`); its test shows an activate handler leaves the state alone; pushed, tagged.
+- **Plain items, check items and radio groups are numbered apart** (`plain_items`, `check_items`, `radio_groups`), so adding a check item doesn't renumber the plain ones; `items` (every pickable one) is for `pick` and for "does it have an item".
+- **A radio group is one action**: it's enabled while any choice sends; one disabled choice among enabled ones can't be greyed alone.
+- **Every test and example type-checks**; tests not run; GTK parsed the rules (87 lines, 0 errors); only components built.
+- **The radio's dot was drawn at 14 px** (found by hand, session 92): GTK draws a radio's mark at the node's size, not `-gtk-icon-size`; the radio is now an 8 px node in a 4 px margin (the item keeps its 16 px of room).

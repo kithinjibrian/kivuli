@@ -61,3 +61,22 @@ fun a_dropdown_menu_opens_on_a_click_in_the_look() {
         _ => panic("a dropdown menu is styled"),
     }
 }
+
+@test
+fun the_menus_check_and_radio_draw_their_own_marks() {
+    let s = Menu.look().apply(Sheet.theme());
+    let check = part(s, Part.MenuCheck);
+    assert_eq(check.sizing.min_width, Width.Px(16));
+    let checked = check.states.iter().find(fun(st) = st.0 == State.Checked).map(
+        fun(st) = st.1.mark.icon,
+    );
+    assert_eq(checked, Some("object-select-symbolic"));
+    let radio = part(s, Part.MenuRadio);
+    // GTK draws the dot at the node's size: 8 px, in a 4 px margin.
+    assert_eq(radio.sizing.min_width, Width.Px(8));
+    assert_eq(radio.spacing.margin.left, Width.Px(4));
+    let dotted = radio.states.iter().find(fun(st) = st.0 == State.Checked).map(
+        fun(st) = (st.1.mark.icon, st.1.mark.size),
+    );
+    assert_eq(dotted, Some(("media-record-symbolic", 8)));
+}

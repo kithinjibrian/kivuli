@@ -38,6 +38,14 @@ import gtk {
     g_menu_append_item,
     g_menu_append_submenu,
     g_menu_item_new,
+    g_menu_item_set_action_and_target_value,
+    g_simple_action_new_stateful,
+    g_simple_action_set_state,
+    g_variant_new_boolean,
+    g_variant_new_string,
+    g_variant_type_free,
+    g_variant_type_new,
+    lgtk_variant_string,
     g_menu_item_unref,
     gtk_event_controller_set_propagation_phase,
     gtk_gesture_set_state,
@@ -61,7 +69,7 @@ import gtk {
     gtk_widget_set_parent,
     gtk_widget_unparent,
 };
-import view.menus { MenuEntry, items, layout, message_of };
+import view.menus { MenuEntry, check_items, items, layout, message_of, plain_items, radio_groups };
 import view.keys { parse };
 import core.live_tree { Popup };
 import render.styling { flag };
@@ -175,6 +183,8 @@ fun attach<Msg>(w: GtkWidget, entries: MenuEntry<Msg>[], send: fun(Msg)): Popup<
         hold: hold,
         primary: primary,
         on_click: on_click,
+        checks: Ref.new([]),
+        radios: Ref.new([]),
         keys: menu_keys,
     };
     g_menu_unref(empty);
@@ -202,7 +212,7 @@ fun refresh<Msg>(p: Popup<Msg>, entries: MenuEntry<Msg>[], send: fun(Msg)) {
     // each reads its message from `p.entries` when picked.
     let mut actions = p.actions.get();
     let mut i = actions.len;
-    while i < items_in(entries) {
+    while i < plain_items(entries).len {
         let index = i;
         let action = g_simple_action_new("item{index}", None);
         connect_action(
@@ -223,6 +233,8 @@ fun refresh<Msg>(p: Popup<Msg>, entries: MenuEntry<Msg>[], send: fun(Msg)) {
         i = i + 1;
     }
     p.actions.set(actions);
+    sync_checks(p, entries, send);
+    sync_radios(p, entries, send);
     let mut j = 0;
     while j < actions.len {
         g_simple_action_set_enabled(actions[j], flag(message_of(entries, j).is_some()));
@@ -236,13 +248,119 @@ fun refresh<Msg>(p: Popup<Msg>, entries: MenuEntry<Msg>[], send: fun(Msg)) {
 fun items_in<Msg>(entries: MenuEntry<Msg>[]): i64 = items(entries).len;
 
 /**
+ * A stateful action per check item, made once by its place among the check
+ * items and kept; each refresh sets its state and whether it's enabled from
+ * the view, so the tick follows the model. Picking one sends its toggle of
+ * the opposite: an `activate` handler is connected, so GTK leaves the state
+ * to the next refresh.
+ */
+fun sync_checks<Msg>(p: Popup<Msg>, entries: MenuEntry<Msg>[], send: fun(Msg)) {
+    let wanted = check_items(entries);
+    let mut actions = p.checks.get();
+    while actions.len < wanted.len {
+        let index = actions.len;
+        let action = g_simple_action_new_stateful("check{index}", None, g_variant_new_boolean(0));
+        connect_action(
+            action,
+            "activate",
+            fun(a: GSimpleAction, param: Option<GVariant>) {
+                let now = check_items(p.entries.get());
+                if index < now.len {
+                    match now[index].1 {
+                        Some(f) => send(f(!now[index].0)),
+                        None => {}
+                    }
+                }
+            },
+            0,
+        );
+        g_action_map_add_action(p.group, action);
+        g_simple_action_unref(action);
+        actions.push(action);
+    }
+    p.checks.set(actions);
+    let mut j = 0;
+    while j < actions.len {
+        let (checked, on_toggle) = if j < wanted.len { wanted[j] } else { (false, None) };
+        g_simple_action_set_state(actions[j], g_variant_new_boolean(flag(checked)));
+        g_simple_action_set_enabled(actions[j], flag(on_toggle.is_some()));
+        j = j + 1;
+    }
+}
+
+/**
+ * A stateful action per radio group (a string state, its items naming it with
+ * their label as the target), made once and kept; each refresh sets the
+ * selected label. Picking a choice sends that choice's message.
+ */
+fun sync_radios<Msg>(p: Popup<Msg>, entries: MenuEntry<Msg>[], send: fun(Msg)) {
+    let wanted = radio_groups(entries);
+    let mut actions = p.radios.get();
+    while actions.len < wanted.len {
+        let index = actions.len;
+        let kind = g_variant_type_new("s");
+        let action = g_simple_action_new_stateful(
+            "radio{index}",
+            Some(kind),
+            g_variant_new_string(""),
+        );
+        g_variant_type_free(kind);
+        connect_action(
+            action,
+            "activate",
+            fun(a: GSimpleAction, param: Option<GVariant>) {
+                let now = radio_groups(p.entries.get());
+                match param {
+                    Some(v) => if index < now.len {
+                        let label = lgtk_variant_string(v);
+                        for (choice, msg) of now[index].1 {
+                            if choice == label {
+                                match msg {
+                                    Some(m) => send(m),
+                                    None => {}
+                                }
+                            }
+                        }
+                    },
+                    None => {}
+                }
+            },
+            0,
+        );
+        g_action_map_add_action(p.group, action);
+        g_simple_action_unref(action);
+        actions.push(action);
+    }
+    p.radios.set(actions);
+    let mut j = 0;
+    while j < actions.len {
+        let (selected, choices) = if j < wanted.len { wanted[j] } else { ("", []) };
+        g_simple_action_set_state(actions[j], g_variant_new_string(selected));
+        // One action for the group: enabled while any choice sends.
+        g_simple_action_set_enabled(actions[j], flag(choices.iter().any(fun(c) = c.1.is_some())));
+        j = j + 1;
+    }
+}
+
+/**
  * The menu model: items in sections, a new section after each separator and
  * at each label (the section's title); submenus nested, their items numbered
  * on from the menu's (`items`' order).
  */
-fun model_of<Msg>(entries: MenuEntry<Msg>[]): GMenu = model_from(entries, Ref.new(0));
+fun model_of<Msg>(entries: MenuEntry<Msg>[]): GMenu = model_from(entries, Counters {
+    item: Ref.new(0),
+    check: Ref.new(0),
+    radio: Ref.new(0),
+});
 
-fun model_from<Msg>(entries: MenuEntry<Msg>[], next: Ref<i64>): GMenu {
+/** The next plain item's, check item's and radio group's numbers, as the model is built. */
+struct Counters {
+    item: Ref<i64>,
+    check: Ref<i64>,
+    radio: Ref<i64>,
+}
+
+fun model_from<Msg>(entries: MenuEntry<Msg>[], next: Counters): GMenu {
     let menu = g_menu_new();
     let section = Ref.new(g_menu_new());
     let title: Ref<Option<string>> = Ref.new(None);
@@ -261,11 +379,31 @@ fun model_from<Msg>(entries: MenuEntry<Msg>[], next: Ref<i64>): GMenu {
     for e of entries {
         match e {
             Item(label, _) => {
-                add_item(section.get(), label, "", next);
+                add_item(section.get(), label, "", "kv.item", next.item);
                 filled.set(true);
             }
             Hinted(label, _, combo) => {
-                add_item(section.get(), label, combo, next);
+                add_item(section.get(), label, combo, "kv.item", next.item);
+                filled.set(true);
+            }
+            Check(label, _, _, combo) => {
+                add_item(section.get(), label, combo, "kv.check", next.check);
+                filled.set(true);
+            }
+            Radio(_, choices) => {
+                let group = "kv.radio{next.radio.get()}";
+                next.radio.set(next.radio.get() + 1);
+                for (label, _) of choices {
+                    let item: GMenuItem = g_menu_item_new(Some(label), None);
+                    // Each choice names the group's action with its label: GTK dots the one matching its state.
+                    g_menu_item_set_action_and_target_value(
+                        item,
+                        group,
+                        g_variant_new_string(label),
+                    );
+                    g_menu_append_item(section.get(), item);
+                    g_menu_item_unref(item);
+                }
                 filled.set(true);
             }
             Separator => close(),
@@ -288,9 +426,9 @@ fun model_from<Msg>(entries: MenuEntry<Msg>[], next: Ref<i64>): GMenu {
     menu
 }
 
-/** Appends the next item to `section`, with `combo` shown at its end unless `""`. */
-fun add_item(section: GMenu, label: string, combo: string, next: Ref<i64>) {
-    let item: GMenuItem = g_menu_item_new(Some(label), Some("kv.item{next.get()}"));
+/** Appends an item naming the next action `prefix{n}` to `section`, with `combo` shown at its end unless `""`. */
+fun add_item(section: GMenu, label: string, combo: string, prefix: string, next: Ref<i64>) {
+    let item: GMenuItem = g_menu_item_new(Some(label), Some("{prefix}{next.get()}"));
     next.set(next.get() + 1);
     if combo != "" {
         match parse(combo) {

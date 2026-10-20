@@ -18,6 +18,8 @@ import kivuli {
     button,
     checkbox,
     column,
+    radio_group,
+    check_item,
     submenu,
     menu_separator,
     menu_label,
@@ -76,6 +78,8 @@ struct Model {
     airplane: bool,
     tab: i64,
     picked: string,
+    status_bar: bool,
+    panel: string,
 }
 
 enum Msg {
@@ -90,6 +94,8 @@ enum Msg {
     Airplane(bool),
     Tab(i64),
     Picked(string),
+    StatusBar(bool),
+    Panel(string),
 }
 
 fun update(m: Model, msg: Msg): Model = match msg {
@@ -104,6 +110,8 @@ fun update(m: Model, msg: Msg): Model = match msg {
     Airplane(b) => Model { airplane: b, ..m },
     Tab(n) => Model { tab: n, ..m },
     Picked(what) => Model { picked: what, ..m },
+    StatusBar(b) => Model { status_bar: b, ..m },
+    Panel(p) => Model { panel: p, ..m },
 };
 
 fun palette_of(n: i64): Palette = if n == 1 {
@@ -264,14 +272,26 @@ fun page(m: Model): View<Msg> = column([
                     item("API", Msg.Picked("API")).disabled(true),
                     item("Log out", Msg.Picked("Log out")),
                 ]).align(Align.Center),
+                ui.dropdown_menu(ui.button("View", Msg.Picked("")).style([Button.outline()]), [
+                    menu_label("Appearance"),
+                    check_item("Status bar", m.status_bar, Msg.StatusBar).hint("Ctrl+B"),
+                    check_item("Activity bar (locked)", false, Msg.StatusBar).disabled(true),
+                    menu_separator(),
+                    menu_label("Panel position"),
+                    radio_group(m.panel, [
+                        ("Top", Msg.Panel("Top")),
+                        ("Bottom", Msg.Panel("Bottom")),
+                        ("Right", Msg.Panel("Right")),
+                    ]),
+                ]).align(Align.Center),
                 text("Right-click me").style([Text.color(Token.MutedForeground)]).menu([
                     item("Copy", Msg.Picked("Copy")),
                     item("Paste", Msg.Picked("Paste")),
                 ]).style([Menu.look()]).align(Align.Center),
             ]).style([Spacing.gap(16)]),
-            text(if m.picked == "" { "Nothing picked yet." } else { "Picked: {m.picked}" }).style([
-                Text.color(Token.MutedForeground),
-            ]),
+            text(
+                "{if m.picked == "" { "Nothing picked yet." } else { "Picked: {m.picked}." }} Status bar {if m.status_bar { "on" } else { "off" }}, panel {m.panel}.",
+            ).style([Text.color(Token.MutedForeground)]),
         ]).style([Spacing.gap(12)]),
     ),
     section(
@@ -495,6 +515,8 @@ fun main(): i32 = sandbox(
         airplane: false,
         tab: 0,
         picked: "",
+        status_bar: true,
+        panel: "Bottom",
     },
     update,
     view,
