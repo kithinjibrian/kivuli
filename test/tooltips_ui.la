@@ -1,0 +1,37 @@
+// kivuli.ui's tooltip look (PRP-044): the inverse colours, small text,
+// rounded and padded, the theme's border and shadow gone, fading in. No GTK.
+import kivuli.styles { Sheet };
+import kivuli { View, Part, Token, Paint, Width, Radius, Size, column, text };
+import kivuli.ui { Tooltip };
+
+fun part(s: Sheet, p: Part): Sheet {
+    for (q, sub) of s.parts {
+        if q == p {
+            return sub;
+        }
+    }
+    panic("no rules for that part")
+}
+
+@test
+fun the_tooltip_look_is_the_references() {
+    let t = part(Tooltip.look().apply(Sheet.theme()), Part.Tooltip);
+    assert_eq(t.background.color, Paint.Token(Token.Foreground));
+    assert_eq(t.text.color, Paint.Token(Token.Background));
+    assert_eq(t.font.size, Size.Scale(0.75));
+    assert_eq(t.border.radius, Radius.Medium);
+    assert_eq(t.spacing.padding.top, Width.Px(6));
+    assert_eq(t.spacing.padding.left, Width.Px(12));
+    assert_eq(t.border.top.width, Width.Px(0));
+    assert_eq(t.shadow.boxes[0].spread, 0);
+    assert_eq(t.motion.fade, Some(150));
+}
+
+@test
+fun it_goes_on_the_root() {
+    let v: View<i64> = column([text("page")]).style([Tooltip.look()]);
+    match v {
+        Styled(_, s) => assert_eq(s.sheet.parts.len, 1),
+        _ => panic("expected the root styled"),
+    }
+}

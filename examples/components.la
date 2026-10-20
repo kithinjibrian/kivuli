@@ -64,6 +64,7 @@ import kivuli.ui {
     tab,
     tab_with,
     Menu,
+    Tooltip,
 };
 
 struct Model {
@@ -132,9 +133,12 @@ fun section(title: string, body: View<Msg>): View<Msg> = column([
 
 fun centred(v: View<Msg>): View<Msg> = v.align(Align.Center);
 
-fun view(m: Model): View<Msg> = scroll(page(m)).palette(palette_of(m.base)).scheme(
-    if m.dark { Scheme.Dark } else { Scheme.Light },
-).window("Components", 760, 720);
+fun view(m: Model): View<Msg> = scroll(page(m))
+    .palette(palette_of(m.base))
+    .scheme(if m.dark { Scheme.Dark } else { Scheme.Light })
+    // Every tooltip in the app, in the palette's look.
+    .style([Tooltip.look()])
+    .window("Components", 760, 720);
 
 /** The fruit drop-downs' choices. */
 fun fruits(): (string, Msg)[] = ["Apple", "Banana", "Blueberry", "Grapes", "Pineapple"].map(
@@ -155,7 +159,7 @@ fun page(m: Model): View<Msg> = column([
         "Button",
         column([
             row([
-                centred(ui.button("Button", Msg.Base(m.base))),
+                centred(ui.button("Button", Msg.Base(m.base)).tooltip("Add to library")),
                 centred(ui.button("Secondary", Msg.Base(m.base)).style([Button.secondary()])),
                 centred(ui.button("Destructive", Msg.Base(m.base)).style([Button.destructive()])),
                 centred(ui.button("Outline", Msg.Base(m.base)).style([Button.outline()])),
@@ -177,13 +181,13 @@ fun page(m: Model): View<Msg> = column([
                     ui.button_with([icon("open-menu-symbolic")], Msg.Base(m.base)).style([
                         Button.icon(),
                         Button.outline(),
-                    ]),
+                    ]).tooltip("Menu"),
                 ),
                 centred(
                     ui.button_with([icon("edit-delete-symbolic")], Msg.Base(m.base)).style([
                         Button.icon(),
                         Button.ghost(),
-                    ]),
+                    ]).tooltip("Delete"),
                 ),
             ]).style([Spacing.gap(8)]),
             row([
