@@ -1845,9 +1845,15 @@ Branch: prp-054-window-controls → main
 
 ---
 
-## SESSION 125 — 2026-10-21 — Push v0.49.0 — open
+## SESSION 125 — 2026-10-21 — Pushed v0.49.0 — closed
 
 Branch: main
+
+### WHAT WAS DONE
+- `lughac test test/` in one run was killed twice with SIGTERM (exit 143) before printing anything; every test file alone passes (84 files, 472 tests, each exit 0, 261 s in all), so the tests are sound: the one run likely outlasts the tool's 10-minute command limit. Examples' own tests (8, 5, 3), every example built, fmt clean. On the user's go: pushed main and v0.49.0.
+
+### STILL OPEN AT CLOSE
+- The full run in one call: if it keeps being killed, run test files in batches before a push. By hand: the window controls in `examples/components.la`. Rapidkoi can take 0.49 (its DECISION-035) in its own session; its DECISION-034 as a kivuli bug-fix PRP, if wanted.
 
 ---
 
@@ -1855,7 +1861,7 @@ Branch: main
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
 2. Read CLAUDE.md, MEMORY.md, DECISIONS.md, then this file's last session; go by `git log` for what's merged.
-3. kivuli is at 0.49.0 on main, local; GitHub has up to v0.48.0 (session 119). Later tags wait for the user's go, after a full test run (none since session 32: the user is speeding tests up). lugha-gtk is at 0.1.43, pushed (standing go).
+3. kivuli is at 0.49.0, pushed with tags up to v0.49.0 (session 125). Later tags wait for the user's go, after a full test run (none since session 32: the user is speeding tests up). lugha-gtk is at 0.1.43, pushed (standing go).
 4. `src/` is in folders (view/, styles/, core/, render/; DECISION-026); `test/` stays flat (DECISION-027, open: a lughac change).
 5. The plan (session 34): shadcn-like components. Done: palettes and tokens (PRP-026), motion (PRP-027), `kivuli.ui` with Badge (PRP-028: variants are `Look`s through `.style`; component files import the entry's modules, not `lib`) and Button (PRP-029: `ui.button` beside the native one; variants restate colours in states to outrank GTK's button rules; `Token.alpha`). Then text alignment (PRP-030: start by default, `Text.center()`) and Card (PRP-031: parts as functions; no font size on containers, since scales compound; DECISION-028 open) and Input (PRP-032: `State.FocusWithin`, as a GTK field's text child takes the focus). Field (PRP-033: parts, `field_horizontal`). the input group (PRP-034: the frame draws border and ring; `group_input` has none). Separator (PRP-035), Checkbox with widget parts (PRP-036: `Inside(Part, …)`, `Mark.icon`), disabled check boxes (PRP-037), Slider and disabled sliders (PRP-038), dropdown (PRP-039: parts as paths, states inside parts, a placeholder). Then a native switch and `ui.switch` (PRP-040), Tabs from the model (PRP-041), dropdown menus (PRP-042: `.dropdown_menu`, labels, submenus, hints, `Menu.look()`). Then check and radio menu items (PRP-043: stateful actions set from the view), the tooltip look (PRP-044: `Part.Tooltip` = `~ tooltip` on the root; unconfirmed by hand), progress (PRP-045), avatar (PRP-046: a picture layered over its initials), dialog (PRP-047: `.dialog` on the root, an always-there overlay, the page `.inert`, Escape on the ✕). Then vertical tabs (PRP-048), drop-down groups (PRP-049: a flatten model and a header factory, lugha-gtk's groups.c), disabled drop-downs (PRP-050), `.show_value` (PRP-051), sheets (PRP-052). `examples/components.la`'s sections are in `examples/gallery/`. Next is the user's choice (later: tooltip, dialog, progress, avatar; groups in drop-downs; disabled drop-downs) (GTK entry icons dropped: the input group covers them) (button variants, input, card, badge, separator, select, checkbox, slider), then widgets kivuli lacks (switch, tabs, tooltip, dialog, progress, avatar).
 6. Gotchas: a named import binds the module's last name (E0311/E0314: no `styles.effects`); `lughac fmt` reflows text scripted edits expect: re-read first; Lugha strings interpolate `{…}`: write `{{`; an app's GtkCssProvider needs `lgtk_css_provider_new_for_scheme` for dark rules; files may not exceed 500 lines; gate any push on the test run's real exit status (the full suite last passed in session 98, 421 tests); never chain a bare `git push` in kivuli; no Co-Authored-By trailer on commits; no shadcn by name in code comments; check only affected examples and build only the one being run; commit `lughac fmt` output before switching branches; chain git steps with `&&`, never `;`.
