@@ -1366,9 +1366,17 @@ Branch: main (prp-041-ui-tabs merged)
 
 ---
 
-## SESSION 87 — 2026-10-20 — Dropdown menu: discovery — open
+## SESSION 87 — 2026-10-20 — Dropdown menu: discovery, PRP-042 draft — closed
 
 Branch: main
+
+### WHAT WAS DONE
+- Read the reference page and its source (the parts' classes). Probed GTK's popover menu (modelbutton items, label.title, separator, accelerator, arrow.right, check.left; nested submenus possible). Interview: GTK's popover menu opened by a click (A); all but check and radio items (B).
+- Found: a GMenu item can't carry a CSS class, so a destructive item can't be styled through it: put to the user in PRP-042.
+- PRP-042 drafted.
+
+### STILL OPEN AT CLOSE
+- PRP-042 awaits the user's approval and the destructive-item choice.
 
 ---
 
