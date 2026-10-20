@@ -9,8 +9,9 @@
  */
 
 public import view.views { Bar, View };
-public import view.looks { Align, Fit };
-public import styles.theming { Color, Paint, hex, rgb };
+public import view.looks { Align, Fit, Scheme };
+public import styles.theming { Color, Colorish, Paint, Token, hex, rgb };
+public import styles.palettes { Palette };
 public import styles { Styling, State, StateStyle, When };
 public import styles.fonts { Font, Text };
 public import styles.boxes { Background, Border, Outline, Spacing, Sizing };

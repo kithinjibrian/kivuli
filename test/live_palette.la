@@ -1,0 +1,132 @@
+// Palettes and schemes on real GTK widgets (PRP-026): the root carries its
+// palette's class and the stylesheet its rule; a changed palette is a new
+// class on the same widget; `.scheme` sets GTK's colour scheme and `System`
+// gives it back. Needs a display, so it is skipped without one. (How light
+// and dark look: examples/palette.la.)
+import std.env;
+import gtk {
+    GtkApplication,
+    connect_app,
+    emit_widget,
+    g_application_quit,
+    g_application_run,
+    g_object_unref,
+    gtk_application_new,
+    gtk_application_window_new,
+    gtk_widget_has_css_class,
+    lgtk_color_scheme,
+    lgtk_reset_color_scheme,
+};
+import kivuli.render.live { mount, live_of };
+import kivuli.core.effects { sandbox_app };
+import kivuli.core.live_tree { Live, widget };
+import kivuli.styles.palettes { palette_class };
+import kivuli { View, Palette, Scheme, button, column };
+
+fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
+
+fun note(seen: Ref<string[]>, s: string) {
+    seen.update(fun(xs) {
+        let mut ys = xs;
+        ys.push(s);
+        ys
+    });
+}
+
+enum Flip {
+    Flip,
+}
+
+/** Zinc and light; flipped, slate and dark; flipped again, slate and the system's. */
+fun view_flip(n: i64): View<Flip> = column([button("flip", Flip.Flip)]).palette(
+    if n == 0 { Palette.zinc() } else { Palette.slate() },
+).scheme(if n == 0 { Scheme.Light } else if n == 1 { Scheme.Dark } else { Scheme.System });
+
+@test
+fun the_root_carries_its_palette_and_scheme_sets_gtks() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen: Ref<string[]> = Ref.new([]);
+    let application = gtk_application_new("org.kivuli.test.palette", 0);
+    connect_app(
+        application,
+        "activate",
+        fun(a: GtkApplication) {
+            let own = lgtk_color_scheme();
+            let window = gtk_application_window_new(a);
+            let app = mount(
+                a,
+                window,
+                sandbox_app("org.kivuli.test", 0, fun(n: i64, msg: Flip): i64 = n + 1, view_flip),
+            );
+            let root = widget(live_of(app));
+            let flip = fun() {
+                match live_of(app) {
+                    Box(_, _, ks) => emit_widget(widget(ks[0]), "clicked"),
+                    _ => panic("expected a column"),
+                }
+            };
+            let zinc = palette_class(Palette.zinc());
+            let slate = palette_class(Palette.slate());
+            let css = fun(): string[] = app.styles.css.get();
+            note(
+                seen,
+                "zinc {gtk_widget_has_css_class(root, zinc)} rule {css().any(fun(r) = r.starts_with(".{zinc} {{"))} tokens first {css()[0].starts_with("window {{")} light {lgtk_color_scheme() == 3}",
+            );
+            flip();
+            note(
+                seen,
+                "same {widget(live_of(app)) == root} slate {gtk_widget_has_css_class(root, slate)} zinc {gtk_widget_has_css_class(root, zinc)} dark {lgtk_color_scheme() == 2}",
+            );
+            flip();
+            note(seen, "system again {lgtk_color_scheme() == own}");
+            lgtk_reset_color_scheme();
+            g_application_quit(a);
+        },
+        0,
+    );
+    g_application_run(application, 0, None);
+    g_object_unref(application);
+    assert_eq(seen.get(), [
+        "zinc 1 rule true tokens first true light true",
+        "same true slate 1 zinc 0 dark true",
+        "system again true",
+    ]);
+}
+
+/** No palette: no palette class, and GTK's scheme left alone. */
+fun view_plain(n: i64): View<Flip> = column([button("flip", Flip.Flip)]);
+
+@test
+fun without_a_palette_or_scheme_nothing_changes() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen: Ref<string[]> = Ref.new([]);
+    let application = gtk_application_new("org.kivuli.test.plain", 0);
+    connect_app(
+        application,
+        "activate",
+        fun(a: GtkApplication) {
+            let own = lgtk_color_scheme();
+            let window = gtk_application_window_new(a);
+            let app = mount(
+                a,
+                window,
+                sandbox_app("org.kivuli.test", 0, fun(n: i64, msg: Flip): i64 = n + 1, view_plain),
+            );
+            let root = widget(live_of(app));
+            let zinc = palette_class(Palette.zinc());
+            note(
+                seen,
+                "zinc {gtk_widget_has_css_class(root, zinc)} scheme kept {lgtk_color_scheme() == own}",
+            );
+            g_application_quit(a);
+        },
+        0,
+    );
+    g_application_run(application, 0, None);
+    g_object_unref(application);
+    assert_eq(seen.get(), ["zinc 0 scheme kept true"]);
+}

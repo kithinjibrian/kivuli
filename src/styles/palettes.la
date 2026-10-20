@@ -1,0 +1,228 @@
+/**
+ * Palettes (PRP-026): each colour token's light and dark value and the
+ * radius, as CSS variables GTK switches with `prefers-color-scheme`. The root
+ * carries its palette's class; every window has zinc's values, so tokens work
+ * without a palette. Pure.
+ *
+ * Depends on: theming
+ * Used by: lib, looks, paint
+ */
+
+import styles.theming { Color, Token, digits, hex, token_name };
+
+/**
+ * An app's colours by name, each with a light and a dark value, and the
+ * radius components round to. Start from one of shadcn's bases.
+ *
+ * Example:
+ *     column(rows).palette(Palette.zinc().with(Token.Primary, hex("#2563eb"), hex("#3b82f6")).radius(8))
+ */
+public struct Palette {
+    colors: (Token, Color, Color)[],
+    /** Pixels; `Radius.Large`, less 2 for `Medium`, less 4 for `Small`. */
+    public radius: i64,
+}
+
+/** One base's distinct values in light or dark; the rest of its tokens repeat them. */
+struct Shades {
+    background: string,
+    foreground: string,
+    primary: string,
+    primary_foreground: string,
+    secondary: string,
+    muted_foreground: string,
+    destructive: string,
+    border: string,
+    ring: string,
+}
+
+/** Every token from `s`, as shadcn's bases share them out. */
+fun tokens(s: Shades): (Token, Color)[] = [
+    (Token.Background, hex(s.background)),
+    (Token.Foreground, hex(s.foreground)),
+    (Token.Card, hex(s.background)),
+    (Token.CardForeground, hex(s.foreground)),
+    (Token.Popover, hex(s.background)),
+    (Token.PopoverForeground, hex(s.foreground)),
+    (Token.Primary, hex(s.primary)),
+    (Token.PrimaryForeground, hex(s.primary_foreground)),
+    (Token.Secondary, hex(s.secondary)),
+    // On a light base the quiet surfaces' text is the primary; on a dark
+    // one the primary is the foreground, so this holds for both.
+    (Token.SecondaryForeground, hex(s.primary)),
+    (Token.Muted, hex(s.secondary)),
+    (Token.MutedForeground, hex(s.muted_foreground)),
+    (Token.Accent, hex(s.secondary)),
+    (Token.AccentForeground, hex(s.primary)),
+    (Token.Destructive, hex(s.destructive)),
+    // Near-white on red, in both.
+    (Token.DestructiveForeground, hex(s.primary_foreground)),
+    (Token.Border, hex(s.border)),
+    (Token.Input, hex(s.border)),
+    (Token.Ring, hex(s.ring)),
+];
+
+/** A palette from a base's light and dark shades. */
+fun base(light: Shades, dark: Shades): Palette {
+    let l = tokens(light);
+    let d = tokens(dark);
+    let mut colors: (Token, Color, Color)[] = [];
+    let mut i = 0;
+    while i < l.len {
+        colors.push((l[i].0, l[i].1, d[i].1));
+        i = i + 1;
+    }
+    Palette { colors: colors, radius: 10 }
+}
+
+/** A light base: white page, `ink` text, red destructive. */
+fun light(
+    ink: string,
+    primary: string,
+    on: string,
+    quiet: string,
+    muted: string,
+    border: string,
+): Shades = Shades {
+    background: "#ffffff",
+    foreground: ink,
+    primary: primary,
+    primary_foreground: on,
+    secondary: quiet,
+    muted_foreground: muted,
+    destructive: "#ef4444",
+    border: border,
+    ring: ink,
+};
+
+/** A dark base: `ink` page, `on` text and primary, dark red destructive. */
+fun dark(
+    ink: string,
+    on: string,
+    primary_text: string,
+    quiet: string,
+    muted: string,
+    ring: string,
+): Shades = Shades {
+    background: ink,
+    foreground: on,
+    primary: on,
+    primary_foreground: primary_text,
+    secondary: quiet,
+    muted_foreground: muted,
+    destructive: "#7f1d1d",
+    border: quiet,
+    ring: ring,
+};
+
+impl Palette {
+    /** shadcn's default: neutral greys with a touch of blue. */
+    public fun zinc(): Palette = base(
+        light("#09090b", "#18181b", "#fafafa", "#f4f4f5", "#71717a", "#e4e4e7"),
+        dark("#09090b", "#fafafa", "#18181b", "#27272a", "#a1a1aa", "#d4d4d8"),
+    );
+
+    /** Cool, blue-grey. */
+    public fun slate(): Palette = base(
+        light("#020817", "#0f172a", "#f8fafc", "#f1f5f9", "#64748b", "#e2e8f0"),
+        dark("#020817", "#f8fafc", "#0f172a", "#1e293b", "#94a3b8", "#cbd5e1"),
+    );
+
+    /** Warm, brown-grey. */
+    public fun stone(): Palette = base(
+        light("#0c0a09", "#1c1917", "#fafaf9", "#f5f5f4", "#78716c", "#e7e5e4"),
+        dark("#0c0a09", "#fafaf9", "#1c1917", "#292524", "#a8a29e", "#d6d3d1"),
+    );
+
+    /** Grey with a little blue. */
+    public fun gray(): Palette = base(
+        light("#030712", "#111827", "#f9fafb", "#f3f4f6", "#6b7280", "#e5e7eb"),
+        dark("#030712", "#f9fafb", "#111827", "#1f2937", "#9ca3af", "#d1d5db"),
+    );
+
+    /** Pure greys. */
+    public fun neutral(): Palette = base(
+        light("#0a0a0a", "#171717", "#fafafa", "#f5f5f5", "#737373", "#e5e5e5"),
+        dark("#0a0a0a", "#fafafa", "#171717", "#262626", "#a3a3a3", "#d4d4d4"),
+    );
+
+    /** This palette with `token` as `light` in a light scheme and `dark` in a dark one. */
+    public fun with(self, token: Token, light: Color, dark: Color): Palette {
+        let mut colors = self.colors;
+        let mut i = 0;
+        while i < colors.len {
+            if colors[i].0 == token {
+                colors[i] = (token, light, dark);
+            }
+            i = i + 1;
+        }
+        Palette { colors: colors, ..self }
+    }
+
+    /** This palette rounding to `px` (`Radius.Large`; `Medium` and `Small` are 2 and 4 less). */
+    public fun radius(self, px: i64): Palette = Palette { radius: px, ..self };
+
+    /** `token`'s value in a light scheme. */
+    public fun light(self, token: Token): Option<Color> = self.colors.iter().find(
+        fun(c) = c.0 == token,
+    ).map(fun(c) = c.1);
+
+    /** `token`'s value in a dark scheme. */
+    public fun dark(self, token: Token): Option<Color> = self.colors.iter().find(
+        fun(c) = c.0 == token,
+    ).map(fun(c) = c.2);
+}
+
+/** The palette's variables for one scheme: `--kv-primary: #18181b; … --kv-radius: 10px;`. */
+fun variables(p: Palette, dark: bool): string {
+    let mut out: string[] = [];
+    for (t, l, d) of p.colors {
+        out.push("--kv-{token_name(t)}: #{digits(if dark { d } else { l })};");
+    }
+    out.push("--kv-radius: {p.radius}px;");
+    out.join(" ")
+}
+
+/**
+ * The class a root with `p` carries: two hashes of its variables, so one
+ * palette is one class and a changed palette is a new one.
+ */
+fun palette_class(p: Palette): string {
+    let text = variables(p, false) + variables(p, true);
+    // Kept below 2^31 at each step, so nothing overflows.
+    let mut a = 7;
+    let mut b = 11;
+    for byte of text {
+        a = (a * 31 + byte as i64) % 1000000007;
+        b = (b * 131 + byte as i64) % 998244353;
+    }
+    "kv-pal-{a}-{b}"
+}
+
+/** `p`'s rule, keyed by its class: its variables and the page's colours, then its dark values. */
+fun palette_rule(p: Palette): (string, string) {
+    let c = palette_class(p);
+    let page = "background-color: var(--kv-background); color: var(--kv-foreground);";
+    (
+        c,
+        ".{c} {{ {variables(p, false)} {page} }}\n@media (prefers-color-scheme: dark) {{ .{c} {{ {variables(p, true)} }} }}",
+    )
+}
+
+/** A header bar's rule for `p`: its variables only, so the bar keeps GTK's colours. */
+fun palette_bar_rule(p: Palette): (string, string) {
+    let c = "{palette_class(p)}-bar";
+    (
+        c,
+        ".{c} {{ {variables(p, false)} }}\n@media (prefers-color-scheme: dark) {{ .{c} {{ {variables(p, true)} }} }}",
+    )
+}
+
+/** Zinc's variables on every window, so tokens work in any app; no page colours. */
+fun default_tokens(): (string, string) {
+    let z = Palette.zinc();
+    (
+        "kv-tokens",
+        "window {{ {variables(z, false)} }}\n@media (prefers-color-scheme: dark) {{ window {{ {variables(z, true)} }} }}",
+    )
+}

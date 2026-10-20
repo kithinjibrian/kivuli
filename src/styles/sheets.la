@@ -22,7 +22,7 @@ import styles.values {
     Edges,
 };
 import view.pictures { Image, data_url, identity };
-import styles.theming { Paint, digits, hexed, paint_css, permille };
+import styles.theming { Paint, digits, hexed, paint_css, permille, token_name };
 import styles.box_rules { box_css, check_effects, needs_clamp, sides };
 
 /**
@@ -85,7 +85,7 @@ fun check(s: Sheet): Result<(), string> {
         Corners(a, b, c, d) => if a < 0 || b < 0 || c < 0 || d < 0 {
             return Err("Radius.Corners({a}, {b}, {c}, {d}): a radius can't be negative");
         },
-        Theme => {}
+        _ => {}
     }
     check_width(s.outline.width)?;
     check_effects(s)?;
@@ -240,6 +240,7 @@ fun rules(s: Sheet): (string, string)[] {
         // `currentColor` is the colour the theme gives the node: faded, it
         // still follows light and dark, as the theme's `dim-label` does.
         Faded(x) => out.push(("kv-fade-{permille(x)}", "color: alpha(currentColor, {x});")),
+        Token(t) => out.push(("kv-fgt-{token_name(t)}", "color: var(--kv-{token_name(t)});")),
     }
     match s.text.line_height {
         Theme => {}
@@ -270,6 +271,9 @@ fun rules(s: Sheet): (string, string)[] {
         Color(c) => out.push(("kv-bg-{digits(c)}", "background-color: #{digits(c)};")),
         Faded(x) => out.push(
             ("kv-bgfade-{permille(x)}", "background-color: alpha(currentColor, {x});"),
+        ),
+        Token(t) => out.push(
+            ("kv-bgt-{token_name(t)}", "background-color: var(--kv-{token_name(t)});"),
         ),
     }
     // `background-image` is one property: the gradient and the image are one

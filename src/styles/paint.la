@@ -16,6 +16,7 @@ import styles.box_rules { needs_clamp };
 import styles.values { Width };
 import styles { Sheet };
 import view.pictures { Image };
+import styles.palettes { palette_bar_rule, palette_class, palette_rule };
 
 /**
  * `v` with every node's `classes` filled in from its style; or what's wrong:
@@ -25,7 +26,17 @@ fun painted<Msg>(v: View<Msg>): Result<View<Msg>, string> = match v {
     // The root alone may be framed by a header.
     Styled(inside, s) => {
         let own = paint_style(inside, s)?;
-        Ok(View.Styled(painted(inside)?, Style { bar_classes: bar_classes(s.bar)?, ..own }))
+        let mut classes = own.classes;
+        let mut bar = bar_classes(s.bar)?;
+        // The palette's class first, so the root's own `.style` wins over its page colours.
+        match s.palette {
+            Some(p) => {
+                classes = [palette_class(p)] + classes;
+                bar = ["{palette_class(p)}-bar"] + bar;
+            }
+            None => {}
+        }
+        Ok(View.Styled(painted(inside)?, Style { classes: classes, bar_classes: bar, ..own }))
     }
     Framed(body, start, title, end) => Ok(
         View.Framed(paint(body)?, paint_all(start)?, paint(title)?, paint_all(end)?),
@@ -34,7 +45,15 @@ fun painted<Msg>(v: View<Msg>): Result<View<Msg>, string> = match v {
 };
 
 fun paint<Msg>(v: View<Msg>): Result<View<Msg>, string> = match v {
-    Styled(inside, s) => Ok(View.Styled(paint(inside)?, paint_style(inside, s)?)),
+    Styled(inside, s) => {
+        if s.palette.is_some() {
+            return Err(".palette(…) belongs on the root of the view only");
+        }
+        if s.scheme.is_some() {
+            return Err(".scheme(…) belongs on the root of the view only");
+        }
+        Ok(View.Styled(paint(inside)?, paint_style(inside, s)?))
+    }
     Column(xs) => Ok(View.Column(paint_all(xs)?)),
     Row(xs) => Ok(View.Row(paint_all(xs)?)),
     Scroll(x) => Ok(View.Scroll(paint(x)?)),
@@ -103,18 +122,32 @@ fun bar_classes(bar: Sheet): Result<string[], string> {
 }
 
 /**
- * Every CSS rule a painted view's classes need, as (class, declarations),
- * each once, in the order nodes first use them.
+ * Every CSS rule a painted view's classes need, as (class, the whole rule),
+ * each once: the palette's first, then in the order nodes first use them.
  */
 fun stylesheet<Msg>(v: View<Msg>): (string, string)[] {
     let mut seen: Set<string> = #{};
     let mut out: (string, string)[] = [];
     for (_, style) of nodes(v) {
+        // Only the root has one (`paint` refuses it below), and its dark
+        // values need an `@media` block, so it comes whole.
+        match style.palette {
+            Some(p) => {
+                for rule of [palette_rule(p), palette_bar_rule(p)] {
+                    if seen.insert(rule.0) {
+                        out.push(rule);
+                    }
+                }
+            }
+            None => {}
+        }
+    }
+    for (_, style) of nodes(v) {
         // A root with a header bar carries the bar's rules too.
         for sheet of [style.sheet, style.bar] {
-            for rule of rules(sheet) {
-                if seen.insert(rule.0) {
-                    out.push(rule);
+            for (key, body) of rules(sheet) {
+                if seen.insert(key) {
+                    out.push((key, ".{key} {{ {body} }}"));
                 }
             }
         }

@@ -1,0 +1,207 @@
+// Palettes and colour tokens (PRP-026): a token is a `Paint` written as a
+// CSS variable; a palette gives every token a light and a dark value and the
+// radius; the root carries the palette's class; `.palette` and `.scheme`
+// belong on the root. No GTK.
+import kivuli.styles { Sheet };
+import kivuli.styles.sheets { rules };
+import kivuli.styles.paint { painted, stylesheet };
+import kivuli.styles.palettes { palette_class, palette_rule, default_tokens };
+import kivuli.styles.theming { paint_css };
+import kivuli {
+    View,
+    Token,
+    Palette,
+    Scheme,
+    Paint,
+    Text,
+    Background,
+    Border,
+    Outline,
+    Spacing,
+    Radius,
+    Side,
+    Width,
+    Line,
+    When,
+    State,
+    column,
+    text,
+    hex,
+};
+
+fun sheet_of<M>(v: View<M>): Sheet = match v {
+    Styled(_, s) => s.sheet,
+    _ => panic("expected a styled node"),
+};
+
+fun every_token(): Token[] = [
+    Token.Background,
+    Token.Foreground,
+    Token.Card,
+    Token.CardForeground,
+    Token.Popover,
+    Token.PopoverForeground,
+    Token.Primary,
+    Token.PrimaryForeground,
+    Token.Secondary,
+    Token.SecondaryForeground,
+    Token.Muted,
+    Token.MutedForeground,
+    Token.Accent,
+    Token.AccentForeground,
+    Token.Destructive,
+    Token.DestructiveForeground,
+    Token.Border,
+    Token.Input,
+    Token.Ring,
+];
+
+@test
+fun a_token_is_a_css_variable() {
+    assert_eq(paint_css(Paint.Token(Token.Primary)), "var(--kv-primary)");
+    assert_eq(paint_css(Paint.Token(Token.MutedForeground)), "var(--kv-muted-foreground)");
+    let s = Text.color(Token.MutedForeground).apply(Sheet.theme());
+    assert_eq(rules(s), [("kv-fgt-muted-foreground", "color: var(--kv-muted-foreground);")]);
+    let b = Background.color(Token.Card).apply(Sheet.theme());
+    assert_eq(rules(b)[0], ("kv-bgt-card", "background-color: var(--kv-card);"));
+}
+
+@test
+fun colour_utilities_take_a_colour_a_token_or_a_paint() {
+    assert_eq(Text.color(hex("#e0e0e0")).color, Paint.Color(hex("#e0e0e0")));
+    assert_eq(Text.color(Token.Primary).color, Paint.Token(Token.Primary));
+    assert_eq(Text.color(Paint.Faded(0.5)).color, Paint.Faded(0.5));
+    assert_eq(Border.all(1, Token.Border).all, Side {
+        width: Width.Px(1),
+        color: Paint.Token(Token.Border),
+        style: Line.Solid,
+    });
+    assert_eq(Outline.ring(2, Token.Ring).color, Paint.Token(Token.Ring));
+}
+
+@test
+fun every_base_has_every_token_light_and_dark() {
+    for p of [Palette.zinc(), Palette.slate(), Palette.stone(), Palette.gray(), Palette.neutral()] {
+        for t of every_token() {
+            assert(p.light(t).is_some());
+            assert(p.dark(t).is_some());
+        }
+        assert_eq(p.radius, 10);
+    }
+    let z = Palette.zinc();
+    assert_eq(z.light(Token.Primary), Some(hex("#18181b")));
+    assert_eq(z.dark(Token.Primary), Some(hex("#fafafa")));
+    assert_eq(z.light(Token.MutedForeground), Some(hex("#71717a")));
+    assert_eq(z.dark(Token.Border), Some(hex("#27272a")));
+}
+
+@test
+fun with_replaces_a_tokens_two_values_and_radius_sets_the_radius() {
+    let p = Palette.zinc().with(Token.Primary, hex("#2563eb"), hex("#3b82f6")).radius(6);
+    assert_eq(p.light(Token.Primary), Some(hex("#2563eb")));
+    assert_eq(p.dark(Token.Primary), Some(hex("#3b82f6")));
+    assert_eq(p.light(Token.Ring), Palette.zinc().light(Token.Ring));
+    assert_eq(p.radius, 6);
+    // Another palette, another class.
+    assert(palette_class(p) != palette_class(Palette.zinc()));
+    assert_eq(palette_class(Palette.zinc()), palette_class(Palette.zinc()));
+}
+
+@test
+fun the_radius_tokens_follow_the_palettes_radius() {
+    assert_eq(Border.rounded_sm().radius, Radius.Small);
+    assert_eq(Border.rounded_md().radius, Radius.Medium);
+    assert_eq(Border.rounded_lg().radius, Radius.Large);
+    let bodies = rules(Border.rounded_sm().apply(Sheet.theme())).map(fun(r) = r.1);
+    assert(
+        bodies.iter().any(fun(x) = x == "border-top-left-radius: calc(var(--kv-radius) - 4px);"),
+    );
+    let large = rules(Border.rounded_lg().apply(Sheet.theme())).map(fun(r) = r.1);
+    assert(large.iter().any(fun(x) = x == "border-bottom-right-radius: var(--kv-radius);"));
+}
+
+@test
+fun a_palettes_rule_sets_the_tokens_and_the_window_in_light_and_dark() {
+    let p = Palette.zinc();
+    let class = palette_class(p);
+    let (key, css) = palette_rule(p);
+    assert_eq(key, class);
+    assert(css.starts_with(".{class} {{"));
+    assert(css.contains("--kv-primary: #18181b;"));
+    assert(css.contains("--kv-radius: 10px;"));
+    assert(css.contains("background-color: var(--kv-background);"));
+    assert(css.contains("color: var(--kv-foreground);"));
+    assert(css.contains("@media (prefers-color-scheme: dark) {{ .{class} {{"));
+    assert(css.contains("--kv-primary: #fafafa;"));
+    // Without a palette, tokens still have zinc's values, on every window.
+    let (_, defaults) = default_tokens();
+    assert(defaults.starts_with("window {{"));
+    assert(defaults.contains("--kv-primary: #18181b;"));
+    assert(!defaults.contains("background-color"));
+}
+
+@test
+fun the_root_carries_the_palette_and_its_rule_comes_first() {
+    let p = Palette.slate();
+    let v: View<i64> = column([text("a").style([Text.color(Token.Muted)])]).style([
+        Spacing.padding(8),
+    ]).palette(p);
+    let painted_view = match painted(v) {
+        Ok(x) => x,
+        Err(problem) => panic(problem),
+    };
+    match painted_view {
+        Styled(_, s) => {
+            assert(s.classes.iter().any(fun(x) = x == palette_class(p)));
+            assert_eq(s.palette, Some(p));
+        }
+        _ => panic("expected the root styled"),
+    }
+    let sheet = stylesheet(painted_view);
+    assert_eq(sheet[0].0, palette_class(p));
+    assert(
+        sheet.map(fun(r) = r.1).iter().any(
+            fun(x) = x == ".kv-fgt-muted {{ color: var(--kv-muted); }}",
+        ),
+    );
+}
+
+@test
+fun palette_and_scheme_belong_on_the_root() {
+    let deep: View<i64> = column([text("a").palette(Palette.zinc())]);
+    assert_eq(
+        painted(deep).map(fun(v) = 0),
+        Err(".palette(…) belongs on the root of the view only"),
+    );
+    let dark: View<i64> = column([text("a").scheme(Scheme.Dark)]);
+    assert_eq(
+        painted(dark).map(fun(v) = 0),
+        Err(".scheme(…) belongs on the root of the view only"),
+    );
+}
+
+@test
+fun tokens_work_inside_states() {
+    let v: View<i64> = text("x").style([When(State.Hover, [Background.color(Token.Accent)])]);
+    let keys = rules(sheet_of(v)).map(fun(r) = r.0);
+    assert(keys.len == 1);
+    assert(keys[0].contains("kv-bgt-accent"));
+}
+
+@test
+fun the_objective_reads_as_written() {
+    let v: View<i64> = column([
+        column([
+            text("Storage"),
+            text("12 GB of 64 GB used").style([Text.color(Token.MutedForeground)]),
+        ]).style([
+            Background.color(Token.Card),
+            Border.all(1, Token.Border),
+            Border.rounded_lg(),
+            Spacing.padding(24),
+        ]),
+    ]).palette(
+        Palette.zinc().with(Token.Primary, hex("#2563eb"), hex("#3b82f6")).radius(10),
+    ).scheme(Scheme.System);
+    assert(painted(v).is_ok());
+}

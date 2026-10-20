@@ -8,7 +8,7 @@
  */
 
 import styles { Sheet };
-import styles.theming { Color, Paint };
+import styles.theming { Colorish, Paint };
 import view.pictures { Image };
 import styles.values { Gradient, Stop, Fill, Width, Line, Radius, Side, Edges };
 
@@ -38,9 +38,9 @@ impl Background {
         fill: Fill.Theme,
     };
 
-    /** A plain colour. */
-    public fun color(c: Color): Background = Background {
-        color: Paint.Color(c),
+    /** A plain colour: a `Color`, a `Token` or any `Paint`. */
+    public fun color(c: Colorish): Background = Background {
+        color: c.paint(),
         ..Background.theme(),
     };
 
@@ -114,37 +114,46 @@ impl Border {
     };
 
     /** A solid line `px` wide on every side. */
-    public fun all(px: i64, paint: Paint): Border = Border {
-        all: Side { width: Width.Px(px), color: paint, style: Line.Solid },
+    public fun all(px: i64, paint: Colorish): Border = Border {
+        all: Side { width: Width.Px(px), color: paint.paint(), style: Line.Solid },
         ..Border.theme(),
     };
 
     /** A solid line `px` wide on top. */
-    public fun top(px: i64, paint: Paint): Border = Border {
-        top: Side { width: Width.Px(px), color: paint, style: Line.Solid },
+    public fun top(px: i64, paint: Colorish): Border = Border {
+        top: Side { width: Width.Px(px), color: paint.paint(), style: Line.Solid },
         ..Border.theme(),
     };
 
     /** A solid line `px` wide on the right. */
-    public fun right(px: i64, paint: Paint): Border = Border {
-        right: Side { width: Width.Px(px), color: paint, style: Line.Solid },
+    public fun right(px: i64, paint: Colorish): Border = Border {
+        right: Side { width: Width.Px(px), color: paint.paint(), style: Line.Solid },
         ..Border.theme(),
     };
 
     /** A solid line `px` wide along the bottom. */
-    public fun bottom(px: i64, paint: Paint): Border = Border {
-        bottom: Side { width: Width.Px(px), color: paint, style: Line.Solid },
+    public fun bottom(px: i64, paint: Colorish): Border = Border {
+        bottom: Side { width: Width.Px(px), color: paint.paint(), style: Line.Solid },
         ..Border.theme(),
     };
 
     /** A solid line `px` wide on the left. */
-    public fun left(px: i64, paint: Paint): Border = Border {
-        left: Side { width: Width.Px(px), color: paint, style: Line.Solid },
+    public fun left(px: i64, paint: Colorish): Border = Border {
+        left: Side { width: Width.Px(px), color: paint.paint(), style: Line.Solid },
         ..Border.theme(),
     };
 
     /** Every corner rounded by `px`. */
     public fun rounded(px: i64): Border = Border { radius: Radius.All(px), ..Border.theme() };
+
+    /** Corners at the palette's radius less 4 pixels (`Radius.Small`): badges and small things. */
+    public fun rounded_sm(): Border = Border { radius: Radius.Small, ..Border.theme() };
+
+    /** Corners at the palette's radius less 2 pixels (`Radius.Medium`): buttons and fields. */
+    public fun rounded_md(): Border = Border { radius: Radius.Medium, ..Border.theme() };
+
+    /** Corners at the palette's radius (`Radius.Large`): cards. */
+    public fun rounded_lg(): Border = Border { radius: Radius.Large, ..Border.theme() };
 
     /** Each corner's own radius: top left, top right, bottom right, bottom left. */
     public fun corners(tl: i64, tr: i64, br: i64, bl: i64): Border = Border {
@@ -203,9 +212,9 @@ impl Outline {
     };
 
     /** A solid outline `px` wide. */
-    public fun ring(px: i64, paint: Paint): Outline = Outline {
+    public fun ring(px: i64, paint: Colorish): Outline = Outline {
         width: Width.Px(px),
-        color: paint,
+        color: paint.paint(),
         style: Line.Solid,
         offset: 0,
     };

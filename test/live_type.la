@@ -160,7 +160,7 @@ fun values_land_as_classes_and_new_ones_join_the_stylesheet() {
     g_object_unref(application);
     assert_eq(seen.get(), [
         "bold 1 upper 1",
-        "rules 6, bold rule true",
+        "rules 7, bold rule true",
         "same true 30pt 1 12pt 0 rule true",
         "red [255, 0, 0, 255]",
         "faded keeps the colour true, alpha 55% true",
