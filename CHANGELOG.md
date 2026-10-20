@@ -8,6 +8,11 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.32.0] — 2026-10-20
+
+### Added
+- `.disabled(…)` on a check box (PRP-037), native or `ui.checkbox`: greyed, sends nothing; `kivuli.testing.toggle` gives `Err(Lookup.Silent(…))`.
+
 ## [0.31.0] — 2026-10-20
 
 ### Added

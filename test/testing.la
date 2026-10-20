@@ -339,3 +339,9 @@ fun a_button_with_is_found_by_its_text_tooltip_or_name() {
     assert_eq(is_disabled(panel(), "Account"), Ok(false));
     assert_eq(tooltip(panel(), "Data"), Ok("Nothing saved"));
 }
+
+@test
+fun toggling_a_disabled_check_box_is_silent() {
+    let v: View<Msg> = column([checkbox("Done", false, Msg.Done).disabled(true)]);
+    assert_eq(toggle(v, "Done"), Err(Lookup.Silent("check box \"Done\"")));
+}

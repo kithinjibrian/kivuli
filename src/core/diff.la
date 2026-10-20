@@ -37,8 +37,8 @@ enum Patch<Msg> {
     SetOnSubmit(i64[], Option<Msg>),
     /** The check box at the path is ticked (or not). */
     SetChecked(i64[], bool),
-    /** The check box at the path turns toggles into messages with this function from now on. */
-    SetOnToggle(i64[], fun(bool): Msg),
+    /** The check box at the path turns toggles into messages with this function from now on; `None` disables it. */
+    SetOnToggle(i64[], Option<fun(bool): Msg>),
     /** The drop-down at the path offers these choices, the one labelled so shown picked. */
     SetChoices(i64[], (string, Msg)[], string),
     /** The slider at the path runs from the first number to the second. */
@@ -254,7 +254,7 @@ fun diff_checkbox<Msg>(
     label: string,
     old_checked: bool,
     checked: bool,
-    on_toggle: fun(bool): Msg,
+    on_toggle: Option<fun(bool): Msg>,
 ): Patch<Msg>[] {
     let mut out: Patch<Msg>[] = [];
     if old_label != label {

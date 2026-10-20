@@ -175,12 +175,16 @@ fun create_in<Msg>(v: View<Msg>, axis: i32, send: fun(Msg)): Live<Msg> = match v
         // Set before connecting, so the first state isn't sent as a toggle.
         gtk_check_button_set_active(check, flag(checked));
         let current = Ref.new(on_toggle);
+        // Disabled means no message (rule 6): greyed, and nothing sent.
+        gtk_widget_set_sensitive(check, flag(on_toggle.is_some()));
         connect_widget(
             check,
             "toggled",
             fun(c: GtkWidget) {
-                let f = current.get();
-                send(f(gtk_check_button_get_active(c) != 0));
+                match current.get() {
+                    Some(f) => send(f(gtk_check_button_get_active(c) != 0)),
+                    None => {}
+                }
             },
             0,
         );

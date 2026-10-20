@@ -218,6 +218,11 @@ fun page(m: Model): View<Msg> = column([
         column([
             ui.checkbox("Accept terms and conditions", m.same, Msg.Same),
             ui.checkbox("Send me product updates", !m.same, fun(b: bool) = Msg.Same(!b)),
+            ui.checkbox(
+                "Disabled while the box above is ticked",
+                false,
+                fun(b: bool) = Msg.Same(!m.same),
+            ).disabled(m.same),
             field_horizontal([checkbox("A native check box, for comparison", m.same, Msg.Same)]),
         ]).style([Spacing.gap(12)]),
     ),

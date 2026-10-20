@@ -159,7 +159,10 @@ fun the_re_pointed_handler_is_the_new_one() {
 
 @test
 fun a_ticked_checkbox_is_set_and_its_handler_re_pointed() {
-    let expected: Patch<Msg>[] = [Patch.SetChecked([], true), Patch.SetOnToggle([], Msg.Done)];
+    let expected: Patch<Msg>[] = [
+        Patch.SetChecked([], true),
+        Patch.SetOnToggle([], Some(Msg.Done)),
+    ];
     assert_same(
         patches(checkbox("Done", false, Msg.Done), checkbox("Done", true, Msg.Done)),
         expected,
@@ -168,7 +171,10 @@ fun a_ticked_checkbox_is_set_and_its_handler_re_pointed() {
 
 @test
 fun a_relabelled_checkbox_keeps_its_widget() {
-    let expected: Patch<Msg>[] = [Patch.SetLabel([], "Finished"), Patch.SetOnToggle([], Msg.Done)];
+    let expected: Patch<Msg>[] = [
+        Patch.SetLabel([], "Finished"),
+        Patch.SetOnToggle([], Some(Msg.Done)),
+    ];
     assert_same(
         patches(checkbox("Done", true, Msg.Done), checkbox("Finished", true, Msg.Done)),
         expected,

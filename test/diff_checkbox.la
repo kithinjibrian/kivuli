@@ -1,0 +1,30 @@
+// Disabled check boxes in the diff (PRP-037): disabling one re-points its
+// handler to nothing on the same widget, enabling it gives one back.
+// (test/diff.la is near the file size limit.)
+import kivuli.core.diff { Patch, diff as patches };
+import kivuli { View, checkbox };
+
+enum Msg {
+    Done(bool),
+}
+
+fun box(off: bool): View<Msg> = checkbox("Done", false, Msg.Done).disabled(off);
+
+@test
+fun disabling_a_check_box_takes_its_handler_away() {
+    let changes = patches(box(false), box(true));
+    assert_eq(changes.len, 1);
+    match changes[0] {
+        SetOnToggle(path, None) => assert_eq(path, []),
+        _ => panic("expected SetOnToggle with nothing"),
+    }
+}
+
+@test
+fun enabling_it_again_gives_the_handler_back() {
+    let changes = patches(box(true), box(false));
+    match changes[0] {
+        SetOnToggle(_, Some(f)) => assert_eq("{f(true)}", "{Msg.Done(true)}"),
+        _ => panic("expected SetOnToggle with a handler"),
+    }
+}

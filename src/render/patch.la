@@ -135,7 +135,10 @@ fun apply<Msg>(
     }
     SetOnToggle(path, on_toggle) => {
         match at(live, path) {
-            Checkbox(_, _, current) => current.set(on_toggle),
+            Checkbox(check, _, current) => {
+                current.set(on_toggle);
+                gtk_widget_set_sensitive(check, flag(on_toggle.is_some()));
+            }
             _ => panic("kivuli: a SetOnToggle patch points at something that isn't a check box"),
         }
         live
