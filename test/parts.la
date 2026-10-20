@@ -217,3 +217,9 @@ fun a_menus_check_and_radio_are_parts_with_their_own_checked_state() {
         ),
     );
 }
+
+@test
+fun a_tooltip_is_the_roots_sibling() {
+    let s = Inside(Part.Tooltip, [Background.color(Token.Foreground)]).apply(Sheet.theme());
+    assert(keys(s).iter().any(fun(x) = x == "kv-tooltip-bgt-foreground ~ tooltip"));
+}

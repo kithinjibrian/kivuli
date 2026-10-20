@@ -159,6 +159,8 @@ fun part_node(part: Part): string = match part {
     MenuHint => "popover.menu accelerator",
     MenuCheck => "popover.menu check",
     MenuRadio => "popover.menu radio",
+    // The root view's siblings in the window: GTK's tooltip windows.
+    Tooltip => "~ tooltip",
 };
 
 /** The code a part's classes carry (`kv-item-…`). */
@@ -178,6 +180,7 @@ fun part_code(part: Part): string = match part {
     MenuHint => "menuhint",
     MenuCheck => "menucheck",
     MenuRadio => "menuradio",
+    Tooltip => "tooltip",
 };
 
 /**

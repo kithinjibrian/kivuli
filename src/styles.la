@@ -183,6 +183,11 @@ public enum Part {
     MenuCheck,
     /** A radio item's circle in a menu (`popover.menu radio`): `:checked` while selected. */
     MenuRadio,
+    /**
+     * The tooltip windows (`~ tooltip`): GTK hangs them off the window, after
+     * the root view, so this is for the root's style; elsewhere it matches nothing.
+     */
+    Tooltip,
 }
 
 /** Style values for one part: made by `Inside`. */

@@ -1,0 +1,47 @@
+/**
+ * Tooltip (PRP-044): `Tooltip.look()`, every `.tooltip(…)` in the app in the
+ * palette's look, given once on the root view: GTK puts a tooltip in its own
+ * window beside the root, so a node's own style can't reach it. GTK still
+ * decides when and where it shows. Pure.
+ *
+ * Depends on: styles, theming, boxes, fonts, drawing, motion
+ * Used by: ui
+ */
+
+// The public items the entry re-exports, by their own modules (rule 2: no `lib`).
+import styles { Inside, Look, Part, look };
+import styles.theming { Color, Token };
+import styles.boxes { Background, Border, Spacing };
+import styles.fonts { Font, Text };
+import styles.drawing { Shadow };
+import styles.motion { Motion };
+
+fun clear(): Color = Color { red: 0, green: 0, blue: 0, alpha: 0 };
+
+/** The tooltips' looks, given through `.style` on the root view. */
+public struct Tooltip {}
+
+impl Tooltip {
+    /**
+     * Every tooltip in the app as a small dark label (light in dark): the
+     * palette's foreground behind its background colour, fading in.
+     *
+     * Example:
+     *     column(page).palette(Palette.zinc()).style([Tooltip.look()])
+     */
+    public fun look(): Look = look([
+        Inside(Part.Tooltip, [
+            Background.color(Token.Foreground),
+            Text.color(Token.Background),
+            Font.xs(),
+            Border.rounded_md(),
+            Spacing.padding_y(6),
+            Spacing.padding_x(12),
+            // The theme's tooltip border and shadow go.
+            Border.all(0, clear()),
+            Shadow.off(),
+            // A fade, not the reference's zoom: a scale would move the text.
+            Motion.fade_in(150),
+        ]),
+    ]);
+}
