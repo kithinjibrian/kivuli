@@ -1797,9 +1797,15 @@ Branch: main
 
 ---
 
-## SESSION 121 — 2026-10-21 — rapidkoi's window controls look wrong: investigation — open
+## SESSION 121 — 2026-10-21 — rapidkoi's window controls: investigation — closed
 
 Branch: main
+
+### WHAT WAS DONE
+- Read ../rapidkoi (read only): nothing in kivuli broke. Its header bar is styled in its frame colour with 48 px icons, but GTK's − □ × keep the desktop's look: kivuli 0.48 can't style, hide or replace them (rapidkoi DECISION-035, open: A style GTK's, B hide them and add minimise/maximise commands). Also rapidkoi's DECISION-034: a picture's `.size(n)` is a minimum, not a box.
+
+### STILL OPEN AT CLOSE
+- The user's choice of A or B starts a kivuli PRP (window controls).
 
 ---
 
