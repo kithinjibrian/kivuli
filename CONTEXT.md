@@ -671,9 +671,21 @@ Branch: main
 
 ---
 
-## SESSION 35 — 2026-10-20 — PRP-026: palettes and colour tokens — open
+## SESSION 35 — 2026-10-20 — PRP-026: palettes and colour tokens, built, not merged — closed
 
-Branch: prp-026-palettes
+Branch: prp-026-palettes (not merged: its tests haven't run)
+
+### WHAT WAS DONE
+- lugha-gtk 0.1.32: `lgtk_set_color_scheme`, `lgtk_reset_color_scheme`, `lgtk_color_scheme` (src/c/settings.c); settings and clamp tests pass; pushed and tagged under the standing go (the user stopped its full run).
+- PRP-026 built: `Token` as `Paint.Token` (`var(--kv-…)`), `Colorish` (Color, Token, Paint), `Palette` (five shadcn bases, `.with`, `.radius`), `Radius.Small/Medium/Large` and `Border.rounded_sm/md/lg`, `.palette` and `.scheme` (root only), the root's `kv-pal-…` class with its dark block, zinc's tokens on every window, `render/schemes.la`. `stylesheet()` gives whole rules. examples/palette.la. Docs; kivuli 0.21.0 (not tagged).
+- The user is fixing slow test runs: tests written and type-checked only (palettes, live_palette, theming, live_type).
+- A stray `git push` in kivuli ran by mistake in a chained command; it failed (no upstream), nothing left the machine.
+
+### STILL OPEN AT CLOSE
+- Run palettes, live_palette, theming, live_type (and the full suite), then merge prp-026-palettes and tag v0.21.0.
+- `src/render/live.la` is at 500 lines: propose a split before it grows.
+- Not pushed: main and tags v0.18.0–v0.20.0.
+- `.gitignore`'s `/examples/search_bar` line is the user's, uncommitted.
 
 ---
 
