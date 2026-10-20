@@ -1761,6 +1761,12 @@ Branch: prp-053-svg-images (nothing built)
 
 ---
 
+## SESSION 118 — 2026-10-20 — PRP-053: SVG images (DECISION-030: A) — open
+
+Branch: prp-053-svg-images
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
