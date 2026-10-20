@@ -581,6 +581,12 @@ Branch: main (PRP-023 on prp-023-header_bar, merged)
 
 ---
 
+## SESSION 29 — 2026-10-20 — Click away clears focus: discovery — open
+
+Branch: main
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
