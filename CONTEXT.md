@@ -626,6 +626,12 @@ Branch: main (PRP-025 on prp-025-style_utilities, merged)
 
 ---
 
+## SESSION 33 — 2026-10-20 — Merge src/ in folders — open
+
+Branch: main
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
