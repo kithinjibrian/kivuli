@@ -8,6 +8,12 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.35.0] — 2026-10-20
+
+### Added
+- A native `switch(on, on_toggle)` (PRP-040), disableable; `kivuli.testing.flip(view, name)`.
+- `kivuli.ui`'s switch: `ui.switch(on, on_toggle)`. Needs lugha-gtk 0.1.36.
+
 ## [0.34.0] — 2026-10-20
 
 ### Added

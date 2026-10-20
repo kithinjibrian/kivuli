@@ -1303,9 +1303,16 @@ Branch: main
 
 ---
 
-## SESSION 82 — 2026-10-20 — PRP-040: switch — open
+## SESSION 82 — 2026-10-20 — PRP-040: switch, built, not merged — closed
 
-Branch: prp-040-switch
+Branch: prp-040-switch (not merged: waiting for the user's look)
+
+### WHAT WAS DONE
+- lugha-gtk 0.1.36 (switch bindings; test passes; pushed, tagged).
+- The native switch: `View.Switch`, `Live.Switch`, build (notify::active), `diff_switch`, patch, map, `.disabled`, walk, `kivuli.testing.flip`, `test/live.la`'s `shown()` arm. src/ui/switches.la. A Switch section in components.la. Docs; 0.35.0 (not tagged). Every test and example type-checks; tests not run.
+
+### STILL OPEN AT CLOSE
+- The user to look; then merge, tag v0.35.0.
 
 ---
 
