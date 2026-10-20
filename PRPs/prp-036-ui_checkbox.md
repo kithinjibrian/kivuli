@@ -1,6 +1,6 @@
 # PRP-036 — kivuli.ui: Checkbox, and styling a widget's parts
 
-Status: built (session 71) on branch prp-036-ui-checkbox
+Status: built (sessions 71–72); merged into main in session 73 without running its tests (the user's call)
 Discovery: session 70, 2026-10-20 (the eighth component, and the first whose inside GTK draws). *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: `Inside(part, [...])` and `Part.Check`, style values for a part inside a widget; `Mark.icon(name, px)`, the icon GTK draws in a part; and `ui.checkbox(label, checked, on_toggle)`.
