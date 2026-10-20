@@ -1,6 +1,6 @@
 # PRP-050 — Disabled drop-downs
 
-Status: draft (session 107)
+Status: approved (session 107, "build all")
 Discovery: session 107, 2026-10-20 (the reference's disabled select: the trigger at 50% opacity, not clickable). *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: `.disabled(on)` on a drop-down (native, `ui.dropdown`, `ui.dropdown_grouped`), as on check boxes, sliders and switches.

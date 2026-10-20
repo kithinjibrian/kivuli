@@ -1,6 +1,6 @@
 # PRP-049 — Groups in drop-downs
 
-Status: draft (session 107)
+Status: approved (session 107, "build all")
 Discovery: session 107, 2026-10-20 (the reference's select groups: a small muted heading over each group's items, a line between groups). *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: `dropdown_grouped(groups, selected)` and `ui.dropdown_grouped(groups, selected, placeholder)`: a drop-down whose open list shows its choices under headings.

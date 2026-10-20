@@ -1636,6 +1636,12 @@ Branch: main
 
 ---
 
+## SESSION 108 — 2026-10-20 — PRP-048: vertical tabs — open
+
+Branch: prp-048-vertical-tabs
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.

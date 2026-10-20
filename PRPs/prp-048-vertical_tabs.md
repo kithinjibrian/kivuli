@@ -1,6 +1,6 @@
 # PRP-048 — kivuli.ui: vertical tabs
 
-Status: draft (session 107)
+Status: approved (session 107, "build all")
 Discovery: session 107, 2026-10-20 (the reference's vertical tabs: the list a column, each trigger the list's full width with its text at the start; the line variant's line on the trigger's end edge). *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: `ui.tabs_vertical(triggers, active)` and `ui.tabs_line_vertical(triggers, active)`, beside `tabs` and `tabs_line`.
