@@ -1095,6 +1095,12 @@ Branch: main (prp-034-ui-input-group merged)
 
 ---
 
+## SESSION 66 — 2026-10-20 — Field icons: discovery — open
+
+Branch: main
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
