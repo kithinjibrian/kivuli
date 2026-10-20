@@ -1785,6 +1785,18 @@ Branch: main
 
 ---
 
+## SESSION 120 — 2026-10-21 — SVG confirmed by hand — closed
+
+Branch: main
+
+### WHAT WAS DONE
+- The user ran `examples/controls.la`: the SVG is sharp at 32 and 96 px. Noted in PRP-053.
+
+### STILL OPEN AT CLOSE
+- Reporting the GtkSvg crash (DECISION-030) to GTK: only on the user's go. Next component: the user's choice.
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.

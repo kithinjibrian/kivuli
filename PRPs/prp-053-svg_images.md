@@ -53,3 +53,4 @@ ui.avatar(Some(Image.File("me.svg")), "BK")
 - **The tests are their own files**: `test/svgs.la` (pure: 4) and `test/live_svgs.la` (GTK: 1), not pictures.la and live_pictures.la; live_pictures' `shown` reads a picture's paintable as a texture, which an SVG isn't.
 - **`texture_of` is gone**: `drawn_of` gives a texture or an SVG.
 - **Tests run and pass**: svgs, pictures, live_svgs, live_pictures, live_images (17); the controls example's own (3). Every test and example type-checks; controls built (an SVG at 32 and 96 px).
+- **Confirmed by hand** (session 120): the sample SVG is sharp at 32 and 96 px in `examples/controls.la`.
