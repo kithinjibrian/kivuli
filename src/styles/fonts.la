@@ -1,0 +1,246 @@
+/**
+ * The text groups (PRP-016): `Font` picks the typeface and its size; `Text`
+ * says what's done with the letters. Imports `styles` for `Sheet`, which
+ * imports this back (DECISION-025). Pure.
+ *
+ * Depends on: styles (`Sheet`), style_values, theming
+ * Used by: lib, styles
+ */
+
+import styles { Sheet };
+import theming { Color, Paint };
+import style_values { Family, Size, Weight, FontStyle, LineHeight, Decoration, Transform };
+
+/**
+ * Which typeface a node's text uses, and how big. Fields left `Theme` (and
+ * `tabular` false) stay the GTK theme's.
+ *
+ * Example:
+ *     text("Price").style([Font { weight: Weight.Medium, tabular: true, ..Font.theme() }])
+ */
+public struct Font {
+    public family: Family,
+    public size: Size,
+    public weight: Weight,
+    public style: FontStyle,
+    /** Digits all one width, for numbers in columns. */
+    public tabular: bool,
+}
+
+impl Font {
+    /** Every field the theme's: start here and change what you need. */
+    public fun theme(): Font = Font {
+        family: Family.Theme,
+        size: Size.Theme,
+        weight: Weight.Theme,
+        style: FontStyle.Theme,
+        tabular: false,
+    };
+
+    /** The largest heading: black, twice the theme's size. */
+    public fun h1(): Font = Font { weight: Weight.Black, size: Size.Scale(2.0), ..Font.theme() };
+
+    /** A second heading: black, 1.5×. */
+    public fun h2(): Font = Font { weight: Weight.Black, size: Size.Scale(1.5), ..Font.theme() };
+
+    /** A third heading: bold, 1.5×. */
+    public fun h3(): Font = Font { weight: Weight.Bold, size: Size.Scale(1.5), ..Font.theme() };
+
+    /** A fourth heading: bold, 1.3×. */
+    public fun h4(): Font = Font { weight: Weight.Bold, size: Size.Scale(1.3), ..Font.theme() };
+
+    /** A small heading: bold, 1.1×. */
+    public fun heading(): Font = Font {
+        weight: Weight.Bold,
+        size: Size.Scale(1.1),
+        ..Font.theme(),
+    };
+
+    /** Body text: normal weight, 1.1×. */
+    public fun body(): Font = Font { weight: Weight.Normal, size: Size.Scale(1.1), ..Font.theme() };
+
+    /** A caption: normal weight, 0.9×. */
+    public fun caption(): Font = Font {
+        weight: Weight.Normal,
+        size: Size.Scale(0.9),
+        ..Font.theme(),
+    };
+
+    /** 0.75× the theme's size. */
+    public fun xs(): Font = Font { size: Size.Scale(0.75), ..Font.theme() };
+
+    /** 0.875× the theme's size. */
+    public fun sm(): Font = Font { size: Size.Scale(0.875), ..Font.theme() };
+
+    /** The theme's size. */
+    public fun base(): Font = Font { size: Size.Scale(1.0), ..Font.theme() };
+
+    /** 1.125× the theme's size. */
+    public fun lg(): Font = Font { size: Size.Scale(1.125), ..Font.theme() };
+
+    /** 1.25× the theme's size. */
+    public fun xl(): Font = Font { size: Size.Scale(1.25), ..Font.theme() };
+
+    /** 1.5× the theme's size. */
+    public fun xxl(): Font = Font { size: Size.Scale(1.5), ..Font.theme() };
+
+    /** A size in points. */
+    public fun size(pt: i64): Font = Font { size: Size.Pt(pt), ..Font.theme() };
+
+    /** `x` times the theme's size. */
+    public fun scale(x: f64): Font = Font { size: Size.Scale(x), ..Font.theme() };
+
+    /** The thinnest weight. */
+    public fun thin(): Font = Font { weight: Weight.Thin, ..Font.theme() };
+
+    /** A light weight. */
+    public fun light(): Font = Font { weight: Weight.Light, ..Font.theme() };
+
+    /** The normal weight. */
+    public fun normal(): Font = Font { weight: Weight.Normal, ..Font.theme() };
+
+    /** A medium weight. */
+    public fun medium(): Font = Font { weight: Weight.Medium, ..Font.theme() };
+
+    /** A semibold weight. */
+    public fun semibold(): Font = Font { weight: Weight.Semibold, ..Font.theme() };
+
+    /** Bold. */
+    public fun bold(): Font = Font { weight: Weight.Bold, ..Font.theme() };
+
+    /** The heaviest weight. */
+    public fun black(): Font = Font { weight: Weight.Black, ..Font.theme() };
+
+    /** Italic. */
+    public fun italic(): Font = Font { style: FontStyle.Italic, ..Font.theme() };
+
+    /** The system's sans-serif typeface. */
+    public fun sans(): Font = Font { family: Family.Sans, ..Font.theme() };
+
+    /** The system's serif typeface. */
+    public fun serif(): Font = Font { family: Family.Serif, ..Font.theme() };
+
+    /** The system's monospace typeface. */
+    public fun mono(): Font = Font { family: Family.Monospace, ..Font.theme() };
+
+    /** A typeface by name, with `fallback` when it isn't installed. */
+    public fun family(name: string, fallback: Family): Font = Font {
+        family: Family.Named(name, fallback),
+        ..Font.theme(),
+    };
+
+    /** Digits all one width, for numbers in columns. */
+    public fun tabular(): Font = Font { tabular: true, ..Font.theme() };
+
+    /** `s` with every field this font sets. */
+    public fun apply(self, s: Sheet): Sheet = Sheet {
+        font: Font {
+            family: if self.family == Family.Theme { s.font.family } else { self.family },
+            size: if self.size == Size.Theme { s.font.size } else { self.size },
+            weight: if self.weight == Weight.Theme { s.font.weight } else { self.weight },
+            style: if self.style == FontStyle.Theme { s.font.style } else { self.style },
+            tabular: self.tabular || s.font.tabular,
+        },
+        ..s,
+    };
+}
+
+/**
+ * What's done with the letters once the font is chosen. Fields left `Theme`
+ * (and `letter_spacing` 0, the font's own) stay the GTK theme's.
+ *
+ * Example:
+ *     text("NEW").style([Text { transform: Transform.Uppercase, letter_spacing: 2, ..Text.theme() }])
+ */
+public struct Text {
+    public color: Paint,
+    public line_height: LineHeight,
+    /** Pixels between letters, over the font's own; negative tightens. */
+    public letter_spacing: i64,
+    public decoration: Decoration,
+    public transform: Transform,
+}
+
+impl Text {
+    /** Every field the theme's: start here and change what you need. */
+    public fun theme(): Text = Text {
+        color: Paint.Theme,
+        line_height: LineHeight.Theme,
+        letter_spacing: 0,
+        decoration: Decoration.Theme,
+        transform: Transform.Theme,
+    };
+
+    /** Every letter in capitals. */
+    public fun upper(): Text = Text { transform: Transform.Uppercase, ..Text.theme() };
+
+    /** Every letter in lower case. */
+    public fun lower(): Text = Text { transform: Transform.Lowercase, ..Text.theme() };
+
+    /** Each word's first letter in capitals. */
+    public fun capitalize(): Text = Text { transform: Transform.Capitalize, ..Text.theme() };
+
+    /** Underlined. */
+    public fun underline(): Text = Text { decoration: Decoration.Underline, ..Text.theme() };
+
+    /** Struck through. */
+    public fun strike(): Text = Text { decoration: Decoration.Strikethrough, ..Text.theme() };
+
+    /** Lines 1.2× the font's size apart. */
+    public fun tight(): Text = Text { line_height: LineHeight.Times(1.2), ..Text.theme() };
+
+    /** Lines 1.6× the font's size apart. */
+    public fun loose(): Text = Text { line_height: LineHeight.Times(1.6), ..Text.theme() };
+
+    /** Lines `x` times the font's size apart. */
+    public fun line_height(x: f64): Text = Text {
+        line_height: LineHeight.Times(x),
+        ..Text.theme(),
+    };
+
+    /** One pixel more between letters. */
+    public fun wide(): Text = Text { letter_spacing: 1, ..Text.theme() };
+
+    /** One pixel less between letters. */
+    public fun narrow(): Text = Text { letter_spacing: -1, ..Text.theme() };
+
+    /** `px` pixels more between letters (negative tightens). */
+    public fun letter_spacing(px: i64): Text = Text { letter_spacing: px, ..Text.theme() };
+
+    /** Secondary text: the theme's text colour at 0.55. */
+    public fun dim(): Text = Text { color: Paint.Faded(0.55), ..Text.theme() };
+
+    /** The theme's text colour at `x` (0 to 1). */
+    public fun faded(x: f64): Text = Text { color: Paint.Faded(x), ..Text.theme() };
+
+    /** Text in colour `c`. */
+    public fun color(c: Color): Text = Text { color: Paint.Color(c), ..Text.theme() };
+
+    /** `s` with every field this text value sets. */
+    public fun apply(self, s: Sheet): Sheet = Sheet {
+        text: Text {
+            color: if self.color == Paint.Theme { s.text.color } else { self.color },
+            line_height: if self.line_height == LineHeight.Theme {
+                s.text.line_height
+            } else {
+                self.line_height
+            },
+            letter_spacing: if self.letter_spacing == 0 {
+                s.text.letter_spacing
+            } else {
+                self.letter_spacing
+            },
+            decoration: if self.decoration == Decoration.Theme {
+                s.text.decoration
+            } else {
+                self.decoration
+            },
+            transform: if self.transform == Transform.Theme {
+                s.text.transform
+            } else {
+                self.transform
+            },
+        },
+        ..s,
+    };
+}

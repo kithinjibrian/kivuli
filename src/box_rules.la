@@ -3,14 +3,15 @@
  * and its padding and margin, one class per side, property and value.
  * Moved out of `sheets` (file size). Pure.
  *
- * Depends on: styles, style_values, theming, style_groups
+ * Depends on: styles, styles.boxes, styles.drawing, style_values, theming
  * Used by: build, diff, sheets, styling
  */
 
-import styles { Sheet, Border, Sizing };
+import styles { Sheet };
+import styles.boxes { Border, Sizing };
 import style_values { Side, Width, Line, Edges, Drop, Filter, Move };
 import theming { Paint, digits, hexed, paint_css, permille };
-import style_groups { Shadow, Effects };
+import styles.drawing { Shadow, Effects };
 
 /** The rules for `s`'s border and outline, in that order. */
 fun box_css(s: Sheet): (string, string)[] {

@@ -5,7 +5,7 @@
  * nothing imports back. Pure.
  *
  * Depends on: theming (`Paint`)
- * Used by: box_rules, lib, sheets, style_groups, styles, styling
+ * Used by: box_rules, lib, sheets, styles, styles/, styling
  */
 
 import theming { Paint };

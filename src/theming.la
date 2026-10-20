@@ -5,7 +5,7 @@
  * `Color`, `Paint`, `hex` and `rgb` through the entry.
  *
  * Depends on: nothing
- * Used by: box_rules, lib, sheets, style_groups, style_values, styles
+ * Used by: box_rules, lib, sheets, style_values, styles, styles/
  */
 
 /** A colour, each channel 0–255; `alpha` 255 is opaque. Made by `hex` or `rgb`. */

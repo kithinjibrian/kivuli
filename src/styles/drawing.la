@@ -1,8 +1,6 @@
 /**
- * Style groups beyond `styles` (file size): `Shadow` and `Effects`. Each
- * group's `apply` takes a `Sheet` and `Sheet` holds every group, so this
- * module and `styles` import each other: the second allowed cycle
- * (DECISION-025). Pure.
+ * The drawing groups (PRP-022): `Shadow` and `Effects`. Imports `styles` for
+ * `Sheet`, which imports this back (DECISION-025). Pure.
  *
  * Depends on: styles (`Sheet`), style_values, theming
  * Used by: box_rules, lib, styles
@@ -11,6 +9,15 @@
 import styles { Sheet };
 import style_values { Drop, Filter, Move };
 import theming { Color, Paint };
+
+/** A black `Drop` at `alpha` of 255, straight down: the shadows' utilities. */
+fun black_drop(y: i64, blur: i64, spread: i64, alpha: i64): Drop = Drop {
+    y: y,
+    blur: blur,
+    spread: spread,
+    color: Paint.Color(Color { red: 0, green: 0, blue: 0, alpha: alpha }),
+    ..Drop.theme(),
+};
 
 /**
  * A node's shadows: under its box (a card lifting off the page), and under
@@ -37,6 +44,27 @@ impl Shadow {
                 ..Drop.theme(),
             },
         ],
+        text: [],
+    };
+
+    /** A small shadow, just off the page (Tailwind's `shadow-sm`). */
+    public fun sm(): Shadow = Shadow { boxes: [black_drop(1, 2, 0, 13)], text: [] };
+
+    /** A medium shadow, for cards (Tailwind's `shadow-md`). */
+    public fun md(): Shadow = Shadow {
+        boxes: [black_drop(4, 6, -1, 26), black_drop(2, 4, -2, 26)],
+        text: [],
+    };
+
+    /** A large shadow, for popovers (Tailwind's `shadow-lg`). */
+    public fun lg(): Shadow = Shadow {
+        boxes: [black_drop(10, 15, -3, 26), black_drop(4, 6, -4, 26)],
+        text: [],
+    };
+
+    /** The largest shadow, for dialogs (Tailwind's `shadow-xl`). */
+    public fun xl(): Shadow = Shadow {
+        boxes: [black_drop(20, 25, -5, 26), black_drop(8, 10, -6, 26)],
         text: [],
     };
 
@@ -68,6 +96,33 @@ public struct Effects {
 impl Effects {
     /** The theme's: nothing changed. */
     public fun theme(): Effects = Effects { opacity: None, filters: [], transform: [] };
+
+    /** The whole node at opacity `x` (0 invisible to 1). */
+    public fun opacity(x: f64): Effects = Effects { opacity: Some(x), ..Effects.theme() };
+
+    /** The node blurred by `px`. */
+    public fun blur(px: i64): Effects = Effects { filters: [Filter.Blur(px)], ..Effects.theme() };
+
+    /** The node in greys. */
+    public fun grayscale(): Effects = Effects {
+        filters: [Filter.Grayscale(1.0)],
+        ..Effects.theme(),
+    };
+
+    /** The node turned `deg` degrees clockwise. */
+    public fun rotate(deg: i64): Effects = Effects {
+        transform: [Move.Rotate(deg)],
+        ..Effects.theme(),
+    };
+
+    /** The node drawn `x` times its size. */
+    public fun scale(x: f64): Effects = Effects { transform: [Move.Scale(x)], ..Effects.theme() };
+
+    /** The node drawn `x` right and `y` down. */
+    public fun translate(x: i64, y: i64): Effects = Effects {
+        transform: [Move.Translate(x, y)],
+        ..Effects.theme(),
+    };
 
     /** `s` with every field these effects set. */
     public fun apply(self, s: Sheet): Sheet = Sheet {

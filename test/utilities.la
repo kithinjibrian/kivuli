@@ -1,0 +1,295 @@
+// Style utilities (PRP-025): each static equals the full value it stands for,
+// and utilities merge with full values as any values do. No GTK.
+import kivuli.styles { Sheet };
+import kivuli.sheets { check, rules };
+import kivuli {
+    View,
+    Font,
+    Text,
+    Background,
+    Border,
+    Outline,
+    Spacing,
+    Sizing,
+    Shadow,
+    Effects,
+    When,
+    State,
+    Size,
+    Weight,
+    Family,
+    FontStyle,
+    LineHeight,
+    Decoration,
+    Transform,
+    Paint,
+    Gradient,
+    Stop,
+    Fill,
+    Image,
+    Side,
+    Width,
+    Line,
+    Radius,
+    Edges,
+    Drop,
+    Filter,
+    Move,
+    Color,
+    button,
+    column,
+    text,
+    hex,
+};
+
+fun sheet_of<M>(v: View<M>): Sheet = match v {
+    Styled(_, s) => s.sheet,
+    _ => panic("expected a styled node"),
+};
+
+fun font(w: Weight, size: Size): Font = Font { weight: w, size: size, ..Font.theme() };
+
+fun weight(w: Weight): Font = Font { weight: w, ..Font.theme() };
+
+fun sized(size: Size): Font = Font { size: size, ..Font.theme() };
+
+fun family(f: Family): Font = Font { family: f, ..Font.theme() };
+
+@test
+fun the_font_utilities_are_their_full_values() {
+    assert_eq(Font.h1(), font(Weight.Black, Size.Scale(2.0)));
+    assert_eq(Font.h2(), font(Weight.Black, Size.Scale(1.5)));
+    assert_eq(Font.h3(), font(Weight.Bold, Size.Scale(1.5)));
+    assert_eq(Font.h4(), font(Weight.Bold, Size.Scale(1.3)));
+    assert_eq(Font.heading(), font(Weight.Bold, Size.Scale(1.1)));
+    assert_eq(Font.body(), font(Weight.Normal, Size.Scale(1.1)));
+    assert_eq(Font.caption(), font(Weight.Normal, Size.Scale(0.9)));
+    assert_eq(Font.xs(), sized(Size.Scale(0.75)));
+    assert_eq(Font.sm(), sized(Size.Scale(0.875)));
+    assert_eq(Font.base(), sized(Size.Scale(1.0)));
+    assert_eq(Font.lg(), sized(Size.Scale(1.125)));
+    assert_eq(Font.xl(), sized(Size.Scale(1.25)));
+    assert_eq(Font.xxl(), sized(Size.Scale(1.5)));
+    assert_eq(Font.size(22), sized(Size.Pt(22)));
+    assert_eq(Font.scale(1.7), sized(Size.Scale(1.7)));
+    assert_eq(Font.thin(), weight(Weight.Thin));
+    assert_eq(Font.light(), weight(Weight.Light));
+    assert_eq(Font.normal(), weight(Weight.Normal));
+    assert_eq(Font.medium(), weight(Weight.Medium));
+    assert_eq(Font.semibold(), weight(Weight.Semibold));
+    assert_eq(Font.bold(), weight(Weight.Bold));
+    assert_eq(Font.black(), weight(Weight.Black));
+    assert_eq(Font.italic(), Font { style: FontStyle.Italic, ..Font.theme() });
+    assert_eq(Font.sans(), family(Family.Sans));
+    assert_eq(Font.serif(), family(Family.Serif));
+    assert_eq(Font.mono(), family(Family.Monospace));
+    assert_eq(Font.family("Inter", Family.Sans), family(Family.Named("Inter", Family.Sans)));
+    assert_eq(Font.tabular(), Font { tabular: true, ..Font.theme() });
+}
+
+@test
+fun the_text_utilities_are_their_full_values() {
+    assert_eq(Text.upper(), Text { transform: Transform.Uppercase, ..Text.theme() });
+    assert_eq(Text.lower(), Text { transform: Transform.Lowercase, ..Text.theme() });
+    assert_eq(Text.capitalize(), Text { transform: Transform.Capitalize, ..Text.theme() });
+    assert_eq(Text.underline(), Text { decoration: Decoration.Underline, ..Text.theme() });
+    assert_eq(Text.strike(), Text { decoration: Decoration.Strikethrough, ..Text.theme() });
+    assert_eq(Text.tight(), Text { line_height: LineHeight.Times(1.2), ..Text.theme() });
+    assert_eq(Text.loose(), Text { line_height: LineHeight.Times(1.6), ..Text.theme() });
+    assert_eq(Text.line_height(1.4), Text { line_height: LineHeight.Times(1.4), ..Text.theme() });
+    assert_eq(Text.wide(), Text { letter_spacing: 1, ..Text.theme() });
+    assert_eq(Text.narrow(), Text { letter_spacing: -1, ..Text.theme() });
+    assert_eq(Text.letter_spacing(3), Text { letter_spacing: 3, ..Text.theme() });
+    assert_eq(Text.dim(), Text { color: Paint.Faded(0.55), ..Text.theme() });
+    assert_eq(Text.faded(0.3), Text { color: Paint.Faded(0.3), ..Text.theme() });
+    assert_eq(Text.color(hex("#e0e0e0")), Text {
+        color: Paint.Color(hex("#e0e0e0")),
+        ..Text.theme(),
+    });
+}
+
+@test
+fun the_background_utilities_are_their_full_values() {
+    let stops = [
+        Stop { color: Paint.Color(hex("#ffffff")), at: 0.0 },
+        Stop { color: Paint.Color(hex("#000000")), at: 1.0 },
+    ];
+    let picture = Image.File("assets/sample.png");
+    assert_eq(Background.color(hex("#ffffff")), Background {
+        color: Paint.Color(hex("#ffffff")),
+        ..Background.theme(),
+    });
+    assert_eq(Background.tint(0.08), Background { color: Paint.Faded(0.08), ..Background.theme() });
+    assert_eq(Background.linear(90, stops), Background {
+        gradient: Gradient.Linear(90, stops),
+        ..Background.theme(),
+    });
+    assert_eq(Background.radial(stops), Background {
+        gradient: Gradient.Radial(stops),
+        ..Background.theme(),
+    });
+    assert_eq(Background.image(picture), Background {
+        image: Some(picture),
+        fill: Fill.Cover,
+        ..Background.theme(),
+    });
+}
+
+fun solid(px: i64, paint: Paint): Side = Side {
+    width: Width.Px(px),
+    color: paint,
+    style: Line.Solid,
+};
+
+@test
+fun the_border_and_outline_utilities_are_their_full_values() {
+    let faint = Paint.Faded(0.15);
+    assert_eq(Border.all(1, faint), Border { all: solid(1, faint), ..Border.theme() });
+    assert_eq(Border.top(2, faint), Border { top: solid(2, faint), ..Border.theme() });
+    assert_eq(Border.right(2, faint), Border { right: solid(2, faint), ..Border.theme() });
+    assert_eq(Border.bottom(2, faint), Border { bottom: solid(2, faint), ..Border.theme() });
+    assert_eq(Border.left(2, faint), Border { left: solid(2, faint), ..Border.theme() });
+    assert_eq(Border.rounded(12), Border { radius: Radius.All(12), ..Border.theme() });
+    assert_eq(Border.corners(1, 2, 3, 4), Border {
+        radius: Radius.Corners(1, 2, 3, 4),
+        ..Border.theme(),
+    });
+    assert_eq(Border.none(), Border {
+        all: Side { style: Line.None, ..Side.theme() },
+        ..Border.theme(),
+    });
+    assert_eq(Outline.ring(2, faint), Outline {
+        width: Width.Px(2),
+        color: faint,
+        style: Line.Solid,
+        offset: 0,
+    });
+    assert_eq(Outline.offset(3), Outline { offset: 3, ..Outline.theme() });
+}
+
+fun pad(e: Edges): Spacing = Spacing { padding: e, ..Spacing.theme() };
+
+fun mar(e: Edges): Spacing = Spacing { margin: e, ..Spacing.theme() };
+
+@test
+fun the_spacing_utilities_are_their_full_values() {
+    let px = Width.Px(8);
+    let e = Edges.theme();
+    assert_eq(Spacing.padding(8), pad(Edges { all: px, ..e }));
+    assert_eq(Spacing.padding_x(8), pad(Edges { left: px, right: px, ..e }));
+    assert_eq(Spacing.padding_y(8), pad(Edges { top: px, bottom: px, ..e }));
+    assert_eq(Spacing.padding_top(8), pad(Edges { top: px, ..e }));
+    assert_eq(Spacing.padding_right(8), pad(Edges { right: px, ..e }));
+    assert_eq(Spacing.padding_bottom(8), pad(Edges { bottom: px, ..e }));
+    assert_eq(Spacing.padding_left(8), pad(Edges { left: px, ..e }));
+    assert_eq(Spacing.margin(8), mar(Edges { all: px, ..e }));
+    assert_eq(Spacing.margin_x(8), mar(Edges { left: px, right: px, ..e }));
+    assert_eq(Spacing.margin_y(8), mar(Edges { top: px, bottom: px, ..e }));
+    assert_eq(Spacing.margin_top(8), mar(Edges { top: px, ..e }));
+    assert_eq(Spacing.margin_right(8), mar(Edges { right: px, ..e }));
+    assert_eq(Spacing.margin_bottom(8), mar(Edges { bottom: px, ..e }));
+    assert_eq(Spacing.margin_left(-4), mar(Edges { left: Width.Px(-4), ..e }));
+    assert_eq(Spacing.gap(8), Spacing { gap: px, ..Spacing.theme() });
+}
+
+@test
+fun the_sizing_utilities_are_their_full_values() {
+    let px = Width.Px(560);
+    assert_eq(Sizing.width(560), Sizing { width: px, ..Sizing.theme() });
+    assert_eq(Sizing.min_width(560), Sizing { min_width: px, ..Sizing.theme() });
+    assert_eq(Sizing.max_width(560), Sizing { max_width: px, ..Sizing.theme() });
+    assert_eq(Sizing.height(560), Sizing { height: px, ..Sizing.theme() });
+    assert_eq(Sizing.min_height(560), Sizing { min_height: px, ..Sizing.theme() });
+    assert_eq(Sizing.max_height(560), Sizing { max_height: px, ..Sizing.theme() });
+}
+
+fun drop(y: i64, blur: i64, spread: i64, alpha: i64): Drop = Drop {
+    y: y,
+    blur: blur,
+    spread: spread,
+    color: Paint.Color(Color { red: 0, green: 0, blue: 0, alpha: alpha }),
+    ..Drop.theme(),
+};
+
+fun boxes(drops: Drop[]): Shadow = Shadow { boxes: drops, ..Shadow.theme() };
+
+@test
+fun the_shadow_and_effects_utilities_are_their_full_values() {
+    // Tailwind's own: black at 5% (13 of 255) and 10% (26 of 255).
+    assert_eq(Shadow.sm(), boxes([drop(1, 2, 0, 13)]));
+    assert_eq(Shadow.md(), boxes([drop(4, 6, -1, 26), drop(2, 4, -2, 26)]));
+    assert_eq(Shadow.lg(), boxes([drop(10, 15, -3, 26), drop(4, 6, -4, 26)]));
+    assert_eq(Shadow.xl(), boxes([drop(20, 25, -5, 26), drop(8, 10, -6, 26)]));
+    assert_eq(Effects.opacity(0.5), Effects { opacity: Some(0.5), ..Effects.theme() });
+    assert_eq(Effects.blur(6), Effects { filters: [Filter.Blur(6)], ..Effects.theme() });
+    assert_eq(Effects.grayscale(), Effects { filters: [Filter.Grayscale(1.0)], ..Effects.theme() });
+    assert_eq(Effects.rotate(-8), Effects { transform: [Move.Rotate(-8)], ..Effects.theme() });
+    assert_eq(Effects.scale(1.05), Effects { transform: [Move.Scale(1.05)], ..Effects.theme() });
+    assert_eq(Effects.translate(4, 2), Effects {
+        transform: [Move.Translate(4, 2)],
+        ..Effects.theme(),
+    });
+}
+
+@test
+fun utilities_and_full_values_merge_as_values_do() {
+    // The later value wins field by field: h2's size stays, its weight goes.
+    let named: View<i64> = text("Storage").style([
+        Font.h2(),
+        Font.medium(),
+        Font { family: Family.Serif, ..Font.theme() },
+    ]);
+    let s = sheet_of(named);
+    assert_eq(s.font, Font {
+        family: Family.Serif,
+        size: Size.Scale(1.5),
+        weight: Weight.Medium,
+        style: FontStyle.Theme,
+        tabular: false,
+    });
+    // padding then padding_x: the sides beat `all`.
+    let boxed: View<i64> = column([]).style([Spacing.padding(16), Spacing.padding_x(4)]);
+    assert_eq(sheet_of(boxed).spacing.padding, Edges {
+        all: Width.Theme,
+        top: Width.Px(16),
+        right: Width.Px(4),
+        bottom: Width.Px(16),
+        left: Width.Px(4),
+    });
+}
+
+@test
+fun the_objective_reads_as_written() {
+    let card: View<i64> = column([text("Storage").style([Font.h2(), Font.bold()])]);
+    let v: View<i64> = column([
+        card.style([
+            Spacing.padding(16),
+            Border.rounded(12),
+            Border.all(1, Paint.Faded(0.15)),
+            Shadow.md(),
+            Background.color(hex("#ffffff")),
+        ]),
+        text("12 GB").style([Font.mono(), Font.tabular(), Text.dim()]),
+        text("34 GB").style([Font.size(22), Text.color(hex("#e0e0e0"))]),
+        button("Save", 1).style([
+            Spacing.padding_x(16),
+            Spacing.padding_y(8),
+            When(State.Hover, [Background.color(hex("#3a62a8"))]),
+        ]),
+    ]).style([Sizing.max_width(560), Spacing.gap(8)]);
+    let s = sheet_of(v);
+    assert_eq(s.sizing.max_width, Width.Px(560));
+    assert_eq(s.spacing.gap, Width.Px(8));
+}
+
+@test
+fun the_shadow_utilities_pass_the_checks_and_give_css() {
+    // Their spreads are negative, which only a box shadow may have.
+    for shadow of [Shadow.sm(), Shadow.md(), Shadow.lg(), Shadow.xl()] {
+        let s = shadow.apply(Sheet.theme());
+        assert_eq(check(s), Ok(()));
+        assert_eq(rules(s).len, 1);
+    }
+    let md = rules(Shadow.md().apply(Sheet.theme()))[0].1;
+    assert_eq(md, "box-shadow: 0px 4px 6px -1px #0000001a, 0px 2px 4px -2px #0000001a;");
+}

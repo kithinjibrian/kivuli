@@ -5,26 +5,16 @@
  * re-exported, the two ways to run an app (`sandbox` and `application`), and
  * the testing helpers as `kivuli.testing`.
  *
- * Depends on: views, looks, theming, styles, style_groups, style_values, pictures, menus, widgets, effects, testing, live
+ * Depends on: views, looks, theming, styles (and styles/), style_values, pictures, menus, widgets, effects, testing, live
  */
 
 public import views { Bar, View };
 public import looks { Align, Fit };
 public import theming { Color, Paint, hex, rgb };
-public import styles {
-    Styling,
-    Font,
-    Text,
-    Background,
-    Border,
-    Outline,
-    Spacing,
-    Sizing,
-    State,
-    StateStyle,
-    When,
-};
-public import style_groups { Shadow, Effects };
+public import styles { Styling, State, StateStyle, When };
+public import styles.fonts { Font, Text };
+public import styles.boxes { Background, Border, Outline, Spacing, Sizing };
+public import styles.drawing { Shadow, Effects };
 public import style_values {
     Family,
     Size,
