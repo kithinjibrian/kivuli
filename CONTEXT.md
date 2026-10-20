@@ -1018,9 +1018,16 @@ Branch: main (prp-032-ui-input merged)
 
 ---
 
-## SESSION 60 — 2026-10-20 — kivuli.ui Field: discovery — open
+## SESSION 60 — 2026-10-20 — kivuli.ui Field: discovery, PRP-033 draft — closed
 
 Branch: main
+
+### WHAT WAS DONE
+- The user asked about icons in inputs; chose Field first, then the input group (B); GTK's own entry icons later. Read the reference Field page. Interview: parts and a group, `Field.invalid()` (A). Corrected my sketch: horizontal is `field_horizontal`, since a style can't turn a column into a row.
+- PRP-033 drafted.
+
+### STILL OPEN AT CLOSE
+- PRP-033 awaits the user's approval. Then the input group.
 
 ---
 
