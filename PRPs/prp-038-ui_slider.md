@@ -1,6 +1,6 @@
 # PRP-038 — kivuli.ui: Slider, and disabled sliders
 
-Status: draft, for the user's approval (session 75)
+Status: approved (session 76)
 Discovery: session 75, 2026-10-20 (the ninth component; the reference is shadcn's current slider). *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: `Part.Trough`, `Part.Highlight`, `Part.Knob`; `ui.slider(min, max, value, on_change)`; and `.disabled(…)` on a slider, native or `ui.slider` (no message: rule 6, as PRP-037 did for check boxes).

@@ -1224,6 +1224,12 @@ Branch: main
 
 ---
 
+## SESSION 76 — 2026-10-20 — PRP-038: kivuli.ui Slider, disabled sliders — open
+
+Branch: prp-038-ui-slider
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
