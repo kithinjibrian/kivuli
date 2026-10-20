@@ -1,0 +1,63 @@
+/**
+ * Badge (PRP-028): a small label in the palette's colours, shadcn v4's. Its
+ * variants are `Look`s, given through `.style`, so an app's own values after
+ * one win. Built only from the public style API, as an app's own would be.
+ * Pure.
+ *
+ * Depends on: views, looks, widgets, styles, theming, boxes, fonts
+ * Used by: ui
+ */
+
+// The public items the entry re-exports, by their own modules (rule 2: no `lib`).
+import view.views { View };
+import view.looks { Align };
+import view.widgets { text };
+import styles { Look, look };
+import styles.theming { Color, Token };
+import styles.boxes { Background, Border, Spacing };
+import styles.fonts { Font, Text };
+
+/** No colour at all: so every variant has a border, and is one size. */
+fun clear(): Color = Color { red: 0, green: 0, blue: 0, alpha: 0 };
+
+/**
+ * A small label: a count, a status, "New". As wide as its text in a column;
+ * in a row, `.align(Align.Center)` centres it across the row's height.
+ *
+ * Example:
+ *     row([text("Inbox"), badge("12").align(Align.Center)])
+ */
+public fun badge<Msg>(label: string): View<Msg> = text(label).style([
+    Spacing.padding_x(8),
+    Spacing.padding_y(2),
+    Border.rounded_sm(),
+    Border.all(1, clear()),
+    Font.xs(),
+    Font.medium(),
+    Background.color(Token.Primary),
+    Text.color(Token.PrimaryForeground),
+]).align(Align.Start);
+
+/** A badge's variants, given through `.style`: `badge("Draft").style([Badge.outline()])`. */
+public struct Badge {}
+
+impl Badge {
+    /** Quieter: the palette's secondary colours. */
+    public fun secondary(): Look = look([
+        Background.color(Token.Secondary),
+        Text.color(Token.SecondaryForeground),
+    ]);
+
+    /** Just a border: no background, the page's text colour. */
+    public fun outline(): Look = look([
+        Background.color(clear()),
+        Text.color(Token.Foreground),
+        Border.all(1, Token.Border),
+    ]);
+
+    /** Something gone wrong: the palette's destructive colours. */
+    public fun destructive(): Look = look([
+        Background.color(Token.Destructive),
+        Text.color(Token.DestructiveForeground),
+    ]);
+}

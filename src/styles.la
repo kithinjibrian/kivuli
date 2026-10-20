@@ -59,6 +59,25 @@ impl Sheet {
     };
 }
 
+/**
+ * Several style values as one: a component's variant (`Badge.outline()`), or
+ * an app's own. Its items apply in order, as if written in its place.
+ *
+ * Example:
+ *     fun quiet(): Look = look([Text.color(Token.MutedForeground), Font.sm()]);
+ */
+public struct Look {
+    public items: Styling[],
+}
+
+impl Look {
+    /** `s` with every item applied in order. */
+    public fun apply(self, s: Sheet): Sheet = applied(s, self.items);
+}
+
+/** `items` as one style value. */
+public fun look(items: Styling[]): Look = Look { items: items };
+
 /** Applies `items` to `s` in order. */
 fun applied(s: Sheet, items: Styling[]): Sheet {
     let mut out = s;
