@@ -323,15 +323,16 @@ fun rules(s: Sheet): (string, string)[] {
 /**
  * `rules` for one state: each class gets the state's prefix, and its rule the
  * state's pseudo-class, its class repeated to the state's rank so a later
- * state in the order (Hover < Focus < Press < Checked < Disabled) wins.
+ * state in the order (Hover < Focus < FocusWithin < Press < Checked < Disabled) wins.
  */
 fun state_rules(state: State, base: (string, string)[]): (string, string)[] {
     let (code, pseudo, rank) = match state {
         Hover => ("hover", ":hover", 1),
         Focus => ("focus", ":focus-visible", 2),
-        Press => ("press", ":active", 3),
-        Checked => ("checked", ":checked", 4),
-        Disabled => ("disabled", ":disabled", 5),
+        FocusWithin => ("within", ":focus-within", 3),
+        Press => ("press", ":active", 4),
+        Checked => ("checked", ":checked", 5),
+        Disabled => ("disabled", ":disabled", 6),
     };
     base.map(fun(rule) {
         let class = rule.0.split(":")[0];

@@ -8,6 +8,12 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.27.0] — 2026-10-20
+
+### Added
+- `kivuli.ui`'s Input (PRP-032): `ui.input(value, on_change)` and `Input.invalid()`; a ring while typed in.
+- `State.FocusWithin` (`:focus-within`): focus anywhere inside the node, however it got there. Ranked after `Focus`, so `Press`, `Checked` and `Disabled` rules repeat their class once more.
+
 ## [0.26.0] — 2026-10-20
 
 ### Added

@@ -981,6 +981,36 @@ Branch: main
 
 ---
 
+## SESSION 57 — 2026-10-20 — PRP-032: kivuli.ui Input, built, not merged — closed
+
+Branch: prp-032-ui-input (not merged: waiting for the user's look)
+
+### WHAT WAS DONE
+- `State.FocusWithin` (`:focus-within`, rank 3; Press, Checked, Disabled shift up one); src/ui/inputs.la (`input`, `Input.invalid()`), disabled border, background and text restated. GTK parsed the CSS. An Input section in components.la, the login card on `ui.input`. Docs; 0.27.0 (not tagged). Tests type-checked only.
+
+### STILL OPEN AT CLOSE
+- The user to look (type in a field: the ring; type without "@": invalid); then merge and tag v0.27.0. Next: Field.
+
+---
+
+## SESSION 58 — 2026-10-20 — Input fixes: bare text centred, a heavy ring — closed
+
+Branch: prp-032-ui-input (not merged)
+
+### WHAT WAS DONE
+- From the user's screenshot: a bare `text(…)` stayed centred (only styled text was aligned; `build` now places every new label at the start); the focus ring was a dark band (`Ring` was the text colour; now the other scheme's muted text, as the current reference bases have it). Tests updated (palettes), type-checked; components rebuilt. (Opened late: the fixes were made before this entry.)
+
+### STILL OPEN AT CLOSE
+- The user to look again; then merge PRP-032 and tag v0.27.0.
+
+---
+
+## SESSION 59 — 2026-10-20 — Merge PRP-032 — open
+
+Branch: main (merging prp-032-ui-input)
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.

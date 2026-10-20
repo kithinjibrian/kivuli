@@ -1,0 +1,89 @@
+// kivuli.ui's Input (PRP-032): its values, its focus-within and disabled
+// states, `Input.invalid()`, an app's values after it, and that it's still
+// a native input. No GTK.
+import kivuli.styles { Sheet };
+import kivuli.view.looks { Style };
+import kivuli { View, State, Token, Paint, Width, Line, Radius, Size, look };
+import kivuli.ui { Input };
+
+fun style_of<M>(v: View<M>): Style = match v {
+    Styled(_, s) => s,
+    _ => panic("expected a styled node"),
+};
+
+fun sheet_of<M>(v: View<M>): Sheet = style_of(v).sheet;
+
+fun in_state(s: Sheet, state: State): Sheet {
+    for (st, sub) of s.states {
+        if st == state {
+            return sub;
+        }
+    }
+    panic("no rules for that state")
+}
+
+enum Msg {
+    Typed(string),
+    Go,
+}
+
+fun field(): View<Msg> = ui.input("", Msg.Typed);
+
+@test
+fun an_input_has_a_border_and_a_ring_while_typed_in() {
+    let s = sheet_of(field());
+    assert_eq(s.font.size, Size.Scale(0.875));
+    assert_eq(s.border.radius, Radius.Medium);
+    assert_eq(s.border.top.width, Width.Px(1));
+    assert_eq(s.border.top.color, Paint.Token(Token.Input));
+    assert_eq(s.sizing.min_height, Width.Px(36));
+    assert_eq(s.spacing.padding.left, Width.Px(12));
+    assert_eq(s.spacing.padding.top, Width.Px(4));
+    assert_eq(s.text.color, Paint.Token(Token.Foreground));
+    assert_eq(s.shadow.boxes.len, 1);
+    let focus = in_state(s, State.FocusWithin);
+    assert_eq(focus.border.top.color, Paint.Token(Token.Ring));
+    assert_eq(focus.shadow.boxes[0].spread, 3);
+    assert_eq(focus.shadow.boxes[0].color, Token.Ring.alpha(0.5));
+    assert_eq(focus.outline.style, Line.None);
+    let off = in_state(s, State.Disabled);
+    assert_eq(off.border.top.color, Paint.Token(Token.Input));
+    assert_eq(off.effects.opacity, Some(0.5));
+    assert_eq(s.motion.transitions.len, 2);
+}
+
+@test
+fun invalid_is_red_and_its_ring_too() {
+    let s = sheet_of(field().style([Input.invalid()]));
+    assert_eq(s.border.left.color, Paint.Token(Token.Destructive));
+    assert_eq(in_state(s, State.FocusWithin).shadow.boxes[0].color, Token.Destructive.alpha(0.2));
+    // No longer invalid: an empty look leaves the input as it was.
+    let fine = sheet_of(field().style([look([])]));
+    assert_eq(fine.border.left.color, Paint.Token(Token.Input));
+}
+
+@test
+fun it_is_still_a_native_input() {
+    let v = field().placeholder("m@example.com").on_submit(Msg.Go);
+    assert_eq(style_of(v).placeholder, "m@example.com");
+    match v {
+        Styled(inside, _) => match inside {
+            Input(value, messages) => {
+                assert_eq(value, "");
+                match messages {
+                    Some((_, enter)) => assert(enter.is_some()),
+                    None => panic("an enabled input sends"),
+                }
+            }
+            _ => panic("a ui input is a native input"),
+        },
+        _ => panic("an input is styled"),
+    }
+    match field().disabled(true) {
+        Styled(inside, _) => match inside {
+            Input(_, messages) => assert(messages.is_none()),
+            _ => panic("a ui input is a native input"),
+        },
+        _ => panic("an input is styled"),
+    }
+}

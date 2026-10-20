@@ -89,7 +89,7 @@ fun applied(s: Sheet, items: Styling[]): Sheet {
 
 /**
  * A state a node can be in, as GTK's CSS names it. When two are on at once,
- * the later in this order wins: `Hover` < `Focus` < `Press` < `Checked` < `Disabled`.
+ * the later in this order wins: `Hover` < `Focus` < `FocusWithin` < `Press` < `Checked` < `Disabled`.
  */
 public enum State {
     /** The pointer is over it (`:hover`). */
@@ -98,6 +98,12 @@ public enum State {
     Press,
     /** It has keyboard focus (`:focus-visible`). */
     Focus,
+    /**
+     * It, or something inside it, has focus, however it got there
+     * (`:focus-within`): a text field being typed in (its typing area takes
+     * the focus, not the field).
+     */
+    FocusWithin,
     /** It sends nothing: greyed out (`:disabled`). */
     Disabled,
     /** A check box that's ticked (`:checked`). */

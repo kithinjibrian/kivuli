@@ -64,8 +64,10 @@ fun tokens(s: Shades): (Token, Color)[] = [
 
 /** A palette from a base's light and dark shades. */
 fun base(light: Shades, dark: Shades): Palette {
-    let l = tokens(light);
-    let d = tokens(dark);
+    // The focus ring is a mid grey: in light, the dark scheme's muted text;
+    // in dark, the light scheme's.
+    let l = tokens(Shades { ring: dark.muted_foreground, ..light });
+    let d = tokens(Shades { ring: light.muted_foreground, ..dark });
     let mut colors: (Token, Color, Color)[] = [];
     let mut i = 0;
     while i < l.len {
@@ -92,7 +94,8 @@ fun light(
     muted_foreground: muted,
     destructive: "#ef4444",
     border: border,
-    ring: ink,
+    // `base` gives the ring: the other scheme's muted text.
+    ring: "",
 };
 
 /** A dark base: `ink` page, `on` text and primary, dark red destructive. */
@@ -102,7 +105,6 @@ fun dark(
     primary_text: string,
     quiet: string,
     muted: string,
-    ring: string,
 ): Shades = Shades {
     background: ink,
     foreground: on,
@@ -112,38 +114,39 @@ fun dark(
     muted_foreground: muted,
     destructive: "#7f1d1d",
     border: quiet,
-    ring: ring,
+    // `base` gives the ring: the other scheme's muted text.
+    ring: "",
 };
 
 impl Palette {
     /** The default: neutral greys with a touch of blue. */
     public fun zinc(): Palette = base(
         light("#09090b", "#18181b", "#fafafa", "#f4f4f5", "#71717a", "#e4e4e7"),
-        dark("#09090b", "#fafafa", "#18181b", "#27272a", "#a1a1aa", "#d4d4d8"),
+        dark("#09090b", "#fafafa", "#18181b", "#27272a", "#a1a1aa"),
     );
 
     /** Cool, blue-grey. */
     public fun slate(): Palette = base(
         light("#020817", "#0f172a", "#f8fafc", "#f1f5f9", "#64748b", "#e2e8f0"),
-        dark("#020817", "#f8fafc", "#0f172a", "#1e293b", "#94a3b8", "#cbd5e1"),
+        dark("#020817", "#f8fafc", "#0f172a", "#1e293b", "#94a3b8"),
     );
 
     /** Warm, brown-grey. */
     public fun stone(): Palette = base(
         light("#0c0a09", "#1c1917", "#fafaf9", "#f5f5f4", "#78716c", "#e7e5e4"),
-        dark("#0c0a09", "#fafaf9", "#1c1917", "#292524", "#a8a29e", "#d6d3d1"),
+        dark("#0c0a09", "#fafaf9", "#1c1917", "#292524", "#a8a29e"),
     );
 
     /** Grey with a little blue. */
     public fun gray(): Palette = base(
         light("#030712", "#111827", "#f9fafb", "#f3f4f6", "#6b7280", "#e5e7eb"),
-        dark("#030712", "#f9fafb", "#111827", "#1f2937", "#9ca3af", "#d1d5db"),
+        dark("#030712", "#f9fafb", "#111827", "#1f2937", "#9ca3af"),
     );
 
     /** Pure greys. */
     public fun neutral(): Palette = base(
         light("#0a0a0a", "#171717", "#fafafa", "#f5f5f5", "#737373", "#e5e5e5"),
-        dark("#0a0a0a", "#fafafa", "#171717", "#262626", "#a3a3a3", "#d4d4d4"),
+        dark("#0a0a0a", "#fafafa", "#171717", "#262626", "#a3a3a3"),
     );
 
     /** This palette with `token` as `light` in a light scheme and `dark` in a dark one. */
