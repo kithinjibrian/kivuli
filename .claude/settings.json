@@ -10,5 +10,11 @@
       "Edit(./LICENSE)",
       "Edit(../lugha/**)"
     ]
+  },
+    "attribution": {
+    "coAuthoredBy": false,
+    "commit": "",
+    "pr": "",
+    "sessionUrl": false
   }
 }

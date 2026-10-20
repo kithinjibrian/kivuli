@@ -1,0 +1,19 @@
+import kivuli { View, Spacing, Edges, Width, column, input, sandbox };
+
+struct Model {
+    address: string,
+}
+
+enum Msg {
+    Draft(string),
+}
+
+fun update(m: Model, msg: Msg): Model = match msg {
+    Draft(draft) => Model { address: draft },
+};
+
+fun view(m: Model): View<Msg> = column([
+    input(m.address, Msg.Draft).placeholder("Enter Address").name("address").autofocus(),
+]).style([Spacing.padding(24)]);
+
+fun main(): i32 = sandbox("org.kivuli.search_bar", Model { address: "" }, update, view);

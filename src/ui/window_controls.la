@@ -36,7 +36,7 @@ impl WindowControls {
             Background.color(clear()),
             Text.color(Token.MutedForeground),
             Border.all(0, clear()),
-            Border.rounded_md(),
+            Border.rounded(99),
             Shadow.off(),
             Sizing.min_width(32),
             Sizing.min_height(32),
