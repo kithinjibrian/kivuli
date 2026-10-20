@@ -57,12 +57,13 @@ import gtk {
     gtk_widget_set_valign,
     gtk_widget_set_vexpand,
 };
-import core.live_tree { Live, widget };
+import core.live_tree { Choices, Live, widget };
 import view.looks { Style, Align, Fit };
 import styles.values { Radius, TextAlign, Width };
 import styles.box_rules { clamp_limits };
 import view.keys { parse };
 import view.widgets { snap };
+import render.controls { sync_choices };
 
 /**
  * Gives `node`'s widget every field of `style`, defaults included, so a
@@ -215,6 +216,17 @@ fun apply_style<Msg>(node: Live<Msg>, style: Style, axis: i32) {
         Image(picture) => {
             gtk_picture_set_content_fit(picture, content_fit(style.fit));
             // `.size(n)`: an n × n box (set with the node's size request, above).
+        }
+        Dropdown(drop, state) => {
+            let now = state.get();
+            // The blank item reads the placeholder; while GTK is inside the
+            // drop-down's own signal, the next sync shows it instead.
+            if now.placeholder != style.placeholder {
+                state.set(Choices { placeholder: style.placeholder, ..now });
+                if !now.busy {
+                    sync_choices(drop, state);
+                }
+            }
         }
         Slider(scale, range, last, _) => {
             let (min, max, _) = range.get();

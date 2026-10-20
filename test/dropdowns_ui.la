@@ -1,0 +1,110 @@
+// kivuli.ui's dropdown (PRP-039): the trigger, arrow, list and items, the
+// focus ring, the muted placeholder when nothing is picked, invalid; still
+// a native drop-down. No GTK.
+import kivuli.styles { Sheet };
+import kivuli.view.looks { Style };
+import kivuli { View, Part, State, Token, Paint, Width, Radius, Size };
+import kivuli.ui { Dropdown };
+
+fun style_of<M>(v: View<M>): Style = match v {
+    Styled(_, s) => s,
+    _ => panic("expected a styled node"),
+};
+
+fun sheet_of<M>(v: View<M>): Sheet = style_of(v).sheet;
+
+fun part(s: Sheet, p: Part): Sheet {
+    for (q, sub) of s.parts {
+        if q == p {
+            return sub;
+        }
+    }
+    panic("no rules for that part")
+}
+
+fun in_state(s: Sheet, state: State): Sheet {
+    for (st, sub) of s.states {
+        if st == state {
+            return sub;
+        }
+    }
+    panic("no rules for that state")
+}
+
+fun fruit(selected: string): View<i64> = ui.dropdown(
+    [("Apple", 1), ("Banana", 2)],
+    selected,
+    "Select a fruit",
+);
+
+@test
+fun the_trigger_looks_like_an_input() {
+    let t = part(sheet_of(fruit("Apple")), Part.Trigger);
+    assert_eq(t.font.size, Size.Scale(0.875));
+    assert_eq(t.border.top.color, Paint.Token(Token.Input));
+    assert_eq(t.border.radius, Radius.Medium);
+    assert_eq(t.sizing.min_height, Width.Px(36));
+    assert_eq(t.spacing.padding.left, Width.Px(12));
+    let f = part(in_state(sheet_of(fruit("Apple")), State.Focus), Part.Trigger);
+    assert_eq(f.border.top.color, Paint.Token(Token.Ring));
+    assert_eq(f.shadow.boxes[0].color, Token.Ring.alpha(0.5));
+    assert_eq(
+        part(sheet_of(fruit("Apple")), Part.Arrow).text.color,
+        Paint.Token(Token.MutedForeground),
+    );
+}
+
+@test
+fun the_list_and_its_items_are_in_the_popover_colours() {
+    let s = sheet_of(fruit("Apple"));
+    let l = part(s, Part.List);
+    assert_eq(l.background.color, Paint.Token(Token.Popover));
+    assert_eq(l.text.color, Paint.Token(Token.PopoverForeground));
+    assert_eq(l.border.top.color, Paint.Token(Token.Border));
+    assert_eq(l.spacing.padding.top, Width.Px(4));
+    let i = part(s, Part.Item);
+    assert_eq(i.spacing.padding.top, Width.Px(6));
+    assert_eq(i.spacing.padding.left, Width.Px(8));
+    assert_eq(i.spacing.padding.right, Width.Px(32));
+    assert_eq(i.border.radius, Radius.Small);
+    let hovered = in_state(i, State.Hover);
+    assert_eq(hovered.background.color, Paint.Token(Token.Accent));
+    assert_eq(hovered.text.color, Paint.Token(Token.AccentForeground));
+}
+
+@test
+fun the_placeholder_is_muted_only_while_it_shows() {
+    assert_eq(style_of(fruit("")).placeholder, "Select a fruit");
+    assert_eq(
+        part(sheet_of(fruit("")), Part.Trigger).text.color,
+        Paint.Token(Token.MutedForeground),
+    );
+    assert_eq(part(sheet_of(fruit("Apple")), Part.Trigger).text.color, Paint.Theme);
+}
+
+@test
+fun invalid_reddens_the_trigger() {
+    let t = part(sheet_of(fruit("").style([Dropdown.invalid()])), Part.Trigger);
+    assert_eq(t.border.left.color, Paint.Token(Token.Destructive));
+    assert_eq(
+        part(
+            in_state(sheet_of(fruit("").style([Dropdown.invalid()])), State.Focus),
+            Part.Trigger,
+        ).shadow.boxes[0].color,
+        Token.Destructive.alpha(0.2),
+    );
+}
+
+@test
+fun it_is_still_a_native_drop_down() {
+    match fruit("Banana") {
+        Styled(inside, _) => match inside {
+            Dropdown(choices, selected) => {
+                assert_eq(choices.len, 2);
+                assert_eq(selected, "Banana");
+            }
+            _ => panic("a ui dropdown is a native drop-down"),
+        },
+        _ => panic("a dropdown is styled"),
+    }
+}

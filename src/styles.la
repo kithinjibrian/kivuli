@@ -161,6 +161,14 @@ public enum Part {
     Highlight,
     /** A slider's thumb (`slider`). */
     Knob,
+    /** A drop-down's button (`> button`): its own, not one inside its list. */
+    Trigger,
+    /** A drop-down's arrow (`arrow`). */
+    Arrow,
+    /** A drop-down's pop-up list, its box (`popover > contents`). */
+    List,
+    /** An item in a drop-down's pop-up (`popover row`), not the one shown in the button. */
+    Item,
 }
 
 /** Style values for one part: made by `Inside`. */

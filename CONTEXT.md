@@ -1263,6 +1263,26 @@ Branch: main
 
 ---
 
+## SESSION 79 — 2026-10-20 — PRP-039: kivuli.ui dropdown, built, not merged — closed
+
+Branch: prp-039-ui-dropdown (not merged: waiting for the user's look)
+
+### WHAT WAS DONE
+- Parts `Trigger`, `Arrow`, `List`, `Item` as paths with their own class codes; states inside a part; the drop-down's placeholder (live `Choices`, styling syncs it); src/ui/dropdowns.la; a Dropdown section in components.la. GTK parsed the CSS. Docs; 0.34.0 (not tagged).
+- Type-checked every test and example: three stale tests from earlier PRPs fixed. Saved as memory: type-check all tests when a shared type changes.
+
+### STILL OPEN AT CLOSE
+- The user to look; then merge, tag v0.34.0.
+- Tests not run since session 32; main and tags v0.18.0–v0.33.0 not pushed.
+
+---
+
+## SESSION 80 — 2026-10-20 — Merge PRP-039 — open
+
+Branch: main (merging prp-039-ui-dropdown)
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.

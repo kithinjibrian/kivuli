@@ -197,6 +197,7 @@ fun create_in<Msg>(v: View<Msg>, axis: i32, send: fun(Msg)): Live<Msg> = match v
             pick: picked(choices, selected),
             shown: [],
             busy: false,
+            placeholder: "",
         });
         // Filled before connecting, so the first pick isn't sent as a choice.
         sync_choices(drop, state);

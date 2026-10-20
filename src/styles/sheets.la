@@ -137,13 +137,33 @@ fun rules(s: Sheet): (string, string)[] {
     out
 }
 
-/** A part's CSS node name, and the code its classes carry. */
+/**
+ * A part's selector under the widget: a node, or a path where a bare node
+ * would match too much (a drop-down's trigger also holds a `row`; its list
+ * has scrollbars with their own `trough` and `slider`).
+ */
 fun part_node(part: Part): string = match part {
     Check => "check",
     Trough => "trough",
     Highlight => "highlight",
     // GTK calls a slider's thumb `slider`.
     Knob => "slider",
+    Trigger => "> button",
+    Arrow => "arrow",
+    List => "popover > contents",
+    Item => "popover row",
+};
+
+/** The code a part's classes carry (`kv-item-…`). */
+fun part_code(part: Part): string = match part {
+    Check => "check",
+    Trough => "trough",
+    Highlight => "highlight",
+    Knob => "slider",
+    Trigger => "trigger",
+    Arrow => "arrow",
+    List => "list",
+    Item => "item",
 };
 
 /**
@@ -151,10 +171,17 @@ fun part_node(part: Part): string = match part {
  * part's node after it (a descendant), before any tail the rule had.
  */
 fun part_rules(part: Part, base: (string, string)[]): (string, string)[] = base.map(fun(rule) {
-    let node = part_node(part);
-    let class = rule.0.split(":")[0];
-    let tail = rule.0.slice(class.len, rule.0.len);
-    ("kv-{node}-{class.slice(3, class.len)} {node}{tail}", rule.1)
+    let pieces = rule.0.split(":");
+    // A state's rule repeats its class for rank (`c.c:active`): one is enough
+    // on a part, whose own state sits after its node.
+    let class = pieces[0].split(".")[0];
+    let mut tail = "";
+    let mut i = 1;
+    while i < pieces.len {
+        tail = tail + ":" + pieces[i];
+        i = i + 1;
+    }
+    ("kv-{part_code(part)}-{class.slice(3, class.len)} {part_node(part)}{tail}", rule.1)
 });
 
 /**
