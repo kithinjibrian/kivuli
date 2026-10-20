@@ -1,10 +1,11 @@
 /**
- * Showing images from files and bytes: the one place an `Image` becomes a
- * GTK texture. Every image is checked from its header first
- * (`pictures.size_of`: PNG or JPEG, at most 4096 × 4096 px and 16 MB), so
- * hostile bytes never reach GTK's decoder; a decode error is freed and shows
- * nothing, never a panic. kivuli drops its own references at once: a texture
- * lives as long as the widget showing it.
+ * Showing images from files and bytes: the one place an `Image` becomes
+ * something GTK draws: a texture for PNG and JPEG, GTK's own SVG for SVG
+ * (PRP-053). Every image is checked first (`pictures.kind_of`, then
+ * `size_of` for PNG and JPEG: at most 4096 × 4096 px and 16 MB; no SVG
+ * holding `<image>`), so hostile bytes never reach GTK; a decode error or
+ * an SVG GTK can't read shows nothing, never a panic. kivuli drops its own
+ * references at once: a picture lives as long as the widget showing it.
  *
  * Depends on: pictures, gtk.raw
  * Used by: build, buttons, patch
@@ -13,6 +14,7 @@
 import gtk {
     GError,
     GdkTexture,
+    GtkSvg,
     GtkWidget,
     g_bytes_new,
     g_bytes_unref,
@@ -21,20 +23,69 @@ import gtk {
     gdk_texture_unref,
     gtk_image_set_from_icon_name,
     gtk_image_set_from_paintable,
+    gtk_image_set_from_svg,
     gtk_picture_set_paintable,
+    gtk_picture_set_svg,
+    gtk_svg_get_intrinsic_height,
+    gtk_svg_get_intrinsic_width,
+    gtk_svg_unref,
+    lgtk_svg_load,
 };
-import view.pictures { Image, size_of };
+import view.pictures { Image, Kind, MAX_SIDE, kind_of, size_of };
 
-/** The texture for a file or bytes image; `None` for a theme icon, or one that can't be shown. */
-fun texture_of(img: Image): Option<GdkTexture> = match img {
+/** What GTK draws for a file or bytes image: decoded pixels, or an SVG. */
+enum Drawn {
+    Pixels(GdkTexture),
+    Svg(GtkSvg),
+}
+
+/** What to draw for a file or bytes image; `None` for a theme icon, or one that can't be shown. */
+fun drawn_of(img: Image): Option<Drawn> = match img {
     Icon(_) => None,
     // std.fs can't tell a file's size, so it's read whole, then checked.
     File(path) => match read_bytes(path) {
-        Ok(bytes) => decoded(bytes),
+        Ok(bytes) => drawn(bytes),
         Err(_) => None,
     },
-    Bytes(_, bytes) => decoded(bytes),
+    Bytes(_, bytes) => drawn(bytes),
 };
+
+/** `bytes` as something to draw, if they pass the checks and GTK can read them. */
+fun drawn(bytes: u8[]): Option<Drawn> = match kind_of(bytes) {
+    Ok(Svg) => match svg(bytes) {
+        Some(s) => Some(Drawn.Svg(s)),
+        None => None,
+    },
+    Ok(_) => match decoded(bytes) {
+        Some(t) => Some(Drawn.Pixels(t)),
+        None => None,
+    },
+    Err(_) => None,
+};
+
+/**
+ * Checked SVG bytes as GTK's own SVG, drawing with system fonts only
+ * (`lgtk_svg_load`); `None` when GTK finds a syntax error, or the size it
+ * reads is none or over `MAX_SIDE` either way.
+ */
+fun svg(bytes: u8[]): Option<GtkSvg> {
+    let block = g_bytes_new(bytes, bytes.len as u64);
+    let loaded = lgtk_svg_load(block);
+    g_bytes_unref(block);
+    match loaded {
+        Some(s) => {
+            let w = gtk_svg_get_intrinsic_width(s) as i64;
+            let h = gtk_svg_get_intrinsic_height(s) as i64;
+            if w > 0 && h > 0 && w <= MAX_SIDE && h <= MAX_SIDE {
+                Some(s)
+            } else {
+                gtk_svg_unref(s);
+                None
+            }
+        }
+        None => None,
+    }
+}
 
 /** `bytes` decoded, if their header passes the checks and GTK can decode them. */
 fun decoded(bytes: u8[]): Option<GdkTexture> {
@@ -55,12 +106,17 @@ fun decoded(bytes: u8[]): Option<GdkTexture> {
 
 /** Shows a file or bytes image in a picture (nothing when it can't be shown). */
 fun show_picture(picture: GtkWidget, img: Image) {
-    let texture = texture_of(img);
-    gtk_picture_set_paintable(picture, texture);
     // The picture keeps its own reference.
-    match texture {
-        Some(t) => gdk_texture_unref(t),
-        None => {}
+    match drawn_of(img) {
+        Some(Pixels(t)) => {
+            gtk_picture_set_paintable(picture, Some(t));
+            gdk_texture_unref(t);
+        }
+        Some(Svg(s)) => {
+            gtk_picture_set_svg(picture, Some(s));
+            gtk_svg_unref(s);
+        }
+        None => gtk_picture_set_paintable(picture, None),
     }
 }
 
@@ -74,10 +130,15 @@ fun show_in_image(image: GtkWidget, img: Option<Image>): bool = match img {
         gtk_image_set_from_icon_name(image, name);
         true
     }
-    Some(other) => match texture_of(other) {
-        Some(t) => {
+    Some(other) => match drawn_of(other) {
+        Some(Pixels(t)) => {
             gtk_image_set_from_paintable(image, Some(t));
             gdk_texture_unref(t);
+            true
+        }
+        Some(Svg(s)) => {
+            gtk_image_set_from_svg(image, Some(s));
+            gtk_svg_unref(s);
             true
         }
         None => {

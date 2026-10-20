@@ -208,6 +208,19 @@ fun main() {
 
 ## RESOLVED
 
+### DECISION-030 — GtkSvg crashes on `<image>` with external resources off
+
+**Status:** resolved
+**Resolved:** 2026-10-20 — Session 118 (the user: A)
+**Raised:** 2026-10-20 — Session 117 (PRP-053, SVG images)
+
+**Question:** GTK 4.22.4's `gtk_svg_load_from_bytes` segfaults on any `<image>` (or `xlink:href` image) whose href isn't a `data:` URL, even `#x`, when `GTK_SVG_EXTERNAL_RESOURCES` is off: the setting PRP-053 chose so an SVG can't make GTK open files. With it on, no crash, but GTK opens whatever path the SVG names. Probed in C (`scratchpad/probe/svgx.c`, `svgy.c`): `<use>` to another file, `<feImage>`, an external `url(…)` fill and `@import` don't crash. Options: (A) keep external resources off and refuse, before GTK sees it, any SVG holding an `<image>` element (any namespace prefix): it shows nothing; (B) turn external resources on; (C) leave SVG out until GTK is fixed.
+
+**Outcome:** A. External resources stay off; kivuli refuses, before GTK sees the bytes, any SVG holding an `<image` element (with or without a namespace prefix, even in a comment: conservative), so it shows nothing. Probed too: GTK's parser doesn't expand `<!ENTITY>`s (a syntax error), and a prefixed `<s:image>` is an unknown element, skipped. An SVG GTK reports a syntax error for shows nothing. Reporting the crash to GTK: only on the user's go.
+
+**Copied to MEMORY.md:** yes (decision 17)
+
+
 ### DECISION-025 — A second allowed import cycle: styles ↔ styles/ (was style_groups)
 
 **Status:** resolved
