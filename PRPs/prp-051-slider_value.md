@@ -1,6 +1,6 @@
 # PRP-051 — Hiding a slider's number
 
-Status: approved (session 107, "build all")
+Status: built (session 112); merged into main in session 112 (its own tests run and pass)
 Discovery: session 107, 2026-10-20 (the reference's slider shows no number). *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: `.show_value(on)` on any slider; `ui.slider` hides its number by default.
@@ -25,9 +25,16 @@ ui.slider(0, 100, m.volume, Msg.Volume).show_value(true)   // shown again
 - No value shown elsewhere (in a tooltip, at the ends), no formatting of the number.
 
 ## TESTS (narrow; type-check every test and example; run this PRP's own)
-- [ ] `test/sliders_ui.la`: `ui.slider` hides the number; `.show_value(true)` after it shows it.
-- [ ] `test/live_choices.la`: a slider draws its number by default; `.show_value(false)` hides it; toggling it on update keeps the widget.
-- [ ] `examples/components.la`: its Slider section loses the number; one slider shows it; only it built. How it looks: by hand.
+- [x] `test/sliders_ui.la`: `ui.slider` hides the number; `.show_value(true)` after it shows it.
+- [x] `test/live_choices.la`: a slider draws its number by default; `.show_value(false)` hides it; toggling it on update keeps the widget.
+- [x] `examples/components.la`: its Slider section loses the number; one slider shows it; only it built. How it looks: by hand.
 
 ## ACCEPTANCE
 - [ ] The OBJECTIVE compiles; fmt clean; no file over 500 lines; README, DESIGN, CHANGELOG 0.46.0; merged, tagged; pushed only on your go.
+
+## NOTES FROM THE BUILD
+
+- **The build still draws the number**: a node without a style is never restyled, so the slider's `set_draw_value(1)` at build stays; styling sets it from `show_value` on every restyle.
+- **lugha-gtk 0.1.42**: `gtk_scale_get_draw_value`, for the GTK test. Pushed, tagged.
+- **views.la is at 497 lines.** The next modifier needs a split, and every modifier must stay in views.la (DECISION-018): to be proposed then.
+- **Tests run and pass**: sliders_ui, live_choices (with the number test), live, lib (42). Every test and example type-checks; components built.

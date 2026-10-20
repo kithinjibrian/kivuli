@@ -79,6 +79,8 @@ public struct Style {
     autofocus: bool,
     /** How far a slider's handle moves at a time, counted from its least value; 1 by default. Sliders only. */
     step: i64,
+    /** Whether a slider draws its number beside the handle; true by default. Sliders only. */
+    show_value: bool,
     /** How a picture fills the room it's given. Images only. */
     fit: Fit,
     /** Everything `.style` set, merged. Any node. */
@@ -128,6 +130,7 @@ fun plain(): Style = Style {
     shortcut: "",
     autofocus: false,
     step: 1,
+    show_value: true,
     fit: Fit.Contain,
     sheet: Sheet.theme(),
     classes: [],

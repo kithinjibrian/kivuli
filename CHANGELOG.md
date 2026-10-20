@@ -8,6 +8,14 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.46.0] — 2026-10-20
+
+### Added
+- `.show_value(on)` on a slider (PRP-051). Needs lugha-gtk 0.1.42 (for its test).
+
+### Changed
+- `kivuli.ui`'s `slider` no longer draws its number; `.show_value(true)` brings it back.
+
 ## [0.45.0] — 2026-10-20
 
 ### Added

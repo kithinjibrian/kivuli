@@ -29,6 +29,7 @@ import gtk {
     gtk_label_set_wrap,
     gtk_label_set_wrap_mode,
     gtk_range_set_increments,
+    gtk_scale_set_draw_value,
     gtk_range_set_value,
     gtk_shortcut_controller_add_shortcut,
     gtk_shortcut_controller_remove_shortcut,
@@ -252,6 +253,7 @@ fun apply_style<Msg>(node: Live<Msg>, style: Style, axis: i32) {
             range.set((min, max, style.step));
             // Arrow keys move one step, Page Up/Down ten.
             gtk_range_set_increments(scale, style.step as f64, (style.step * 10) as f64);
+            gtk_scale_set_draw_value(scale, flag(style.show_value));
             show_number(scale, range, last, last.get());
         }
         _ => {}

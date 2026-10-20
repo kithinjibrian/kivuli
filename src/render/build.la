@@ -224,7 +224,8 @@ fun create_in<Msg>(v: View<Msg>, axis: i32, send: fun(Msg)): Live<Msg> = match v
         // which may be a single number.
         let scale = gtk_scale_new_with_range(0, 0.0, 1.0, 1.0);
         gtk_range_set_range(scale, min as f64, max as f64);
-        // Whole numbers, drawn beside the handle.
+        // Whole numbers, drawn beside the handle unless a style says not
+        // (`.show_value`; a node without a style isn't restyled).
         gtk_scale_set_digits(scale, 0);
         gtk_scale_set_draw_value(scale, 1);
         // Steps of 1 until `.step` styles it; `snap` panics on min > max.
