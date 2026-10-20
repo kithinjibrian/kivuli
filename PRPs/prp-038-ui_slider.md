@@ -1,6 +1,6 @@
 # PRP-038 — kivuli.ui: Slider, and disabled sliders
 
-Status: approved (session 76)
+Status: built (session 76) on branch prp-038-ui-slider
 Discovery: session 75, 2026-10-20 (the ninth component; the reference is shadcn's current slider). *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: `Part.Trough`, `Part.Highlight`, `Part.Knob`; `ui.slider(min, max, value, on_change)`; and `.disabled(…)` on a slider, native or `ui.slider` (no message: rule 6, as PRP-037 did for check boxes).
@@ -39,10 +39,15 @@ slider(0, 100, m.x, Msg.X).style([Inside(Part.Knob, [Background.color(Token.Prim
 - No range (two thumbs), no vertical styling beyond what the parts give, no ticks or marks.
 
 ## TESTS (narrow; type-check now, run once the user's faster tests are in)
-- [ ] `test/parts.la`: the three new parts' selectors (`trough`, `highlight`, `slider`), under a state too.
-- [ ] `test/sliders_ui.la` (new, pure): the slider's parts' values, its hover and focus halos, disabled at half opacity, still native.
-- [ ] `test/map.la`, `test/diff_slider.la` (new) or the diff tests, `test/testing.la`, `test/live_disabled.la`: as PRP-037's, for sliders.
-- [ ] GTK parses the generated rules (the C probe); `examples/components.la` gains a Slider section (plain, disabled, beside a value); only it built. How it looks and drags: by hand.
+- [x] `test/parts.la`: the three new parts' selectors (`trough`, `highlight`, `slider`), under a state too.
+- [x] `test/sliders_ui.la` (new, pure): the slider's parts' values, its hover and focus halos, disabled at half opacity, still native.
+- [x] `test/map.la`, `test/diff_slider.la` (new) or the diff tests, `test/testing.la`, `test/live_disabled.la`: as PRP-037's, for sliders.
+- [x] GTK parses the generated rules (the C probe); `examples/components.la` gains a Slider section (plain, disabled, beside a value); only it built. How it looks and drags: by hand.
 
 ## ACCEPTANCE
 - [ ] The OBJECTIVE compiles; fmt clean; no file over 500 lines; README, DESIGN, CHANGELOG 0.33.0, CLAUDE.md; merged, tagged; pushed only on your go.
+
+## NOTES FROM THE BUILD
+
+- **The native slider draws its number beside the thumb** (`gtk_scale_set_draw_value`, since PRP-008), which the reference doesn't; `ui.slider` keeps it. Hiding it is a widget setting (or a `Part.Value`), not in this PRP: raised with the user.
+- **GTK parsed the slider's CSS** (43 lines, 0 errors). Tests type-checked only; only components built.
