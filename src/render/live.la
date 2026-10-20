@@ -30,7 +30,7 @@ import gtk {
     gtk_application_new,
     gtk_application_window_new,
     gtk_css_provider_load_from_string,
-    gtk_css_provider_new,
+    lgtk_css_provider_new_for_scheme,
     gtk_style_context_add_provider_for_display,
     gtk_widget_get_display,
     gtk_widget_grab_focus,
@@ -54,6 +54,8 @@ import view.keys { duplicate };
 import view.walk { path_of_name };
 import core.live_tree { Live, titlebar, widget };
 import styles.paint { background_pictures, painted, stylesheet };
+import styles.palettes { default_tokens };
+import render.schemes { scheme_of, show_scheme };
 import styles.sheets { picture_css, url_of };
 
 /** What changes as the app runs: the model, the view it gave, and the widgets showing it. */
@@ -166,6 +168,7 @@ fun mount<Model, Msg>(
     show_maximized(window, tree);
     app.state.set(Some(State { model: model, tree: tree, live: live }));
     show_window(window, None, window_of(tree));
+    show_scheme(None, scheme_of(tree));
     perform(app, cmd);
     resubscribe(app, model);
     app
@@ -211,6 +214,7 @@ fun dispatch<Model, Msg>(app: Running<Model, Msg>, msg: Msg) {
     app.patching.set(false);
     app.state.set(Some(State { model: model, tree: tree, live: live }));
     show_window(app.window, window_of(s.tree), window_of(tree));
+    show_scheme(scheme_of(s.tree), scheme_of(tree));
     perform(app, cmd);
     resubscribe(app, model);
 }
@@ -263,12 +267,12 @@ fun click_away(window: GtkWidget): GtkEventController {
     gesture
 }
 
-/** The app's stylesheet, empty, applied to `window`'s display. */
+/** The app's stylesheet, applied to `window`'s display; its `prefers-color-scheme` rules follow GTK's scheme. */
 fun styles_for(window: GtkWidget): Styles {
-    let provider = gtk_css_provider_new();
+    let provider = lgtk_css_provider_new_for_scheme();
     // The display keeps the provider for the app's life.
     gtk_style_context_add_provider_for_display(gtk_widget_get_display(window), provider, 600);
-    Styles { provider: provider, classes: Ref.new(#{}), css: Ref.new([]) }
+    Styles { provider: provider, classes: Ref.new(#{}), css: Ref.new([default_tokens().1]) }
 }
 
 /** Adds the rules `tree` needs that the stylesheet doesn't have yet, reloading it only then. */
@@ -276,9 +280,9 @@ fun add_rules<Msg>(styles: Styles, tree: View<Msg>) {
     let mut known = styles.classes.get();
     let mut css = styles.css.get();
     let mut added = false;
-    for (class, body) of stylesheet(tree) {
+    for (class, rule) of stylesheet(tree) {
         if known.insert(class) {
-            css.push(".{class} {{ {body} }}");
+            css.push(rule);
             added = true;
         }
     }

@@ -179,6 +179,19 @@ The short forms (utilities) are static functions on each group, each returning t
 | `Sizing` | `width(px)`, `min_width`, `max_width`, `height`, `min_height`, `max_height` |
 | `Shadow`, `Effects` | `Shadow.sm()`, `md()`, `lg()`, `xl()` (Tailwind's layered shadows), `Shadow.off()`; `Effects.opacity(x)`, `blur(px)`, `grayscale()`, `rotate(deg)`, `scale(x)`, `translate(x, y)` |
 
+**Palettes and colour tokens.** A colour can be a name instead of a value: `Token.Primary`, `Token.MutedForeground`, `Token.Border` and the rest of shadcn's set (`Background`, `Foreground`, `Card`, `Popover`, `Primary`, `Secondary`, `Muted`, `Accent`, `Destructive`, each with a `…Foreground`, and `Border`, `Input`, `Ring`). A palette on the root gives each a light and a dark value, and GTK picks one as the system's scheme is (or as `.scheme(…)` sets it), so dark mode needs no code. The page takes the palette's `Background` and `Foreground`; GTK's own widgets keep their look.
+
+```
+text(m.note).style([Text.color(Token.MutedForeground)])
+card.style([Background.color(Token.Card), Border.all(1, Token.Border), Border.rounded_lg()])
+
+column(rows)
+    .palette(Palette.zinc().with(Token.Primary, hex("#2563eb"), hex("#3b82f6")).radius(8))
+    .scheme(m.scheme)      // Scheme.System (the default), Light or Dark
+```
+
+`Palette.zinc()`, `slate()`, `stone()`, `gray()` and `neutral()` are shadcn's bases; `.with(token, light, dark)` changes one colour; `.radius(px)` is the radius `Border.rounded_lg()` uses (`rounded_md()` is 2 less, `rounded_sm()` 4 less; `Radius.Large`, `Medium`, `Small`). Without a palette, tokens have zinc's values. Every colour utility takes a `Color`, a `Token` or a `Paint`. `examples/palette.la` switches bases and schemes.
+
 The full values, field by field:
 
 | Value | Fields |

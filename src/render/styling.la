@@ -332,6 +332,8 @@ fun rounds(r: Radius): bool = match r {
     Theme => false,
     All(n) => n > 0,
     Corners(a, b, c, d) => a > 0 || b > 0 || c > 0 || d > 0,
+    // The palette's radius: rounded unless an app sets it to almost nothing.
+    Small | Medium | Large => true,
 };
 
 /** Gives a widget's own label the style's classes, and only those of kivuli's. */

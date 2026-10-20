@@ -1,0 +1,100 @@
+// Palettes and colour tokens: a card in the palette's colours, muted text,
+// and buttons that switch the palette and the scheme (light, dark, or the
+// system's). Everything takes its colour from a token, so a palette or a
+// scheme restyles it all at once; the plain GTK button keeps GTK's own look.
+import kivuli {
+    View,
+    Token,
+    Palette,
+    Scheme,
+    Background,
+    Border,
+    Text,
+    Font,
+    Spacing,
+    Sizing,
+    Shadow,
+    button,
+    column,
+    row,
+    sandbox,
+    text,
+    hex,
+};
+
+struct Model {
+    scheme: Scheme,
+    base: i64,
+}
+
+enum Msg {
+    Scheme(Scheme),
+    Base(i64),
+}
+
+fun update(m: Model, msg: Msg): Model = match msg {
+    Scheme(s) => Model { scheme: s, ..m },
+    Base(n) => Model { base: n, ..m },
+};
+
+fun palette_of(n: i64): Palette = if n == 1 {
+    Palette.slate()
+} else if n == 2 {
+    Palette.stone()
+} else if n == 3 {
+    Palette.zinc().with(Token.Primary, hex("#2563eb"), hex("#3b82f6")).radius(4)
+} else {
+    Palette.zinc()
+};
+
+/** A button in the palette's colours, as the `ui` components will draw one. */
+fun tinted(label: string, msg: Msg, on: bool): View<Msg> = button(label, msg).style([
+    Spacing.padding_x(12),
+    Spacing.padding_y(6),
+    Border.rounded_md(),
+    Shadow.off(),
+    Font.medium(),
+    if on { Background.color(Token.Primary) } else { Background.color(Token.Secondary) },
+    if on { Text.color(Token.PrimaryForeground) } else { Text.color(Token.SecondaryForeground) },
+]);
+
+fun view(m: Model): View<Msg> = column([
+    text("Palette").style([Font.h2()]),
+    text("Every colour here is a token: switch the base or the scheme.").style([
+        Text.color(Token.MutedForeground),
+    ]),
+    row([
+        tinted("Zinc", Msg.Base(0), m.base == 0),
+        tinted("Slate", Msg.Base(1), m.base == 1),
+        tinted("Stone", Msg.Base(2), m.base == 2),
+        tinted("Blue, radius 4", Msg.Base(3), m.base == 3),
+    ]).style([Spacing.gap(8)]),
+    row([
+        tinted("System", Msg.Scheme(Scheme.System), m.scheme == Scheme.System),
+        tinted("Light", Msg.Scheme(Scheme.Light), m.scheme == Scheme.Light),
+        tinted("Dark", Msg.Scheme(Scheme.Dark), m.scheme == Scheme.Dark),
+        button("A native GTK button", Msg.Base(m.base)),
+    ]).style([Spacing.gap(8)]),
+    column([
+        text("Storage").style([Font.heading()]),
+        text("12 GB of 64 GB used").style([Text.color(Token.MutedForeground)]),
+    ]).style([
+        Background.color(Token.Card),
+        Text.color(Token.CardForeground),
+        Border.all(1, Token.Border),
+        Border.rounded_lg(),
+        Spacing.padding(24),
+        Spacing.gap(4),
+        Sizing.max_width(420),
+        Shadow.sm(),
+    ]),
+]).style([Spacing.padding(32), Spacing.gap(16)]).palette(palette_of(m.base)).scheme(
+    m.scheme,
+).window("Palette", 640, 420);
+
+fun main(): i32 = sandbox(
+    "org.kivuli.palette",
+    Model { scheme: Scheme.System, base: 0 },
+    update,
+    view,
+);

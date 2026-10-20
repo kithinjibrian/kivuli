@@ -139,6 +139,12 @@ public enum Radius {
     All(i64),
     /** Top left, top right, bottom right, bottom left. */
     Corners(i64, i64, i64, i64),
+    /** The palette's radius less 4 pixels (`Palette.radius`): small things, a badge. */
+    Small,
+    /** The palette's radius less 2 pixels: a button, a field. */
+    Medium,
+    /** The palette's radius: a card. */
+    Large,
 }
 
 /** One side of a border. Fields left `Theme` stay the theme's. */

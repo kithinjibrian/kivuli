@@ -6,7 +6,8 @@
  * Used by: build, diff, effects, keys, lazies, lib, live, mapping, paint, testing, walk, widgets
  */
 
-import view.looks { Style, Window, Align, Fit, plain };
+import view.looks { Style, Window, Align, Fit, Scheme, plain };
+import styles.palettes { Palette };
 import styles { Sheet, Styling, applied };
 import view.pictures { Image };
 import view.menus { MenuEntry };
@@ -333,6 +334,33 @@ impl View<Msg> {
     public fun maximized(self): View<Msg> = restyle(
         self,
         fun(s: Style) = Style { maximized: true, ..s },
+    );
+
+    /**
+     * On the root of `view`: the app's colours by name (`Token`), light and
+     * dark, and the radius components round to. The page takes the palette's
+     * `Background` and `Foreground`; GTK's own widgets keep their look.
+     * Anywhere but the root, the app stops with a message.
+     *
+     * Example:
+     *     column(rows).palette(Palette.zinc().with(Token.Primary, hex("#2563eb"), hex("#3b82f6")))
+     */
+    public fun palette(self, p: Palette): View<Msg> = restyle(
+        self,
+        fun(s: Style) = Style { palette: Some(p), ..s },
+    );
+
+    /**
+     * On the root of `view`: light, dark, or the system's choice (the default),
+     * for the palette and GTK's own widgets alike. Keep it in the model for a
+     * theme toggle. Anywhere but the root, the app stops with a message.
+     *
+     * Example:
+     *     column(rows).scheme(if m.dark { Scheme.Dark } else { Scheme.System })
+     */
+    public fun scheme(self, s: Scheme): View<Msg> = restyle(
+        self,
+        fun(st: Style) = Style { scheme: Some(s), ..st },
     );
 
     /**

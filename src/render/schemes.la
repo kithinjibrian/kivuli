@@ -1,0 +1,32 @@
+/**
+ * The app's light or dark scheme (`.scheme(…)`, PRP-026): GTK's own setting,
+ * so its widgets and the palette's `prefers-color-scheme` agree. Set only
+ * when the root's scheme changes.
+ *
+ * Depends on: views, looks
+ * Used by: live
+ */
+
+import gtk { lgtk_reset_color_scheme, lgtk_set_color_scheme };
+import view.views { View };
+import view.looks { Scheme };
+
+/** The scheme a view's root asks for with `.scheme(…)`, if any. */
+fun scheme_of<Msg>(tree: View<Msg>): Option<Scheme> = match tree {
+    Styled(_, style) => style.scheme,
+    _ => None,
+};
+
+/** Sets GTK's colour scheme when the root's `.scheme(…)` changed; `System` or a dropped one gives it back to the system. */
+fun show_scheme(old: Option<Scheme>, new: Option<Scheme>) {
+    if new == old {
+        return;
+    }
+    // GtkInterfaceColorScheme (gtkenums.h): 2 dark, 3 light.
+    match new {
+        Some(Dark) => lgtk_set_color_scheme(2),
+        Some(Light) => lgtk_set_color_scheme(3),
+        // Writing "default" would hide the system's own choice: reset instead.
+        _ => lgtk_reset_color_scheme(),
+    }
+}

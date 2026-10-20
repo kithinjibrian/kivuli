@@ -10,7 +10,7 @@
 import styles { Sheet };
 import styles.boxes { Border, Sizing };
 import styles.values { Side, Width, Line, Edges, Drop, Filter, Move };
-import styles.theming { Paint, digits, hexed, paint_css, permille };
+import styles.theming { Paint, digits, hexed, paint_css, permille, token_name };
 import styles.drawing { Shadow, Effects };
 
 /** The rules for `s`'s border and outline, in that order. */
@@ -36,8 +36,12 @@ fun box_css(s: Sheet): (string, string)[] {
     }
     let corners = match s.border.radius {
         Theme => [],
-        All(n) => [n, n, n, n],
-        Corners(a, b, c, d) => [a, b, c, d],
+        All(n) => [n, n, n, n].map(fun(n) = ("{n}", "{n}px")),
+        Corners(a, b, c, d) => [a, b, c, d].map(fun(n) = ("{n}", "{n}px")),
+        // The palette's radius is a CSS variable, so it changes with the palette.
+        Small => [0, 0, 0, 0].map(fun(n) = ("sm", "calc(var(--kv-radius) - 4px)")),
+        Medium => [0, 0, 0, 0].map(fun(n) = ("md", "calc(var(--kv-radius) - 2px)")),
+        Large => [0, 0, 0, 0].map(fun(n) = ("lg", "var(--kv-radius)")),
     };
     let names = [
         ("tl", "top-left"),
@@ -48,7 +52,7 @@ fun box_css(s: Sheet): (string, string)[] {
     let mut i = 0;
     while i < corners.len {
         out.push(
-            ("kv-br-{names[i].0}-{corners[i]}", "border-{names[i].1}-radius: {corners[i]}px;"),
+            ("kv-br-{names[i].0}-{corners[i].0}", "border-{names[i].1}-radius: {corners[i].1};"),
         );
         i = i + 1;
     }
@@ -149,6 +153,9 @@ fun line_rules(
         Color(c) => out.push(("kv-{kind}c{tail}-{digits(c)}", "{prop}-color: #{digits(c)};")),
         Faded(x) => out.push(
             ("kv-{kind}cfade{tail}-{permille(x)}", "{prop}-color: alpha(currentColor, {x});"),
+        ),
+        Token(t) => out.push(
+            ("kv-{kind}ct{tail}-{token_name(t)}", "{prop}-color: var(--kv-{token_name(t)});"),
         ),
     }
     out

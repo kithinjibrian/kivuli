@@ -671,6 +671,41 @@ Branch: main
 
 ---
 
+## SESSION 35 — 2026-10-20 — PRP-026: palettes and colour tokens, built, not merged — closed
+
+Branch: prp-026-palettes (not merged: its tests haven't run)
+
+### WHAT WAS DONE
+- lugha-gtk 0.1.32: `lgtk_set_color_scheme`, `lgtk_reset_color_scheme`, `lgtk_color_scheme` (src/c/settings.c); settings and clamp tests pass; pushed and tagged under the standing go (the user stopped its full run).
+- PRP-026 built: `Token` as `Paint.Token` (`var(--kv-…)`), `Colorish` (Color, Token, Paint), `Palette` (five shadcn bases, `.with`, `.radius`), `Radius.Small/Medium/Large` and `Border.rounded_sm/md/lg`, `.palette` and `.scheme` (root only), the root's `kv-pal-…` class with its dark block, zinc's tokens on every window, `render/schemes.la`. `stylesheet()` gives whole rules. examples/palette.la. Docs; kivuli 0.21.0 (not tagged).
+- The user is fixing slow test runs: tests written and type-checked only (palettes, live_palette, theming, live_type).
+- A stray `git push` in kivuli ran by mistake in a chained command; it failed (no upstream), nothing left the machine.
+
+### STILL OPEN AT CLOSE
+- Run palettes, live_palette, theming, live_type (and the full suite), then merge prp-026-palettes and tag v0.21.0.
+- `src/render/live.la` is at 500 lines: propose a split before it grows.
+- Not pushed: main and tags v0.18.0–v0.20.0.
+- `.gitignore`'s `/examples/search_bar` line is the user's, uncommitted.
+
+---
+
+## SESSION 36 — 2026-10-20 — PRP-026 fix: dark mode never applied — closed
+
+Branch: prp-026-palettes (not merged)
+
+### WHAT WAS DONE
+- The user ran examples/palette.la: palettes and the brand colour worked, Dark changed nothing. Cause (C probe): an app's GtkCssProvider keeps `prefers-color-scheme` at "default" whatever GTK's setting; binding it to `gtk-interface-color-scheme` fixes it, live.
+- lugha-gtk 0.1.33: `lgtk_css_provider_new_for_scheme`, `lgtk_css_provider_color_scheme`; settings and clamp tests pass; pushed and tagged.
+- kivuli's stylesheet is made with it (live.la stays at 500 lines); live_palette checks the stylesheet turns dark (type-checked). The Yaru-dark warnings are the system theme's (its gtk.css imports a resource this GTK lacks), not kivuli's.
+
+### STILL OPEN AT CLOSE
+- The user to rerun `lughac run examples/palette.la` and try Dark.
+- Run palettes, live_palette, theming, live_type, then merge prp-026-palettes and tag v0.21.0.
+- `src/render/live.la` at 500 lines: split proposed (render/windows.la), waiting for the user.
+- Not pushed: main and tags v0.18.0–v0.20.0.
+
+---
+
 ## SESSION 37 — 2026-10-20 — Merge PRP-026; split render/live.la — open
 
 Branch: main

@@ -8,6 +8,11 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.21.0] — 2026-10-20
+
+### Added
+- Palettes and colour tokens (PRP-026): `Token` (shadcn's set: `Background`, `Foreground`, `Card`, `Popover`, `Primary`, `Secondary`, `Muted`, `Accent`, `Destructive`, each with a `…Foreground`, and `Border`, `Input`, `Ring`) as `Paint.Token`, a CSS variable; `.palette(Palette.zinc())` (also `slate`, `stone`, `gray`, `neutral`; `.with(token, light, dark)`, `.radius(px)`) on the root, light and dark by the system's scheme; `.scheme(Scheme.System | Light | Dark)` sets GTK's colour scheme too; `Radius.Small`/`Medium`/`Large` and `Border.rounded_sm()`/`md()`/`lg()` follow the palette's radius. Colour utilities (`Text.color`, `Background.color`, `Border.all`…, `Outline.ring`) take a `Color`, a `Token` or a `Paint`. Without a palette, tokens have zinc's values. `examples/palette.la`. Needs lugha-gtk 0.1.33 (its stylesheet follows GTK's colour scheme).
+
 ### Changed
 - `src/` is organised in folders (`view/`, `styles/`, `core/`, `render/`; DECISION-026). Private module paths change (`kivuli.diff` is `kivuli.core.diff`); apps, which import `kivuli` and `kivuli.testing`, see no difference.
 

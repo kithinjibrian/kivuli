@@ -8,7 +8,7 @@
  */
 
 import styles { Sheet };
-import styles.theming { Color, Paint };
+import styles.theming { Colorish, Paint };
 import styles.values { Family, Size, Weight, FontStyle, LineHeight, Decoration, Transform };
 
 /**
@@ -213,8 +213,8 @@ impl Text {
     /** The theme's text colour at `x` (0 to 1). */
     public fun faded(x: f64): Text = Text { color: Paint.Faded(x), ..Text.theme() };
 
-    /** Text in colour `c`. */
-    public fun color(c: Color): Text = Text { color: Paint.Color(c), ..Text.theme() };
+    /** Text in colour `c`: a `Color`, a `Token` or any `Paint`. */
+    public fun color(c: Colorish): Text = Text { color: c.paint(), ..Text.theme() };
 
     /** `s` with every field this text value sets. */
     public fun apply(self, s: Sheet): Sheet = Sheet {

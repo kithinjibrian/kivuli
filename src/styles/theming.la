@@ -24,7 +24,96 @@ public enum Paint {
     Color(Color),
     /** The theme's text colour at this opacity, 0 to 1: greyed text that still follows the theme. */
     Faded(f64),
+    /** A named colour of the palette (`.palette(…)`), light or dark as the scheme is: `Paint.Token(Token.Primary)`. */
+    Token(Token),
 }
+
+/**
+ * A palette's named colours, shadcn's set: each has a light and a dark value
+ * (`Palette`), and a `…Foreground` is the text colour on its partner.
+ *
+ * Example:
+ *     text(m.note).style([Text.color(Token.MutedForeground)])
+ */
+public enum Token {
+    /** The page. */
+    Background,
+    Foreground,
+    /** A card on the page. */
+    Card,
+    CardForeground,
+    /** A menu or popover. */
+    Popover,
+    PopoverForeground,
+    /** The main action: a default button. */
+    Primary,
+    PrimaryForeground,
+    /** A quieter action. */
+    Secondary,
+    SecondaryForeground,
+    /** Quiet surfaces and secondary text. */
+    Muted,
+    MutedForeground,
+    /** What's hovered or selected. */
+    Accent,
+    AccentForeground,
+    /** A dangerous action. */
+    Destructive,
+    DestructiveForeground,
+    /** Borders and separators. */
+    Border,
+    /** A text field's border. */
+    Input,
+    /** The focus ring. */
+    Ring,
+}
+
+impl Token {
+    /** This token as a `Paint`: what a colour field holds. */
+    public fun paint(self): Paint = Paint.Token(self);
+}
+
+/**
+ * What a colour utility takes: a `Color` (`hex("#e0e0e0")`), a `Token`
+ * (`Token.Muted`) or any `Paint` (`Paint.Faded(0.5)`).
+ */
+public interface Colorish {
+    /** The `Paint` a colour field holds for this value. */
+    fun paint(self): Paint;
+}
+
+impl Color {
+    /** This colour as a `Paint`: what a colour field holds. */
+    public fun paint(self): Paint = Paint.Color(self);
+}
+
+impl Paint {
+    /** Itself: a `Paint` is a colour value too. */
+    public fun paint(self): Paint = self;
+}
+
+/** A token's name in CSS: `MutedForeground` is `muted-foreground` (`var(--kv-muted-foreground)`). */
+fun token_name(t: Token): string = match t {
+    Background => "background",
+    Foreground => "foreground",
+    Card => "card",
+    CardForeground => "card-foreground",
+    Popover => "popover",
+    PopoverForeground => "popover-foreground",
+    Primary => "primary",
+    PrimaryForeground => "primary-foreground",
+    Secondary => "secondary",
+    SecondaryForeground => "secondary-foreground",
+    Muted => "muted",
+    MutedForeground => "muted-foreground",
+    Accent => "accent",
+    AccentForeground => "accent-foreground",
+    Destructive => "destructive",
+    DestructiveForeground => "destructive-foreground",
+    Border => "border",
+    Input => "input",
+    Ring => "ring",
+};
 
 /**
  * Reads a colour from `#rgb`, `#rrggbb` or `#rrggbbaa` (hex digits, either
@@ -105,11 +194,12 @@ fun two_digits(n: i64): string {
 /** A positive number in thousandths, rounded: a class name can't hold a dot. */
 fun permille(x: f64): i64 = (x * 1000.0 + 0.5) as i64;
 
-/** A colour as CSS: the theme's text colour for `Theme`, faded for `Faded`. */
+/** A colour as CSS: the theme's text colour for `Theme`, faded for `Faded`, a variable for a token. */
 fun paint_css(p: Paint): string = match p {
     Theme => "currentColor",
     Color(c) => "#{digits(c)}",
     Faded(x) => "alpha(currentColor, {x})",
+    Token(t) => "var(--kv-{token_name(t)})",
 };
 
 /** `s` in hex: any text as a valid, unique part of a class name. */

@@ -101,9 +101,9 @@ fun the_stylesheet_has_every_rule_the_view_uses_once() {
         Err(problem) => panic(problem),
     };
     assert_eq(stylesheet(painted_view), [
-        ("kv-fw-700", "font-weight: 700;"),
-        ("kv-fst-italic", "font-style: italic;"),
-        ("kv-ls-1", "letter-spacing: 1px;"),
+        ("kv-fw-700", ".kv-fw-700 {{ font-weight: 700; }}"),
+        ("kv-fst-italic", ".kv-fst-italic {{ font-style: italic; }}"),
+        ("kv-ls-1", ".kv-ls-1 {{ letter-spacing: 1px; }}"),
     ]);
 }
 
