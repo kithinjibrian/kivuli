@@ -50,14 +50,15 @@ column(rows).style([Sizing.max_width(560), Spacing.gap(8)])
 
 Each is one line of code and a one-line doc comment, and returns exactly what a full value written out would.
 
-## FILES *(proposed; needs your approval: widens DECISION-025)*
+## FILES *(you: folders)*
 
-Utilities must sit in the file of their type, and `src/styles.la` (about 435 lines) can't hold them. The groups spread out, each importing `styles` for `Sheet` while `styles` imports them for `Sheet`'s fields, the cycle DECISION-025 allowed, widened from one file to **`styles` and its group files**:
-- `src/fonts.la` (new): `Font`, `Text`, their utilities.
-- `src/boxes.la` (new): `Background`, `Border`, `Outline`, `Spacing`, `Sizing`, their utilities.
-- `src/style_groups.la`: `Shadow`, `Effects`, their utilities.
+Utilities must sit in the file of their type, and `src/styles.la` (about 435 lines) can't hold them. The groups move into a `src/styles/` folder (Lugha maps `src/styles/fonts.la` to `kivuli.styles.fonts`; a file and a folder may share a name, checked in session 30). Each group file imports `styles` for `Sheet` while `styles` imports them for `Sheet`'s fields, so DECISION-025's cycle widens to **`styles` ↔ the files in `styles/`**:
+- `src/styles/fonts.la` (new): `Font`, `Text`, their utilities.
+- `src/styles/boxes.la` (new): `Background`, `Border`, `Outline`, `Spacing`, `Sizing`, their utilities.
+- `src/styles/effects.la` (today's `src/style_groups.la`, moved): `Shadow`, `Effects`, their utilities.
 - `src/styles.la` keeps `Styling`, `Sheet`, `applied`, `State` and `When` (about 120 lines).
-The move is its own commit, no behaviour change, before the utilities. The entry re-exports as now; apps see no difference.
+
+`style_values.la`, `sheets.la` and `box_rules.la` stay where they are (not this PRP). The move is its own commit, no behaviour change, before the utilities. The entry re-exports as now; apps see no difference.
 
 ## TESTS (narrow)
 - [ ] After the move: the style tests pass unchanged (styles, states, spacing, sizing, shadows, sheets, sheets_border, theming).
@@ -65,4 +66,4 @@ The move is its own commit, no behaviour change, before the utilities. The entry
 - [ ] Every example builds; `examples/hello.la` and `examples/borders.la` use a few utilities where they shorten the code.
 
 ## ACCEPTANCE
-- [ ] The OBJECTIVE compiles; fmt clean; no file over 500 lines; README (a utilities table), DESIGN, CHANGELOG 0.20.0, CLAUDE.md (module list, rule 2's cycle), DECISIONS (025 widened); merged, tagged; pushed only on your go.
+- [ ] The OBJECTIVE compiles; fmt clean; no file over 500 lines; README (a utilities table), DESIGN, CHANGELOG 0.20.0, CLAUDE.md (module tree with the `styles/` folder, rule 2's cycle), DECISIONS (025 widened); merged, tagged; pushed only on your go.
