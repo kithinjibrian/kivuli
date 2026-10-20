@@ -16,6 +16,7 @@ import kivuli {
     Spacing,
     Text,
     button,
+    checkbox,
     column,
     icon,
     input,
@@ -35,6 +36,13 @@ import kivuli.ui {
     card_header_with,
     card_content,
     card_footer,
+    field,
+    field_horizontal,
+    field_label,
+    field_description,
+    field_error,
+    field_group,
+    Field,
 };
 
 struct Model {
@@ -42,6 +50,8 @@ struct Model {
     base: i64,
     email: string,
     password: string,
+    user: string,
+    same: bool,
 }
 
 enum Msg {
@@ -49,6 +59,8 @@ enum Msg {
     Base(i64),
     Email(string),
     Password(string),
+    User(string),
+    Same(bool),
 }
 
 fun update(m: Model, msg: Msg): Model = match msg {
@@ -56,6 +68,8 @@ fun update(m: Model, msg: Msg): Model = match msg {
     Base(n) => Model { base: n, ..m },
     Email(s) => Model { email: s, ..m },
     Password(s) => Model { password: s, ..m },
+    User(s) => Model { user: s, ..m },
+    Same(b) => Model { same: b, ..m },
 };
 
 fun palette_of(n: i64): Palette = if n == 1 {
@@ -187,15 +201,42 @@ fun view(m: Model): View<Msg> = column([
         ]).style([Spacing.gap(8)]),
     ),
     section(
+        "Field",
+        field_group([
+            field([
+                field_label("Username"),
+                ui.input(m.user, Msg.User),
+                field_description("Choose a unique username for your account."),
+            ]),
+            if m.password.len > 0 && m.password.len < 8 {
+                field([
+                    field_label("Password"),
+                    ui.input(m.password, Msg.Password).style([Input.invalid()]),
+                    field_error("Must be at least 8 characters."),
+                ]).style([Field.invalid()])
+            } else {
+                field([
+                    field_label("Password"),
+                    ui.input(m.password, Msg.Password),
+                    field_description("At least 8 characters."),
+                ])
+            },
+            field_horizontal([checkbox("Same as shipping address", m.same, Msg.Same)]),
+        ]).style([Sizing.max_width(420)]),
+    ),
+    section(
         "Card",
         row([
             card([
                 card_header("Login to your account", "Enter your email below to log in"),
                 card_content([
-                    text("Email").style([Font.medium()]),
-                    ui.input(m.email, Msg.Email).placeholder("m@example.com"),
-                    text("Password").style([Font.medium()]),
-                    ui.input(m.password, Msg.Password),
+                    field_group([
+                        field([
+                            field_label("Email"),
+                            ui.input(m.email, Msg.Email).placeholder("m@example.com"),
+                        ]),
+                        field([field_label("Password"), ui.input(m.password, Msg.Password)]),
+                    ]),
                 ]),
                 card_footer([
                     ui.button("Login", Msg.Base(m.base)),
@@ -232,7 +273,7 @@ fun view(m: Model): View<Msg> = column([
 
 fun main(): i32 = sandbox(
     "org.kivuli.components",
-    Model { dark: false, base: 0, email: "", password: "" },
+    Model { dark: false, base: 0, email: "", password: "", user: "", same: true },
     update,
     view,
 );

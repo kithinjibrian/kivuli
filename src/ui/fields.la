@@ -1,0 +1,91 @@
+/**
+ * Field (PRP-033): a label above a control and helper text below it, and a
+ * group of fields. Each part is a plain view, as Card's are. An invalid
+ * field turns its label red; the control's own invalid look is the app's
+ * (`Input.invalid()`). Pure.
+ *
+ * Depends on: views, looks, widgets, styles, theming, boxes, fonts
+ * Used by: ui
+ */
+
+// The public items the entry re-exports, by their own modules (rule 2: no `lib`).
+import view.views { View };
+import view.looks { Align };
+import view.widgets { column, row, text };
+import styles { Look, look };
+import styles.theming { Token };
+import styles.boxes { Spacing };
+import styles.fonts { Font, Text };
+
+/**
+ * A field: `parts` stacked, 12 px apart: usually a `field_label`, a control
+ * and a `field_description` or `field_error`.
+ *
+ * Example:
+ *     field([field_label("Email"), ui.input(m.email, Msg.Email), field_description("We'll never share it.")])
+ */
+public fun field<Msg>(parts: View<Msg>[]): View<Msg> = column(parts).style([Spacing.gap(12)]);
+
+/**
+ * A field laid out across: `parts` in a row, 12 px apart, centred across its
+ * height: a check box or switch beside its text.
+ *
+ * Example:
+ *     field_horizontal([checkbox("Same as shipping address", m.same, Msg.Same)])
+ */
+public fun field_horizontal<Msg>(parts: View<Msg>[]): View<Msg> = row(
+    parts.map(fun(p: View<Msg>): View<Msg> = p.align(Align.Center)),
+).style([Spacing.gap(12)]);
+
+/**
+ * A field's label. It has no colour of its own, so it takes the field's:
+ * red in an invalid field.
+ *
+ * Example:
+ *     field_label("Username")
+ */
+public fun field_label<Msg>(label: string): View<Msg> = text(label).style([
+    Font.sm(),
+    Font.medium(),
+]);
+
+/**
+ * Helper text under a field's control, muted.
+ *
+ * Example:
+ *     field_description("Choose a unique username for your account.")
+ */
+public fun field_description<Msg>(description: string): View<Msg> = text(description).wrap().style([
+    Font.sm(),
+    Text.color(Token.MutedForeground),
+]);
+
+/**
+ * What's wrong with a field's value, in red. Several errors are several of
+ * these.
+ *
+ * Example:
+ *     field_error("Must be at least 8 characters.")
+ */
+public fun field_error<Msg>(error: string): View<Msg> = text(error).wrap().style([
+    Font.sm(),
+    Text.color(Token.Destructive),
+]);
+
+/**
+ * Fields stacked, 24 px apart.
+ *
+ * Example:
+ *     field_group([name_field, email_field])
+ */
+public fun field_group<Msg>(fields: View<Msg>[]): View<Msg> = column(fields).style([
+    Spacing.gap(24),
+]);
+
+/** A field's variants, given through `.style`: `field([...]).style([Field.invalid()])`. */
+public struct Field {}
+
+impl Field {
+    /** The value is wrong: the label turns red (the description stays muted). */
+    public fun invalid(): Look = look([Text.color(Token.Destructive)]);
+}

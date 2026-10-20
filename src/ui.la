@@ -11,4 +11,13 @@
 public import ui.badges { badge, badge_with, Badge };
 public import ui.buttons { button, button_with, Button };
 public import ui.inputs { input, Input };
+public import ui.fields {
+    field,
+    field_horizontal,
+    field_label,
+    field_description,
+    field_error,
+    field_group,
+    Field,
+};
 public import ui.cards { card, card_header, card_header_with, card_content, card_footer };
