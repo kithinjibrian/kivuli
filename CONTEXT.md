@@ -1070,9 +1070,15 @@ Branch: main
 
 ---
 
-## SESSION 64 — 2026-10-20 — PRP-034: kivuli.ui input group — open
+## SESSION 64 — 2026-10-20 — PRP-034: kivuli.ui input group, built, not merged — closed
 
-Branch: prp-034-ui-input-group
+Branch: prp-034-ui-input-group (not merged: waiting for the user's look)
+
+### WHAT WAS DONE
+- src/ui/input_groups.la (`input_group`, `group_input`, `group_text`, `group_button`, `group_button_with`, `InputGroup.invalid()`); an Input group section in components.la. GTK parsed the CSS (116 lines). Docs; 0.29.0 (not tagged). Tests type-checked only.
+
+### STILL OPEN AT CLOSE
+- The user to look; then merge and tag v0.29.0. Next: GTK's entry icons, or Separator, Select, Checkbox, Slider.
 
 ---
 
