@@ -1,0 +1,79 @@
+/**
+ * Avatar (PRP-046): a round picture layered over its initials. A picture
+ * that can't be shown shows nothing (kivuli's rule for every picture), so
+ * the initials show through: the fallback needs no failure handling. Pure.
+ *
+ * Depends on: views, looks, widgets, pictures, styles, theming, values, boxes, fonts, drawing
+ * Used by: ui
+ */
+
+// The public items the entry re-exports, by their own modules (rule 2: no `lib`).
+import view.views { View };
+import view.looks { Fit };
+import view.widgets { column, image, overlay, row, text };
+import view.pictures { Image };
+import styles { Look, look };
+import styles.theming { Token };
+import styles.values { Drop, Radius };
+import styles.boxes { Background, Border, Sizing, Spacing };
+import styles.fonts { Font, Text };
+import styles.drawing { Shadow };
+
+/**
+ * An avatar: `image` round over `initials`, 32 px; `None` (or a picture that
+ * can't be shown) shows the initials alone.
+ *
+ * Example:
+ *     ui.avatar(Some(Image.File(m.photo)), "CN")
+ */
+public fun avatar<Msg>(img: Option<Image>, initials: string): View<Msg> {
+    let fallback: View<Msg> = text(initials).style([
+        Font.sm(),
+        Font.medium(),
+        Text.color(Token.MutedForeground),
+        Text.center(),
+        Background.color(Token.Muted),
+    ]);
+    let layers: View<Msg>[] = match img {
+        Some(i) => [image(i).fit(Fit.Cover)],
+        None => [],
+    };
+    overlay(fallback, layers).style([
+        Sizing.width(32),
+        Sizing.height(32),
+        // Round: a rounded node clips what's inside it, the picture too.
+        Border { radius: Radius.All(999), ..Border.theme() },
+    ])
+}
+
+/** An avatar's sizes, given through `.style`: `ui.avatar(…).style([Avatar.size(40)])`. */
+public struct Avatar {}
+
+impl Avatar {
+    /** `px` square: the picture shrinks or grows to cover it. */
+    public fun size(px: i64): Look = look([Sizing.width(px), Sizing.height(px)]);
+}
+
+/**
+ * Avatars stacked: each 8 px over the last, each ringed in the page colour
+ * so the overlaps read.
+ *
+ * Example:
+ *     avatar_group([ui.avatar(Some(a), "CN"), ui.avatar(Some(b), "LR"), ui.avatar(None, "ER")])
+ */
+public fun avatar_group<Msg>(avatars: View<Msg>[]): View<Msg> {
+    let ring = Shadow {
+        boxes: [Drop { spread: 2, color: Token.Background.paint(), ..Drop.theme() }],
+        text: [],
+    };
+    let mut out: View<Msg>[] = [];
+    let mut i = 0;
+    while i < avatars.len {
+        // The overlap goes on a wrapper: an avatar's exact size is a clamp's,
+        // and a negative margin inside it would stretch the picture.
+        let wrapped = column([avatars[i].style([ring])]);
+        out.push(if i == 0 { wrapped } else { wrapped.style([Spacing.margin_left(-8)]) });
+        i = i + 1;
+    }
+    row(out)
+}

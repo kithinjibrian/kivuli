@@ -8,6 +8,11 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.41.0] — 2026-10-20
+
+### Added
+- `kivuli.ui`'s Avatar (PRP-046): `ui.avatar(image, initials)`, `Avatar.size(px)`, `avatar_group(avatars)`.
+
 ## [0.40.0] — 2026-10-20
 
 ### Added

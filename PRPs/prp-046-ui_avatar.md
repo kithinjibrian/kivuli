@@ -1,6 +1,6 @@
 # PRP-046 — kivuli.ui: Avatar
 
-Status: draft, for the user's approval (session 101)
+Status: built (session 102) on branch prp-046-ui-avatar
 Discovery: session 101, 2026-10-20 (the reference's avatar: a round 32 px picture, a `Muted` fallback circle with initials when the picture can't load, a stacked group ringed in the page colour). *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: `ui.avatar(image, initials)`, `Avatar.size(px)` and `avatar_group(avatars)`, from what kivuli has: an overlay, a checked picture, a rounded node that clips.
@@ -29,8 +29,13 @@ avatar_group([ui.avatar(Some(a), "CN"), ui.avatar(Some(b), "LR"), ui.avatar(None
 - No status dots or badges on an avatar (an app overlays a `badge`), no loading of pictures from URLs, no square avatars beyond `Border.rounded(…)` an app adds.
 
 ## TESTS (narrow; type-check every test and example; run this PRP's own)
-- [ ] `test/avatars_ui.la` (new, pure): the overlay's base and layer, the fallback's look, the picture's fit, `None` showing initials alone, `Avatar.size`, `avatar_group`'s margins and rings.
-- [ ] GTK parses the generated rules; `examples/components.la` gains an Avatar section (the sample picture, initials, a broken picture showing its initials, a group, a large one); only it built. How it looks: by hand.
+- [x] (runs, passes) `test/avatars_ui.la` (new, pure): the overlay's base and layer, the fallback's look, the picture's fit, `None` showing initials alone, `Avatar.size`, `avatar_group`'s margins and rings.
+- [x] GTK parses the generated rules; `examples/components.la` gains an Avatar section (the sample picture, initials, a broken picture showing its initials, a group, a large one); only it built. How it looks: by hand.
 
 ## ACCEPTANCE
 - [ ] The OBJECTIVE compiles; fmt clean; no file over 500 lines; README, DESIGN, CHANGELOG 0.41.0, CLAUDE.md; merged, tagged; pushed only on your go.
+
+## NOTES FROM THE BUILD
+
+- **The group's overlap is on a plain wrapper column** around each avatar, not the avatar: its exact size is a clamp's, and a negative margin inside it would stretch the picture. The ring stays on the avatar.
+- **Its test runs and passes** (4); every test and example type-checks; only components built.

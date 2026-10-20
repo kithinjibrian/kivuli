@@ -4,6 +4,7 @@
 // and cards, in light and dark and in each palette.
 import kivuli {
     View,
+    Image,
     Align,
     Token,
     Palette,
@@ -66,6 +67,8 @@ import kivuli.ui {
     tab_with,
     Menu,
     Tooltip,
+    Avatar,
+    avatar_group,
 };
 
 struct Model {
@@ -392,6 +395,23 @@ fun page(m: Model): View<Msg> = column([
             ui.slider(0, 100, m.volume, Msg.Volume).disabled(m.same),
             slider(0, 100, m.volume, Msg.Volume),
         ]).style([Spacing.gap(16), Sizing.max_width(420)]),
+    ),
+    section(
+        "Avatar",
+        row([
+            ui.avatar(Some(Image.File("examples/assets/sample.png")), "CN").align(Align.Center),
+            ui.avatar(None, "LR").align(Align.Center),
+            // A missing file shows nothing, so its initials show through.
+            ui.avatar(Some(Image.File("examples/assets/missing.png")), "ER").align(Align.Center),
+            avatar_group([
+                ui.avatar(Some(Image.File("examples/assets/sample.png")), "CN"),
+                ui.avatar(None, "LR"),
+                ui.avatar(None, "ER"),
+            ]).align(Align.Center),
+            ui.avatar(Some(Image.File("examples/assets/sample.png")), "CN").style([Avatar.size(48)]).align(
+                Align.Center,
+            ),
+        ]).style([Spacing.gap(16)]),
     ),
     section(
         "Progress",
