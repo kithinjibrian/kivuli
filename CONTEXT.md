@@ -833,9 +833,17 @@ Branch: main (prp-028-ui-badge merged)
 
 ---
 
-## SESSION 46 — 2026-10-20 — kivuli.ui Button: discovery — open
+## SESSION 46 — 2026-10-20 — kivuli.ui Button: discovery, PRP-029 draft — closed
 
 Branch: main
+
+### WHAT WAS DONE
+- Interview: `ui.button` beside the native `button` (A); six variants, four sizes, `button_with` (A); `Token.X.alpha(x)` for hovers and the focus halo (A); disabled at half opacity, no press look, colours and shadow ease 150 ms (A).
+- PRP-029 drafted. Found in the design: GTK's own `button:hover/:active/:disabled` rules outrank a plain class, so each variant restates its colours in states.
+
+### STILL OPEN AT CLOSE
+- PRP-029 awaits the user's approval.
+- Tests not run since session 32; main and tags v0.18.0–v0.23.0 not pushed.
 
 ---
 
