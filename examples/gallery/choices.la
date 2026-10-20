@@ -147,6 +147,7 @@ public fun sections(m: Model): View<Msg>[] = [
                 m.fruit,
                 "Select a food",
             ),
+            ui.dropdown(fruits(), m.fruit, "Locked while a box is ticked").disabled(m.same),
             dropdown(fruits(), m.fruit),
         ]).style([Spacing.gap(16), Sizing.max_width(420)]),
     ),

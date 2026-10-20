@@ -19,6 +19,7 @@ import gtk {
     gtk_string_list_append,
     gtk_string_list_new,
     gtk_string_list_unref,
+    gtk_widget_set_sensitive,
     lgtk_drop_down_clear_groups,
     lgtk_drop_down_set_groups,
     lgtk_groups_add,
@@ -32,7 +33,7 @@ import core.live_tree { Choices, Live };
  * picked; a pick sends its choice's message through `send`.
  */
 fun create_dropdown<Msg>(
-    choices: (string, Msg)[],
+    choices: (string, Option<Msg>)[],
     selected: string,
     groups: (string, i64)[],
     send: fun(Msg),
@@ -108,7 +109,7 @@ fun sync_choices<Msg>(drop: GtkWidget, state: Ref<Choices<Msg>>) {
         }
     }
     for (label, msg) of now.offered {
-        want.push((label, Some(msg)));
+        want.push((label, msg));
     }
     sections = sections + now.groups;
     state.set(Choices { shown: want, shown_groups: sections, busy: true, ..now });
@@ -127,6 +128,9 @@ fun sync_choices<Msg>(drop: GtkWidget, state: Ref<Choices<Msg>>) {
             show_groups(drop, want, sections);
         }
     }
+    // Disabled means no message (rule 6): greyed while no choice sends.
+    let sends = now.offered.iter().any(fun(c) = c.1.is_some());
+    gtk_widget_set_sensitive(drop, if sends { 1 } else { 0 });
     let at: u32 = match now.pick {
         Some(i) => i as u32,
         None => 0,

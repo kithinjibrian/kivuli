@@ -8,6 +8,14 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.45.0] — 2026-10-20
+
+### Added
+- Disabled drop-downs (PRP-050): `.disabled(on)` on `dropdown`, `dropdown_grouped` and `kivuli.ui`'s; `kivuli.testing.choose` on one returns `Err(Lookup.Silent(…))`.
+
+### Changed
+- `View.Dropdown`'s and `Patch.SetChoices`' choices carry `Option<Msg>` (`None`: disabled).
+
 ## [0.44.0] — 2026-10-20
 
 ### Added

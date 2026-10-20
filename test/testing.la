@@ -216,6 +216,14 @@ fun choose_finds_a_choice_in_a_later_group() {
 }
 
 @test
+fun choose_on_a_disabled_dropdown_is_silent() {
+    let v: View<Msg> = dropdown([("Add it", Msg.Add)], "").name("locked").disabled(true);
+    assert_eq(choose(v, "locked", "Add it"), Err(Lookup.Silent("drop-down \"locked\"")));
+    // A label it doesn't have is still not found.
+    assert_eq(choose(v, "locked", "Nope"), Err(Lookup.NotFound("choice \"Nope\" in \"locked\"")));
+}
+
+@test
 fun slide_clamps_and_rounds_like_the_widget() {
     assert_eq(slide(settings(), "volume", 42), Ok(Msg.Level(42)));
     assert_eq(slide(settings(), "volume", 150), Ok(Msg.Level(100)));

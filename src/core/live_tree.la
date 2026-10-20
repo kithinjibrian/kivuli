@@ -112,8 +112,8 @@ enum Live<Msg> {
  * `build.sync_choices`.
  */
 struct Choices<Msg> {
-    /** The choices the view offers. */
-    offered: (string, Msg)[],
+    /** The choices the view offers (`None`: disabled). */
+    offered: (string, Option<Msg>)[],
     /** The index of the one shown picked; `None` shows the blank item. */
     pick: Option<i64>,
     /** The groups the view offers the choices in: each heading and how many choices it holds (none: plain). */

@@ -222,14 +222,15 @@ public fun toggle<Msg>(v: View<Msg>, label: string): Result<Msg, Lookup> {
 /**
  * The message picking the choice labelled `label` in the drop-down named
  * `name` sends. With two equal labels, the first counts.
- * @returns `Ok(msg)`; `Err(NotFound)` for no such drop-down or choice, or
- * `Err(Ambiguous)` when two drop-downs have that name
+ * @returns `Ok(msg)`; `Err(NotFound)` for no such drop-down or choice,
+ * `Err(Ambiguous)` when two drop-downs have that name, or `Err(Silent)` when
+ * it's disabled
  *
  * Example:
  *     assert_eq(kivuli.testing.choose(view(m), "size", "Large"), Ok(Msg.Size(Size.Large)));
  */
 public fun choose<Msg>(v: View<Msg>, name: string, label: string): Result<Msg, Lookup> {
-    let mut found: (string, Msg)[][] = [];
+    let mut found: (string, Option<Msg>)[][] = [];
     for (node, style) of nodes(v) {
         match node {
             Dropdown(choices, _, _) => if style.name == name {
@@ -238,10 +239,14 @@ public fun choose<Msg>(v: View<Msg>, name: string, label: string): Result<Msg, L
             _ => {}
         }
     }
-    let choices = only(found, "drop-down \"{name}\"")?;
+    let what = "drop-down \"{name}\"";
+    let choices = only(found, what)?;
     for (l, msg) of choices {
         if l == label {
-            return Ok(msg);
+            return match msg {
+                Some(m) => Ok(m),
+                None => Err(Lookup.Silent(what)),
+            };
         }
     }
     Err(Lookup.NotFound("choice \"{label}\" in \"{name}\""))

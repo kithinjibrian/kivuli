@@ -133,3 +133,9 @@ fun a_grouped_dropdown_has_the_look_and_muted_small_headings() {
         _ => panic("expected a styled node"),
     }
 }
+
+@test
+fun a_disabled_dropdown_is_faded() {
+    let s = in_state(sheet_of(fruit("Apple").disabled(true)), State.Disabled);
+    assert_eq(s.effects.opacity, Some(0.5));
+}
