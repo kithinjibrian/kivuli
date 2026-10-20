@@ -1,6 +1,6 @@
 # PRP-027 — Motion: transitions and named animations
 
-Status: draft, for the user's approval (session 38)
+Status: approved (session 39)
 Discovery: session 38, 2026-10-20 (the shadcn plan, after PRP-026). *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: a `Motion` style group: transitions by property group (`Motion.colors(150)`), easing and delay, entrance animations (`fade_in`, `slide_in`) and looping ones (`spin`, `pulse`), with reduced motion respected.
