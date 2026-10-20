@@ -847,9 +847,17 @@ Branch: main
 
 ---
 
-## SESSION 47 — 2026-10-20 — PRP-029: kivuli.ui Button — open
+## SESSION 47 — 2026-10-20 — PRP-029: kivuli.ui Button, built, not merged — closed
 
-Branch: prp-029-ui-button
+Branch: prp-029-ui-button (not merged: waiting for the user's look)
+
+### WHAT WAS DONE
+- `Paint.Alpha` / `Token.X.alpha(x)` (color-mix), its classes and check. `kivuli.ui`'s `button`, `button_with`, `Button`'s six variants and three sizes (src/ui/buttons.la); each variant restates its colours in hover, press and disabled to outrank GTK's button rules. GTK parsed the generated CSS (101 lines). A Button section in examples/components.la (only it built). Docs; 0.24.0 (not tagged).
+- Tests (buttons_ui, palettes) written and type-checked only.
+
+### STILL OPEN AT CLOSE
+- The user to look at the buttons (hover, press, Tab focus, disabled, light/dark); then merge and tag v0.24.0.
+- Tests not run since session 32; main and tags v0.18.0–v0.23.0 not pushed.
 
 ---
 

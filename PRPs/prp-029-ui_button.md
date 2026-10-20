@@ -1,6 +1,6 @@
 # PRP-029 — kivuli.ui: Button
 
-Status: approved (session 47)
+Status: built (session 47) on branch prp-029-ui-button
 Discovery: session 46, 2026-10-20 (the second component, on PRP-028's convention). *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: `ui.button(label, msg)` and `ui.button_with(content, msg)`, a GTK button in the palette's colours, with six variants and four sizes as `Look`s; and `Token.X.alpha(x)`, a token at an opacity, for hovers and the focus halo.
@@ -53,9 +53,16 @@ button("Native", Msg.A)                                         // GTK's own, un
 - No toggle or pressed-state buttons, no loading state (an app adds `icon(…).style([Motion.spin()])`), no button groups; Input is a later PRP.
 
 ## TESTS (narrow; type-check now, run once the user's faster tests are in)
-- [ ] `test/buttons_ui.la` (new, pure): the base look's values; each variant's colours and its hover, press and disabled states; each size; a variant and a size in both orders; `button_with`'s icon sizes and gap; an app's values after a variant win; `.disabled` still gives no message; the OBJECTIVE reads as written.
-- [ ] `test/palettes.la`: `Token.alpha`'s CSS and classes, inside `When` and in a shadow; the check.
-- [ ] GTK parses the generated rules (the C probe on a sample); `examples/components.la` gains a Button section (every variant, every size, icons, disabled), the only example built. How it looks and feels: by hand.
+- [x] (written, type-checked) `test/buttons_ui.la` (new, pure): the base look's values; each variant's colours and its hover, press and disabled states; each size; a variant and a size in both orders; `button_with`'s icon sizes and gap; an app's values after a variant win; `.disabled` still gives no message; the OBJECTIVE reads as written.
+- [x] (written, type-checked) `test/palettes.la`: `Token.alpha`'s CSS and classes, inside `When` and in a shadow; the check.
+- [x] GTK parses the generated rules (101 lines, 0 errors) (the C probe on a sample); `examples/components.la` gains a Button section (every variant, every size, icons, disabled), the only example built. How it looks and feels: by hand.
 
 ## ACCEPTANCE
 - [ ] The OBJECTIVE compiles; fmt clean; no file over 500 lines; README, DESIGN, CHANGELOG 0.24.0, CLAUDE.md; merged, tagged; pushed only on your go.
+
+## NOTES FROM THE BUILD
+
+- **`button_with`'s gap is 8 at every size**: the gap is on the content row, which a size's `Look` (on the button) can't reach; shadcn's `sm` uses 6.
+- **The ghost and link variants are `Paint.Color(transparent)`**, not "no background": GTK's own button background would show through `Theme`.
+- **State rules outrank GTK's** (checked in the generated CSS: `.kv-hover-…:hover` is two classes' worth against `button:hover`'s class and element).
+- **Tests not run** (the user is fixing slow test runs): buttons_ui and palettes type-check; GTK parsed the generated rules; only examples/components.la built.

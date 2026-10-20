@@ -8,6 +8,12 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.24.0] — 2026-10-20
+
+### Added
+- `kivuli.ui`'s Button (PRP-029): `ui.button(label, msg)` and `ui.button_with(content, msg)`, the native button in the palette's colours; variants `Button.destructive()`, `outline()`, `secondary()`, `ghost()`, `link()`; sizes `Button.sm()`, `lg()`, `icon()`; a ring halo on focus, half opacity when disabled, colours easing 150 ms.
+- `Token.X.alpha(x)` (`Paint.Alpha`): a palette colour at an opacity, anywhere a colour goes.
+
 ## [0.23.0] — 2026-10-20
 
 ### Added

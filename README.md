@@ -203,7 +203,11 @@ badge("Draft").style([Badge.outline()])      // also Badge.secondary(), Badge.de
 badge("Beta").style([Badge.outline(), Text.color(Token.Primary)])
 ```
 
-So far: `badge` (small, medium-weight, corners at the palette's radius − 4) and `badge_with([icon(…), text(…)])` (icons shrink to 12 px). `look([...])` makes an app's own variant. `examples/components.la` shows each in light and dark.
+So far:
+- `badge` (small, medium-weight, corners at the palette's radius − 4) and `badge_with([icon(…), text(…)])` (icons shrink to 12 px).
+- `ui.button(label, msg)` and `ui.button_with(content, msg)` (icons 16 px), beside the native `button`: variants `Button.destructive()`, `outline()`, `secondary()`, `ghost()`, `link()`; sizes `Button.sm()`, `lg()`, `icon()` (a square). A variant sets colours, a size sets size, so `[Button.outline(), Button.sm()]` is both. It's still a native button: `.disabled`, `.shortcut` and `kivuli.testing` work as on any.
+
+A token can be used at an opacity: `Token.Primary.alpha(0.9)` (a hover), `Token.Ring.alpha(0.5)` (a focus halo). `look([...])` makes an app's own variant. `examples/components.la` shows each in light and dark.
 
 **Motion.** What eases when a style changes, how a node comes in, and what loops: GTK's own CSS transitions and animations.
 
