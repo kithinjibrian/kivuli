@@ -8,6 +8,11 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.36.0] — 2026-10-20
+
+### Added
+- `kivuli.ui`'s Tabs (PRP-041): `tab`, `tab_with`, `ui.tabs(triggers, active)`, `ui.tabs_line(triggers, active)`.
+
 ## [0.35.0] — 2026-10-20
 
 ### Added

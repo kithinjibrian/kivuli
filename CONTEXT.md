@@ -1341,9 +1341,15 @@ Branch: main
 
 ---
 
-## SESSION 85 — 2026-10-20 — PRP-041: kivuli.ui Tabs — open
+## SESSION 85 — 2026-10-20 — PRP-041: kivuli.ui Tabs, built, not merged — closed
 
-Branch: prp-041-ui-tabs
+Branch: prp-041-ui-tabs (not merged: waiting for the user's look)
+
+### WHAT WAS DONE
+- src/ui/tab_bars.la (`tab`, `tab_with`, `tabs`, `tabs_line`); a Tabs section in components.la (panels in a card, line, icons, a disabled trigger). GTK parsed the CSS. Docs; 0.36.0 (not tagged). Every test and example type-checks; tests not run.
+
+### STILL OPEN AT CLOSE
+- The user to look; then merge, tag v0.36.0.
 
 ---
 
