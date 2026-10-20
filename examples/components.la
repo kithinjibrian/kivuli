@@ -50,6 +50,7 @@ import kivuli.ui {
     group_button,
     group_button_with,
     InputGroup,
+    separator_with,
 };
 
 struct Model {
@@ -211,6 +212,20 @@ fun page(m: Model): View<Msg> = column([
             ]),
             ui.input("Disabled", Msg.Email).disabled(true),
         ]).style([Spacing.gap(8)]),
+    ),
+    section(
+        "Separator",
+        column([
+            text("kivuli.ui").style([Font.medium()]),
+            text("Components drawn from the palette's tokens.").style([
+                Text.color(Token.MutedForeground),
+            ]),
+            ui.separator(),
+            row([text("Blog"), ui.separator(), text("Docs"), ui.separator(), text("Source")]).style(
+                [Spacing.gap(12)],
+            ),
+            separator_with("Or continue with"),
+        ]).style([Spacing.gap(12), Sizing.max_width(420)]),
     ),
     section(
         "Input group",

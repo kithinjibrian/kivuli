@@ -1,0 +1,78 @@
+// kivuli.ui's Separator (PRP-035): `ui.separator()` is the native separator
+// in `Border`, one pixel thick either way; `separator_with` is a line, a
+// muted label and a line. No GTK.
+import kivuli.styles { Sheet };
+import kivuli.view.looks { Style, Align };
+import kivuli { View, Token, Paint, Width, Size, column, row, text };
+import kivuli.ui { separator_with };
+
+fun style_of<M>(v: View<M>): Style = match v {
+    Styled(_, s) => s,
+    _ => panic("expected a styled node"),
+};
+
+fun sheet_of<M>(v: View<M>): Sheet = style_of(v).sheet;
+
+@test
+fun a_separator_is_the_native_one_in_the_border_colour() {
+    let v: View<i64> = ui.separator();
+    match v {
+        Styled(inside, _) => match inside {
+            Separator => {}
+            _ => panic("a ui separator is the native separator"),
+        },
+        _ => panic("a separator is styled"),
+    }
+    let s = sheet_of(v);
+    assert_eq(s.background.color, Paint.Token(Token.Border));
+    assert_eq(s.sizing.min_height, Width.Px(1));
+    assert_eq(s.sizing.min_width, Width.Px(1));
+}
+
+@test
+fun a_labelled_separator_is_a_line_a_label_and_a_line() {
+    let v: View<i64> = separator_with("Or continue with");
+    assert_eq(sheet_of(v).spacing.gap, Width.Px(8));
+    let parts = match v {
+        Styled(inside, _) => match inside {
+            Row(xs) => xs,
+            _ => panic("a labelled separator is a row"),
+        },
+        _ => panic("a labelled separator is styled"),
+    };
+    assert_eq(parts.len, 3);
+    for line of [parts[0], parts[2]] {
+        assert(style_of(line).expand);
+        assert_eq(style_of(line).align, Align.Center);
+        assert_eq(sheet_of(line).background.color, Paint.Token(Token.Border));
+        assert_eq(sheet_of(line).sizing.min_height, Width.Px(1));
+    }
+    let label = sheet_of(parts[1]);
+    assert_eq(label.text.color, Paint.Token(Token.MutedForeground));
+    assert_eq(label.font.size, Size.Scale(0.875));
+    assert_eq(style_of(parts[1]).align, Align.Center);
+}
+
+@test
+fun the_objective_reads_as_written() {
+    let page: View<i64> = column([
+        text("fields"),
+        separator_with("Or continue with"),
+        text("google"),
+    ]);
+    let links: View<i64> = row([
+        text("Blog"),
+        ui.separator(),
+        text("Docs"),
+        ui.separator(),
+        text("Source"),
+    ]);
+    match page {
+        Column(xs) => assert_eq(xs.len, 3),
+        _ => panic("expected a column"),
+    }
+    match links {
+        Row(xs) => assert_eq(xs.len, 5),
+        _ => panic("expected a row"),
+    }
+}
