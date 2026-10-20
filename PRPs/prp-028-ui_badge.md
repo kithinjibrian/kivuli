@@ -1,6 +1,6 @@
 # PRP-028 — kivuli.ui: the first component, Badge
 
-Status: built (session 42) on branch prp-028-ui-badge
+Status: built (sessions 42, 44); merged into main in session 45 without running its tests (the user's call)
 Discovery: sessions 34 and 41, 2026-10-20 (the shadcn plan: a library module, A; one component first, the easiest). *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: `kivuli.ui`, a module of components drawn from palette tokens, starting with `badge(label)` and its variants as style values (`Badge.secondary()`, `outline()`, `destructive()`), shadcn v4's look.
