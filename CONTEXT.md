@@ -1251,6 +1251,18 @@ Branch: main
 
 ---
 
+## SESSION 78 — 2026-10-20 — PRP-039: the name — closed
+
+Branch: main
+
+### WHAT WAS DONE
+- The user asked why "dropdown" not "select": `select` is a Lugha keyword (no function can have the name), and the native widget is `dropdown`. The user chose `Dropdown` throughout (A): PRP-039's `Select.invalid()` is `Dropdown.invalid()`.
+
+### STILL OPEN AT CLOSE
+- PRP-039 awaits the user's approval.
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
