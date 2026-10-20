@@ -1056,6 +1056,12 @@ Branch: main (prp-033-ui-field merged)
 
 ---
 
+## SESSION 63 — 2026-10-20 — components.la scrolls; input group discovery — open
+
+Branch: main
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
