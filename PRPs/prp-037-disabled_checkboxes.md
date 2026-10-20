@@ -1,6 +1,6 @@
 # PRP-037 — Disabled check boxes
 
-Status: built (session 73) on branch prp-037-disabled-checkboxes
+Status: built (session 73); merged into main in session 74 without running its tests (the user's call)
 Discovery: found in PRP-036's build (session 71): `.disabled` skips check boxes. The user asked for it next (session 72). Architecture rule 6 decides the design: disabled means no message. *(proposed)*: for you to confirm or change.
 
 ## FEATURE: `.disabled(true)` on a check box (native or `ui.checkbox`): it can't be toggled, GTK greys it, and `kivuli.testing.toggle` says it's silent.
