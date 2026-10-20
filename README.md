@@ -192,6 +192,17 @@ column(rows)
 
 `Palette.zinc()`, `slate()`, `stone()`, `gray()` and `neutral()` are shadcn's bases; `.with(token, light, dark)` changes one colour; `.radius(px)` is the radius `Border.rounded_lg()` uses (`rounded_md()` is 2 less, `rounded_sm()` 4 less; `Radius.Large`, `Medium`, `Small`). Without a palette, tokens have zinc's values. Every colour utility takes a `Color`, a `Token` or a `Paint`. `examples/palette.la` switches bases and schemes.
 
+**Motion.** What eases when a style changes, how a node comes in, and what loops: GTK's own CSS transitions and animations.
+
+```
+button("Save", Msg.Save).style([When(State.Hover, [Background.color(Token.Accent)]), Motion.colors(150)])
+tile.style([When(State.Hover, [Effects.scale(1.05), Shadow.lg()]), Motion.transform(200), Motion.shadow(200), Motion.easing(Easing.Out)])
+toast(t).style([Motion.fade_in(200), Motion.slide_in(Edge.Bottom, 8, 200)])
+icon("process-working").style([Motion.spin()])
+```
+
+`Motion.colors(ms)` (text, background, borders, outline), `opacity`, `transform`, `shadow` and `all` (sizes too: opt-in) ease those properties; `Motion.easing(…)` (`Ease`, Tailwind's default; `Linear`, `In`, `Out`) and `Motion.delay(ms)` set the curve and the wait. `fade_in(ms)` and `slide_in(edge, px, ms)` play when a node's widget is first shown (a widget kept across updates doesn't replay); `spin()` and `pulse()` loop. When the system asks for less motion, eases and entrances are instant and `spin` and `pulse` keep going. `examples/motion.la` shows each.
+
 The full values, field by field:
 
 | Value | Fields |

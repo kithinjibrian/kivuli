@@ -1,0 +1,161 @@
+/**
+ * Motion (PRP-027): transitions by property group, their easing and delay,
+ * entrance animations (`fade_in`, `slide_in`) and loops (`spin`, `pulse`),
+ * all GTK CSS. Imports `styles` for `Sheet`, which imports this back
+ * (DECISION-025). Pure: `motion_rules` writes the CSS.
+ *
+ * Depends on: styles (`Sheet`)
+ * Used by: lib, motion_rules, styles
+ */
+
+import styles { Sheet };
+
+/** A group of properties that ease when they change. */
+public enum Animate {
+    /** Text, background, border and outline colours (Tailwind's `transition-colors`). */
+    Colors,
+    Opacity,
+    Transform,
+    /** The box shadow. */
+    Shadow,
+    /** Every property, sizes too: opt-in, as it can make layouts wobble. */
+    All,
+}
+
+/** How a change speeds up and slows down. */
+public enum Easing {
+    /** Not set: `Ease` for transitions, `Out` for entrances. */
+    Theme,
+    /** Tailwind's default curve: quick, then settling. */
+    Ease,
+    Linear,
+    /** Slow to start. */
+    In,
+    /** Slow to finish. */
+    Out,
+}
+
+/** The side an entrance slides in from. */
+public enum Edge {
+    Top,
+    Bottom,
+    Left,
+    Right,
+}
+
+/**
+ * How a node moves: what eases when its style changes (a hover, a press, a
+ * new value), how it comes in when first shown, and whether it loops. A
+ * widget the diff keeps doesn't replay its entrance.
+ *
+ * Example:
+ *     button("Save", Msg.Save).style([When(State.Hover, [Background.color(Token.Accent)]), Motion.colors(150)])
+ */
+public struct Motion {
+    /** Each group's duration in milliseconds; a group set again takes its new duration. */
+    public transitions: (Animate, i64)[],
+    public easing: Easing,
+    /** Milliseconds before a transition or entrance starts. */
+    public delay: Option<i64>,
+    /** An entrance: fading in over this many milliseconds. */
+    public fade: Option<i64>,
+    /** An entrance: sliding in from beyond an edge, this many pixels, over this many milliseconds. */
+    public slide: Option<(Edge, i64, i64)>,
+    /** Turns once a second, forever: a loading indicator. */
+    public spin: bool,
+    /** Fades to half and back every two seconds, forever: a placeholder loading. */
+    public pulse: bool,
+}
+
+impl Motion {
+    /** Nothing moves: the theme's own transitions stay. */
+    public fun theme(): Motion = Motion {
+        transitions: [],
+        easing: Easing.Theme,
+        delay: None,
+        fade: None,
+        slide: None,
+        spin: false,
+        pulse: false,
+    };
+
+    /** Colours ease over `ms` milliseconds: text, background, borders, outline. */
+    public fun colors(ms: i64): Motion = Motion {
+        transitions: [(Animate.Colors, ms)],
+        ..Motion.theme(),
+    };
+
+    /** Opacity eases over `ms` milliseconds. */
+    public fun opacity(ms: i64): Motion = Motion {
+        transitions: [(Animate.Opacity, ms)],
+        ..Motion.theme(),
+    };
+
+    /** Transforms (`Effects.scale`, `rotate`, `translate`) ease over `ms` milliseconds. */
+    public fun transform(ms: i64): Motion = Motion {
+        transitions: [(Animate.Transform, ms)],
+        ..Motion.theme(),
+    };
+
+    /** The box shadow eases over `ms` milliseconds. */
+    public fun shadow(ms: i64): Motion = Motion {
+        transitions: [(Animate.Shadow, ms)],
+        ..Motion.theme(),
+    };
+
+    /** Every property eases over `ms` milliseconds, sizes too. */
+    public fun all(ms: i64): Motion = Motion { transitions: [(Animate.All, ms)], ..Motion.theme() };
+
+    /** The curve transitions and entrances follow. */
+    public fun easing(e: Easing): Motion = Motion { easing: e, ..Motion.theme() };
+
+    /** Transitions and entrances wait `ms` milliseconds before they start. */
+    public fun delay(ms: i64): Motion = Motion { delay: Some(ms), ..Motion.theme() };
+
+    /** Fades in over `ms` milliseconds when first shown. */
+    public fun fade_in(ms: i64): Motion = Motion { fade: Some(ms), ..Motion.theme() };
+
+    /** Slides in from `px` pixels beyond `edge` over `ms` milliseconds when first shown. */
+    public fun slide_in(edge: Edge, px: i64, ms: i64): Motion = Motion {
+        slide: Some((edge, px, ms)),
+        ..Motion.theme(),
+    };
+
+    /** Turns once a second, forever. Keeps turning when the system asks for less motion. */
+    public fun spin(): Motion = Motion { spin: true, ..Motion.theme() };
+
+    /** Fades to half and back every two seconds, forever. Keeps pulsing when the system asks for less motion. */
+    public fun pulse(): Motion = Motion { pulse: true, ..Motion.theme() };
+
+    /** `s` with every field this motion sets. */
+    public fun apply(self, s: Sheet): Sheet {
+        let was = s.motion;
+        let mut transitions = was.transitions;
+        for (group, ms) of self.transitions {
+            let mut found = false;
+            let mut i = 0;
+            while i < transitions.len {
+                if transitions[i].0 == group {
+                    transitions[i] = (group, ms);
+                    found = true;
+                }
+                i = i + 1;
+            }
+            if !found {
+                transitions.push((group, ms));
+            }
+        }
+        Sheet {
+            motion: Motion {
+                transitions: transitions,
+                easing: if self.easing == Easing.Theme { was.easing } else { self.easing },
+                delay: if self.delay.is_some() { self.delay } else { was.delay },
+                fade: if self.fade.is_some() { self.fade } else { was.fade },
+                slide: if self.slide.is_some() { self.slide } else { was.slide },
+                spin: self.spin || was.spin,
+                pulse: self.pulse || was.pulse,
+            },
+            ..s,
+        }
+    }
+}

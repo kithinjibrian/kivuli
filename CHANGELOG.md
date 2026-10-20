@@ -8,6 +8,11 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.22.0] — 2026-10-20
+
+### Added
+- Motion (PRP-027): a `Motion` style group: `Motion.colors(ms)`, `opacity`, `transform`, `shadow`, `all` (transitions by property group), `Motion.easing(Easing.Ease | Linear | In | Out)`, `Motion.delay(ms)`; entrances `Motion.fade_in(ms)` and `Motion.slide_in(Edge.Top | Bottom | Left | Right, px, ms)`, played when a widget is first shown; loops `Motion.spin()` and `Motion.pulse()`. When the system asks for less motion, eases and entrances are instant and loops keep going. Works inside `When`. `examples/motion.la`. Needs lugha-gtk 0.1.34.
+
 ## [0.21.0] — 2026-10-20
 
 ### Added

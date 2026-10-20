@@ -1,0 +1,247 @@
+// Motion (PRP-027): transitions by property group, easing and delay,
+// entrances and loops as CSS animations, their keyframes, and reduced
+// motion (decorative motion off, loops kept). No GTK.
+import kivuli.styles { Sheet };
+import kivuli.styles.sheets { check, rules };
+import kivuli.styles.motion_rules { keyframes, rule_text };
+import kivuli {
+    View,
+    Motion,
+    Animate,
+    Easing,
+    Edge,
+    When,
+    State,
+    Token,
+    Background,
+    Effects,
+    Shadow,
+    Sizing,
+    button,
+    column,
+    icon,
+    text,
+};
+
+fun sheet_of<M>(v: View<M>): Sheet = match v {
+    Styled(_, s) => s.sheet,
+    _ => panic("expected a styled node"),
+};
+
+fun bodies(m: Motion): string[] = rules(m.apply(Sheet.theme())).map(fun(r) = r.1);
+
+/** The one rule `m` gives, its key and body. */
+fun only(m: Motion): (string, string) {
+    let rs = rules(m.apply(Sheet.theme()));
+    assert_eq(rs.len, 1);
+    rs[0]
+}
+
+@test
+fun the_utilities_are_their_values() {
+    assert_eq(Motion.colors(150).transitions, [(Animate.Colors, 150)]);
+    assert_eq(Motion.opacity(200).transitions, [(Animate.Opacity, 200)]);
+    assert_eq(Motion.transform(200).transitions, [(Animate.Transform, 200)]);
+    assert_eq(Motion.shadow(200).transitions, [(Animate.Shadow, 200)]);
+    assert_eq(Motion.all(100).transitions, [(Animate.All, 100)]);
+    assert_eq(Motion.easing(Easing.Out).easing, Easing.Out);
+    assert_eq(Motion.delay(50).delay, Some(50));
+    assert_eq(Motion.fade_in(200).fade, Some(200));
+    assert_eq(Motion.slide_in(Edge.Bottom, 8, 200).slide, Some((Edge.Bottom, 8, 200)));
+    assert(Motion.spin().spin);
+    assert(Motion.pulse().pulse);
+    assert_eq(Motion.theme().transitions, []);
+    assert_eq(Motion.theme().easing, Easing.Theme);
+}
+
+@test
+fun motion_merges_as_values_do() {
+    let s = Motion.colors(300).apply(
+        Motion.transform(200).apply(Motion.colors(150).apply(Sheet.theme())),
+    );
+    // A group set again takes its new duration, in its first place.
+    assert_eq(s.motion.transitions, [(Animate.Colors, 300), (Animate.Transform, 200)]);
+    let t = Motion.easing(Easing.Linear).apply(
+        Motion.delay(20).apply(Motion.easing(Easing.Out).apply(Sheet.theme())),
+    );
+    assert_eq(t.motion.easing, Easing.Linear);
+    assert_eq(t.motion.delay, Some(20));
+    let u = Motion.spin().apply(Motion.fade_in(100).apply(Sheet.theme()));
+    assert_eq(u.motion.fade, Some(100));
+    assert(u.motion.spin);
+}
+
+@test
+fun a_transition_is_one_rule_per_list() {
+    let (key, body) = only(Motion.opacity(200));
+    assert(key.starts_with("kv-tr-"));
+    assert_eq(body, "transition: opacity 200ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;");
+    let (_, colors) = only(Motion.colors(150));
+    assert(
+        colors.starts_with(
+            "transition: color 150ms cubic-bezier(0.4, 0, 0.2, 1) 0ms, background-color 150ms",
+        ),
+    );
+    assert(colors.contains("border-left-color 150ms"));
+    assert(colors.contains("outline-color 150ms"));
+    let (_, both) = only(
+        Motion.shadow(300).apply(
+            Motion.delay(50).apply(Motion.easing(Easing.Linear).apply(Sheet.theme())),
+        ).motion,
+    );
+    assert_eq(both, "transition: box-shadow 300ms linear 50ms;");
+    let (_, all) = only(Motion { easing: Easing.In, ..Motion.all(100) });
+    assert_eq(all, "transition: all 100ms cubic-bezier(0.4, 0, 1, 1) 0ms;");
+    let (_, out) = only(Motion { easing: Easing.Out, ..Motion.transform(100) });
+    assert_eq(out, "transition: transform 100ms cubic-bezier(0, 0, 0.2, 1) 0ms;");
+}
+
+@test
+fun animations_are_one_rule_with_their_keyframes() {
+    let (key, fade) = only(Motion.fade_in(200));
+    assert(key.starts_with("kv-an-"));
+    assert_eq(fade, "animation: kv-in-fade 200ms cubic-bezier(0, 0, 0.2, 1) 0ms both;");
+    assert_eq(
+        only(Motion.slide_in(Edge.Bottom, 8, 200)).1,
+        "animation: kv-in-bottom-8 200ms cubic-bezier(0, 0, 0.2, 1) 0ms both;",
+    );
+    assert_eq(only(Motion.spin()).1, "animation: kv-spin 1000ms linear infinite;");
+    assert_eq(
+        only(Motion.pulse()).1,
+        "animation: kv-pulse 2000ms cubic-bezier(0.4, 0, 0.6, 1) infinite;",
+    );
+    // An entrance and a loop run together, entrances first.
+    let together = Motion.spin().apply(
+        Motion.slide_in(Edge.Left, 4, 150).apply(Motion.fade_in(100).apply(Sheet.theme())),
+    );
+    assert_eq(
+        rules(together)[0].1,
+        "animation: kv-in-fade 100ms cubic-bezier(0, 0, 0.2, 1) 0ms both, kv-in-left-4 150ms cubic-bezier(0, 0, 0.2, 1) 0ms both, kv-spin 1000ms linear infinite;",
+    );
+    // Motion.easing and delay reach entrances too.
+    let eased = Motion.delay(30).apply(
+        Motion.easing(Easing.Linear).apply(Motion.fade_in(100).apply(Sheet.theme())),
+    );
+    assert_eq(rules(eased)[0].1, "animation: kv-in-fade 100ms linear 30ms both;");
+}
+
+@test
+fun each_keyframes_says_where_it_moves_from() {
+    assert_eq(
+        keyframes("kv-in-fade"),
+        "@keyframes kv-in-fade {{ from {{ opacity: 0; }} to {{ opacity: 1; }} }}",
+    );
+    assert_eq(
+        keyframes("kv-in-bottom-8"),
+        "@keyframes kv-in-bottom-8 {{ from {{ transform: translate(0px, 8px); }} to {{ transform: translate(0px, 0px); }} }}",
+    );
+    assert_eq(
+        keyframes("kv-in-top-8"),
+        "@keyframes kv-in-top-8 {{ from {{ transform: translate(0px, -8px); }} to {{ transform: translate(0px, 0px); }} }}",
+    );
+    assert_eq(
+        keyframes("kv-in-left-4"),
+        "@keyframes kv-in-left-4 {{ from {{ transform: translate(-4px, 0px); }} to {{ transform: translate(0px, 0px); }} }}",
+    );
+    assert_eq(
+        keyframes("kv-in-right-4"),
+        "@keyframes kv-in-right-4 {{ from {{ transform: translate(4px, 0px); }} to {{ transform: translate(0px, 0px); }} }}",
+    );
+    assert_eq(
+        keyframes("kv-spin"),
+        "@keyframes kv-spin {{ from {{ transform: rotate(0deg); }} to {{ transform: rotate(360deg); }} }}",
+    );
+    assert_eq(
+        keyframes("kv-pulse"),
+        "@keyframes kv-pulse {{ 0% {{ opacity: 1; }} 50% {{ opacity: 0.5; }} 100% {{ opacity: 1; }} }}",
+    );
+}
+
+@test
+fun reduced_motion_stops_decorative_motion_and_keeps_loops() {
+    let plain = rule_text("kv-fw-700", "font-weight: 700;");
+    assert_eq(plain, ".kv-fw-700 {{ font-weight: 700; }}");
+    let (tk, tb) = only(Motion.opacity(200));
+    assert_eq(
+        rule_text(tk, tb),
+        ".{tk} {{ {tb} }}\n@media (prefers-reduced-motion: reduce) {{ .{tk} {{ transition: none; }} }}",
+    );
+    let fading = Motion.fade_in(100).apply(Sheet.theme());
+    let (fk, fb) = rules(fading)[0];
+    let ftext = rule_text(fk, fb);
+    assert(ftext.starts_with("@keyframes kv-in-fade "));
+    assert(ftext.contains(".{fk} {{ {fb} }}"));
+    assert(
+        ftext.ends_with(
+            "@media (prefers-reduced-motion: reduce) {{ .{fk} {{ animation: none; }} }}",
+        ),
+    );
+    let loading = Motion.spin().apply(fading);
+    let (lk, lb) = rules(loading)[0];
+    let ltext = rule_text(lk, lb);
+    assert(ltext.contains("@keyframes kv-spin "));
+    assert(ltext.contains("@keyframes kv-in-fade "));
+    assert(
+        ltext.ends_with(
+            "@media (prefers-reduced-motion: reduce) {{ .{lk} {{ animation: kv-spin 1000ms linear infinite; }} }}",
+        ),
+    );
+}
+
+@test
+fun a_transition_works_inside_a_state() {
+    let v: View<i64> = button("Save", 1).style([When(State.Hover, [Motion.opacity(300)])]);
+    let rs = rules(sheet_of(v));
+    assert_eq(rs.len, 1);
+    assert(rs[0].0.ends_with(":hover"));
+    assert_eq(rs[0].1, "transition: opacity 300ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;");
+}
+
+@test
+fun bad_durations_stop_the_app() {
+    assert_eq(
+        check(Motion.colors(-5).apply(Sheet.theme())),
+        Err("Motion.colors(-5): a duration can't be negative"),
+    );
+    assert_eq(
+        check(Motion.fade_in(-1).apply(Sheet.theme())),
+        Err("Motion.fade_in(-1): a duration can't be negative"),
+    );
+    assert_eq(
+        check(Motion.delay(-1).apply(Sheet.theme())),
+        Err("Motion.delay(-1): a delay can't be negative"),
+    );
+    assert_eq(
+        check(Motion.slide_in(Edge.Bottom, -8, 200).apply(Sheet.theme())),
+        Err("Motion.slide_in(Edge.Bottom, -8, 200): a slide's distance can't be negative"),
+    );
+    assert_eq(check(Motion.colors(150).apply(Sheet.theme())), Ok(()));
+}
+
+@test
+fun the_objective_reads_as_written() {
+    let save: View<i64> = button("Save", 1).style([
+        Background.color(Token.Primary),
+        When(State.Hover, [Background.color(Token.Accent)]),
+        Motion.colors(150),
+    ]);
+    let tile: View<i64> = column([text("tile")]).style([
+        When(State.Hover, [Effects.scale(1.05), Shadow.lg()]),
+        Motion.transform(200),
+        Motion.shadow(200),
+        Motion.easing(Easing.Out),
+    ]);
+    let toast: View<i64> = text("Saved").style([
+        Motion.fade_in(200),
+        Motion.slide_in(Edge.Bottom, 8, 200),
+    ]);
+    let spinner: View<i64> = icon("process-working").style([Motion.spin()]);
+    let skeleton: View<i64> = column([]).style([
+        Sizing.height(16),
+        Background.color(Token.Muted),
+        Motion.pulse(),
+    ]);
+    for v of [save, tile, toast, spinner, skeleton] {
+        assert(check(sheet_of(v)).is_ok());
+    }
+}

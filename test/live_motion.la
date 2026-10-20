@@ -1,0 +1,112 @@
+// Motion on real GTK widgets (PRP-027): a node's transition and animation
+// classes land, their rules (keyframes and reduced-motion blocks included)
+// join the stylesheet, a kept widget keeps its classes across an update, and
+// the app's stylesheet follows GTK's reduced-motion setting. Needs a display,
+// so it is skipped without one. (How motion feels: examples/motion.la.)
+import std.env;
+import gtk {
+    GtkApplication,
+    connect_app,
+    emit_widget,
+    g_application_quit,
+    g_application_run,
+    g_object_unref,
+    gtk_application_new,
+    gtk_application_window_new,
+    gtk_widget_has_css_class,
+    lgtk_css_provider_reduced_motion,
+    lgtk_reset_reduced_motion,
+    lgtk_set_reduced_motion,
+};
+import kivuli.render.live { mount, live_of };
+import kivuli.core.effects { sandbox_app };
+import kivuli.core.live_tree { Live, widget };
+import kivuli.styles { Sheet };
+import kivuli.styles.sheets { rules };
+import kivuli { View, Motion, Edge, button, column, text };
+
+fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
+
+fun note(seen: Ref<string[]>, s: string) {
+    seen.update(fun(xs) {
+        let mut ys = xs;
+        ys.push(s);
+        ys
+    });
+}
+
+enum Tick {
+    Tick,
+}
+
+fun eased(): Motion = Motion.colors(150);
+
+fun entering(): Motion = Motion.fade_in(200);
+
+/** The class `m` alone gives. */
+fun class_of(m: Motion): string = rules(m.apply(Sheet.theme()))[0].0;
+
+/** A button that eases its colours, and a text that fades in and spins; a click counts. */
+fun view_motion(n: i64): View<Tick> = column([
+    button("tick {n}", Tick.Tick).style([eased()]),
+    text("in").style([entering(), Motion.spin()]),
+]);
+
+@test
+fun motion_classes_land_and_their_rules_join_the_stylesheet() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen: Ref<string[]> = Ref.new([]);
+    let application = gtk_application_new("org.kivuli.test.motion", 0);
+    connect_app(
+        application,
+        "activate",
+        fun(a: GtkApplication) {
+            let window = gtk_application_window_new(a);
+            let app = mount(
+                a,
+                window,
+                sandbox_app("org.kivuli.test", 0, fun(n: i64, msg: Tick): i64 = n + 1, view_motion),
+            );
+            let kids = fun(): Live<Tick>[] = match live_of(app) {
+                Box(_, _, ks) => ks,
+                _ => panic("expected a column"),
+            };
+            let tr = class_of(eased());
+            let an = rules(Motion.spin().apply(entering().apply(Sheet.theme())))[0].0;
+            let css = fun(): string[] = app.styles.css.get();
+            let label = widget(kids()[1]);
+            note(
+                seen,
+                "button eases {gtk_widget_has_css_class(widget(kids()[0]), tr)} text animates {gtk_widget_has_css_class(label, an)}",
+            );
+            note(
+                seen,
+                "keyframes {css().any(fun(r) = r.contains("@keyframes kv-in-fade") && r.contains("@keyframes kv-spin"))} reduced {css().any(fun(r) = r.contains("transition: none;"))}",
+            );
+            // An update keeps the widgets: the text's widget and classes stay, so it doesn't replay.
+            emit_widget(widget(kids()[0]), "clicked");
+            note(
+                seen,
+                "kept {widget(kids()[1]) == label} still animates {gtk_widget_has_css_class(label, an)}",
+            );
+            lgtk_set_reduced_motion(1);
+            note(
+                seen,
+                "stylesheet reduced {lgtk_css_provider_reduced_motion(app.styles.provider) == 1}",
+            );
+            lgtk_reset_reduced_motion();
+            g_application_quit(a);
+        },
+        0,
+    );
+    g_application_run(application, 0, None);
+    g_object_unref(application);
+    assert_eq(seen.get(), [
+        "button eases 1 text animates 1",
+        "keyframes true reduced true",
+        "kept true still animates 1",
+        "stylesheet reduced true",
+    ]);
+}

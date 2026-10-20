@@ -1,0 +1,102 @@
+// Motion: colours that ease on hover, a tile that lifts, toasts that fade
+// and slide in as they're added, a spinner, and pulsing skeleton lines.
+// Turn on "Reduce Animation" in the system's accessibility settings: the
+// eases and entrances stop, the spinner and the skeleton keep going.
+import kivuli {
+    View,
+    Motion,
+    Easing,
+    Edge,
+    When,
+    State,
+    Token,
+    Palette,
+    Background,
+    Border,
+    Effects,
+    Font,
+    Shadow,
+    Sizing,
+    Spacing,
+    Text,
+    button,
+    column,
+    icon,
+    keyed_column,
+    row,
+    sandbox,
+    text,
+};
+
+struct Model {
+    toasts: i64[],
+    next: i64,
+}
+
+enum Msg {
+    Toast,
+    Clear,
+}
+
+fun update(m: Model, msg: Msg): Model = match msg {
+    Toast => {
+        let mut toasts = m.toasts;
+        toasts.push(m.next);
+        Model { toasts: toasts, next: m.next + 1 }
+    }
+    Clear => Model { toasts: [], ..m },
+};
+
+/** A button in the palette's colours that eases to the accent on hover. */
+fun eased(label: string, msg: Msg): View<Msg> = button(label, msg).style([
+    Spacing.padding_x(14),
+    Spacing.padding_y(8),
+    Border.rounded_md(),
+    Shadow.off(),
+    Background.color(Token.Primary),
+    Text.color(Token.PrimaryForeground),
+    When(State.Hover, [Background.color(Token.Accent), Text.color(Token.AccentForeground)]),
+    Motion.colors(150),
+]);
+
+fun tile(): View<Msg> = column([text("Hover me: I lift").style([Font.medium()])]).style([
+    Spacing.padding(20),
+    Border.all(1, Token.Border),
+    Border.rounded_lg(),
+    Background.color(Token.Card),
+    Shadow.sm(),
+    When(State.Hover, [Effects.scale(1.04), Shadow.lg()]),
+    Motion.transform(200),
+    Motion.shadow(200),
+    Motion.easing(Easing.Out),
+]);
+
+fun toast(n: i64): View<Msg> = text("Saved #{n}").style([
+    Spacing.padding_x(14),
+    Spacing.padding_y(10),
+    Border.all(1, Token.Border),
+    Border.rounded_md(),
+    Background.color(Token.Popover),
+    Shadow.md(),
+    Motion.fade_in(200),
+    Motion.slide_in(Edge.Bottom, 8, 200),
+]);
+
+fun skeleton(width: i64): View<Msg> = column([]).style([
+    Sizing.width(width),
+    Sizing.height(12),
+    Border.rounded_sm(),
+    Background.color(Token.Muted),
+    Motion.pulse(),
+]);
+
+fun view(m: Model): View<Msg> = column([
+    text("Motion").style([Font.h2()]),
+    row([eased("Add a toast", Msg.Toast), eased("Clear", Msg.Clear)]).style([Spacing.gap(8)]),
+    tile(),
+    row([icon("process-working").style([Motion.spin()]), text("Loading…")]).style([Spacing.gap(8)]),
+    column([skeleton(260), skeleton(200), skeleton(230)]).style([Spacing.gap(8)]),
+    keyed_column(m.toasts.map(fun(n) = ("{n}", toast(n)))).style([Spacing.gap(8)]),
+]).style([Spacing.padding(32), Spacing.gap(16)]).palette(Palette.zinc()).window("Motion", 520, 640);
+
+fun main(): i32 = sandbox("org.kivuli.motion", Model { toasts: [], next: 1 }, update, view);
