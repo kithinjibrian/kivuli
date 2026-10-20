@@ -7,7 +7,7 @@
  * Used by: live
  */
 
-import views { View };
+import view.views { View };
 
 /**
  * The view with every lazy node built or reused. A lazy reuses what the lazy

@@ -8,7 +8,7 @@
  * Used by: box_rules, lib, sheets, styles, styles/, styling
  */
 
-import theming { Paint };
+import styles.theming { Paint };
 
 /** `font-family`. */
 public enum Family {

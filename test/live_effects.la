@@ -12,7 +12,7 @@ import gtk {
     gtk_application_window_new,
     gtk_window_get_title,
 };
-import kivuli.live { mount };
+import kivuli.render.live { mount };
 import kivuli { App, Cmd, Sub, View, column, text };
 
 fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();

@@ -8,9 +8,9 @@
  */
 
 import styles { Sheet };
-import theming { Color, Paint };
-import pictures { Image };
-import style_values { Gradient, Stop, Fill, Width, Line, Radius, Side, Edges };
+import styles.theming { Color, Paint };
+import view.pictures { Image };
+import styles.values { Gradient, Stop, Fill, Width, Line, Radius, Side, Edges };
 
 /**
  * What's behind a node's content: an image over a gradient over a colour,

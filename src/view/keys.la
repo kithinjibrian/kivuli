@@ -7,8 +7,8 @@
  * Used by: live, styling, testing
  */
 
-import views { View };
-import walk { nodes };
+import view.views { View };
+import view.walk { nodes };
 
 /**
  * GTK's form of `keys`, or what's wrong with it. `keys` is modifiers

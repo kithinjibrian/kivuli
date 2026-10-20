@@ -1,7 +1,7 @@
 // Diffing wrapping grids: by position like a row, by key like a keyed
 // column; a grid's settings are its style. (test/diff.la is at the limit.)
-import kivuli.diff { Patch, diff as patches };
-import kivuli.looks { Style, plain };
+import kivuli.core.diff { Patch, diff as patches };
+import kivuli.view.looks { Style, plain };
 import kivuli { View, column, keyed_wrap, text, wrap };
 
 fun assert_same<T>(actual: T, expected: T) {

@@ -12,6 +12,23 @@ Rules:
 
 ## OPEN — Requires human input before implementation
 
+### DECISION-027 — lughac: a test in a subfolder can't import a shared test file
+
+**Status:** open (needs a lughac change; not worked around)
+**Raised:** 2026-10-20 — Session 32 (src/ in folders)
+
+**Question:** the user asked for `test/` in folders mirroring `src/`. A test file imports another by bare name, resolved from its own folder only: `test/render/live_images.la` with `import fixtures;` looks for `test/render/fixtures.la`, and `test.fixtures`, `kivuli.test.fixtures` and `super.fixtures` are all E0312. Five tests in three folders share `test/fixtures.la` (images as bytes).
+
+**Outcome so far:** `test/` stays flat; `src/` is in folders (DECISION-026). Once lughac resolves a test program's imports from the package's test root too (or gives a way to name it), `test/` moves into `view/`, `styles/`, `core/` and `render/`.
+
+### DECISION-026 — src/ in folders
+
+**Status:** resolved
+**Raised:** 2026-10-20 — Session 32
+**Resolved:** 2026-10-20 — Session 32 (the user approved the layout)
+
+**Outcome:** `src/` is grouped by folder, and a module's path follows its folder (`kivuli.core.diff`): `lib.la`, `testing.la` and `styles.la` at the root; `view/` (what apps build trees with), `styles/` (style groups and their CSS), `core/` (the pure runtime), `render/` (the only GTK callers: architecture rule 4 is "only `render/`"). No folder is named `gtk` (it would load from lugha-gtk), and no two modules share a last name (an import binds it). Apps see no difference.
+
 ### DECISION-024 — lughac: a struct update literal isn't converted to an interface value
 
 **Status:** resolved — fixed in lughac (the user, between sessions 17 and 18; the reproduction prints `4 1 9 16`)

@@ -20,9 +20,9 @@ import gtk {
     gtk_window_get_titlebar,
     gtk_widget_has_css_class,
 };
-import kivuli.live { mount, live_of };
-import kivuli.effects { sandbox_app };
-import kivuli.live_tree { Live, widget };
+import kivuli.render.live { mount, live_of };
+import kivuli.core.effects { sandbox_app };
+import kivuli.core.live_tree { Live, widget };
 import kivuli { View, button, column, input, text, header_bar, Background, Paint, hex };
 
 fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();

@@ -23,7 +23,7 @@ import gtk {
     gtk_image_set_from_paintable,
     gtk_picture_set_paintable,
 };
-import pictures { Image, size_of };
+import view.pictures { Image, size_of };
 
 /** The texture for a file or bytes image; `None` for a theme icon, or one that can't be shown. */
 fun texture_of(img: Image): Option<GdkTexture> = match img {

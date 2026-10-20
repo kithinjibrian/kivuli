@@ -55,12 +55,12 @@ import gtk {
     gtk_widget_set_valign,
     gtk_widget_set_vexpand,
 };
-import live_tree { Live, widget };
-import looks { Style, Align, Fit };
-import style_values { Radius, Width };
-import box_rules { clamp_limits };
-import keys { parse };
-import widgets { snap };
+import core.live_tree { Live, widget };
+import view.looks { Style, Align, Fit };
+import styles.values { Radius, Width };
+import styles.box_rules { clamp_limits };
+import view.keys { parse };
+import view.widgets { snap };
 
 /**
  * Gives `node`'s widget every field of `style`, defaults included, so a

@@ -53,9 +53,9 @@ import gtk {
     gtk_widget_set_parent,
     gtk_widget_unparent,
 };
-import menus { MenuEntry, layout, message_of };
-import live_tree { Popup };
-import styling { flag };
+import view.menus { MenuEntry, layout, message_of };
+import core.live_tree { Popup };
+import render.styling { flag };
 
 /**
  * Gives `w` a context menu showing `entries`: the popover, the action group,

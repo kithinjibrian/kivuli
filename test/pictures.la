@@ -1,7 +1,7 @@
 // Images, without GTK: the PNG and JPEG headers read before anything is
 // decoded, the limits, and what makes two images the same.
 import fixtures;
-import kivuli.pictures { MAX_BYTES, base64, data_url, identity, size_of };
+import kivuli.view.pictures { MAX_BYTES, base64, data_url, identity, size_of };
 import kivuli { Image };
 
 @test

@@ -1,8 +1,8 @@
 // Diffing views: the changes listed are the fewest that make the widgets
 // showing the old view show the new one. `diff` is package-level: files in
 // test/ see package-level items (lughac milestone 97).
-import kivuli.diff { Patch, diff as patches };
-import kivuli.looks { Style, plain };
+import kivuli.core.diff { Patch, diff as patches };
+import kivuli.view.looks { Style, plain };
 import kivuli.styles { Sheet };
 import kivuli {
     Image,

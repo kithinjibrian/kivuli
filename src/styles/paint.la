@@ -8,14 +8,14 @@
  * Used by: live
  */
 
-import views { View };
-import walk { check_content, nodes };
-import looks { Style };
-import sheets { check, picture, rules };
-import box_rules { needs_clamp };
-import style_values { Width };
+import view.views { View };
+import view.walk { check_content, nodes };
+import view.looks { Style };
+import styles.sheets { check, picture, rules };
+import styles.box_rules { needs_clamp };
+import styles.values { Width };
 import styles { Sheet };
-import pictures { Image };
+import view.pictures { Image };
 
 /**
  * `v` with every node's `classes` filled in from its style; or what's wrong:

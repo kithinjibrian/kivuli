@@ -17,12 +17,12 @@ import gtk {
     gtk_editable_set_position,
     on_finalized,
 };
-import kivuli.live { dispatch, live_of, mount };
-import kivuli.live_tree { Live, widget };
-import kivuli.build { create };
-import kivuli.patch { apply };
-import kivuli.diff { Patch };
-import kivuli.effects { sandbox_app };
+import kivuli.render.live { dispatch, live_of, mount };
+import kivuli.core.live_tree { Live, widget };
+import kivuli.render.build { create };
+import kivuli.render.patch { apply };
+import kivuli.core.diff { Patch };
+import kivuli.core.effects { sandbox_app };
 import kivuli { View, button, input, keyed_column, text };
 
 fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();

@@ -1,8 +1,8 @@
 // Diffing context menus: a menu always gives SetMenu (messages can't be
 // compared); its node diffs as itself at the same path; gaining or losing a
 // menu is a SetMenu, not a rebuild. (test/diff.la is at the limit.)
-import kivuli.diff { Patch, diff as patches };
-import kivuli.menus { MenuEntry };
+import kivuli.core.diff { Patch, diff as patches };
+import kivuli.view.menus { MenuEntry };
 import kivuli { View, button, column, item, text };
 
 fun assert_same<T>(actual: T, expected: T) {

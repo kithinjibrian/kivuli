@@ -41,20 +41,20 @@ import gtk {
     gtk_window_set_title,
     gtk_window_set_titlebar,
 };
-import diff;
-import lazies;
-import views { View };
-import looks { Window };
-import effects { App, Cmd, Timer, commands, receivers, timers };
+import core.diff;
+import view.lazies;
+import view.views { View };
+import view.looks { Window };
+import core.effects { App, Cmd, Timer, commands, receivers, timers };
 import std.task;
-import build { create, focus_target };
-import patch { apply };
-import paths { at };
-import keys { duplicate };
-import walk { path_of_name };
-import live_tree { Live, titlebar, widget };
-import paint { background_pictures, painted, stylesheet };
-import sheets { picture_css, url_of };
+import render.build { create, focus_target };
+import render.patch { apply };
+import core.paths { at };
+import view.keys { duplicate };
+import view.walk { path_of_name };
+import core.live_tree { Live, titlebar, widget };
+import styles.paint { background_pictures, painted, stylesheet };
+import styles.sheets { picture_css, url_of };
 
 /** What changes as the app runs: the model, the view it gave, and the widgets showing it. */
 struct State<Model, Msg> {

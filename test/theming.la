@@ -1,9 +1,9 @@
 // Colours, and the paint pass: each node's style becomes its CSS classes
 // before the diff, the rules the view needs are collected for the app's
 // stylesheet, and what the app got wrong stops it before GTK. No GTK.
-import kivuli.theming { Color, read_hex };
-import kivuli.paint { painted, stylesheet };
-import kivuli.walk { check_content };
+import kivuli.styles.theming { Color, read_hex };
+import kivuli.styles.paint { painted, stylesheet };
+import kivuli.view.walk { check_content };
 import kivuli {
     View,
     Font,

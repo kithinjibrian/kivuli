@@ -9,7 +9,7 @@
  */
 
 import styles { Sheet, State };
-import style_values {
+import styles.values {
     Family,
     Size,
     Weight,
@@ -21,9 +21,9 @@ import style_values {
     Radius,
     Edges,
 };
-import pictures { Image, data_url, identity };
-import theming { Paint, digits, hexed, paint_css, permille };
-import box_rules { box_css, check_effects, needs_clamp, sides };
+import view.pictures { Image, data_url, identity };
+import styles.theming { Paint, digits, hexed, paint_css, permille };
+import styles.box_rules { box_css, check_effects, needs_clamp, sides };
 
 /**
  * Whether every value in `s` can be shown.

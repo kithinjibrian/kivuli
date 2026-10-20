@@ -8,11 +8,11 @@
  * Used by: live (from step 3, part 2), patch
  */
 
-import views { View };
-import looks { Style, plain };
-import pictures { Image, identity };
-import menus { MenuEntry };
-import box_rules { needs_clamp };
+import view.views { View };
+import view.looks { Style, plain };
+import view.pictures { Image, identity };
+import view.menus { MenuEntry };
+import styles.box_rules { needs_clamp };
 
 /**
  * One change to the live widgets. A path is the list of child indexes from

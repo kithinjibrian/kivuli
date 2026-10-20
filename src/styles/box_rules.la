@@ -9,8 +9,8 @@
 
 import styles { Sheet };
 import styles.boxes { Border, Sizing };
-import style_values { Side, Width, Line, Edges, Drop, Filter, Move };
-import theming { Paint, digits, hexed, paint_css, permille };
+import styles.values { Side, Width, Line, Edges, Drop, Filter, Move };
+import styles.theming { Paint, digits, hexed, paint_css, permille };
 import styles.drawing { Shadow, Effects };
 
 /** The rules for `s`'s border and outline, in that order. */

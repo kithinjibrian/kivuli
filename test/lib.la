@@ -1,7 +1,7 @@
 // Building views: what an app's `view` returns is exactly the tree it wrote.
-import kivuli.looks { Style, plain };
+import kivuli.view.looks { Style, plain };
 import kivuli.styles { Sheet };
-import kivuli.menus { MenuEntry };
+import kivuli.view.menus { MenuEntry };
 import kivuli {
     View,
     text,

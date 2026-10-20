@@ -21,8 +21,8 @@ import gtk {
     gtk_application_new,
     gtk_application_window_new,
 };
-import kivuli.live { Running, mount, live_of };
-import kivuli.live_tree { Live, widget };
+import kivuli.render.live { Running, mount, live_of };
+import kivuli.core.live_tree { Live, widget };
 import kivuli { App, Cmd, Sub, View, button, column };
 
 fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();

@@ -18,8 +18,8 @@ import gtk {
     gtk_widget_is_ancestor,
     lgtk_emit_pressed,
 };
-import kivuli.live { dispatch, mount, live_of };
-import kivuli.live_tree { widget };
+import kivuli.render.live { dispatch, mount, live_of };
+import kivuli.core.live_tree { widget };
 import kivuli { App, Cmd, Sub, View, column, input, text };
 
 fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();

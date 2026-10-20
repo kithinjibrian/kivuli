@@ -36,10 +36,10 @@ import gtk {
     lgtk_text_cursor,
     lgtk_text_place_cursor,
 };
-import kivuli.live { dispatch, mount, live_of };
-import kivuli.effects { sandbox_app };
-import kivuli.build { text_of };
-import kivuli.live_tree { Live, widget };
+import kivuli.render.live { dispatch, mount, live_of };
+import kivuli.core.effects { sandbox_app };
+import kivuli.render.build { text_of };
+import kivuli.core.live_tree { Live, widget };
 import kivuli { App, Cmd, Sub, View, button, checkbox, column, input, text, text_area };
 
 fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();

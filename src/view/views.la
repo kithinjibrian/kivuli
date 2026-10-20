@@ -6,12 +6,12 @@
  * Used by: build, diff, effects, keys, lazies, lib, live, mapping, paint, testing, walk, widgets
  */
 
-import looks { Style, Window, Align, Fit, plain };
+import view.looks { Style, Window, Align, Fit, plain };
 import styles { Sheet, Styling, applied };
-import pictures { Image };
-import menus { MenuEntry };
+import view.pictures { Image };
+import view.menus { MenuEntry };
 // The one import cycle kivuli allows (DECISION-018): mapping maps views.
-import mapping { button_image, disabled_node, mapped, with_menu, with_submit };
+import view.mapping { button_image, disabled_node, mapped, with_menu, with_submit };
 
 /**
  * A description of what's on screen. `Msg` is the app's message type: what a

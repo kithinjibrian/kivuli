@@ -8,9 +8,9 @@
  * Used by: views (`View.map`)
  */
 
-import views { View };
-import pictures { Image };
-import menus { MenuEntry };
+import view.views { View };
+import view.pictures { Image };
+import view.menus { MenuEntry };
 
 /** `v` sending `f(msg)` wherever it would send `msg`; what's shown is unchanged. */
 fun mapped<Msg, B>(v: View<Msg>, f: fun(Msg): B): View<B> = match v {

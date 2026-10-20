@@ -16,7 +16,7 @@ import gtk {
     GtkTextBuffer,
     GtkWidget,
 };
-import menus { MenuEntry };
+import view.menus { MenuEntry };
 
 /** The widgets on screen, shaped exactly like the `View` they show. */
 enum Live<Msg> {

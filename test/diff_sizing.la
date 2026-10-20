@@ -1,7 +1,7 @@
 // Diffing sizes: a node that gains its first exact size or maximum, or loses
 // its last, is rebuilt (it moves into or out of a clamp); new numbers are a
 // restyle; a minimum alone never rebuilds. (test/diff.la is at the limit.)
-import kivuli.diff { Patch, diff as patches };
+import kivuli.core.diff { Patch, diff as patches };
 import kivuli { View, Sizing, Width, text };
 
 fun assert_same<T>(actual: T, expected: T) {

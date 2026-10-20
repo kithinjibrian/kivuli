@@ -8,6 +8,9 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+### Changed
+- `src/` is organised in folders (`view/`, `styles/`, `core/`, `render/`; DECISION-026). Private module paths change (`kivuli.diff` is `kivuli.core.diff`); apps, which import `kivuli` and `kivuli.testing`, see no difference.
+
 ## [0.20.0] — 2026-10-20
 
 ### Added

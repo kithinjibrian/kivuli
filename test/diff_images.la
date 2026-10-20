@@ -1,6 +1,6 @@
 // Diffing images: by their kind and name, path or key, never their bytes.
 // (test/diff.la is at the file size limit.)
-import kivuli.diff { Patch, diff as patches };
+import kivuli.core.diff { Patch, diff as patches };
 import kivuli { Image, View, button, icon, image };
 
 enum Msg {
