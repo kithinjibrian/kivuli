@@ -1,0 +1,49 @@
+// Text alignment (PRP-030): `Text.start()`, `center()`, `end()`, merged as
+// Text's other fields; no CSS class (GTK's CSS has no text-align); refused
+// inside a state. No GTK.
+import kivuli.styles { Sheet };
+import kivuli.styles.sheets { check, rules };
+import kivuli { View, Text, TextAlign, When, State, Font, text };
+
+fun sheet_of<M>(v: View<M>): Sheet = match v {
+    Styled(_, s) => s.sheet,
+    _ => panic("expected a styled node"),
+};
+
+@test
+fun the_values_set_the_alignment() {
+    assert_eq(Text.start().align, TextAlign.Start);
+    assert_eq(Text.center().align, TextAlign.Center);
+    assert_eq(Text.end().align, TextAlign.End);
+    assert_eq(Text.theme().align, TextAlign.Theme);
+}
+
+@test
+fun alignment_merges_as_texts_other_fields() {
+    let t: View<i64> = text("x").style([Text.center(), Text.dim(), Text.end()]);
+    assert_eq(sheet_of(t).text.align, TextAlign.End);
+    // A Text value that doesn't align leaves an earlier alignment alone.
+    let u: View<i64> = text("x").style([Text.center(), Text.upper()]);
+    assert_eq(sheet_of(u).text.align, TextAlign.Center);
+}
+
+@test
+fun alignment_is_no_css() {
+    assert_eq(rules(Text.center().apply(Sheet.theme())), []);
+    assert_eq(check(Text.end().apply(Sheet.theme())), Ok(()));
+}
+
+@test
+fun a_state_cant_change_where_text_sits() {
+    let v: View<i64> = text("x").style([When(State.Hover, [Text.center()])]);
+    assert_eq(
+        check(sheet_of(v)),
+        Err("When(State.Hover, …): a state can't change where text sits"),
+    );
+}
+
+@test
+fun the_objective_reads_as_written() {
+    let v: View<i64> = text("Storage").style([Font.h3(), Text.center()]);
+    assert_eq(sheet_of(v).text.align, TextAlign.Center);
+}

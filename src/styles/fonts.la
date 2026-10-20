@@ -9,7 +9,16 @@
 
 import styles { Sheet };
 import styles.theming { Colorish, Paint };
-import styles.values { Family, Size, Weight, FontStyle, LineHeight, Decoration, Transform };
+import styles.values {
+    Family,
+    Size,
+    Weight,
+    FontStyle,
+    LineHeight,
+    Decoration,
+    Transform,
+    TextAlign,
+};
 
 /**
  * Which typeface a node's text uses, and how big. Fields left `Theme` (and
@@ -159,6 +168,8 @@ public struct Text {
     public letter_spacing: i64,
     public decoration: Decoration,
     public transform: Transform,
+    /** Where the text sits in its label: the start unless set. Can't change per state. */
+    public align: TextAlign,
 }
 
 impl Text {
@@ -169,10 +180,20 @@ impl Text {
         letter_spacing: 0,
         decoration: Decoration.Theme,
         transform: Transform.Theme,
+        align: TextAlign.Theme,
     };
 
     /** Every letter in capitals. */
     public fun upper(): Text = Text { transform: Transform.Uppercase, ..Text.theme() };
+
+    /** Text at the start of its label: kivuli's default, for undoing an earlier value. */
+    public fun start(): Text = Text { align: TextAlign.Start, ..Text.theme() };
+
+    /** Text in the middle of its label, and wrapped lines centred. */
+    public fun center(): Text = Text { align: TextAlign.Center, ..Text.theme() };
+
+    /** Text at the end of its label, and wrapped lines lined up there. */
+    public fun end(): Text = Text { align: TextAlign.End, ..Text.theme() };
 
     /** Every letter in lower case. */
     public fun lower(): Text = Text { transform: Transform.Lowercase, ..Text.theme() };
@@ -240,6 +261,7 @@ impl Text {
             } else {
                 self.transform
             },
+            align: if self.align == TextAlign.Theme { s.text.align } else { self.align },
         },
         ..s,
     };

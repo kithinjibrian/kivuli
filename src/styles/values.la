@@ -73,6 +73,16 @@ public enum Decoration {
     Strikethrough,
 }
 
+/** Where text sits in its label's width, and how wrapped lines line up. Not CSS: a label's own setting. */
+public enum TextAlign {
+    /** Not set: at the start, kivuli's default. */
+    Theme,
+    /** The start of the line: the left, or the right in right-to-left text. */
+    Start,
+    Center,
+    End,
+}
+
 /** `text-transform`. */
 public enum Transform {
     Theme,
