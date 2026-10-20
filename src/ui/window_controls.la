@@ -55,9 +55,12 @@ impl WindowControls {
         // The themes draw a round hover circle on the icon: cleared, so the
         // button's own colours show. kivuli's rules outrank the theme's in
         // every state, so once is enough.
+        // 24 px, in place of the themes' 30: its circle when an app gives it one.
         Inside(Part.WindowIcon, [
             Background.color(clear()),
             Border { radius: Radius.All(0), ..Border.theme() },
+            Sizing.min_width(24),
+            Sizing.min_height(24),
         ]),
     ]);
 }

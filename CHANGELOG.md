@@ -8,6 +8,11 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.49.2] — 2026-10-21
+
+### Changed
+- `WindowControls.look()` makes each control's icon box 24 × 24 (the themes' is 30).
+
 ## [0.49.1] — 2026-10-21
 
 ### Added
