@@ -1737,9 +1737,15 @@ Branch: main
 
 ---
 
-## SESSION 116 — 2026-10-20 — SVG pictures: discovery — open
+## SESSION 116 — 2026-10-20 — SVG pictures: discovery, PRP-053 draft — closed
 
 Branch: main
+
+### WHAT WAS DONE
+- Interview (all A): SVG through `Image.File`/`Image.Bytes`, told apart by its bytes; GTK 4.22's `GtkSvg` with external resources, animations and extensions off (system fonts on); not in backgrounds (CSS `data:` URLs can't set the features). PRP-053 drafted.
+
+### STILL OPEN AT CLOSE
+- PRP-053 awaits the user's approval.
 
 ---
 
