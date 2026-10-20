@@ -861,6 +861,19 @@ Branch: prp-029-ui-button (not merged: waiting for the user's look)
 
 ---
 
+## SESSION 48 — 2026-10-20 — Button fix: a box inside a box — closed
+
+Branch: prp-029-ui-button (not merged)
+
+### WHAT WAS DONE
+- The user's screenshot: styled buttons drew a second box inside and were twice as padded. Cause: `style_label` gave the label every class of its button. Now only text-decoration classes. test/live_buttons_ui.la (type-checked). components.la rebuilt. (Opened late: the fix was made before this entry was written.)
+- Seen in the screenshot, not kivuli's: native GTK buttons draw as bare text because the system theme (Yaru-dark) can't load in this GTK.
+
+### STILL OPEN AT CLOSE
+- The user to look again; then merge PRP-029 and tag v0.24.0.
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
