@@ -1,6 +1,6 @@
 # PRP-026 — Palettes and colour tokens
 
-Status: approved (session 35)
+Status: built (session 35) on branch prp-026-palettes; not merged (its tests haven't run)
 Discovery: session 34, 2026-10-20 (shadcn-like components; this is the first of their PRPs). *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: named colour tokens (`Token.Primary`, `Token.Muted`, …) that follow light and dark mode, an app-wide `.palette(…)` with shadcn's five bases, a radius token, and `.scheme(…)` to follow the system or force light or dark.
@@ -53,11 +53,20 @@ fun view(m: Model): View<Msg> = column([
 - No `ui` components (the next PRP after motion), no motion, no coloured themes (`.with` is one line), no `Paint` arithmetic on tokens (`Faded` stays the theme's text colour).
 
 ## TESTS (narrow, per the user's preference)
-- [ ] `test/palettes.la` (new, pure): a token's CSS (`var(--kv-primary)`); each base has every token, light and dark; `.with` replaces both values; `.radius` and `Radius.Small`/`Medium`/`Large`'s CSS; the window rule and its dark block for a palette; tokens in `When`; `.palette`/`.scheme` below the root refused; the OBJECTIVE reads as written.
-- [ ] `test/theming.la`: the paint pass gives token values classes like any `Paint`.
-- [ ] `test/live_palette.la` (new, GTK): the window carries `kv-palette` with a palette, not without; a changed palette reloads its provider (not the stylesheet); `.scheme(Scheme.Dark)` sets the setting (read back), `System` restores the default.
-- [ ] lugha-gtk `test/settings.la`: set and read the colour scheme.
+- [x] (written, type-checked) `test/palettes.la` (new, pure): a token's CSS (`var(--kv-primary)`); each base has every token, light and dark; `.with` replaces both values; `.radius` and `Radius.Small`/`Medium`/`Large`'s CSS; the window rule and its dark block for a palette; tokens in `When`; `.palette`/`.scheme` below the root refused; the OBJECTIVE reads as written.
+- [x] (written, type-checked) `test/theming.la`: the paint pass gives token values classes like any `Paint`.
+- [x] (written, type-checked) `test/live_palette.la` (new, GTK): the window carries `kv-palette` with a palette, not without; a changed palette reloads its provider (not the stylesheet); `.scheme(Scheme.Dark)` sets the setting (read back), `System` restores the default.
+- [x] lugha-gtk `test/settings.la`: set and read the colour scheme.
 - [ ] Every example builds; a new `examples/palette.la` (a card, muted text, a theme toggle with `.scheme` in the model). How light and dark look: by hand.
 
 ## ACCEPTANCE
 - [ ] The OBJECTIVE compiles; fmt clean; no file over 500 lines; README, DESIGN, CHANGELOG 0.21.0, CLAUDE.md, DECISIONS (the palette's own provider); merged, tagged; pushed only on your go.
+
+## NOTES FROM THE BUILD
+
+- **No palette provider**: the palette is the root's class (`kv-pal-{two hashes of its variables}`), its rule whole in the one growing stylesheet with its dark values in an `@media (prefers-color-scheme: dark)` block, first so the root's own `.style` wins. A changed palette is a new class on the same widget, as any style change is. `stylesheet()` now gives whole rules (key, text). The header bar gets `…-bar`: variables only, keeping GTK's bar colours.
+- **Zinc's tokens on every window**: the stylesheet's first rule (`window { … }`), loaded with the first rule an app needs.
+- **`System` resets GTK's setting** (`gtk_settings_reset_property`): on this machine the platform sets it to dark (2), and writing "default" would hide that. lugha-gtk 0.1.32 has `lgtk_set_color_scheme`, `lgtk_reset_color_scheme`, `lgtk_color_scheme` (`src/c/settings.c`); its settings and clamp tests pass, pushed under the standing go (its full suite was stopped by the user).
+- **`Colorish` is structural**: `Color`, `Token` and `Paint` each have `paint()`, so `Text.color(hex(…))`, `Text.color(Token.Muted)` and `Text.color(Paint.Faded(0.5))` all work.
+- **Tests not run** (the user is fixing slow test runs): palettes, live_palette, theming and live_type type-check; every example builds; fmt clean.
+- **`src/render/live.la` is at 500 lines**: a split is proposed to the user before it grows.
