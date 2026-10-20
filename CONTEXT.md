@@ -764,6 +764,12 @@ Branch: main (prp-027-motion merged)
 
 ---
 
+## SESSION 41 — 2026-10-20 — kivuli.ui, first component: discovery — open
+
+Branch: main
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
