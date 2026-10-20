@@ -97,6 +97,7 @@ fun check(s: Sheet): Result<(), string> {
         ("height", z.height),
         ("min_height", z.min_height),
         ("max_height", z.max_height),
+        ("icon", z.icon),
     ] {
         match w {
             Px(n) => if n < 0 {

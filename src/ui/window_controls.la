@@ -61,6 +61,8 @@ impl WindowControls {
             Border { radius: Radius.All(0), ..Border.theme() },
             Sizing.min_width(24),
             Sizing.min_height(24),
+            // The glyph 24 px too, in place of GTK's 16.
+            Sizing.icon(24),
         ]),
     ]);
 }
