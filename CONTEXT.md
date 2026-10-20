@@ -1624,9 +1624,15 @@ Branch: main (prp-047-dialog merged)
 
 ---
 
-## SESSION 107 — 2026-10-20 — Follow-ups: discovery, PRP drafts — open
+## SESSION 107 — 2026-10-20 — Follow-ups: discovery, PRP-048 to PRP-052 drafts — closed
 
 Branch: main
+
+### WHAT WAS DONE
+- The follow-ups in one go, one PRP each (the scope rule), all A: PRP-048 vertical tabs (`ui.tabs_vertical`, `ui.tabs_line_vertical`), PRP-049 drop-down groups (`dropdown_grouped`; a flatten list model's sections and a header factory, probed first; build.la's drop-down arm moves to controls.la, the split needing approval), PRP-050 disabled drop-downs (`.disabled`; choices hold `Option<Msg>`), PRP-051 `.show_value(on)` (`ui.slider` hides the number; views.la reaches ~500 lines), PRP-052 `ui.sheet(close, Edge, parts)` (a `Dialog`; the card places itself).
+
+### STILL OPEN AT CLOSE
+- The five drafts await approval; then "build all" builds them in order, merging each.
 
 ---
 
