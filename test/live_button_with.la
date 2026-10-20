@@ -21,9 +21,9 @@ import gtk {
     gtk_widget_get_sensitive,
     gtk_widget_has_css_class,
 };
-import kivuli.live { mount, live_of };
-import kivuli.effects { sandbox_app };
-import kivuli.live_tree { Live, widget };
+import kivuli.render.live { mount, live_of };
+import kivuli.core.effects { sandbox_app };
+import kivuli.core.live_tree { Live, widget };
 import kivuli { View, button, button_with, column, icon, row, text };
 
 fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();

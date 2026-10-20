@@ -626,9 +626,33 @@ Branch: main (PRP-025 on prp-025-style_utilities, merged)
 
 ---
 
-## SESSION 33 — 2026-10-20 — Merge src/ in folders — open
+## SESSION 32 — 2026-10-20 — src/ in folders — closed
+
+Branch: refactor-folders (not merged: waiting for the full suite)
+
+### WHAT WAS DONE
+- The user approved a folder layout: `src/view/`, `src/styles/` (+ values, theming, sheets, box_rules, paint), `src/core/` (diff, effects, live_tree, paths), `src/render/` (the GTK callers); lib, testing and styles stay at the root (DECISION-026). Imports rewritten by script; every example builds; every test file type-checks; fmt clean.
+- `test/` stays flat: a test in a subfolder can't import `test/fixtures.la` (DECISION-027, open, needs lughac).
+- The user stopped the full suite run (it ran in the background); they have the command to run it themselves.
+
+### STILL OPEN AT CLOSE
+- Merge `refactor-folders` into main once the full suite passes (`lughac test test/ examples/tasks.la examples/browser.la examples/controls.la`).
+- Not pushed: main and tags v0.18.0–v0.20.0.
+- DECISION-027: a lughac change, then `test/` into folders.
+
+---
+
+## SESSION 33 — 2026-10-20 — Merge src/ in folders — closed
 
 Branch: main
+
+### WHAT WAS DONE
+- Merged `refactor-folders` into main on the user's go (the full suite's result wasn't reported here; the command was handed over in session 32).
+
+### STILL OPEN AT CLOSE
+- Not pushed, waiting for the user's go: main and tags v0.18.0, v0.19.0, v0.20.0. Run the full suite before the push.
+- DECISION-027: a lughac change, then `test/` into folders.
+- Next: motion; the file dialog (013); test/live_forms.la split (562 lines); DECISION-007 to close.
 
 ---
 

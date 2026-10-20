@@ -26,10 +26,10 @@ import gtk {
     gtk_widget_set_valign,
     gtk_widget_set_visible,
 };
-import live_tree { Live, widget };
-import pictures { Image };
-import styling { flag, show_content };
-import textures { show_in_image };
+import core.live_tree { Live, widget };
+import view.pictures { Image };
+import render.styling { flag, show_content };
+import render.textures { show_in_image };
 
 /** A button labelled `label`, with `img` before the label, sending `msg` (none: disabled) through `send`. */
 fun create_button<Msg>(

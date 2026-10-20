@@ -19,9 +19,9 @@ import gtk {
     gtk_widget_measure,
     lgtk_clamp_get_child,
 };
-import kivuli.live { mount, live_of };
-import kivuli.effects { sandbox_app };
-import kivuli.live_tree { Live, widget };
+import kivuli.render.live { mount, live_of };
+import kivuli.core.effects { sandbox_app };
+import kivuli.core.live_tree { Live, widget };
 import kivuli { Align, View, Sizing, Width, button, column, text };
 
 fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();

@@ -24,9 +24,9 @@ import gtk {
     lgtk_emit_pressed,
     on_finalized,
 };
-import kivuli.live { mount, live_of };
-import kivuli.effects { sandbox_app };
-import kivuli.live_tree { Live, Popup, widget };
+import kivuli.render.live { mount, live_of };
+import kivuli.core.effects { sandbox_app };
+import kivuli.core.live_tree { Live, Popup, widget };
 import kivuli { View, button, column, item, menu_separator, text };
 
 fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();

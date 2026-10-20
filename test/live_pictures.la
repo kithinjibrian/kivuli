@@ -25,9 +25,9 @@ import gtk {
     on_texture_finalized,
 };
 import fixtures;
-import kivuli.live { mount, live_of };
-import kivuli.effects { sandbox_app };
-import kivuli.live_tree { Live, widget };
+import kivuli.render.live { mount, live_of };
+import kivuli.core.effects { sandbox_app };
+import kivuli.core.live_tree { Live, widget };
 import kivuli { Image, View, button, column, image };
 
 fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();

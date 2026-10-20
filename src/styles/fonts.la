@@ -8,8 +8,8 @@
  */
 
 import styles { Sheet };
-import theming { Color, Paint };
-import style_values { Family, Size, Weight, FontStyle, LineHeight, Decoration, Transform };
+import styles.theming { Color, Paint };
+import styles.values { Family, Size, Weight, FontStyle, LineHeight, Decoration, Transform };
 
 /**
  * Which typeface a node's text uses, and how big. Fields left `Theme` (and

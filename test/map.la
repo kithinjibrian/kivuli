@@ -1,6 +1,6 @@
 // Mapping a component's messages into a bigger app's: views, commands and
 // subscriptions. No GTK.
-import kivuli.effects { commands, timers };
+import kivuli.core.effects { commands, timers };
 import kivuli.testing { click, submit, texts, toggle, type_into };
 import kivuli {
     Cmd,

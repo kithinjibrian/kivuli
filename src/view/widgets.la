@@ -7,9 +7,9 @@
  * Used by: build, lib; `snap` by build and testing, styling, testing
  */
 
-import views { Bar, View };
+import view.views { Bar, View };
 import styles { Sheet };
-import pictures { Image };
+import view.pictures { Image };
 
 /**
  * Builds a line of text.

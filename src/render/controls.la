@@ -16,7 +16,7 @@ import gtk {
     gtk_string_list_new,
     gtk_string_list_unref,
 };
-import live_tree { Choices };
+import core.live_tree { Choices };
 
 /** The index of the first choice labelled `selected`, or `None` when no choice is. */
 fun picked<Msg>(choices: (string, Msg)[], selected: string): Option<i64> {

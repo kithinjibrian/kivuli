@@ -7,8 +7,8 @@
  */
 
 import styles { Sheet };
-import style_values { Drop, Filter, Move };
-import theming { Color, Paint };
+import styles.values { Drop, Filter, Move };
+import styles.theming { Color, Paint };
 
 /** A black `Drop` at `alpha` of 255, straight down: the shadows' utilities. */
 fun black_drop(y: i64, blur: i64, spread: i64, alpha: i64): Drop = Drop {

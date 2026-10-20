@@ -8,12 +8,12 @@
  * Used by: lib (re-exported), apps' tests
  */
 
-import views { View };
-import menus { MenuEntry };
-import looks { Style };
-import walk { nodes };
-import keys;
-import widgets { snap };
+import view.views { View };
+import view.menus { MenuEntry };
+import view.looks { Style };
+import view.walk { nodes };
+import view.keys;
+import view.widgets { snap };
 
 /** Why a helper couldn't do what was asked, naming what it looked for. */
 public enum Lookup {

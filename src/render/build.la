@@ -69,16 +69,16 @@ import gtk {
     lgtk_cstring_text,
     lgtk_text_get,
 };
-import live_tree { Choices, Live, widget };
-import views { View };
+import core.live_tree { Choices, Live, widget };
+import view.views { View };
 
-import buttons { create_button, create_button_with };
-import popovers { attach };
-import box_rules { needs_clamp };
-import styling { LAYER, NO_LINE_LIMIT, apply_style, flag, show_number };
-import textures { show_picture };
-import widgets { snap };
-import controls { nearest, picked, sync_choices };
+import render.buttons { create_button, create_button_with };
+import render.popovers { attach };
+import styles.box_rules { needs_clamp };
+import render.styling { LAYER, NO_LINE_LIMIT, apply_style, flag, show_number };
+import render.textures { show_picture };
+import view.widgets { snap };
+import render.controls { nearest, picked, sync_choices };
 
 /** Builds the GTK widgets for `v` at the top of a window; each widget sends its messages through `send`. */
 fun create<Msg>(v: View<Msg>, send: fun(Msg)): Live<Msg> = create_in(v, 1, send);

@@ -1,7 +1,7 @@
 // Style utilities (PRP-025): each static equals the full value it stands for,
 // and utilities merge with full values as any values do. No GTK.
 import kivuli.styles { Sheet };
-import kivuli.sheets { check, rules };
+import kivuli.styles.sheets { check, rules };
 import kivuli {
     View,
     Font,

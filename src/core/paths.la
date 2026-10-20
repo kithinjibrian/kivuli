@@ -9,8 +9,8 @@
  */
 
 import gtk { GtkWidget };
-import live_tree { Live, widget };
-import styling { LAYER };
+import core.live_tree { Live, widget };
+import render.styling { LAYER };
 
 /**
  * Rebuilds the `Live` tree with the node at `path` (from `depth` on) replaced

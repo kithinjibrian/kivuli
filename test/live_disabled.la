@@ -19,10 +19,10 @@ import gtk {
     gtk_text_buffer_set_text,
     gtk_widget_get_sensitive,
 };
-import kivuli.live { mount, live_of };
-import kivuli.effects { sandbox_app };
-import kivuli.build { text_of };
-import kivuli.live_tree { Live, widget };
+import kivuli.render.live { mount, live_of };
+import kivuli.core.effects { sandbox_app };
+import kivuli.render.build { text_of };
+import kivuli.core.live_tree { Live, widget };
 import kivuli { View, button, column, input, text_area };
 
 fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();

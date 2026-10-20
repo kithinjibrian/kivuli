@@ -1,7 +1,7 @@
 // Diffing overlays: the base at path 0, the layers at path 1 by position, so
 // layers coming and going never touch the base. (test/diff.la is at the limit.)
-import kivuli.diff { Patch, diff as patches };
-import kivuli.looks { Style, plain };
+import kivuli.core.diff { Patch, diff as patches };
+import kivuli.view.looks { Style, plain };
 import kivuli { Align, View, column, overlay, text };
 
 fun assert_same<T>(actual: T, expected: T) {

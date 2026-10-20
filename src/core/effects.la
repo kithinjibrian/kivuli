@@ -7,7 +7,7 @@
  * Used by: lib, live
  */
 
-import views { View };
+import view.views { View };
 
 /**
  * Something for kivuli to do after an update: wait and send a message, run

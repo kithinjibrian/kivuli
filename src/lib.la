@@ -8,14 +8,14 @@
  * Depends on: views, looks, theming, styles (and styles/), style_values, pictures, menus, widgets, effects, testing, live
  */
 
-public import views { Bar, View };
-public import looks { Align, Fit };
-public import theming { Color, Paint, hex, rgb };
+public import view.views { Bar, View };
+public import view.looks { Align, Fit };
+public import styles.theming { Color, Paint, hex, rgb };
 public import styles { Styling, State, StateStyle, When };
 public import styles.fonts { Font, Text };
 public import styles.boxes { Background, Border, Outline, Spacing, Sizing };
 public import styles.drawing { Shadow, Effects };
-public import style_values {
+public import styles.values {
     Family,
     Size,
     Weight,
@@ -35,9 +35,9 @@ public import style_values {
     Filter,
     Move,
 };
-public import pictures { Image };
-public import menus { MenuEntry, item, menu_separator };
-public import widgets {
+public import view.pictures { Image };
+public import view.menus { MenuEntry, item, menu_separator };
+public import view.widgets {
     text,
     button,
     button_with,
@@ -60,9 +60,9 @@ public import widgets {
     image,
     header_bar,
 };
-public import effects { Cmd, Sub, App };
+public import core.effects { Cmd, Sub, App };
 public import testing;
-import live;
+import render.live;
 
 /**
  * Runs an app with no effects: shows `view(init)` in a window, and on each

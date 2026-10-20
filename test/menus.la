@@ -1,5 +1,5 @@
 // Menu entries, without GTK: items, separators, disabled items.
-import kivuli.menus { MenuEntry };
+import kivuli.view.menus { MenuEntry };
 import kivuli { item, menu_separator };
 
 fun assert_same<T>(actual: T, expected: T) {

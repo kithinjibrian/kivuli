@@ -37,14 +37,14 @@ import gtk {
     lgtk_text_cursor,
     lgtk_text_place_cursor,
 };
-import diff;
-import build { add_to_wrap, create, create_in, editor, pack_one, text_of };
-import controls { picked, sync_choices };
-import styling { LAYER, apply_style, flag, show_content, show_number };
-import textures { show_in_image, show_picture };
-import live_tree { Choices, Live, titlebar, widget };
-import paths { at, at_outer, axis_of, parent, sibling_before, update_at, update_menu_at };
-import popovers { attach, refresh };
+import core.diff;
+import render.build { add_to_wrap, create, create_in, editor, pack_one, text_of };
+import render.controls { picked, sync_choices };
+import render.styling { LAYER, apply_style, flag, show_content, show_number };
+import render.textures { show_in_image, show_picture };
+import core.live_tree { Choices, Live, titlebar, widget };
+import core.paths { at, at_outer, axis_of, parent, sibling_before, update_at, update_menu_at };
+import render.popovers { attach, refresh };
 
 /** Applies one patch to the widgets, and returns the `Live` tree that now mirrors them. */
 fun apply<Msg>(

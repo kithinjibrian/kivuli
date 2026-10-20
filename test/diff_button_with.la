@@ -1,7 +1,7 @@
 // Diffing a button holding a view: its message is always set; its content
 // diffs as child 0, so the button stays; only becoming another kind of node
 // rebuilds it. (test/diff.la is at the limit.)
-import kivuli.diff { Patch, diff as patches };
+import kivuli.core.diff { Patch, diff as patches };
 import kivuli { View, button, button_with, icon, row, text };
 
 fun assert_same<T>(actual: T, expected: T) {

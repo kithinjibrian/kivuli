@@ -1,8 +1,8 @@
 // Effects as data: what commands and subscriptions flatten to, the app a
 // sandbox runs, and the window a view's root asks for. No GTK.
-import kivuli.effects { commands, receivers, sandbox_app, timers };
-import kivuli.diff { Patch, diff as patches };
-import kivuli.looks { Style, Window, plain };
+import kivuli.core.effects { commands, receivers, sandbox_app, timers };
+import kivuli.core.diff { Patch, diff as patches };
+import kivuli.view.looks { Style, Window, plain };
 import kivuli { App, Cmd, Sub, View, column, text };
 
 // Views and commands can hold functions, which have no `==`: compare what

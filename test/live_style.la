@@ -27,9 +27,9 @@ import gtk {
     gtk_widget_get_vexpand,
     gtk_widget_has_css_class,
 };
-import kivuli.live { dispatch, mount, live_of };
-import kivuli.effects { sandbox_app };
-import kivuli.live_tree { Live, widget };
+import kivuli.render.live { dispatch, mount, live_of };
+import kivuli.core.effects { sandbox_app };
+import kivuli.core.live_tree { Live, widget };
 import kivuli {
     View,
     Align,
