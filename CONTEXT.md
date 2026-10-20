@@ -1406,9 +1406,16 @@ Branch: main (prp-042-dropdown-menu merged)
 
 ---
 
-## SESSION 90 — 2026-10-20 — Check and radio menu items: discovery — open
+## SESSION 90 — 2026-10-20 — Check and radio menu items: discovery, PRP-043 draft — closed
 
 Branch: main
+
+### WHAT WAS DONE
+- Interview: `check_item(label, checked, on_toggle)` and `radio_group(selected, choices)`, from the model (A). GTK: stateful GActions (boolean, string with targets); lugha-gtk lacks GVariant bindings. Adwaita has `object-select-symbolic` and `media-record-symbolic` for the marks.
+- PRP-043 drafted.
+
+### STILL OPEN AT CLOSE
+- PRP-043 awaits the user's approval.
 
 ---
 
