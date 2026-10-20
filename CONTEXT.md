@@ -1881,6 +1881,12 @@ Branch: main
 
 ---
 
+## SESSION 128 — 2026-10-21 — Window control icons 24 px by default — open
+
+Branch: window-icon-24
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
