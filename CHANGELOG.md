@@ -8,6 +8,11 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.37.0] — 2026-10-20
+
+### Added
+- Dropdown menus (PRP-042): `.dropdown_menu(entries)` on any view; `menu_label`, `submenu`, `item(…).hint(keys)` (for `.menu` too); `Part.MenuBox`, `MenuItem`, `MenuLabel`, `MenuSeparator`, `MenuHint`; `kivuli.ui`'s `Menu.look()` and `ui.dropdown_menu(trigger, entries)`. Submenus open beside their item. `kivuli.testing.pick` finds items in submenus. Needs lugha-gtk 0.1.37.
+
 ## [0.36.0] — 2026-10-20
 
 ### Added

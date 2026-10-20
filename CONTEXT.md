@@ -1380,9 +1380,16 @@ Branch: main
 
 ---
 
-## SESSION 88 — 2026-10-20 — PRP-042: dropdown menu — open
+## SESSION 88 — 2026-10-20 — PRP-042: dropdown menu, built, not merged — closed
 
-Branch: prp-042-dropdown-menu
+Branch: prp-042-dropdown-menu (not merged: waiting for the user's look)
+
+### WHAT WAS DONE
+- lugha-gtk 0.1.37 (menu items, submenus, nested popovers, gesture phase and state; pushed, tagged).
+- Menu entries `Hinted`, `Label`, `Submenu`; items numbered depth first; the model in titled sections with nested submenus; nested popovers; `.dropdown_menu` (a style flag, a claimed primary click); five menu parts; src/ui/menu_looks.la (`Menu.look()`, `dropdown_menu`). A Dropdown menu section in components.la. Docs; 0.37.0 (not tagged). Every test and example type-checks; tests not run.
+
+### STILL OPEN AT CLOSE
+- The user to look; then merge, tag v0.37.0. Next: check and radio items (the PRP's follow-up).
 
 ---
 

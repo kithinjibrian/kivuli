@@ -1,6 +1,6 @@
 # PRP-042 — Dropdown menu
 
-Status: approved (session 88), destructive items left out (the user: a)
+Status: built (session 88) on branch prp-042-dropdown-menu; destructive items left out (the user: a)
 Discovery: session 87, 2026-10-20 (the reference: ui.shadcn.com/docs/components/base/dropdown-menu and its source; GTK's popover menu probed: `popover.menu > contents > … modelbutton` items, `label.title` section titles, `separator`, `accelerator` hints, `arrow.right` for a submenu, `check.left`; the popover a CSS descendant of the node it opens from). *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: `.dropdown_menu(entries)` opening kivuli's menu on a click; new entries (`menu_label`, `submenu`, `.hint(keys)`); menu parts; `ui.dropdown_menu(trigger, entries)` in the palette's look.
@@ -53,12 +53,21 @@ tab(t).menu([item("Close", Msg.Close)]).style([Menu.look()])   // a right-click 
 - No check or radio items (the next PRP), no icons beside item text (GTK 4's popover menus don't show them), no menu bar.
 
 ## TESTS (narrow; type-check every test and example, run once the user's faster tests are in)
-- [ ] `test/menus.la`: the new entries and `.hint`'s key check; groups from labels; `pick` inside a submenu.
-- [ ] `test/parts.la`: the five menu parts' selectors.
-- [ ] `test/menus_ui.la` (new, pure): `Menu.look()`'s values; `ui.dropdown_menu` wraps its trigger.
-- [ ] `test/live_menu.la`: a click opens a `.dropdown_menu` (and a button's own message isn't sent); a label titles its section; a submenu opens nested; a hint shows; `.menu` still opens on a right-click.
-- [ ] lugha-gtk: the new bindings, a nested popover menu built and read back.
-- [ ] GTK parses the generated rules; `examples/components.la` gains a Dropdown menu section; only it built. How it looks and opens: by hand.
+- [x] `test/menus.la`: the new entries and `.hint`'s key check; groups from labels; `pick` inside a submenu.
+- [x] `test/parts.la`: the five menu parts' selectors.
+- [x] `test/menus_ui.la` (new, pure): `Menu.look()`'s values; `ui.dropdown_menu` wraps its trigger.
+- [x] `test/live_menu.la`: a click opens a `.dropdown_menu` (and a button's own message isn't sent); a label titles its section; a submenu opens nested; a hint shows; `.menu` still opens on a right-click.
+- [x] lugha-gtk: the new bindings, a nested popover menu built and read back.
+- [x] GTK parses the generated rules; `examples/components.la` gains a Dropdown menu section; only it built. How it looks and opens: by hand.
 
 ## ACCEPTANCE
 - [ ] The OBJECTIVE compiles; fmt clean; no file over 500 lines; README, DESIGN, CHANGELOG 0.37.0, CLAUDE.md; merged, tagged; pushed only on your go.
+
+## NOTES FROM THE BUILD
+
+- **A hinted item is its own variant, `MenuEntry.Hinted`**, so `Item`'s shape (and the tests that build it) stays.
+- **"Opens on a click" is a style flag** (`Style.menu_on_click`), not a change to the menu node: styling hands it to the popup, whose primary-click gesture (capture phase, claimed) opens the menu below the node. The diff, patch and paths code for the menu node is unchanged.
+- **The GTK test is `test/live_dropdown_menu.la`** (live_menu.la was near 200 lines): nested flags, a primary press opening a dropdown menu and not a context menu. That a button's own click isn't sent can't be shown with a synthetic press: by hand.
+- **The look's file is `src/ui/menu_looks.la`**: `menus` is `view.menus`' name.
+- **lugha-gtk 0.1.37**: `GMenuItem`, `g_menu_item_new`, `g_menu_append_item`, `g_menu_item_unref`, `lgtk_menu_item_set_string` (`src/c/menu.c`), `g_menu_append_submenu`, `gtk_popover_menu_new_from_model_full`/`get_flags`, `gtk_event_controller_set_propagation_phase`, `gtk_gesture_set_state`; its test passes; pushed, tagged.
+- **Every test and example type-checks**; tests not run; GTK parsed the menu's CSS (53 lines, 0 errors); only components built.
