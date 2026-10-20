@@ -611,6 +611,12 @@ Branch: main
 
 ---
 
+## SESSION 31 — 2026-10-20 — PRP-025: style utilities — open
+
+Branch: prp-025-style_utilities
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.

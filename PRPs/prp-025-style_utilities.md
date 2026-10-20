@@ -1,6 +1,6 @@
 # PRP-025 — Style utilities
 
-Status: draft, for the user's approval (session 30)
+Status: approved (session 31)
 Discovery: sessions 17 and 27 (parked), resumed in 30 once lughac allowed a field and a function of one name. *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: short static functions on each style group (`Font.bold()`, `Spacing.padding(16)`, `Shadow.md()`), each returning an ordinary style value.
