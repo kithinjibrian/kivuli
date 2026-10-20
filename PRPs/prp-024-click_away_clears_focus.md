@@ -1,6 +1,6 @@
 # PRP-024 — Clicking away clears keyboard focus
 
-Status: draft, for the user's approval (session 29)
+Status: approved by the user (session 29); building on branch prp-024-click_away
 Discovery: session 29, 2026-10-20 (the user's `examples/search_bar.la`). *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: in every kivuli app, a click on anything that doesn't take focus itself clears the window's keyboard focus, as a web page blurs a field.
