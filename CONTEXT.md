@@ -1432,6 +1432,18 @@ Branch: prp-043-check-radio-menu (not merged: waiting for the user's look)
 
 ---
 
+## SESSION 92 — 2026-10-20 — Menu radio dot size — closed
+
+Branch: prp-043-check-radio-menu (not merged)
+
+### WHAT WAS DONE
+- From the user's screenshot: the menu works (labels, hint, disabled item, the dot on the selected radio), but the dot was ~14 px: GTK draws a radio's mark at the node's size. Now an 8 px node in a 4 px margin. Test updated (type-checked); components rebuilt.
+
+### STILL OPEN AT CLOSE
+- The user to look again (and tick Status bar); then merge PRP-043, tag v0.38.0.
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.

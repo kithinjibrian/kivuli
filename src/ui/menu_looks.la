@@ -87,9 +87,12 @@ impl Menu {
             Border.all(0, clear()),
             When(State.Checked, [Mark.icon("object-select-symbolic", 16)]),
         ]),
+        // GTK draws the mark at the node's size, not the icon's: an 8 px node
+        // in a 4 px margin keeps the item's 16 px of room.
         Inside(Part.MenuRadio, [
-            Sizing.min_width(16),
-            Sizing.min_height(16),
+            Sizing.min_width(8),
+            Sizing.min_height(8),
+            Spacing.margin(4),
             Background.color(clear()),
             Border.all(0, clear()),
             When(State.Checked, [Mark.icon("media-record-symbolic", 8)]),

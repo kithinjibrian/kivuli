@@ -55,3 +55,4 @@ assert_eq(kivuli.testing.pick(view(m), "View", "Status bar"), Ok(Msg.StatusBar(f
 - **Plain items, check items and radio groups are numbered apart** (`plain_items`, `check_items`, `radio_groups`), so adding a check item doesn't renumber the plain ones; `items` (every pickable one) is for `pick` and for "does it have an item".
 - **A radio group is one action**: it's enabled while any choice sends; one disabled choice among enabled ones can't be greyed alone.
 - **Every test and example type-checks**; tests not run; GTK parsed the rules (87 lines, 0 errors); only components built.
+- **The radio's dot was drawn at 14 px** (found by hand, session 92): GTK draws a radio's mark at the node's size, not `-gtk-icon-size`; the radio is now an 8 px node in a 4 px margin (the item keeps its 16 px of room).
