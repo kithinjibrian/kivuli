@@ -132,16 +132,16 @@ fun a_palettes_rule_sets_the_tokens_and_the_window_in_light_and_dark() {
     let (key, css) = palette_rule(p);
     assert_eq(key, class);
     assert(css.starts_with(".{class} {{"));
-    assert(css.contains("--kv-primary: #18181b;"));
+    assert(css.contains("--kv-primary: #18181bff;"));
     assert(css.contains("--kv-radius: 10px;"));
     assert(css.contains("background-color: var(--kv-background);"));
     assert(css.contains("color: var(--kv-foreground);"));
     assert(css.contains("@media (prefers-color-scheme: dark) {{ .{class} {{"));
-    assert(css.contains("--kv-primary: #fafafa;"));
+    assert(css.contains("--kv-primary: #fafafaff;"));
     // Without a palette, tokens still have zinc's values, on every window.
     let (_, defaults) = default_tokens();
     assert(defaults.starts_with("window {{"));
-    assert(defaults.contains("--kv-primary: #18181b;"));
+    assert(defaults.contains("--kv-primary: #18181bff;"));
     assert(!defaults.contains("background-color"));
 }
 
@@ -188,9 +188,10 @@ fun palette_and_scheme_belong_on_the_root() {
 @test
 fun tokens_work_inside_states() {
     let v: View<i64> = text("x").style([When(State.Hover, [Background.color(Token.Accent)])]);
-    let keys = rules(sheet_of(v)).map(fun(r) = r.0);
+    // A colour also clears the theme's background image: that rule comes along.
+    let keys = rules(sheet_of(v)).map(fun(r) = r.0).filter(fun(k) = !k.contains("bgi-none"));
     assert(keys.len == 1);
-    assert(keys[0].contains("kv-bgt-accent"));
+    assert(keys[0].starts_with("kv-hover-bgt-accent"));
 }
 
 @test

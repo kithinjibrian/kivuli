@@ -433,7 +433,7 @@ fun a_states_classes_land_and_its_rules_join_the_stylesheet() {
             );
             note(
                 seen,
-                "press rule {css.any(fun(r) = r == ".kv-press-bg-1e3c72ff.kv-press-bg-1e3c72ff.kv-press-bg-1e3c72ff:active {{ background-color: #1e3c72ff; }}")}",
+                "press rule {css.any(fun(r) = r == ".kv-press-bg-1e3c72ff.kv-press-bg-1e3c72ff.kv-press-bg-1e3c72ff.kv-press-bg-1e3c72ff:active {{ background-color: #1e3c72ff; }}")}",
             );
             note(
                 seen,
