@@ -173,3 +173,21 @@ fun a_button_withs_message_and_content_map() {
     let mapped = part.map(App.Left);
     assert_eq(click(mapped, "Go"), Ok(App.Left(Part.Inc)));
 }
+
+@test
+fun a_disabled_check_box_has_no_toggle_and_keeps_none_when_mapped() {
+    let off: View<Part> = checkbox("Show", false, Part.Shown).disabled(true);
+    match off {
+        Checkbox(_, _, on_toggle) => assert(on_toggle.is_none()),
+        _ => panic("expected a check box"),
+    }
+    let styled: View<Part> = checkbox("Show", false, Part.Shown).style([]).disabled(true);
+    match styled {
+        Styled(Checkbox(_, _, on_toggle), _) => assert(on_toggle.is_none()),
+        _ => panic("expected a styled check box"),
+    }
+    match off.map(fun(p: Part): i64 = 1) {
+        Checkbox(_, _, on_toggle) => assert(on_toggle.is_none()),
+        _ => panic("expected a check box"),
+    }
+}

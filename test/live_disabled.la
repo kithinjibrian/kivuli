@@ -13,6 +13,8 @@ import gtk {
     g_object_unref,
     gtk_application_new,
     gtk_application_window_new,
+    gtk_check_button_get_active,
+    gtk_check_button_set_active,
     gtk_editable_get_text,
     gtk_editable_set_text,
     gtk_scrolled_window_get_child,
@@ -23,7 +25,7 @@ import kivuli.render.live { mount, live_of };
 import kivuli.core.effects { sandbox_app };
 import kivuli.render.build { text_of };
 import kivuli.core.live_tree { Live, widget };
-import kivuli { View, button, column, input, text_area };
+import kivuli { View, button, checkbox, column, input, text_area };
 
 fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
 
@@ -183,4 +185,58 @@ fun disabled_fields_send_nothing_follow_the_model_and_come_back() {
         "Noted(\"n\")",
         "Lock",
     ]);
+}
+
+enum Tick {
+    Ticked(bool),
+    Lock,
+    Unlock,
+}
+
+struct Ticks {
+    on: bool,
+    locked: bool,
+}
+
+fun update_ticks(t: Ticks, msg: Tick): Ticks = match msg {
+    Ticked(b) => Ticks { on: b, ..t },
+    Lock => Ticks { locked: true, ..t },
+    Unlock => Ticks { locked: false, ..t },
+};
+
+fun view_ticks(t: Ticks): View<Tick> = column([
+    checkbox("Done", t.on, Tick.Ticked).disabled(t.locked),
+    button("Lock", Tick.Lock),
+    button("Unlock", Tick.Unlock),
+]);
+
+@test
+fun a_disabled_check_box_sends_nothing_and_enables_again_on_the_same_widget() {
+    if !has_display() {
+        skip("no display");
+    }
+    let received: Ref<string[]> = Ref.new([]);
+    let seen: Ref<string[]> = Ref.new([]);
+    with_app("org.kivuli.test.disabled_check", Ticks {
+        on: false,
+        locked: true,
+    }, update_ticks, view_ticks, received, fun(kids: Live<Tick>[]) {
+        let check = widget(kids[0]);
+        note(seen, "locked sensitive {gtk_widget_get_sensitive(check)}");
+        // GTK still toggles an insensitive check box set from code: nothing may be sent.
+        gtk_check_button_set_active(check, 1);
+        note(seen, "sent while locked {received.get().len}");
+        gtk_check_button_set_active(check, 0);
+        emit_widget(widget(kids[2]), "clicked");
+        note(seen, "same {widget(kids[0]) == check} sensitive {gtk_widget_get_sensitive(check)}");
+        gtk_check_button_set_active(check, 1);
+        note(seen, "active {gtk_check_button_get_active(check)}");
+    });
+    assert_eq(seen.get(), [
+        "locked sensitive 0",
+        "sent while locked 0",
+        "same true sensitive 1",
+        "active 1",
+    ]);
+    assert_eq(received.get(), ["Unlock", "Ticked(true)"]);
 }

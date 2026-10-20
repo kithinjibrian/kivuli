@@ -85,7 +85,7 @@ public fun checkbox<Msg>(
     label: string,
     checked: bool,
     on_toggle: fun(bool): Msg,
-): View<Msg> = View.Checkbox(label, checked, on_toggle);
+): View<Msg> = View.Checkbox(label, checked, Some(on_toggle));
 
 /**
  * Builds empty room that grows along its column (down) or row (across), so

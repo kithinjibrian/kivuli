@@ -21,7 +21,7 @@ public enum Lookup {
     NotFound(string),
     /** More than one thing matches, this many. */
     Ambiguous(string, i64),
-    /** It's there but sends nothing: a disabled button or text field, or a text field without `.on_submit`. */
+    /** It's there but sends nothing: a disabled button, text field or check box, or a text field without `.on_submit`. */
     Silent(string),
 }
 
@@ -207,14 +207,18 @@ public fun submit<Msg>(v: View<Msg>, hint: string): Result<Msg, Lookup> {
 /**
  * The message clicking the check box labelled `label` sends: its `on_toggle`
  * of the opposite of its current state.
- * @returns `Ok(msg)`; `Err(NotFound)` or `Err(Ambiguous)`
+ * @returns `Ok(msg)`; `Err(NotFound)`, `Err(Ambiguous)`, or `Err(Silent)` when it's disabled
  *
  * Example:
  *     assert_eq(kivuli.testing.toggle(view(m), "Done"), Ok(Msg.Done(true)));
  */
 public fun toggle<Msg>(v: View<Msg>, label: string): Result<Msg, Lookup> {
-    let (checked, on_toggle) = only(checkboxes(v, label), "check box \"{label}\"")?;
-    Ok(on_toggle(!checked))
+    let what = "check box \"{label}\"";
+    let (checked, on_toggle) = only(checkboxes(v, label), what)?;
+    match on_toggle {
+        Some(f) => Ok(f(!checked)),
+        None => Err(Lookup.Silent(what)),
+    }
 }
 
 /**
@@ -356,8 +360,8 @@ fun fields<Msg>(v: View<Msg>, hint: string): (Option<fun(string): Msg>, Option<M
 }
 
 /** The state and handler of the check boxes labelled `label`. */
-fun checkboxes<Msg>(v: View<Msg>, label: string): (bool, fun(bool): Msg)[] {
-    let mut out: (bool, fun(bool): Msg)[] = [];
+fun checkboxes<Msg>(v: View<Msg>, label: string): (bool, Option<fun(bool): Msg>)[] {
+    let mut out: (bool, Option<fun(bool): Msg>)[] = [];
     for (node, _) of nodes(v) {
         match node {
             Checkbox(l, checked, on_toggle) => if l == label {
