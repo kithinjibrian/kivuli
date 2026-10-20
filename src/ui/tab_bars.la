@@ -1,0 +1,155 @@
+/**
+ * Tabs (PRP-041; the file isn't `tabs`, which would clash with the function): a row of triggers, one shown active, built of native
+ * buttons. Which tab is open is the app's model (rule 7): a trigger sends
+ * its message, and the app shows that tab's panel. Pure.
+ *
+ * Depends on: views, looks, widgets, pictures, styles, theming, values, boxes, fonts, drawing, motion
+ * Used by: ui
+ */
+
+// The public items the entry re-exports, by their own modules (rule 2: no `lib`).
+import view.views { View };
+import view.looks { Align };
+import view.widgets { row, button as native_button, button_with as native_button_with };
+import view.pictures { Image };
+import styles { Look, look, When, State };
+import styles.theming { Color, Paint, Token };
+import styles.values { Drop, Line, Radius };
+import styles.boxes { Background, Border, Outline, Sizing, Spacing };
+import styles.fonts { Font, Text };
+import styles.drawing { Effects, Shadow };
+import styles.motion { Motion };
+
+fun clear(): Color = Color { red: 0, green: 0, blue: 0, alpha: 0 };
+
+/** The active trigger's small shadow: two layers, black at 10%. */
+fun lift(): Shadow = Shadow {
+    boxes: [
+        Drop {
+            y: 1,
+            blur: 3,
+            color: Paint.Color(Color { red: 0, green: 0, blue: 0, alpha: 26 }),
+            ..Drop.theme(),
+        },
+        Drop {
+            y: 1,
+            blur: 2,
+            spread: -1,
+            color: Paint.Color(Color { red: 0, green: 0, blue: 0, alpha: 26 }),
+            ..Drop.theme(),
+        },
+    ],
+    text: [],
+};
+
+/** A 3 px halo of `Ring` at 50%: the focus ring. */
+fun halo(): Shadow = Shadow {
+    boxes: [Drop { spread: 3, color: Token.Ring.alpha(0.5), ..Drop.theme() }],
+    text: [],
+};
+
+/** `v` at 16 pixels if it's an icon given no size of its own. */
+fun sized<Msg>(v: View<Msg>): View<Msg> = match v {
+    Image(Icon(_)) => v.size(16),
+    Styled(inner, s) => match inner {
+        Image(Icon(_)) => if s.size == 0 { v.size(16) } else { v },
+        _ => v,
+    },
+    _ => v,
+};
+
+/**
+ * A tab's trigger: `label`, sending `msg` when clicked. `.disabled(true)`
+ * makes it unclickable.
+ *
+ * Example:
+ *     ui.tabs([tab("Account", Msg.Tab(0)), tab("Password", Msg.Tab(1))], m.tab)
+ */
+public fun tab<Msg>(label: string, msg: Msg): View<Msg> = native_button(label, msg);
+
+/**
+ * A tab's trigger showing `content` in a row, 6 px apart and centred: an
+ * icon and text. Icons are 16 px unless given a size.
+ *
+ * Example:
+ *     tab_with([icon("view-reveal-symbolic"), text("Preview")], Msg.Tab(0))
+ */
+public fun tab_with<Msg>(content: View<Msg>[], msg: Msg): View<Msg> = native_button_with(
+    row(content.map(fun(v: View<Msg>): View<Msg> = sized(v))).style([Spacing.gap(6)]).align(
+        Align.Center,
+    ),
+    msg,
+);
+
+/** What every trigger looks like: muted text, no background of its own. */
+fun trigger_look(): Look = look([
+    Font.sm(),
+    Font.medium(),
+    Spacing.padding_y(4),
+    Spacing.padding_x(8),
+    Background.color(clear()),
+    Text.color(Token.MutedForeground),
+    Shadow.off(),
+    // GTK's own button rules for these states: say the look again.
+    When(State.Hover, [Background.color(clear()), Text.color(Token.Foreground)]),
+    When(State.Press, [Background.color(clear()), Text.color(Token.Foreground)]),
+    When(State.Focus, [halo(), Outline { style: Line.None, ..Outline.theme() }]),
+    When(State.Disabled, [Effects.opacity(0.5)]),
+    Motion.colors(150),
+    Motion.shadow(150),
+]);
+
+/** `triggers` with each one's look, the one at `active` given `on`, the rest `off`. */
+fun styled<Msg>(triggers: View<Msg>[], active: i64, on: Look, off: Look): View<Msg>[] {
+    let mut out: View<Msg>[] = [];
+    let mut i = 0;
+    while i < triggers.len {
+        out.push(triggers[i].style([trigger_look(), if i == active { on } else { off }]));
+        i = i + 1;
+    }
+    out
+}
+
+/**
+ * Tabs: `triggers` (`tab`, `tab_with`) on a muted pill, the one at `active`
+ * (from 0) raised; past the end, none is. Show the active tab's panel
+ * beside it.
+ *
+ * Example:
+ *     column([ui.tabs([tab("Account", Msg.Tab(0)), tab("Password", Msg.Tab(1))], m.tab), panel(m)])
+ */
+public fun tabs<Msg>(triggers: View<Msg>[], active: i64): View<Msg> {
+    let raised = look([
+        Background.color(Token.Background),
+        Text.color(Token.Foreground),
+        lift(),
+        When(State.Hover, [Background.color(Token.Background)]),
+        When(State.Press, [Background.color(Token.Background)]),
+    ]);
+    let flat = look([Border.rounded_md()]);
+    row(styled(triggers, active, look([Border.rounded_md(), raised]), flat)).style([
+        Background.color(Token.Muted),
+        Border.rounded_lg(),
+        Spacing.padding(3),
+        Sizing.min_height(36),
+    ]).align(Align.Start)
+}
+
+/**
+ * Tabs as a line: `triggers` on nothing, the one at `active` underlined.
+ *
+ * Example:
+ *     ui.tabs_line([tab("Overview", Msg.Tab(0)), tab("Reports", Msg.Tab(1))], m.tab)
+ */
+public fun tabs_line<Msg>(triggers: View<Msg>[], active: i64): View<Msg> {
+    let edge = fun(paint: Paint): Look = look([
+        Border { radius: Radius.All(0), ..Border.theme() },
+        Border.bottom(2, paint),
+    ]);
+    // Every trigger has the 2 px line, so they're one height; only the active one shows it.
+    let on = look([edge(Token.Foreground.paint()), Text.color(Token.Foreground)]);
+    row(styled(triggers, active, on, edge(Paint.Color(clear())))).style([
+        Spacing.padding(0),
+        Spacing.gap(8),
+    ]).align(Align.Start)
+}

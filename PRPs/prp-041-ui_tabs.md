@@ -1,6 +1,6 @@
 # PRP-041 — kivuli.ui: Tabs
 
-Status: draft, for the user's approval (session 84)
+Status: built (session 85) on branch prp-041-ui-tabs
 Discovery: session 84, 2026-10-20 (the reference is ui.shadcn.com/docs/components/base/tabs: a list of triggers, a panel per trigger, a "line" variant, vertical, a disabled trigger, icons). *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: `ui.tabs(triggers, active)` and `ui.tabs_line(triggers, active)`, with `tab(label, msg)` and `tab_with(content, msg)`: tabs from the model, built of buttons.
@@ -31,8 +31,14 @@ ui.tabs([tab_with([icon("…"), text("Preview")], Msg.Tab(0)), tab_with([icon("�
 - No vertical tabs (later), no GTK notebook or stack, no panel node (the panel is the app's view).
 
 ## TESTS (narrow; type-check every test and example, run once the user's faster tests are in)
-- [ ] `test/tabs_ui.la` (new, pure): the list's look; a trigger's; the active one's (default and line); `active` past the end; `tab_with`'s icons; a disabled trigger sends nothing and keeps its place; the OBJECTIVE reads as written.
-- [ ] GTK parses the generated rules; `examples/components.la` gains a Tabs section (default with panels, line, icons, a disabled trigger); only it built. How it looks: by hand.
+- [x] (written, type-checked) `test/tabs_ui.la` (new, pure): the list's look; a trigger's; the active one's (default and line); `active` past the end; `tab_with`'s icons; a disabled trigger sends nothing and keeps its place; the OBJECTIVE reads as written.
+- [x] GTK parses the generated rules (52 lines, 0 errors); `examples/components.la` gains a Tabs section (default with panels, line, icons, a disabled trigger); only it built. How it looks: by hand.
 
 ## ACCEPTANCE
 - [ ] The OBJECTIVE compiles; fmt clean; no file over 500 lines; README, DESIGN, CHANGELOG 0.36.0, CLAUDE.md; merged, tagged; pushed only on your go.
+
+## NOTES FROM THE BUILD
+
+- **The file is `src/ui/tab_bars.la`**: a module named `tabs` would clash with the function `tabs` (E0314), as `badges` did.
+- **Each trigger's look is restated in hover and press** (no background), as GTK's own button rules would otherwise show.
+- **Every test and example type-checks**; tests not run (the user's call); only components built.

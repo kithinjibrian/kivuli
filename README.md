@@ -227,6 +227,8 @@ So far:
 
 - `ui.switch(on, on_toggle)`: a round track (`Input` off, `Primary` on) and a thumb GTK slides; put its label beside it in a `field_horizontal`.
 
+- `ui.tabs([tab("Account", Msg.Tab(0)), …], m.tab)` (a muted pill, the active trigger raised) and `ui.tabs_line(…)` (the active one underlined); `tab_with([icon(…), text(…)], msg)`; `.disabled(…)` on a trigger. Which tab is open is the model's: show its panel beside the tabs.
+
 **A widget's parts.** `Inside(Part.Check, [...])` styles the part inside a widget: a check box's box (`Part.Check`), a slider's track, fill and thumb (`Part.Trough`, `Highlight`, `Knob`), a drop-down's trigger, arrow, list and items (`Part.Trigger`, `Arrow`, `List`, `Item`); a `When` inside an `Inside` is the part's own state (an item's hover); inside `When`, the state is the widget's (`When(State.Checked, [Inside(Part.Check, [...])])`). `Mark.icon(name, px)` is the icon GTK draws in a part (the tick). More parts come with the components that need them.
 
 A token can be used at an opacity: `Token.Primary.alpha(0.9)` (a hover), `Token.Ring.alpha(0.5)` (a focus halo). `look([...])` makes an app's own variant. `examples/components.la` shows each in light and dark.
