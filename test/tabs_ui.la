@@ -1,0 +1,112 @@
+// kivuli.ui's Tabs (PRP-041): the list, the triggers, the active one in
+// both variants, an index past the end, icons, a disabled trigger. No GTK.
+import kivuli.styles { Sheet };
+import kivuli.view.looks { Style };
+import kivuli { View, State, Token, Paint, Width, Radius, Size, Weight, icon, text };
+import kivuli.ui { tab, tab_with };
+
+fun style_of<M>(v: View<M>): Style = match v {
+    Styled(_, s) => s,
+    _ => panic("expected a styled node"),
+};
+
+fun sheet_of<M>(v: View<M>): Sheet = style_of(v).sheet;
+
+fun triggers<M>(v: View<M>): View<M>[] = match v {
+    Styled(x, _) => triggers(x),
+    Row(xs) => xs,
+    _ => panic("expected a row of triggers"),
+};
+
+fun in_state(s: Sheet, state: State): Sheet {
+    for (st, sub) of s.states {
+        if st == state {
+            return sub;
+        }
+    }
+    panic("no rules for that state")
+}
+
+fun two(active: i64): View<i64> = ui.tabs([tab("Account", 1), tab("Password", 2)], active);
+
+fun two_line(active: i64): View<i64> = ui.tabs_line(
+    [tab("Account", 1), tab("Password", 2)],
+    active,
+);
+
+@test
+fun the_list_is_a_muted_pill() {
+    let s = sheet_of(two(0));
+    assert_eq(s.background.color, Paint.Token(Token.Muted));
+    assert_eq(s.border.radius, Radius.Large);
+    assert_eq(s.spacing.padding.top, Width.Px(3));
+    assert_eq(s.sizing.min_height, Width.Px(36));
+    assert_eq(triggers(two(0)).len, 2);
+}
+
+@test
+fun a_trigger_is_muted_and_the_active_one_raised() {
+    let ts = triggers(two(1));
+    let idle = sheet_of(ts[0]);
+    assert_eq(idle.font.size, Size.Scale(0.875));
+    assert_eq(idle.font.weight, Weight.Medium);
+    assert_eq(idle.text.color, Paint.Token(Token.MutedForeground));
+    assert_eq(idle.border.radius, Radius.Medium);
+    assert_eq(idle.spacing.padding.left, Width.Px(8));
+    assert_eq(in_state(idle, State.Hover).text.color, Paint.Token(Token.Foreground));
+    let on = sheet_of(ts[1]);
+    assert_eq(on.background.color, Paint.Token(Token.Background));
+    assert_eq(on.text.color, Paint.Token(Token.Foreground));
+    assert(on.shadow.boxes.len > 0);
+    assert_eq(in_state(on, State.Focus).shadow.boxes[0].color, Token.Ring.alpha(0.5));
+    assert_eq(in_state(on, State.Disabled).effects.opacity, Some(0.5));
+}
+
+@test
+fun the_line_variant_underlines_the_active_trigger() {
+    let s = sheet_of(two_line(0));
+    assert_eq(s.spacing.padding.top, Width.Px(0));
+    let ts = triggers(two_line(0));
+    assert_eq(sheet_of(ts[0]).border.bottom.width, Width.Px(2));
+    assert_eq(sheet_of(ts[0]).border.bottom.color, Paint.Token(Token.Foreground));
+    // An idle trigger keeps an invisible underline, so the two are one height.
+    assert_eq(sheet_of(ts[1]).border.bottom.width, Width.Px(2));
+    assert(sheet_of(ts[1]).border.bottom.color != Paint.Token(Token.Foreground));
+}
+
+@test
+fun an_index_past_the_end_shows_none_active() {
+    for t of triggers(two(5)) {
+        assert_eq(sheet_of(t).text.color, Paint.Token(Token.MutedForeground));
+    }
+}
+
+@test
+fun a_tab_with_icons_and_a_disabled_tab() {
+    let v: View<i64> = ui.tabs(
+        [
+            tab_with([icon("view-reveal-symbolic"), text("Preview")], 1),
+            tab("Code", 2).disabled(true),
+        ],
+        0,
+    );
+    let ts = triggers(v);
+    assert_eq(ts.len, 2);
+    match ts[0] {
+        Styled(inside, _) => match inside {
+            ButtonWith(_, msg) => assert_eq(msg, Some(1)),
+            _ => panic("a tab with content is a button_with"),
+        },
+        _ => panic("a trigger is styled"),
+    }
+    match ts[1] {
+        Styled(inside, _) => match inside {
+            Button(label, msg, _) => {
+                assert_eq(label, "Code");
+                assert(msg.is_none());
+            }
+            _ => panic("a tab is a button"),
+        },
+        _ => panic("a trigger is styled"),
+    }
+}

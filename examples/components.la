@@ -55,6 +55,8 @@ import kivuli.ui {
     InputGroup,
     separator_with,
     Dropdown,
+    tab,
+    tab_with,
 };
 
 struct Model {
@@ -67,6 +69,7 @@ struct Model {
     volume: i64,
     fruit: string,
     airplane: bool,
+    tab: i64,
 }
 
 enum Msg {
@@ -79,6 +82,7 @@ enum Msg {
     Volume(i64),
     Fruit(string),
     Airplane(bool),
+    Tab(i64),
 }
 
 fun update(m: Model, msg: Msg): Model = match msg {
@@ -91,6 +95,7 @@ fun update(m: Model, msg: Msg): Model = match msg {
     Volume(n) => Model { volume: n, ..m },
     Fruit(f) => Model { fruit: f, ..m },
     Airplane(b) => Model { airplane: b, ..m },
+    Tab(n) => Model { tab: n, ..m },
 };
 
 fun palette_of(n: i64): Palette = if n == 1 {
@@ -230,6 +235,43 @@ fun page(m: Model): View<Msg> = column([
             ]),
             ui.input("Disabled", Msg.Email).disabled(true),
         ]).style([Spacing.gap(8)]),
+    ),
+    section(
+        "Tabs",
+        column([
+            ui.tabs(
+                [
+                    tab("Account", Msg.Tab(0)),
+                    tab("Password", Msg.Tab(1)),
+                    tab("Notifications", Msg.Tab(2)),
+                ],
+                m.tab,
+            ),
+            card([
+                if m.tab == 0 {
+                    card_header("Account", "Make changes to your account here.")
+                } else if m.tab == 1 {
+                    card_header("Password", "Change your password here.")
+                } else {
+                    card_header("Notifications", "Choose what we tell you about.")
+                },
+            ]),
+            ui.tabs_line(
+                [
+                    tab("Overview", Msg.Tab(0)),
+                    tab("Analytics", Msg.Tab(1)),
+                    tab("Reports", Msg.Tab(2)).disabled(true),
+                ],
+                m.tab,
+            ),
+            ui.tabs(
+                [
+                    tab_with([icon("view-reveal-symbolic"), text("Preview")], Msg.Tab(0)),
+                    tab_with([icon("text-x-generic-symbolic"), text("Code")], Msg.Tab(1)),
+                ],
+                m.tab,
+            ),
+        ]).style([Spacing.gap(16), Sizing.max_width(480)]),
     ),
     section(
         "Switch",
@@ -413,6 +455,7 @@ fun main(): i32 = sandbox(
         volume: 40,
         fruit: "",
         airplane: false,
+        tab: 0,
     },
     update,
     view,

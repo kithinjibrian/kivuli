@@ -33,4 +33,5 @@ public import ui.checkboxes { checkbox };
 public import ui.sliders { slider };
 public import ui.dropdowns { dropdown, Dropdown };
 public import ui.switches { switch };
+public import ui.tab_bars { tab, tab_with, tabs, tabs_line };
 public import ui.cards { card, card_header, card_header_with, card_content, card_footer };
