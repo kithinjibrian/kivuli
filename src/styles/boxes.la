@@ -8,9 +8,9 @@
  */
 
 import styles { Sheet };
-import theming { Paint };
+import theming { Color, Paint };
 import pictures { Image };
-import style_values { Gradient, Fill, Width, Line, Radius, Side, Edges };
+import style_values { Gradient, Stop, Fill, Width, Line, Radius, Side, Edges };
 
 /**
  * What's behind a node's content: an image over a gradient over a colour,
@@ -36,6 +36,37 @@ impl Background {
         gradient: Gradient.Theme,
         image: None,
         fill: Fill.Theme,
+    };
+
+    /** A plain colour. */
+    public fun color(c: Color): Background = Background {
+        color: Paint.Color(c),
+        ..Background.theme(),
+    };
+
+    /** A tint of the theme's text colour at `x`, following light and dark. */
+    public fun tint(x: f64): Background = Background {
+        color: Paint.Faded(x),
+        ..Background.theme(),
+    };
+
+    /** A gradient along `angle` degrees (0 is upwards, 90 to the right). */
+    public fun linear(angle: i64, stops: Stop[]): Background = Background {
+        gradient: Gradient.Linear(angle, stops),
+        ..Background.theme(),
+    };
+
+    /** A gradient from the centre outwards. */
+    public fun radial(stops: Stop[]): Background = Background {
+        gradient: Gradient.Radial(stops),
+        ..Background.theme(),
+    };
+
+    /** A picture covering the node, cropped to fit. */
+    public fun image(img: Image): Background = Background {
+        image: Some(img),
+        fill: Fill.Cover,
+        ..Background.theme(),
     };
 
     /** `s` with every field this background sets. */
@@ -82,6 +113,51 @@ impl Border {
         radius: Radius.Theme,
     };
 
+    /** A solid line `px` wide on every side. */
+    public fun all(px: i64, paint: Paint): Border = Border {
+        all: Side { width: Width.Px(px), color: paint, style: Line.Solid },
+        ..Border.theme(),
+    };
+
+    /** A solid line `px` wide on top. */
+    public fun top(px: i64, paint: Paint): Border = Border {
+        top: Side { width: Width.Px(px), color: paint, style: Line.Solid },
+        ..Border.theme(),
+    };
+
+    /** A solid line `px` wide on the right. */
+    public fun right(px: i64, paint: Paint): Border = Border {
+        right: Side { width: Width.Px(px), color: paint, style: Line.Solid },
+        ..Border.theme(),
+    };
+
+    /** A solid line `px` wide along the bottom. */
+    public fun bottom(px: i64, paint: Paint): Border = Border {
+        bottom: Side { width: Width.Px(px), color: paint, style: Line.Solid },
+        ..Border.theme(),
+    };
+
+    /** A solid line `px` wide on the left. */
+    public fun left(px: i64, paint: Paint): Border = Border {
+        left: Side { width: Width.Px(px), color: paint, style: Line.Solid },
+        ..Border.theme(),
+    };
+
+    /** Every corner rounded by `px`. */
+    public fun rounded(px: i64): Border = Border { radius: Radius.All(px), ..Border.theme() };
+
+    /** Each corner's own radius: top left, top right, bottom right, bottom left. */
+    public fun corners(tl: i64, tr: i64, br: i64, bl: i64): Border = Border {
+        radius: Radius.Corners(tl, tr, br, bl),
+        ..Border.theme(),
+    };
+
+    /** No border on any side, the theme's removed too. */
+    public fun none(): Border = Border {
+        all: Side { style: Line.None, ..Side.theme() },
+        ..Border.theme(),
+    };
+
     /** `s` with every side and corner this border sets; `all` is folded into the sides. */
     public fun apply(self, s: Sheet): Sheet {
         let was = s.border;
@@ -126,6 +202,17 @@ impl Outline {
         offset: 0,
     };
 
+    /** A solid outline `px` wide. */
+    public fun ring(px: i64, paint: Paint): Outline = Outline {
+        width: Width.Px(px),
+        color: paint,
+        style: Line.Solid,
+        offset: 0,
+    };
+
+    /** The outline `px` outside the border (negative draws inside). */
+    public fun offset(px: i64): Outline = Outline { offset: px, ..Outline.theme() };
+
     /** `s` with every field this outline sets. */
     public fun apply(self, s: Sheet): Sheet = Sheet {
         outline: Outline {
@@ -159,6 +246,93 @@ impl Spacing {
         margin: Edges.theme(),
         gap: Width.Theme,
     };
+
+    /** `px` padding on every side (inside the border). */
+    public fun padding(px: i64): Spacing = Spacing {
+        padding: Edges { all: Width.Px(px), ..Edges.theme() },
+        ..Spacing.theme(),
+    };
+
+    /** `px` padding left and right. */
+    public fun padding_x(px: i64): Spacing = Spacing {
+        padding: Edges { left: Width.Px(px), right: Width.Px(px), ..Edges.theme() },
+        ..Spacing.theme(),
+    };
+
+    /** `px` padding top and bottom. */
+    public fun padding_y(px: i64): Spacing = Spacing {
+        padding: Edges { top: Width.Px(px), bottom: Width.Px(px), ..Edges.theme() },
+        ..Spacing.theme(),
+    };
+
+    /** `px` padding on top. */
+    public fun padding_top(px: i64): Spacing = Spacing {
+        padding: Edges { top: Width.Px(px), ..Edges.theme() },
+        ..Spacing.theme(),
+    };
+
+    /** `px` padding on the right. */
+    public fun padding_right(px: i64): Spacing = Spacing {
+        padding: Edges { right: Width.Px(px), ..Edges.theme() },
+        ..Spacing.theme(),
+    };
+
+    /** `px` padding at the bottom. */
+    public fun padding_bottom(px: i64): Spacing = Spacing {
+        padding: Edges { bottom: Width.Px(px), ..Edges.theme() },
+        ..Spacing.theme(),
+    };
+
+    /** `px` padding on the left. */
+    public fun padding_left(px: i64): Spacing = Spacing {
+        padding: Edges { left: Width.Px(px), ..Edges.theme() },
+        ..Spacing.theme(),
+    };
+
+    /** `px` margin on every side (outside the border; negative pulls neighbours in). */
+    public fun margin(px: i64): Spacing = Spacing {
+        margin: Edges { all: Width.Px(px), ..Edges.theme() },
+        ..Spacing.theme(),
+    };
+
+    /** `px` margin left and right. */
+    public fun margin_x(px: i64): Spacing = Spacing {
+        margin: Edges { left: Width.Px(px), right: Width.Px(px), ..Edges.theme() },
+        ..Spacing.theme(),
+    };
+
+    /** `px` margin top and bottom. */
+    public fun margin_y(px: i64): Spacing = Spacing {
+        margin: Edges { top: Width.Px(px), bottom: Width.Px(px), ..Edges.theme() },
+        ..Spacing.theme(),
+    };
+
+    /** `px` margin on top. */
+    public fun margin_top(px: i64): Spacing = Spacing {
+        margin: Edges { top: Width.Px(px), ..Edges.theme() },
+        ..Spacing.theme(),
+    };
+
+    /** `px` margin on the right. */
+    public fun margin_right(px: i64): Spacing = Spacing {
+        margin: Edges { right: Width.Px(px), ..Edges.theme() },
+        ..Spacing.theme(),
+    };
+
+    /** `px` margin at the bottom. */
+    public fun margin_bottom(px: i64): Spacing = Spacing {
+        margin: Edges { bottom: Width.Px(px), ..Edges.theme() },
+        ..Spacing.theme(),
+    };
+
+    /** `px` margin on the left. */
+    public fun margin_left(px: i64): Spacing = Spacing {
+        margin: Edges { left: Width.Px(px), ..Edges.theme() },
+        ..Spacing.theme(),
+    };
+
+    /** `px` between a column's, row's or wrap's children. */
+    public fun gap(px: i64): Spacing = Spacing { gap: Width.Px(px), ..Spacing.theme() };
 
     /** `s` with every side and the gap this spacing sets. */
     public fun apply(self, s: Sheet): Sheet = Sheet {
@@ -199,6 +373,24 @@ impl Sizing {
         min_height: Width.Theme,
         max_height: Width.Theme,
     };
+
+    /** Exactly `px` wide (within the minimum and maximum). */
+    public fun width(px: i64): Sizing = Sizing { width: Width.Px(px), ..Sizing.theme() };
+
+    /** At least `px` wide. */
+    public fun min_width(px: i64): Sizing = Sizing { min_width: Width.Px(px), ..Sizing.theme() };
+
+    /** At most `px` wide. */
+    public fun max_width(px: i64): Sizing = Sizing { max_width: Width.Px(px), ..Sizing.theme() };
+
+    /** Exactly `px` high (within the minimum and maximum). */
+    public fun height(px: i64): Sizing = Sizing { height: Width.Px(px), ..Sizing.theme() };
+
+    /** At least `px` high. */
+    public fun min_height(px: i64): Sizing = Sizing { min_height: Width.Px(px), ..Sizing.theme() };
+
+    /** At most `px` high. */
+    public fun max_height(px: i64): Sizing = Sizing { max_height: Width.Px(px), ..Sizing.theme() };
 
     /** `s` with every size this value sets. */
     public fun apply(self, s: Sheet): Sheet {
