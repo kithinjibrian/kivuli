@@ -1,0 +1,86 @@
+// kivuli.ui's Avatar (PRP-046): a picture layered over its initials, round
+// and 32 px; `None` the initials alone; `Avatar.size`; a stacked group. No
+// GTK.
+import kivuli.styles { Sheet };
+import kivuli.view.looks { Style, Fit };
+import kivuli { View, Image, Token, Paint, Width, Radius, TextAlign };
+import kivuli.ui { Avatar, avatar_group };
+
+fun style_of<M>(v: View<M>): Style = match v {
+    Styled(_, s) => s,
+    _ => panic("expected a styled node"),
+};
+
+fun inner<M>(v: View<M>): View<M> = match v {
+    Styled(x, _) => inner(x),
+    _ => v,
+};
+
+fun av(img: Option<Image>): View<i64> = ui.avatar(img, "CN");
+
+@test
+fun an_avatar_is_a_picture_over_its_initials() {
+    let v = av(Some(Image.File("examples/assets/sample.png")));
+    let s = style_of(v).sheet;
+    assert_eq(s.sizing.width, Width.Px(32));
+    assert_eq(s.sizing.height, Width.Px(32));
+    assert_eq(s.border.radius, Radius.All(999));
+    match inner(v) {
+        Overlay(base, layers) => {
+            let b = style_of(base).sheet;
+            assert_eq(b.background.color, Paint.Token(Token.Muted));
+            assert_eq(b.text.color, Paint.Token(Token.MutedForeground));
+            assert_eq(b.text.align, TextAlign.Center);
+            match inner(base) {
+                Text(t) => assert_eq(t, "CN"),
+                _ => panic("the base is the initials"),
+            }
+            assert_eq(layers.len, 1);
+            assert_eq(style_of(layers[0]).fit, Fit.Cover);
+            match inner(layers[0]) {
+                Image(img) => assert_eq(img, Image.File("examples/assets/sample.png")),
+                _ => panic("the layer is the picture"),
+            }
+        }
+        _ => panic("an avatar is an overlay"),
+    }
+}
+
+@test
+fun no_picture_is_the_initials_alone() {
+    match inner(av(None)) {
+        Overlay(_, layers) => assert_eq(layers.len, 0),
+        _ => panic("an avatar is an overlay"),
+    }
+}
+
+@test
+fun a_size_is_both_ways() {
+    let s = style_of(av(None).style([Avatar.size(40)])).sheet;
+    assert_eq(s.sizing.width, Width.Px(40));
+    assert_eq(s.sizing.height, Width.Px(40));
+}
+
+@test
+fun a_group_overlaps_and_rings_its_avatars() {
+    let g: View<i64> = avatar_group([av(None), av(None), av(None)]);
+    let kids = match inner(g) {
+        Row(xs) => xs,
+        _ => panic("a group is a row"),
+    };
+    assert_eq(kids.len, 3);
+    // The first has no overlap: its wrapper carries no style at all.
+    match kids[0] {
+        Column(_) => {}
+        _ => panic("the first avatar's wrapper is a plain column"),
+    }
+    assert_eq(style_of(kids[1]).sheet.spacing.margin.left, Width.Px(-8));
+    // The overlap is on a wrapper (an avatar's exact size is a clamp's); the ring on the avatar.
+    let ringed = match inner(kids[2]) {
+        Column(xs) => xs[0],
+        _ => panic("each avatar is wrapped"),
+    };
+    let ring = style_of(ringed).sheet.shadow.boxes[0];
+    assert_eq(ring.spread, 2);
+    assert_eq(ring.color, Paint.Token(Token.Background));
+}
