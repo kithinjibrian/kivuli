@@ -1,6 +1,6 @@
 # PRP-032 — kivuli.ui: Input
 
-Status: draft, for the user's approval (session 56)
+Status: approved (session 57)
 Discovery: session 56, 2026-10-20 (the fourth component; the reference is ui.shadcn.com/docs/components/base/input, whose page shows no class string: the look is shadcn's published input source). *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: `ui.input(value, on_change)`, a text field in the palette's colours, with `Input.invalid()`; and `State.FocusWithin`, a state for "focus is somewhere inside", which a GTK text field needs for its focus ring.
