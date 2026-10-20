@@ -596,9 +596,18 @@ Branch: main (PRP-024 on prp-024-click_away, merged)
 
 ---
 
-## SESSION 30 — 2026-10-20 — Style utilities, resumed: discovery — open
+## SESSION 30 — 2026-10-20 — Style utilities, resumed: discovery and PRP-025 draft — closed
 
 Branch: main
+
+### WHAT WAS DONE
+- lughac now allows a field and a function of one name, so the style utilities are unblocked. Interview: statics on each group (A), word names (B). PRP-025 drafted.
+- The user asked why kivuli has no folders: only history; Lugha maps `src/styles/fonts.la` to `styles.fonts`, and a file and a folder may share a name (checked in a scratch package). The user chose folders: PRP-025's file plan is now `src/styles/{fonts,boxes,effects}.la`, with `styles.la` keeping `Styling`, `Sheet`, `applied`, `State`, `When`, and DECISION-025's cycle widened to `styles` ↔ `styles/`.
+
+### STILL OPEN AT CLOSE
+- PRP-025 awaits the user's approval of the whole PRP (the utility list and values).
+- Not pushed, waiting for the user's go: main and tags v0.18.0, v0.19.0. Run the full suite before the push.
+- The user's examples/search_bar.la and its binary are untracked; `reports/.gitkeep` deleted in the working tree, not by Claude; left alone.
 
 ---
 
