@@ -1845,6 +1845,12 @@ Branch: prp-054-window-controls → main
 
 ---
 
+## SESSION 125 — 2026-10-21 — Push v0.49.0 — open
+
+Branch: main
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
