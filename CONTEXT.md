@@ -890,9 +890,16 @@ Branch: main (prp-029-ui-button merged)
 
 ---
 
-## SESSION 50 — 2026-10-20 — Text alignment: discovery — open
+## SESSION 50 — 2026-10-20 — Text alignment: discovery, PRP-030 draft — closed
 
 Branch: main
+
+### WHAT WAS DONE
+- Interview: `Text.start()/center()/end()` style values (A); start as the default everywhere, breaking (B). GTK's CSS has no `text-align`: it's `gtk_label_set_xalign` and `set_justify`, which lugha-gtk lacks.
+- PRP-030 drafted.
+
+### STILL OPEN AT CLOSE
+- PRP-030 awaits the user's approval.
 
 ---
 
