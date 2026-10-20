@@ -8,6 +8,14 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.25.0] — 2026-10-20
+
+### Breaking
+- Text starts at the start of its line by default (PRP-030); GTK centred it. Centred text needs `.style([Text.center()])`.
+
+### Added
+- `Text.start()`, `Text.center()`, `Text.end()` (`TextAlign`): where text sits in its label, wrapped lines included. Needs lugha-gtk 0.1.35.
+
 ## [0.24.0] — 2026-10-20
 
 ### Added

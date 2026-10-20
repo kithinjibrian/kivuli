@@ -903,6 +903,26 @@ Branch: main
 
 ---
 
+## SESSION 51 — 2026-10-20 — PRP-030: text alignment, built, not merged — closed
+
+Branch: prp-030-text-align (not merged: waiting for the user's look)
+
+### WHAT WAS DONE
+- lugha-gtk 0.1.35: label xalign and justify; its test passes; pushed and tagged.
+- PRP-030 built: `TextAlign`, `Text.align`, `Text.start/center/end()`, merged; refused in states; `styling` sets xalign/justify on text nodes every restyle; default start (breaking). Tests type-checked; components built. Docs; 0.25.0 (not tagged).
+
+### STILL OPEN AT CLOSE
+- The user to look (components: headings and the card's text now start); then merge, tag v0.25.0.
+- Next component: Card.
+
+---
+
+## SESSION 52 — 2026-10-20 — Merge PRP-030 — open
+
+Branch: main (merging prp-030-text-align)
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.

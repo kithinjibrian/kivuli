@@ -48,6 +48,8 @@ import gtk {
     gtk_widget_set_visible,
     lgtk_remove_css_classes_with_prefix,
     gtk_widget_remove_css_class,
+    gtk_label_set_justify,
+    gtk_label_set_xalign,
     gtk_widget_set_halign,
     gtk_widget_set_hexpand,
     gtk_widget_set_size_request,
@@ -57,7 +59,7 @@ import gtk {
 };
 import core.live_tree { Live, widget };
 import view.looks { Style, Align, Fit };
-import styles.values { Radius, Width };
+import styles.values { Radius, TextAlign, Width };
 import styles.box_rules { clamp_limits };
 import view.keys { parse };
 import view.widgets { snap };
@@ -127,6 +129,9 @@ fun apply_style<Msg>(node: Live<Msg>, style: Style, axis: i32) {
     match node {
         Button(_, _, _, _, label, _) => style_label(label, style),
         Checkbox(_, label, _) => style_label(label, style),
+        // Where text sits is the label's own setting (GTK's CSS has no
+        // `text-align`); set every time, so a changed value lands.
+        Label(w) => align_text(w, style.sheet.text.align),
         _ => {}
     }
     // Spacers and scrolls always take spare room (see `create_in`).
@@ -347,6 +352,18 @@ fun style_label(label: GtkWidget, style: Style) {
             gtk_widget_add_css_class(label, class);
         }
     }
+}
+
+/** Places `label`'s text in its width (`xalign`) and lines up its wrapped lines (`GtkJustification`). */
+fun align_text(label: GtkWidget, a: TextAlign) {
+    let (x, justify) = match a {
+        // GTK centres; kivuli starts at the start, as the web does.
+        Theme | Start => (0.0, 0),
+        Center => (0.5, 2),
+        End => (1.0, 1),
+    };
+    gtk_label_set_xalign(label, x as f32);
+    gtk_label_set_justify(label, justify as i32);
 }
 
 /** `GtkAlign`: 0 fill, 1 start, 2 end, 3 center. */

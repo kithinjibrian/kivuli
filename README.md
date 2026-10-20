@@ -192,6 +192,8 @@ column(rows)
 
 `Palette.zinc()`, `slate()`, `stone()`, `gray()` and `neutral()` are shadcn's bases; `.with(token, light, dark)` changes one colour; `.radius(px)` is the radius `Border.rounded_lg()` uses (`rounded_md()` is 2 less, `rounded_sm()` 4 less; `Radius.Large`, `Medium`, `Small`). Without a palette, tokens have zinc's values. Every colour utility takes a `Color`, a `Token` or a `Paint`. `examples/palette.la` switches bases and schemes.
 
+**Where text sits.** Text starts at the start of its line (the left, or the right in right-to-left text), as on the web; `Text.center()` and `Text.end()` move it, wrapped lines included. It's a label's own setting, not CSS, so it can't change inside `When`.
+
 **Components** (`kivuli.ui`). Ready-made pieces in the palette's colours, after shadcn, beside GTK's own widgets. A component's variant is a `Look` (several style values as one) given through `.style`, so an app's own values after it win; each component is built only from the public style API, so an app can copy one and change it.
 
 ```

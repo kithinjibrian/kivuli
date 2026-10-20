@@ -10,6 +10,7 @@
 
 import styles { Sheet, State };
 import styles.values {
+    TextAlign,
     Family,
     Size,
     Weight,
@@ -146,6 +147,10 @@ fun check(s: Sheet): Result<(), string> {
         let named = "When(State.{state}, …)";
         if sub.states.len > 0 {
             return Err("{named}: states can't nest");
+        }
+        // A label's alignment is its own setting, not CSS: a state can't switch it.
+        if sub.text.align != TextAlign.Theme {
+            return Err("{named}: a state can't change where text sits");
         }
         // A state is a CSS rule under a pseudo-class: what isn't a plain rule can't switch.
         if sub.background.image.is_some() || needs_clamp(
