@@ -1,0 +1,200 @@
+/**
+ * Motion's CSS (PRP-027): a node's transitions as one `transition` rule, its
+ * animations as one `animation` rule with their `@keyframes`, and the
+ * reduced-motion counterpart of each (transitions and entrances off, loops
+ * kept). Pure.
+ *
+ * Depends on: motion, theming
+ * Used by: paint, sheets
+ */
+
+import styles.motion { Motion, Animate, Easing, Edge };
+import styles.theming { hexed };
+
+/** The CSS properties a group eases. */
+fun properties(group: Animate): string[] = match group {
+    Colors => [
+        "color",
+        "background-color",
+        "border-top-color",
+        "border-right-color",
+        "border-bottom-color",
+        "border-left-color",
+        "outline-color",
+    ],
+    Opacity => ["opacity"],
+    Transform => ["transform"],
+    Shadow => ["box-shadow"],
+    All => ["all"],
+};
+
+/** A curve as CSS; `Theme` is `fallback`'s. */
+fun easing_css(e: Easing, fallback: Easing): string = match e {
+    Theme => easing_css(fallback, Easing.Ease),
+    // Tailwind's curves.
+    Ease => "cubic-bezier(0.4, 0, 0.2, 1)",
+    Linear => "linear",
+    In => "cubic-bezier(0.4, 0, 1, 1)",
+    Out => "cubic-bezier(0, 0, 0.2, 1)",
+};
+
+fun edge_name(e: Edge): string = match e {
+    Top => "top",
+    Bottom => "bottom",
+    Left => "left",
+    Right => "right",
+};
+
+/** The rules `m` gives: its transitions, then its animations; each one rule. */
+fun motion_css(m: Motion): (string, string)[] {
+    let mut out: (string, string)[] = [];
+    let delay = m.delay.unwrap_or(0);
+    if m.transitions.len > 0 {
+        let ease = easing_css(m.easing, Easing.Ease);
+        let mut parts: string[] = [];
+        for (group, ms) of m.transitions {
+            for p of properties(group) {
+                parts.push("{p} {ms}ms {ease} {delay}ms");
+            }
+        }
+        let value = parts.join(", ");
+        out.push(("kv-tr-{hexed(value)}", "transition: {value};"));
+    }
+    // Entrances first, then loops: one `animation` list, so they run together.
+    let ease = easing_css(m.easing, Easing.Out);
+    let mut parts: string[] = [];
+    match m.fade {
+        Some(ms) => parts.push("kv-in-fade {ms}ms {ease} {delay}ms both"),
+        None => {}
+    }
+    match m.slide {
+        Some((edge, px, ms)) => parts.push(
+            "kv-in-{edge_name(edge)}-{px} {ms}ms {ease} {delay}ms both",
+        ),
+        None => {}
+    }
+    if m.spin {
+        parts.push("kv-spin 1000ms linear infinite");
+    }
+    if m.pulse {
+        parts.push("kv-pulse 2000ms cubic-bezier(0.4, 0, 0.6, 1) infinite");
+    }
+    if parts.len > 0 {
+        let value = parts.join(", ");
+        out.push(("kv-an-{hexed(value)}", "animation: {value};"));
+    }
+    out
+}
+
+/** What's wrong with `m`'s numbers, if anything. */
+fun check_motion(m: Motion): Result<(), string> {
+    for (group, ms) of m.transitions {
+        if ms < 0 {
+            let name = match group {
+                Colors => "colors",
+                Opacity => "opacity",
+                Transform => "transform",
+                Shadow => "shadow",
+                All => "all",
+            };
+            return Err("Motion.{name}({ms}): a duration can't be negative");
+        }
+    }
+    match m.delay {
+        Some(ms) => if ms < 0 {
+            return Err("Motion.delay({ms}): a delay can't be negative");
+        },
+        None => {}
+    }
+    match m.fade {
+        Some(ms) => if ms < 0 {
+            return Err("Motion.fade_in({ms}): a duration can't be negative");
+        },
+        None => {}
+    }
+    match m.slide {
+        Some((edge, px, ms)) => {
+            let named = match edge {
+                Top => "Top",
+                Bottom => "Bottom",
+                Left => "Left",
+                Right => "Right",
+            };
+            if px < 0 {
+                return Err(
+                    "Motion.slide_in(Edge.{named}, {px}, {ms}): a slide's distance can't be negative",
+                );
+            }
+            if ms < 0 {
+                return Err(
+                    "Motion.slide_in(Edge.{named}, {px}, {ms}): a duration can't be negative",
+                );
+            }
+        }
+        None => {}
+    }
+    Ok(())
+}
+
+/** The `@keyframes` an animation's name stands for (`kv-in-fade`, `kv-in-bottom-8`, `kv-spin`, `kv-pulse`). */
+fun keyframes(name: string): string {
+    let steps = if name == "kv-in-fade" {
+        "from {{ opacity: 0; }} to {{ opacity: 1; }}"
+    } else if name == "kv-spin" {
+        "from {{ transform: rotate(0deg); }} to {{ transform: rotate(360deg); }}"
+    } else if name == "kv-pulse" {
+        "0% {{ opacity: 1; }} 50% {{ opacity: 0.5; }} 100% {{ opacity: 1; }}"
+    } else {
+        // kv-in-{edge}-{px}: from that far beyond the edge, to its place.
+        let bits = name.split("-");
+        let px = bits[bits.len - 1];
+        let edge = bits[2];
+        let start = if edge == "top" {
+            "0px, -{px}px"
+        } else if edge == "bottom" {
+            "0px, {px}px"
+        } else if edge == "left" {
+            "-{px}px, 0px"
+        } else {
+            "{px}px, 0px"
+        };
+        "from {{ transform: translate({start}); }} to {{ transform: translate(0px, 0px); }}"
+    };
+    "@keyframes {name} {{ {steps} }}"
+}
+
+/**
+ * One rule's whole CSS: `.key { body }`, and for motion's own rules what
+ * goes with them: an animation's `@keyframes` before it, and after it what
+ * it becomes when the system asks for less motion.
+ */
+fun rule_text(key: string, body: string): string {
+    let main = ".{key} {{ {body} }}";
+    let reduce = "@media (prefers-reduced-motion: reduce)";
+    if body.starts_with("transition: ") {
+        return "{main}\n{reduce} {{ .{key} {{ transition: none; }} }}";
+    }
+    if !body.starts_with("animation: ") {
+        return main;
+    }
+    // `motion_css` writes the list; each part after the first starts `, kv-`.
+    let value = body.slice(11, body.len - 1);
+    let mut parts: string[] = [];
+    let mut first = true;
+    for piece of value.split(", kv-") {
+        parts.push(if first { piece } else { "kv-{piece}" });
+        first = false;
+    }
+    let mut frames: string[] = [];
+    let mut loops: string[] = [];
+    for part of parts {
+        let name = part.split(" ")[0];
+        frames.push(keyframes(name));
+        // Spinners and pulses mean "still loading": they keep going.
+        if !name.starts_with("kv-in-") {
+            loops.push(part);
+        }
+    }
+    let kept = if loops.len > 0 { loops.join(", ") } else { "none" };
+    "{frames.join("\n")}\n{main}\n{reduce} {{ .{key} {{ animation: {kept}; }} }}"
+}

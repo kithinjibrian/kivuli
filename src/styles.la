@@ -7,7 +7,7 @@
  * `Sizing`) and `drawing` (`Shadow`, `Effects`). Pure: `sheets` checks values
  * and turns them into CSS.
  *
- * Depends on: styles.fonts, styles.boxes, styles.drawing
+ * Depends on: styles.fonts, styles.boxes, styles.drawing, styles.motion
  * Used by: box_rules, lib, looks, paint, sheets, views, widgets, the files in styles/
  */
 
@@ -16,6 +16,7 @@
 import styles.fonts { Font, Text };
 import styles.boxes { Background, Border, Outline, Spacing, Sizing };
 import styles.drawing { Shadow, Effects };
+import styles.motion { Motion };
 
 /** Something `.style([…])` can apply: a `Font`, a `Text`, a `Background`, a `Border`, an `Outline`, a `Spacing` or a `Sizing`. */
 public interface Styling {
@@ -38,6 +39,7 @@ public struct Sheet {
     public states: (State, Sheet)[],
     public shadow: Shadow,
     public effects: Effects,
+    public motion: Motion,
 }
 
 impl Sheet {
@@ -53,6 +55,7 @@ impl Sheet {
         states: [],
         shadow: Shadow.theme(),
         effects: Effects.theme(),
+        motion: Motion.theme(),
     };
 }
 

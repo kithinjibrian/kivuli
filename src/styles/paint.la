@@ -16,6 +16,7 @@ import styles.box_rules { needs_clamp };
 import styles.values { Width };
 import styles { Sheet };
 import view.pictures { Image };
+import styles.motion_rules { rule_text };
 import styles.palettes { palette_bar_rule, palette_class, palette_rule };
 
 /**
@@ -147,7 +148,7 @@ fun stylesheet<Msg>(v: View<Msg>): (string, string)[] {
         for sheet of [style.sheet, style.bar] {
             for (key, body) of rules(sheet) {
                 if seen.insert(key) {
-                    out.push((key, ".{key} {{ {body} }}"));
+                    out.push((key, rule_text(key, body)));
                 }
             }
         }

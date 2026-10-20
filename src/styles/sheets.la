@@ -22,6 +22,7 @@ import styles.values {
     Edges,
 };
 import view.pictures { Image, data_url, identity };
+import styles.motion_rules { check_motion, motion_css };
 import styles.theming { Paint, digits, hexed, paint_css, permille, token_name };
 import styles.box_rules { box_css, check_effects, needs_clamp, sides };
 
@@ -89,6 +90,7 @@ fun check(s: Sheet): Result<(), string> {
     }
     check_width(s.outline.width)?;
     check_effects(s)?;
+    check_motion(s.motion)?;
     let p = s.spacing.padding.over(Edges.theme());
     for w of [p.top, p.right, p.bottom, p.left] {
         match w {
@@ -289,6 +291,9 @@ fun rules(s: Sheet): (string, string)[] {
         }
     }
     for rule of box_css(s) {
+        out.push(rule);
+    }
+    for rule of motion_css(s.motion) {
         out.push(rule);
     }
     for (state, sub) of s.states {
