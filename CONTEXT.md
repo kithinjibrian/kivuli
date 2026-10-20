@@ -656,9 +656,18 @@ Branch: main
 
 ---
 
-## SESSION 34 — 2026-10-20 — Components (shadcn-like): discovery — open
+## SESSION 34 — 2026-10-20 — Components (shadcn-like): discovery, PRP-026 draft — closed
 
 Branch: main
+
+### WHAT WAS DONE
+- The user asked for beautiful components (shadcn) beside the native look. Plan: tokens and palettes, then motion, then a first `ui` component set. Interview: a library module `kivuli.ui` (A); named tokens with a palette per app (A); the palette colours the window, native widgets stay GTK's (A); follow the system, `.scheme(…)` forces (A); five shadcn bases, `.with`, a radius token (A).
+- GTK 4.22 probe (C): custom properties, `prefers-color-scheme`, `prefers-reduced-motion`, `color-mix`, transitions, `calc(var(…) - 4px)` all parse; `gtk-interface-color-scheme` reads 2 (default).
+- PRP-026 (palettes and tokens) drafted.
+
+### STILL OPEN AT CLOSE
+- PRP-026 awaits the user's approval.
+- Not pushed: main and tags v0.18.0–v0.20.0; run the full suite first.
 
 ---
 
