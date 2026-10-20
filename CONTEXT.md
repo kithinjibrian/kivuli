@@ -1470,9 +1470,15 @@ Branch: main
 
 ---
 
-## SESSION 95 — 2026-10-20 — PRP-044: tooltip look — open
+## SESSION 95 — 2026-10-20 — PRP-044: tooltip look, built, not merged — closed
 
-Branch: prp-044-tooltip-look
+Branch: prp-044-tooltip-look (not merged: waiting for the user's look)
+
+### WHAT WAS DONE
+- `Part.Tooltip` (`~ tooltip`); src/ui/tooltip_looks.la (`Tooltip.look()`); components.la's root takes it, three buttons gain tooltips. GTK parsed the CSS. Docs; 0.39.0 (not tagged). Every test and example type-checks; tests not run.
+
+### STILL OPEN AT CLOSE
+- The user to hover the tooltips: whether the look reaches them is unverified. Then merge, tag v0.39.0.
 
 ---
 

@@ -8,6 +8,11 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.39.0] — 2026-10-20
+
+### Added
+- Tooltips in the palette's look (PRP-044): `Part.Tooltip` and `kivuli.ui`'s `Tooltip.look()`, given once on the root.
+
 ## [0.38.0] — 2026-10-20
 
 ### Added
