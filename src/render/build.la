@@ -75,7 +75,8 @@ import view.views { View };
 import render.buttons { create_button, create_button_with };
 import render.popovers { attach };
 import styles.box_rules { needs_clamp };
-import render.styling { LAYER, NO_LINE_LIMIT, apply_style, flag, show_number };
+import render.styling { LAYER, NO_LINE_LIMIT, align_text, apply_style, flag, show_number };
+import styles.values { TextAlign };
 import render.textures { show_picture };
 import view.widgets { snap };
 import render.controls { nearest, picked, sync_choices };
@@ -89,7 +90,12 @@ fun create<Msg>(v: View<Msg>, send: fun(Msg)): Live<Msg> = create_in(v, 1, send)
  * along it and separators cross it.
  */
 fun create_in<Msg>(v: View<Msg>, axis: i32, send: fun(Msg)): Live<Msg> = match v {
-    Text(s) => Live.Label(gtk_label_new(s)),
+    Text(s) => {
+        // Placed now: a text with no style is never restyled, and GTK centres.
+        let label = gtk_label_new(s);
+        align_text(label, TextAlign.Theme);
+        Live.Label(label)
+    }
     Button(label, msg, img) => create_button(label, msg, img, send),
     // Its content is built as a scroll's child is: along a column.
     ButtonWith(content, msg) => create_button_with(create_in(content, 1, send), msg, send),

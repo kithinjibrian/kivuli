@@ -93,6 +93,10 @@ fun every_base_has_every_token_light_and_dark() {
     assert_eq(z.dark(Token.Primary), Some(hex("#fafafa")));
     assert_eq(z.light(Token.MutedForeground), Some(hex("#71717a")));
     assert_eq(z.dark(Token.Border), Some(hex("#27272a")));
+    // The focus ring is a mid grey: the other scheme's muted text.
+    assert_eq(z.light(Token.Ring), Some(hex("#a1a1aa")));
+    assert_eq(z.dark(Token.Ring), Some(hex("#71717a")));
+    assert_eq(Palette.slate().light(Token.Ring), Some(hex("#94a3b8")));
 }
 
 @test

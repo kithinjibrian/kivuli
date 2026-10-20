@@ -48,3 +48,4 @@ column([ui.input(m.query, Msg.Query).on_submit(Msg.Search)])
 
 - **Disabled restates the background and text too**, not only the border: GTK's `entry:disabled` changes all three.
 - **GTK parsed the input's CSS** (71 lines, 19 of them `:focus-within`; 0 errors). Tests type-checked only; only examples/components.la built (an Input section; the login card's fields are `ui.input`, its model now holds them).
+- **Found by hand (session 58)**: (1) a text with no style was never restyled, so it kept GTK's centring (PRP-030's default reached only styled text); `build` now places a new label at the start. `test/live_text_align.la` already checks this case: it would have caught it if it had run. (2) The focus ring was a heavy dark band: the palettes' `Ring` came from the older bases (the text colour); the current ones use a mid grey, the other scheme's muted text (zinc: `#a1a1aa` light, `#71717a` dark), now `base`'s rule for all five.
