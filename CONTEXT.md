@@ -611,9 +611,18 @@ Branch: main
 
 ---
 
-## SESSION 31 — 2026-10-20 — PRP-025: style utilities — open
+## SESSION 31 — 2026-10-20 — PRP-025: style utilities, kivuli 0.20.0 — closed
 
-Branch: prp-025-style_utilities
+Branch: main (PRP-025 on prp-025-style_utilities, merged)
+
+### WHAT WAS DONE
+- PRP-025 approved and built. The style groups moved into `src/styles/` (`fonts`, `boxes`, `drawing`; `drawing`, not `effects`, which clashed with the `effects` module as E0314); `styles.la` keeps `Styling`, `Sheet`, `applied`, `State`, `When`; DECISION-025 widened to `styles` ↔ `styles/`. Static utilities on every group (`Font.h2()`, `Text.dim()`, `Spacing.padding(16)`, `Border.rounded(12)`, `Shadow.md()`, `Effects.opacity(0.5)`, …). Test: utilities (new, 10); styles, states, spacing, sizing, shadows, sheets, sheets_border, theming, lib still pass; every example built. hello and borders use utilities. Docs updated. kivuli 0.20.0, tagged locally.
+
+### STILL OPEN AT CLOSE
+- Not pushed, waiting for the user's go: main and tags v0.18.0, v0.19.0, v0.20.0. The full suite wasn't run: run it before the push.
+- For the user to check by hand: `lughac run examples/borders.la`: the new "Shadow.md(), in one line" card.
+- Next: motion; the file dialog (013); test/live_forms.la split; DECISION-007 to close.
+- The user's examples/search_bar.la is untracked; `.gitignore` and `reports/.gitkeep` changes are the user's; left alone.
 
 ---
 
