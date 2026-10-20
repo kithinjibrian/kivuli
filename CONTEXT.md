@@ -1495,9 +1495,16 @@ Branch: main (prp-044-tooltip-look merged)
 
 ---
 
-## SESSION 97 — 2026-10-20 — Progress: discovery — open
+## SESSION 97 — 2026-10-20 — Progress: discovery, PRP-045 draft — closed
 
 Branch: main
+
+### WHAT WAS DONE
+- No progress bar in kivuli or lugha-gtk. Interview: a native `progress(value)` out of 100 on GtkProgressBar, then `ui.progress` (A). Found: the fill can't ease (GTK sizes it from the fraction, not CSS).
+- PRP-045 drafted.
+
+### STILL OPEN AT CLOSE
+- PRP-045 awaits the user's approval.
 
 ---
 
