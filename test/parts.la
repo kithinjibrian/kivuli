@@ -126,3 +126,20 @@ fun under_focus_a_part_keeps_its_node() {
         assert(k.ends_with(":focus-visible check"));
     }
 }
+
+@test
+fun a_sliders_parts_are_its_trough_highlight_and_knob() {
+    let s = Inside(Part.Knob, [Border.rounded(999)]).apply(
+        Inside(Part.Highlight, [Background.color(Token.Primary)]).apply(
+            Inside(Part.Trough, [Background.color(Token.Muted)]).apply(Sheet.theme()),
+        ),
+    );
+    let k = keys(s);
+    assert(k.iter().any(fun(x) = x == "kv-trough-bgt-muted trough"));
+    assert(k.iter().any(fun(x) = x == "kv-highlight-bgt-primary highlight"));
+    assert(k.iter().any(fun(x) = x.starts_with("kv-slider-") && x.ends_with(" slider")));
+    let hovered = When(State.Hover, [Inside(Part.Knob, [Background.color(Token.Accent)])]).apply(
+        Sheet.theme(),
+    );
+    assert(keys(hovered).iter().any(fun(x) = x.ends_with(":hover slider")));
+}

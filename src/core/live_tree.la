@@ -62,7 +62,7 @@ enum Live<Msg> {
      * showed or sent, and the function turning a move into a message: its
      * `value-changed` handler reads all three.
      */
-    Slider(GtkWidget, Ref<(i64, i64, i64)>, Ref<i64>, Ref<fun(i64): Msg>),
+    Slider(GtkWidget, Ref<(i64, i64, i64)>, Ref<i64>, Ref<Option<fun(i64): Msg>>),
     /** A theme icon (a `GtkImage`). */
     Icon(GtkWidget),
     /** A picture from a file (a `GtkPicture`). */

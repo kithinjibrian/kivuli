@@ -21,7 +21,7 @@ public enum Lookup {
     NotFound(string),
     /** More than one thing matches, this many. */
     Ambiguous(string, i64),
-    /** It's there but sends nothing: a disabled button, text field or check box, or a text field without `.on_submit`. */
+    /** It's there but sends nothing: a disabled button, text field, check box or slider, or a text field without `.on_submit`. */
     Silent(string),
 }
 
@@ -253,13 +253,13 @@ public fun choose<Msg>(v: View<Msg>, name: string, label: string): Result<Msg, L
  * The message moving the slider named `name` to `value` sends: the value is
  * clamped to the slider's range and put on its nearest step, as the widget
  * does. Panics when the slider's least value is greater than its greatest.
- * @returns `Ok(msg)`; `Err(NotFound)` or `Err(Ambiguous)`
+ * @returns `Ok(msg)`; `Err(NotFound)`, `Err(Ambiguous)`, or `Err(Silent)` when it's disabled
  *
  * Example:
  *     assert_eq(kivuli.testing.slide(view(m), "volume", 42), Ok(Msg.Volume(42)));
  */
 public fun slide<Msg>(v: View<Msg>, name: string, value: i64): Result<Msg, Lookup> {
-    let mut found: (i64, i64, i64, fun(i64): Msg)[] = [];
+    let mut found: (i64, i64, i64, Option<fun(i64): Msg>)[] = [];
     for (node, style) of nodes(v) {
         match node {
             Slider(min, max, _, on_change) => if style.name == name {
@@ -268,8 +268,12 @@ public fun slide<Msg>(v: View<Msg>, name: string, value: i64): Result<Msg, Looku
             _ => {}
         }
     }
-    let (min, max, step, on_change) = only(found, "slider \"{name}\"")?;
-    Ok(on_change(snap(value, min, max, step)))
+    let what = "slider \"{name}\"";
+    let (min, max, step, on_change) = only(found, what)?;
+    match on_change {
+        Some(f) => Ok(f(snap(value, min, max, step))),
+        None => Err(Lookup.Silent(what)),
+    }
 }
 
 /**

@@ -1,0 +1,73 @@
+// kivuli.ui's Slider (PRP-038): its track, filled part and thumb, the halo
+// on hover and focus, disabled at half opacity; still a native slider. No
+// GTK.
+import kivuli.styles { Sheet };
+import kivuli { View, Part, State, Token, Paint, Width, Radius };
+import kivuli.ui;
+
+fun sheet_of<M>(v: View<M>): Sheet = match v {
+    Styled(_, s) => s.sheet,
+    _ => panic("expected a styled node"),
+};
+
+fun part(s: Sheet, p: Part): Sheet {
+    for (q, sub) of s.parts {
+        if q == p {
+            return sub;
+        }
+    }
+    panic("no rules for that part")
+}
+
+fun in_state(s: Sheet, state: State): Sheet {
+    for (st, sub) of s.states {
+        if st == state {
+            return sub;
+        }
+    }
+    panic("no rules for that state")
+}
+
+fun sl(): View<i64> = ui.slider(0, 100, 50, fun(n: i64): i64 = n);
+
+@test
+fun the_track_fill_and_thumb_have_their_looks() {
+    let s = sheet_of(sl());
+    let track = part(s, Part.Trough);
+    assert_eq(track.sizing.min_height, Width.Px(6));
+    assert_eq(track.border.radius, Radius.All(999));
+    assert_eq(track.background.color, Paint.Token(Token.Muted));
+    assert_eq(part(s, Part.Highlight).background.color, Paint.Token(Token.Primary));
+    let knob = part(s, Part.Knob);
+    assert_eq(knob.sizing.min_width, Width.Px(16));
+    assert_eq(knob.sizing.min_height, Width.Px(16));
+    assert_eq(knob.border.top.color, Paint.Token(Token.Primary));
+    assert_eq(knob.background.color, Paint.Token(Token.Background));
+    assert_eq(knob.spacing.margin.top, Width.Px(-5));
+    assert_eq(knob.spacing.margin.left, Width.Px(-5));
+}
+
+@test
+fun hover_and_focus_ring_the_thumb_and_disabled_halves_it() {
+    let s = sheet_of(sl());
+    for st of [State.Hover, State.Focus] {
+        let k = part(in_state(s, st), Part.Knob);
+        assert_eq(k.shadow.boxes[0].spread, 4);
+        assert_eq(k.shadow.boxes[0].color, Token.Ring.alpha(0.5));
+    }
+    assert_eq(in_state(s, State.Disabled).effects.opacity, Some(0.5));
+}
+
+@test
+fun it_is_still_a_native_slider() {
+    match sl().disabled(true) {
+        Styled(inside, _) => match inside {
+            Slider(min, max, value, on_change) => {
+                assert_eq((min, max, value), (0, 100, 50));
+                assert(on_change.is_none());
+            }
+            _ => panic("a ui slider is a native slider"),
+        },
+        _ => panic("a slider is styled"),
+    }
+}

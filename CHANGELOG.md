@@ -8,6 +8,12 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.33.0] — 2026-10-20
+
+### Added
+- `kivuli.ui`'s Slider (PRP-038): `ui.slider(min, max, value, on_change)`; `Part.Trough`, `Part.Highlight`, `Part.Knob`.
+- `.disabled(…)` on a slider: greyed, sends nothing; `kivuli.testing.slide` gives `Err(Lookup.Silent(…))`.
+
 ## [0.32.0] — 2026-10-20
 
 ### Added

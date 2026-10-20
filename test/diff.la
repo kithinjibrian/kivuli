@@ -382,11 +382,11 @@ fun a_dropdown_always_sets_its_choices() {
 
 @test
 fun a_slider_sets_only_what_changed_and_re_points_its_handler() {
-    let moved: Patch<Msg>[] = [Patch.SetNumber([], 50), Patch.SetOnSlide([], Msg.Level)];
+    let moved: Patch<Msg>[] = [Patch.SetNumber([], 50), Patch.SetOnSlide([], Some(Msg.Level))];
     assert_same(patches(slider(0, 100, 42, Msg.Level), slider(0, 100, 50, Msg.Level)), moved);
-    let ranged: Patch<Msg>[] = [Patch.SetRange([], 0, 10), Patch.SetOnSlide([], Msg.Level)];
+    let ranged: Patch<Msg>[] = [Patch.SetRange([], 0, 10), Patch.SetOnSlide([], Some(Msg.Level))];
     assert_same(patches(slider(0, 100, 5, Msg.Level), slider(0, 10, 5, Msg.Level)), ranged);
-    let still: Patch<Msg>[] = [Patch.SetOnSlide([], Msg.Level)];
+    let still: Patch<Msg>[] = [Patch.SetOnSlide([], Some(Msg.Level))];
     assert_same(patches(slider(0, 100, 5, Msg.Level), slider(0, 100, 5, Msg.Level)), still);
 }
 

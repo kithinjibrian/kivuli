@@ -1,0 +1,29 @@
+// Disabled sliders in the diff (PRP-038): disabling one re-points its
+// handler to nothing on the same widget, enabling it gives one back.
+// (test/diff.la is near the file size limit.)
+import kivuli.core.diff { Patch, diff as patches };
+import kivuli { View, slider };
+
+enum Msg {
+    Level(i64),
+}
+
+fun s(off: bool): View<Msg> = slider(0, 10, 5, Msg.Level).disabled(off);
+
+@test
+fun disabling_a_slider_takes_its_handler_away() {
+    let changes = patches(s(false), s(true));
+    assert_eq(changes.len, 1);
+    match changes[0] {
+        SetOnSlide(path, None) => assert_eq(path, []),
+        _ => panic("expected SetOnSlide with nothing"),
+    }
+}
+
+@test
+fun enabling_it_again_gives_the_handler_back() {
+    match patches(s(true), s(false))[0] {
+        SetOnSlide(_, Some(f)) => assert_eq("{f(3)}", "{Msg.Level(3)}"),
+        _ => panic("expected SetOnSlide with a handler"),
+    }
+}

@@ -17,6 +17,7 @@ import gtk {
     gtk_check_button_set_active,
     gtk_editable_get_text,
     gtk_editable_set_text,
+    gtk_range_set_value,
     gtk_scrolled_window_get_child,
     gtk_text_buffer_set_text,
     gtk_widget_get_sensitive,
@@ -25,7 +26,7 @@ import kivuli.render.live { mount, live_of };
 import kivuli.core.effects { sandbox_app };
 import kivuli.render.build { text_of };
 import kivuli.core.live_tree { Live, widget };
-import kivuli { View, button, checkbox, column, input, text_area };
+import kivuli { View, button, checkbox, column, input, slider, text_area };
 
 fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
 
@@ -239,4 +240,51 @@ fun a_disabled_check_box_sends_nothing_and_enables_again_on_the_same_widget() {
         "active 1",
     ]);
     assert_eq(received.get(), ["Unlock", "Ticked(true)"]);
+}
+
+enum Slide {
+    Moved(i64),
+    Lock,
+    Unlock,
+}
+
+struct Level {
+    n: i64,
+    locked: bool,
+}
+
+fun update_level(l: Level, msg: Slide): Level = match msg {
+    Moved(n) => Level { n: n, ..l },
+    Lock => Level { locked: true, ..l },
+    Unlock => Level { locked: false, ..l },
+};
+
+fun view_level(l: Level): View<Slide> = column([
+    slider(0, 10, l.n, Slide.Moved).disabled(l.locked),
+    button("Lock", Slide.Lock),
+    button("Unlock", Slide.Unlock),
+]);
+
+@test
+fun a_disabled_slider_sends_nothing_and_enables_again_on_the_same_widget() {
+    if !has_display() {
+        skip("no display");
+    }
+    let received: Ref<string[]> = Ref.new([]);
+    let seen: Ref<string[]> = Ref.new([]);
+    with_app("org.kivuli.test.disabled_slider", Level {
+        n: 5,
+        locked: true,
+    }, update_level, view_level, received, fun(kids: Live<Slide>[]) {
+        let scale = widget(kids[0]);
+        note(seen, "locked sensitive {gtk_widget_get_sensitive(scale)}");
+        // GTK still moves an insensitive slider set from code: nothing may be sent.
+        gtk_range_set_value(scale, 8.0);
+        note(seen, "sent while locked {received.get().len}");
+        emit_widget(widget(kids[2]), "clicked");
+        note(seen, "same {widget(kids[0]) == scale} sensitive {gtk_widget_get_sensitive(scale)}");
+        gtk_range_set_value(scale, 3.0);
+    });
+    assert_eq(seen.get(), ["locked sensitive 0", "sent while locked 0", "same true sensitive 1"]);
+    assert_eq(received.get(), ["Unlock", "Moved(3)"]);
 }

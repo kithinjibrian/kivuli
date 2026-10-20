@@ -30,4 +30,5 @@ public import ui.input_groups {
 };
 public import ui.separators { separator, separator_with };
 public import ui.checkboxes { checkbox };
+public import ui.sliders { slider };
 public import ui.cards { card, card_header, card_header_with, card_content, card_footer };

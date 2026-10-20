@@ -155,6 +155,12 @@ public fun When(state: State, items: Styling[]): StateStyle = StateStyle {
 public enum Part {
     /** A check box's box (`check`), where GTK draws the tick. */
     Check,
+    /** A slider's track (`trough`). */
+    Trough,
+    /** The filled part of a slider's track, up to the thumb (`highlight`). */
+    Highlight,
+    /** A slider's thumb (`slider`). */
+    Knob,
 }
 
 /** Style values for one part: made by `Inside`. */

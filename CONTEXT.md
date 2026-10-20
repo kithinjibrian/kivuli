@@ -1224,6 +1224,25 @@ Branch: main
 
 ---
 
+## SESSION 76 — 2026-10-20 — PRP-038: kivuli.ui Slider, disabled sliders, built, not merged — closed
+
+Branch: prp-038-ui-slider (not merged: waiting for the user's look)
+
+### WHAT WAS DONE
+- `Part.Trough`, `Highlight`, `Knob`; `View.Slider`'s handler an `Option` through view, map, `.disabled`, build, diff, patch, testing; src/ui/sliders.la. A Slider section in components.la. GTK parsed the CSS. Docs; 0.33.0 (not tagged). Tests type-checked only.
+- Noticed: the native slider draws its number beside the thumb; raised.
+
+### STILL OPEN AT CLOSE
+- The user to look; then merge, tag v0.33.0. Next: Select.
+
+---
+
+## SESSION 77 — 2026-10-20 — Merge PRP-038; Select discovery — open
+
+Branch: main
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.

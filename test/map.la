@@ -191,3 +191,16 @@ fun a_disabled_check_box_has_no_toggle_and_keeps_none_when_mapped() {
         _ => panic("expected a check box"),
     }
 }
+
+@test
+fun a_disabled_slider_has_no_handler_and_keeps_none_when_mapped() {
+    let off: View<Part> = slider(0, 10, 5, Part.Level).disabled(true);
+    match off {
+        Slider(_, _, _, on_change) => assert(on_change.is_none()),
+        _ => panic("expected a slider"),
+    }
+    match off.map(fun(p: Part): i64 = 1) {
+        Slider(_, _, _, on_change) => assert(on_change.is_none()),
+        _ => panic("expected a slider"),
+    }
+}
