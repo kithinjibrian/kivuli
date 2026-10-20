@@ -1237,9 +1237,17 @@ Branch: prp-038-ui-slider (not merged: waiting for the user's look)
 
 ---
 
-## SESSION 77 — 2026-10-20 — Merge PRP-038; Select discovery — open
+## SESSION 77 — 2026-10-20 — Merge PRP-038; Select discovery, PRP-039 draft — closed
 
 Branch: main
+
+### WHAT WAS DONE
+- PRP-038 merged on the user's go (tests not run), tagged v0.33.0.
+- Probed GTK's drop-down node tree (the pop-up is a CSS descendant; a `row` in the trigger too; the list's scrollbars have `trough`/`slider`). Read the reference select page (collapsed). Interview: trigger, list, items, placeholder, `Select.invalid()` (A); groups, disabled, align-with-trigger later.
+- PRP-039 drafted.
+
+### STILL OPEN AT CLOSE
+- PRP-039 awaits the user's approval.
 
 ---
 
@@ -1247,7 +1255,7 @@ Branch: main
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
 2. Read CLAUDE.md, MEMORY.md, DECISIONS.md, then this file's last session; go by `git log` for what's merged.
-3. kivuli is at 0.32.0 on main, local; GitHub has up to v0.17.0. Tags v0.18.0–v0.32.0 wait for the user's go, after a full test run (none since session 32: the user is speeding tests up). lugha-gtk is at 0.1.34, pushed (standing go).
+3. kivuli is at 0.33.0 on main, local; GitHub has up to v0.17.0. Tags v0.18.0–v0.33.0 wait for the user's go, after a full test run (none since session 32: the user is speeding tests up). lugha-gtk is at 0.1.34, pushed (standing go).
 4. `src/` is in folders (view/, styles/, core/, render/; DECISION-026); `test/` stays flat (DECISION-027, open: a lughac change).
 5. The plan (session 34): shadcn-like components. Done: palettes and tokens (PRP-026), motion (PRP-027), `kivuli.ui` with Badge (PRP-028: variants are `Look`s through `.style`; component files import the entry's modules, not `lib`) and Button (PRP-029: `ui.button` beside the native one; variants restate colours in states to outrank GTK's button rules; `Token.alpha`). Then text alignment (PRP-030: start by default, `Text.center()`) and Card (PRP-031: parts as functions; no font size on containers, since scales compound; DECISION-028 open) and Input (PRP-032: `State.FocusWithin`, as a GTK field's text child takes the focus). Field (PRP-033: parts, `field_horizontal`). the input group (PRP-034: the frame draws border and ring; `group_input` has none). Separator (PRP-035), Checkbox with widget parts (PRP-036: `Inside(Part, …)`, `Mark.icon`), disabled check boxes (PRP-037). Next: Select, Slider … one at a time (GTK entry icons dropped: the input group covers them) (button variants, input, card, badge, separator, select, checkbox, slider), then widgets kivuli lacks (switch, tabs, tooltip, dialog, progress, avatar).
 6. Gotchas: a named import binds the module's last name (E0311/E0314: no `styles.effects`); `lughac fmt` reflows text scripted edits expect: re-read first; Lugha strings interpolate `{…}`: write `{{`; an app's GtkCssProvider needs `lgtk_css_provider_new_for_scheme` for dark rules; files may not exceed 500 lines; gate any push on the test run's real exit status; never chain a bare `git push` in kivuli; no Co-Authored-By trailer on commits; no shadcn by name in code comments; check only affected examples and build only the one being run; commit `lughac fmt` output before switching branches; chain git steps with `&&`, never `;`.
