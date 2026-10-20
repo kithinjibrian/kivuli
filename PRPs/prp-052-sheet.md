@@ -1,6 +1,6 @@
 # PRP-052 — kivuli.ui: Sheet
 
-Status: approved (session 107, "build all")
+Status: built (session 113); merged into main in session 113 (its own tests run and pass)
 Discovery: session 107, 2026-10-20 (the reference's sheet: a panel against one edge of the window over a 50% backdrop, full height and at most 384 px wide on the sides, a border on its inner edge, a large shadow, sliding in; a ✕ at its top end; a header, content and a footer at its bottom). *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: `ui.sheet(close, edge, parts)`: a `Dialog` shown through the root's `.dialog(…)`, against an edge.
@@ -33,9 +33,16 @@ fun edit_sheet(): Dialog<Msg> = ui.sheet(Msg.Close, Edge.Right, [
 - No dragging to close, no sheet and dialog at once (one `.dialog`), no sizes beyond 384 (an app styles the card with `.style` if it wants).
 
 ## TESTS (narrow; type-check every test and example; run this PRP's own)
-- [ ] `test/dialogs.la`: `ui.dialog`'s card places itself centred and `.dialog`'s layers keep it; `ui.sheet` for each edge: its placement, width or none, the inner border's side, the slide's edge; the ✕ and Escape; the footer pushed to the bottom on the sides.
-- [ ] `test/live_dialog.la`: a sheet open over the page: the page inert, the backdrop closes it.
-- [ ] GTK parses the generated rules; `examples/components.la` gains a Sheet section (buttons opening it from each edge); only it built. How it looks: by hand.
+- [x] `test/dialogs.la`: `ui.dialog`'s card places itself centred and `.dialog`'s layers keep it; `ui.sheet` for each edge: its placement, width or none, the inner border's side, the slide's edge; the ✕ and Escape; the footer pushed to the bottom on the sides.
+- [x] `test/live_dialog.la`: a sheet open over the page: the page inert, the backdrop closes it.
+- [x] GTK parses the generated rules; `examples/components.la` gains a Sheet section (buttons opening it from each edge); only it built. How it looks: by hand.
 
 ## ACCEPTANCE
 - [ ] The OBJECTIVE compiles; fmt clean; no file over 500 lines; README, DESIGN, CHANGELOG 0.47.0, CLAUDE.md; merged, tagged; pushed only on your go.
+
+## NOTES FROM THE BUILD
+
+- **`.dialog` no longer centres**: the `centred` helper in mapping.la is gone; `ui.dialog` places its card itself (`Center, Center`), `ui.sheet` against its edge.
+- **The footer at the bottom**: on a side with two parts or more, the parts before the last are a column (gap 16) that expands. One part, or a top or bottom sheet, is laid out as given.
+- **The gallery's Sheet section** opens a sheet on each edge (Model `sheet`: the edge, -1 for none); Save picks, which closes it.
+- **Tests run and pass**: dialogs (9), live_dialog (2), live_overlay, live_motion. Every test and example type-checks; components built; GTK parsed the rules (92 lines, 0 errors).

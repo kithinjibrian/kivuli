@@ -18,6 +18,8 @@ public struct Model {
     public status_bar: bool,
     public panel: string,
     public deleting: bool,
+    /** The edge a sheet is open on (0 top, 1 right, 2 bottom, 3 left), -1 for none. */
+    public sheet: i64,
 }
 
 /** Everything the gallery's controls send. */
@@ -36,6 +38,7 @@ public enum Msg {
     StatusBar(bool),
     Panel(string),
     Deleting(bool),
+    Sheet(i64),
 }
 
 /** The gallery's update: each message sets its field. */
@@ -50,11 +53,12 @@ public fun update(m: Model, msg: Msg): Model = match msg {
     Fruit(f) => Model { fruit: f, ..m },
     Airplane(b) => Model { airplane: b, ..m },
     Tab(n) => Model { tab: n, ..m },
-    // Picking anything also closes the dialog (its Delete picks).
-    Picked(what) => Model { picked: what, deleting: false, ..m },
+    // Picking anything also closes the dialog and the sheet (their buttons pick).
+    Picked(what) => Model { picked: what, deleting: false, sheet: -1, ..m },
     StatusBar(b) => Model { status_bar: b, ..m },
     Panel(p) => Model { panel: p, ..m },
     Deleting(on) => Model { deleting: on, ..m },
+    Sheet(edge) => Model { sheet: edge, ..m },
 };
 
 /** The palette each Base button picks. */

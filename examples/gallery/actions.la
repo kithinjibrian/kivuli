@@ -1,6 +1,7 @@
 // The components gallery's buttons, badges, inputs, dialog and menus.
 import kivuli {
     View,
+    Edge,
     Align,
     Token,
     look,
@@ -28,6 +29,8 @@ import kivuli.ui {
     Dropdown,
     Menu,
     Dialog,
+    field,
+    field_label,
     dialog_header,
     dialog_footer,
 };
@@ -45,7 +48,32 @@ public fun delete_dialog(): Dialog<Msg> = ui.dialog(Msg.Deleting(false), [
     ]),
 ]);
 
-/** The Button, Badge, Input, Dialog and Dropdown menu sections, top to bottom. */
+/** The sheet the Sheet section opens, on the edge the model says: Escape, the backdrop, the ✕ and Cancel close it. */
+public fun edit_sheet(m: Model): Dialog<Msg> = ui.sheet(
+    Msg.Sheet(-1),
+    if m.sheet == 0 {
+        Edge.Top
+    } else if m.sheet == 2 {
+        Edge.Bottom
+    } else if m.sheet == 3 {
+        Edge.Left
+    } else {
+        Edge.Right
+    },
+    [
+        dialog_header(
+            "Edit profile",
+            "Make changes to your profile here. Click save when you're done.",
+        ),
+        field([field_label("Name"), ui.input(m.user, Msg.User).placeholder("Pedro Duarte")]),
+        dialog_footer([
+            ui.button("Cancel", Msg.Sheet(-1)).style([Button.outline()]),
+            ui.button("Save changes", Msg.Picked("Saved the profile")),
+        ]),
+    ],
+);
+
+/** The Button, Badge, Input, Dialog, Sheet and Dropdown menu sections, top to bottom. */
 public fun sections(m: Model): View<Msg>[] = [
     section(
         "Button",
@@ -151,6 +179,15 @@ public fun sections(m: Model): View<Msg>[] = [
     section(
         "Dialog",
         row([ui.button("Delete project…", Msg.Deleting(true)).style([Button.destructive()])]),
+    ),
+    section(
+        "Sheet",
+        row([
+            ui.button("Top", Msg.Sheet(0)).style([Button.outline()]),
+            ui.button("Right", Msg.Sheet(1)).style([Button.outline()]),
+            ui.button("Bottom", Msg.Sheet(2)).style([Button.outline()]),
+            ui.button("Left", Msg.Sheet(3)).style([Button.outline()]),
+        ]).style([Spacing.gap(8)]),
     ),
     section(
         "Dropdown menu",

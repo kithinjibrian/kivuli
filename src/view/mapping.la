@@ -143,7 +143,8 @@ public struct Dialog<Msg> {
 /** `.dialog`: the root as an overlay over `page`, with `d`'s backdrop and card while it's `Some`. */
 fun with_dialog<Msg>(page: View<Msg>, d: Option<Dialog<Msg>>): View<Msg> {
     let layers: View<Msg>[] = match d {
-        Some(dialog) => [backdrop(dialog.close), centred(dialog.card)],
+        // The card places itself: centred for a dialog, on an edge for a sheet.
+        Some(dialog) => [backdrop(dialog.close), dialog.card],
         None => [],
     };
     // The overlay is there open or not: opening adds layers, the page is kept.
@@ -173,6 +174,3 @@ fun backdrop<Msg>(close: Msg): View<Msg> {
         ..plain(),
     })
 }
-
-/** `card` in the middle of the window. */
-fun centred<Msg>(card: View<Msg>): View<Msg> = card.place(Align.Center, Align.Center);

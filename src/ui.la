@@ -38,7 +38,7 @@ public import ui.menu_looks { dropdown_menu, Menu };
 public import ui.tooltip_looks { Tooltip };
 public import ui.progress_bars { progress };
 public import ui.avatars { avatar, avatar_group, Avatar };
-public import ui.dialogs { dialog, dialog_header, dialog_footer };
+public import ui.dialogs { dialog, dialog_header, dialog_footer, sheet };
 // The type `.dialog` takes, re-exported where `ui.dialog` makes it.
 public import view.mapping { Dialog };
 
