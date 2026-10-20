@@ -1833,6 +1833,12 @@ Branch: prp-054-window-controls (nothing built beyond the probe)
 
 ---
 
+## SESSION 124 — 2026-10-21 — PRP-054: window controls (with Part.WindowIcon) — open
+
+Branch: prp-054-window-controls
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
