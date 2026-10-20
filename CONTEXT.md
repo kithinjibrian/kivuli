@@ -751,6 +751,12 @@ Branch: prp-027-motion (not merged: waiting for the user's hand check)
 
 ---
 
+## SESSION 40 — 2026-10-20 — Merge PRP-027 — open
+
+Branch: main (merging prp-027-motion)
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
