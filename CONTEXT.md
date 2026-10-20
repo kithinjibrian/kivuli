@@ -1198,6 +1198,12 @@ Branch: prp-037-disabled-checkboxes (not merged)
 
 ---
 
+## SESSION 74 — 2026-10-20 — Merge PRP-037 — open
+
+Branch: main (merging prp-037-disabled-checkboxes)
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
