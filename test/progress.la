@@ -1,0 +1,38 @@
+// The native progress bar (PRP-045): its node, the diff's patch when the
+// value changes and none when it doesn't, and `map` keeping it. No GTK.
+import kivuli.core.diff { Patch, diff as patches };
+import kivuli { View, progress };
+
+@test
+fun a_progress_bar_holds_its_value() {
+    let v: View<i64> = progress(66);
+    match v {
+        Progress(n) => assert_eq(n, 66),
+        _ => panic("expected a progress bar"),
+    }
+}
+
+@test
+fun a_changed_value_is_set_in_place_and_an_unchanged_one_needs_nothing() {
+    let a: View<i64> = progress(10);
+    let b: View<i64> = progress(40);
+    let changes = patches(a, b);
+    assert_eq(changes.len, 1);
+    match changes[0] {
+        SetProgress(path, n) => {
+            assert_eq(path, []);
+            assert_eq(n, 40);
+        }
+        _ => panic("expected SetProgress"),
+    }
+    assert_eq(patches(b, progress(40)).len, 0);
+}
+
+@test
+fun map_keeps_a_progress_bar() {
+    let v: View<i64> = progress(5);
+    match v.map(fun(n: i64): string = "{n}") {
+        Progress(n) => assert_eq(n, 5),
+        _ => panic("expected a progress bar"),
+    }
+}

@@ -37,6 +37,7 @@ fun mapped<Msg, B>(v: View<Msg>, f: fun(Msg): B): View<B> = match v {
         choices.map(fun(choice) = (choice.0, f(choice.1))),
         selected,
     ),
+    Progress(n) => View.Progress(n),
     Switch(on, on_toggle) => View.Switch(on, match on_toggle {
         Some(g) => Some(fun(b: bool): B = f(g(b))),
         None => None,

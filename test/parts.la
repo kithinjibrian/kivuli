@@ -223,3 +223,9 @@ fun a_tooltip_is_the_roots_sibling() {
     let s = Inside(Part.Tooltip, [Background.color(Token.Foreground)]).apply(Sheet.theme());
     assert(keys(s).iter().any(fun(x) = x == "kv-tooltip-bgt-foreground ~ tooltip"));
 }
+
+@test
+fun a_progress_bars_fill_is_its_progress_node() {
+    let s = Inside(Part.Fill, [Background.color(Token.Primary)]).apply(Sheet.theme());
+    assert(keys(s).iter().any(fun(x) = x == "kv-fill-bgt-primary progress"));
+}

@@ -47,6 +47,8 @@ public enum View<Msg> {
     Checkbox(string, bool, Option<fun(bool): Msg>),
     /** A switch, on or off, and what flipping it sends (`None`: disabled). */
     Switch(bool, Option<fun(bool): Msg>),
+    /** A progress bar filled to its value out of 100 (clamped when shown). It sends nothing. */
+    Progress(i64),
     /** A drop-down: each choice's label and the message picking it sends, and the label shown picked. */
     Dropdown((string, Msg)[], string),
     /** A whole-number slider: its least and greatest value, its value, and the message each move sends. */

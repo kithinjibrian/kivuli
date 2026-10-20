@@ -29,6 +29,7 @@ import gtk {
     gtk_range_set_range,
     gtk_scrolled_window_set_child,
     gtk_text_buffer_set_text,
+    gtk_progress_bar_set_fraction,
     gtk_switch_set_active,
     gtk_widget_set_sensitive,
     gtk_widget_ref,
@@ -39,7 +40,7 @@ import gtk {
     lgtk_text_place_cursor,
 };
 import core.diff;
-import render.build { add_to_wrap, create, create_in, editor, pack_one, text_of };
+import render.build { fraction, add_to_wrap, create, create_in, editor, pack_one, text_of };
 import render.controls { picked, sync_choices };
 import render.styling { LAYER, apply_style, flag, show_content, show_number };
 import render.textures { show_in_image, show_picture };
@@ -135,6 +136,10 @@ fun apply<Msg>(
             Switch(sw, _) => gtk_switch_set_active(sw, flag(checked)),
             _ => gtk_check_button_set_active(widget(at(live, path)), flag(checked)),
         }
+        live
+    }
+    SetProgress(path, value) => {
+        gtk_progress_bar_set_fraction(widget(at(live, path)), fraction(value));
         live
     }
     SetOnToggle(path, on_toggle) => {

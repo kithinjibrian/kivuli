@@ -1,0 +1,40 @@
+// kivuli.ui's progress (PRP-045): a round track in Primary at 20%, a round
+// Primary fill, 8 px high; still the native progress bar. No GTK.
+import kivuli.styles { Sheet };
+import kivuli { View, Part, Token, Paint, Width, Radius };
+import kivuli.ui;
+
+fun sheet_of<M>(v: View<M>): Sheet = match v {
+    Styled(_, s) => s.sheet,
+    _ => panic("expected a styled node"),
+};
+
+fun part(s: Sheet, p: Part): Sheet {
+    for (q, sub) of s.parts {
+        if q == p {
+            return sub;
+        }
+    }
+    panic("no rules for that part")
+}
+
+@test
+fun the_track_and_fill_are_round_and_primary() {
+    let v: View<i64> = ui.progress(66);
+    let s = sheet_of(v);
+    let track = part(s, Part.Trough);
+    assert_eq(track.sizing.min_height, Width.Px(8));
+    assert_eq(track.border.radius, Radius.All(999));
+    assert_eq(track.background.color, Token.Primary.alpha(0.2));
+    let fill = part(s, Part.Fill);
+    assert_eq(fill.sizing.min_height, Width.Px(8));
+    assert_eq(fill.border.radius, Radius.All(999));
+    assert_eq(fill.background.color, Paint.Token(Token.Primary));
+    match v {
+        Styled(inside, _) => match inside {
+            Progress(n) => assert_eq(n, 66),
+            _ => panic("a ui progress is the native progress bar"),
+        },
+        _ => panic("a progress is styled"),
+    }
+}

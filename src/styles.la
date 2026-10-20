@@ -188,6 +188,8 @@ public enum Part {
      * the root view, so this is for the root's style; elsewhere it matches nothing.
      */
     Tooltip,
+    /** A progress bar's filled part (`progress`); its track is `Trough`. */
+    Fill,
 }
 
 /** Style values for one part: made by `Inside`. */

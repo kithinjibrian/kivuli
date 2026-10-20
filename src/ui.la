@@ -36,4 +36,5 @@ public import ui.switches { switch };
 public import ui.tab_bars { tab, tab_with, tabs, tabs_line };
 public import ui.menu_looks { dropdown_menu, Menu };
 public import ui.tooltip_looks { Tooltip };
+public import ui.progress_bars { progress };
 public import ui.cards { card, card_header, card_header_with, card_content, card_footer };

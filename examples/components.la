@@ -18,6 +18,7 @@ import kivuli {
     button,
     checkbox,
     column,
+    progress,
     radio_group,
     check_item,
     submenu,
@@ -391,6 +392,14 @@ fun page(m: Model): View<Msg> = column([
             ui.slider(0, 100, m.volume, Msg.Volume).disabled(m.same),
             slider(0, 100, m.volume, Msg.Volume),
         ]).style([Spacing.gap(16), Sizing.max_width(420)]),
+    ),
+    section(
+        "Progress",
+        column([
+            text("{m.volume}% (drag the Volume slider)").style([Text.color(Token.MutedForeground)]),
+            ui.progress(m.volume),
+            progress(m.volume),
+        ]).style([Spacing.gap(12), Sizing.max_width(420)]),
     ),
     section(
         "Separator",

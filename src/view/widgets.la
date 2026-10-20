@@ -74,6 +74,15 @@ public fun input<Msg>(value: string, on_change: fun(string): Msg): View<Msg> = V
 );
 
 /**
+ * Builds a progress bar filled to `value` out of 100; past either end it's
+ * full or empty. It sends nothing: change the value in the model.
+ *
+ * Example:
+ *     column([text("Uploading…"), progress(m.uploaded)])
+ */
+public fun progress<Msg>(value: i64): View<Msg> = View.Progress(value);
+
+/**
  * Builds a switch, on when `on`. Each flip sends `on_toggle(on)`; store it in
  * the model and pass it back as `on`. It has no label of its own: put one
  * beside it, and `.name(…)` lets tests find it.
