@@ -1237,6 +1237,12 @@ Branch: prp-038-ui-slider (not merged: waiting for the user's look)
 
 ---
 
+## SESSION 77 — 2026-10-20 — Merge PRP-038; Select discovery — open
+
+Branch: main
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
