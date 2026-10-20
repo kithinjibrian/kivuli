@@ -8,6 +8,11 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.26.0] — 2026-10-20
+
+### Added
+- `kivuli.ui`'s Card (PRP-031): `card([...])`, `card_header(title, description)`, `card_header_with(title, description, action)`, `card_content([...])`, `card_footer([...])`. `Radius.XLarge` and `Border.rounded_xl()` (the palette's radius plus 4).
+
 ## [0.25.0] — 2026-10-20
 
 ### Breaking

@@ -209,6 +209,8 @@ So far:
 - `badge` (small, medium-weight, corners at the palette's radius − 4) and `badge_with([icon(…), text(…)])` (icons shrink to 12 px).
 - `ui.button(label, msg)` and `ui.button_with(content, msg)` (icons 16 px), beside the native `button`: variants `Button.destructive()`, `outline()`, `secondary()`, `ghost()`, `link()`; sizes `Button.sm()`, `lg()`, `icon()` (a square). A variant sets colours, a size sets size, so `[Button.outline(), Button.sm()]` is both. It's still a native button: `.disabled`, `.shortcut` and `kivuli.testing` work as on any.
 
+- `card([...])` with `card_header(title, description)`, `card_header_with(title, description, action)`, `card_content([...])` and `card_footer([...])` (a muted band to the card's edges). Each part is a plain view, so any can be left out or repeated. One size for now.
+
 A token can be used at an opacity: `Token.Primary.alpha(0.9)` (a hover), `Token.Ring.alpha(0.5)` (a focus halo). `look([...])` makes an app's own variant. `examples/components.la` shows each in light and dark.
 
 **Motion.** What eases when a style changes, how a node comes in, and what loops: GTK's own CSS transitions and animations.

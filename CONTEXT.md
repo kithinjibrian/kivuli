@@ -943,9 +943,15 @@ Branch: main
 
 ---
 
-## SESSION 54 — 2026-10-20 — PRP-031: kivuli.ui Card — open
+## SESSION 54 — 2026-10-20 — PRP-031: kivuli.ui Card, built, not merged — closed
 
-Branch: prp-031-ui-card
+Branch: prp-031-ui-card (not merged: waiting for the user's look)
+
+### WHAT WAS DONE
+- `Radius.XLarge` / `Border.rounded_xl()`; src/ui/cards.la (`card`, `card_header`, `card_header_with`, `card_content`, `card_footer`); the card keeps the theme's text size (scales compound). DECISION-028 open. Card section in examples/components.la (only it built). GTK parsed the CSS. Docs; 0.26.0 (not tagged). Tests type-checked only.
+
+### STILL OPEN AT CLOSE
+- The user to look; then merge and tag v0.26.0.
 
 ---
 

@@ -1,6 +1,6 @@
 # PRP-031 — kivuli.ui: Card
 
-Status: approved (session 54)
+Status: built (session 54) on branch prp-031-ui-card
 Discovery: session 53, 2026-10-20 (the third component; the reference is the current card at ui.shadcn.com/docs/components/base/card). *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: `card([...])` and its parts `card_header(title, description)`, `card_header_with(title, description, action)`, `card_content([...])`, `card_footer([...])`, one size (16 px spacing).
@@ -44,9 +44,9 @@ card([
 - No small size, no image slot (an app puts a `picture` first; its top corners are clipped by the card), no clickable card.
 
 ## TESTS (narrow; type-check now, run once the user's faster tests are in)
-- [ ] `test/cards.la` (new, pure): the card's values; each part's values; the empty description left out; the header with an action; the footer's margin; parts left out and repeated; the OBJECTIVE reads as written.
-- [ ] `test/palettes.la`: `Radius.XLarge`'s CSS.
-- [ ] GTK parses the generated rules (the C probe); `examples/components.la` gains a Card section (login, a header with a badge, a terms card with two buttons), the only example built. How it looks: by hand.
+- [x] `test/cards.la` (new, pure): the card's values; each part's values; the empty description left out; the header with an action; the footer's margin; parts left out and repeated; the OBJECTIVE reads as written.
+- [x] `test/palettes.la`: `Radius.XLarge`'s CSS.
+- [x] GTK parses the generated rules (the C probe); `examples/components.la` gains a Card section (login, a header with a badge, a terms card with two buttons), the only example built. How it looks: by hand.
 
 ## ACCEPTANCE
 - [ ] The OBJECTIVE compiles; fmt clean; no file over 500 lines; README, DESIGN, CHANGELOG 0.26.0, CLAUDE.md, DECISIONS (container spacing reaching its parts: open); merged, tagged; pushed only on your go.
@@ -54,3 +54,4 @@ card([
 ## NOTES FROM THE BUILD
 
 - **No font size on the card**: a `Size.Scale` is a percentage of the parent's size, so the reference's `text-sm` card would have shrunk everything inside it (a small description to about 77%, buttons and badges too). The card keeps the theme's size (near the reference's 14 px on GNOME); the title is `Font.lg()`, the description `Font.sm()`.
+- **GTK parsed the card's CSS** (79 lines, 0 errors). Tests type-checked only; only examples/components.la built (its hand-made card replaced by three ui cards: login, a header with a badge, terms with a footer).
