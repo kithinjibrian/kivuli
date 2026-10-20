@@ -1107,6 +1107,19 @@ Branch: main
 
 ---
 
+## SESSION 67 — 2026-10-20 — kivuli.ui Separator: discovery, PRP-035 draft — closed
+
+Branch: main
+
+### WHAT WAS DONE
+- Interview: `ui.separator()` (the native one, which orients by its parent, in `Border`) and `separator_with(label)` (A). Corrected myself: a component can't know its parent, so `separator_with` in a row isn't refused, only documented.
+- PRP-035 drafted.
+
+### STILL OPEN AT CLOSE
+- PRP-035 awaits the user's approval.
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
