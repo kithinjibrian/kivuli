@@ -3,7 +3,8 @@
 // border and margin outside it, exact, minimum and maximum sizes, styles per
 // state (hover, press, focus, disabled, checked), and outlines that step
 // aside for the theme's focus ring: Tab to an outlined button and its focus
-// ring shows instead.
+// ring shows instead. Some values are written in full, some with the
+// groups' short utilities (`Font.bold()`, `Shadow.md()`).
 import kivuli {
     View,
     Background,
@@ -34,7 +35,6 @@ import kivuli {
     Shadow,
     Drop,
     Effects,
-    Filter,
     Move,
     Image,
 };
@@ -46,23 +46,12 @@ fun at_least(w: i64, h: i64): Sizing = Sizing {
     ..Sizing.theme(),
 };
 
-/** The same room on every side, inside the node. */
-fun pad(n: i64): Spacing = Spacing {
-    padding: Edges { all: Width.Px(n), ..Edges.theme() },
-    ..Spacing.theme(),
-};
-
-/** Room between a column's, row's or wrap's children. */
-fun gap(n: i64): Spacing = Spacing { gap: Width.Px(n), ..Spacing.theme() };
-
-fun heading(s: string): View<()> = text(s).style([
-    Font { size: Size.Pt(16), weight: Weight.Bold, ..Font.theme() },
-]);
+fun heading(s: string): View<()> = text(s).style([Font.size(16), Font.bold()]);
 
 /** A tile with `b` as its border, its label inside. */
 fun tile(label: string, b: Border): View<()> = column([
-    text(label).style([Font { size: Size.Scale(0.85), ..Font.theme() }]),
-]).style([at_least(150, 70)]).style([pad(10)]).style([b]);
+    text(label).style([Font.scale(0.85)]),
+]).style([at_least(150, 70)]).style([Spacing.padding(10)]).style([b]);
 
 fun side(n: i64, line: Line): Side = Side {
     width: Width.Px(n),
@@ -88,7 +77,7 @@ fun view(m: ()): View<()> = scroll(
             tile("Inset", all(side(4, Line.Inset))),
             tile("Outset", all(side(4, Line.Outset))),
             tile("Width only: drawn solid", all(Side { width: Width.Px(2), ..Side.theme() })),
-        ]).style([gap(12)]),
+        ]).style([Spacing.gap(12)]),
         heading("One side at a time"),
         wrap([
             tile("top", Border { top: side(3, Line.Solid), ..Border.theme() }),
@@ -109,7 +98,7 @@ fun view(m: ()): View<()> = scroll(
                 },
                 ..Border.theme(),
             }),
-        ]).style([gap(12)]),
+        ]).style([Spacing.gap(12)]),
         heading("Corners (a rounded node clips what's inside)"),
         wrap([
             tile("All(12)", Border { all: hairline(), radius: Radius.All(12), ..Border.theme() }),
@@ -128,11 +117,11 @@ fun view(m: ()): View<()> = scroll(
                 radius: Radius.All(35),
                 ..Border.theme(),
             }),
-        ]).style([gap(12)]),
+        ]).style([Spacing.gap(12)]),
         heading("Padding and margin"),
     wrap([
         // Padding is inside the border: the text keeps clear of the line.
-        column([text("padding 16")]).style([all(hairline()), pad(16)]),
+        column([text("padding 16")]).style([all(hairline()), Spacing.padding(16)]),
         column([text("padding 0")]).style([all(hairline())]),
         // Margin is outside: the dashed box sits 16 px in from its grey frame.
         column([
@@ -150,50 +139,50 @@ fun view(m: ()): View<()> = scroll(
         column([
             text("above"),
             text("pulled up 6").style([Spacing { margin: Edges { top: Width.Px(-6), ..Edges.theme() }, ..Spacing.theme() }]),
-        ]).style([all(hairline()), pad(8)]),
-    ]).style([gap(12)]),
+        ]).style([all(hairline()), Spacing.padding(8)]),
+    ]).style([Spacing.gap(12)]),
     heading("Sizing (resize the window)"),
     column([
         text("width 320: exactly, however wide the window").style([
             all(hairline()),
-            pad(8),
+            Spacing.padding(8),
             Sizing { width: Width.Px(320), ..Sizing.theme() },
         ]),
         text("max_width 560: a readable column. This text wraps and never runs wider than 560 pixels, so lines stay easy to follow on a wide window.").wrap().style([
             all(hairline()),
-            pad(8),
+            Spacing.padding(8),
             Sizing { max_width: Width.Px(560), ..Sizing.theme() },
         ]),
         text("min_width 200, max_width 400: between the two").style([
             all(hairline()),
-            pad(8),
+            Spacing.padding(8),
             Sizing { min_width: Width.Px(200), max_width: Width.Px(400), ..Sizing.theme() },
         ]),
-        text("min_height 60: at least").style([all(hairline()), pad(8), at_least(0, 60)]),
-    ]).style([gap(12)]),
+        text("min_height 60: at least").style([all(hairline()), Spacing.padding(8), at_least(0, 60)]),
+    ]).style([Spacing.gap(12)]),
     heading("States (hover, press, Tab to focus)"),
     wrap([
         button("Hover and press me", ()).style([
-            Background { color: Paint.Color(hex("#2a5298")), ..Background.theme() },
-            Text { color: Paint.Color(hex("#ffffff")), ..Text.theme() },
-            When(State.Hover, [Background { color: Paint.Color(hex("#3a62a8")), ..Background.theme() }]),
-            When(State.Press, [Background { color: Paint.Color(hex("#1e3c72")), ..Background.theme() }]),
+            Background.color(hex("#2a5298")),
+            Text.color(hex("#ffffff")),
+            When(State.Hover, [Background.color(hex("#3a62a8"))]),
+            When(State.Press, [Background.color(hex("#1e3c72"))]),
             When(State.Focus, [
                 Outline { width: Width.Px(2), color: Paint.Color(hex("#ffffff")), style: Line.Solid, offset: -4 },
             ]),
         ]),
-        button("Bold on hover", ()).style([When(State.Hover, [Font { weight: Weight.Bold, ..Font.theme() }])]),
+        button("Bold on hover", ()).style([When(State.Hover, [Font.bold()])]),
         button("Disabled: faded", ()).disabled(true).style([
             When(State.Disabled, [Text { color: Paint.Faded(0.4), ..Text.theme() }, Border { all: side(1, Line.Dashed), ..Border.theme() }]),
         ]),
         checkbox("Ticked: green", true, fun(b: bool) = ()).style([
-            When(State.Checked, [Text { color: Paint.Color(hex("#27ae60")), ..Text.theme() }]),
+            When(State.Checked, [Text.color(hex("#27ae60"))]),
         ]),
-    ]).style([gap(16)]),
+    ]).style([Spacing.gap(16)]),
     heading("Shadows and effects (hover the tile)"),
     wrap([
         column([text("A card lifted off the page")]).style([
-            pad(16),
+            Spacing.padding(16),
             Border { radius: Radius.All(12), ..Border.theme() },
             Background { color: Paint.Color(hex("#ffffff")), ..Background.theme() },
             Text { color: Paint.Color(hex("#222222")), ..Text.theme() },
@@ -208,16 +197,23 @@ fun view(m: ()): View<()> = scroll(
                 Shadow { boxes: [Drop { y: 4, blur: 12, color: Paint.Color(hex("#00000040")), ..Drop.theme() }], ..Shadow.theme() },
             ]),
         ]),
+        column([text("Shadow.md(), in one line")]).style([
+            Spacing.padding(16),
+            Border.rounded(12),
+            Background.color(hex("#ffffff")),
+            Text.color(hex("#222222")),
+            Shadow.md(),
+        ]),
         button("No theme shadow", ()).style([Shadow.off()]),
         text("Text with a shadow").style([
             Font { size: Size.Pt(18), weight: Weight.Bold, ..Font.theme() },
             Shadow { text: [Drop { x: 1, y: 2, blur: 3, color: Paint.Faded(0.5), ..Drop.theme() }], ..Shadow.theme() },
         ]),
-        text("Half see-through").style([Effects { opacity: Some(0.5), ..Effects.theme() }]),
-        column([]).style([at_least(80, 60), Background { image: Some(Image.File("examples/assets/sample.png")), ..Background.theme() }, Effects { filters: [Filter.Grayscale(1.0)], ..Effects.theme() }]),
-        column([]).style([at_least(80, 60), Background { image: Some(Image.File("examples/assets/sample.png")), ..Background.theme() }, Effects { filters: [Filter.Blur(3)], ..Effects.theme() }]),
-        text("Tilted").style([Effects { transform: [Move.Rotate(-8)], ..Effects.theme() }]),
-    ]).style([gap(24)]),
+        text("Half see-through").style([Effects.opacity(0.5)]),
+        column([]).style([at_least(80, 60), Background { image: Some(Image.File("examples/assets/sample.png")), ..Background.theme() }, Effects.grayscale()]),
+        column([]).style([at_least(80, 60), Background { image: Some(Image.File("examples/assets/sample.png")), ..Background.theme() }, Effects.blur(3)]),
+        text("Tilted").style([Effects.rotate(-8)]),
+    ]).style([Spacing.gap(24)]),
     heading("Outlines (Tab to the buttons: the focus ring shows instead)"),
         wrap([
             button("Outlined, offset 2", ()).style([
@@ -244,8 +240,8 @@ fun view(m: ()): View<()> = scroll(
                     offset: -4,
                 },
             ]),
-        ]).style([gap(16)]),
-    ]).style([gap(12), pad(24)]),
+        ]).style([Spacing.gap(16)]),
+    ]).style([Spacing.gap(12), Spacing.padding(24)]),
 ).window("Borders", 720, 760);
 
 fun main(): i32 = sandbox("org.kivuli.borders", (), fun(m: (), msg: ()): () = (), view);
