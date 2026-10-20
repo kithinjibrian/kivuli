@@ -1158,9 +1158,16 @@ Branch: main
 
 ---
 
-## SESSION 71 — 2026-10-20 — PRP-036: Checkbox and widget parts — open
+## SESSION 71 — 2026-10-20 — PRP-036: Checkbox and widget parts, built, not merged — closed
 
-Branch: prp-036-ui-checkbox
+Branch: prp-036-ui-checkbox (not merged: waiting for the user's look)
+
+### WHAT WAS DONE
+- `Part`, `PartStyle`, `Inside`, `Sheet.parts` (styles.la); `Mark` (drawing.la); part rules, state placement before the part, the focus tail fix, mark CSS and checks (sheets.la); paint splits a class at a space. src/ui/checkboxes.la. A Checkbox section in components.la. GTK parsed the CSS. Docs; 0.31.0 (not tagged). Tests type-checked only.
+- Found: native check boxes can't be disabled. Raised, not built.
+
+### STILL OPEN AT CLOSE
+- The user to look; then merge and tag v0.31.0. The user to decide on disabled check boxes.
 
 ---
 

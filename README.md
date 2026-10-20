@@ -219,6 +219,10 @@ So far:
 
 - `ui.separator()` (a 1 px `Border` line: across a column, down a row) and `separator_with("Or continue with")`.
 
+- `ui.checkbox(label, checked, on_toggle)`: a 16 px box, filled with a tick when checked.
+
+**A widget's parts.** `Inside(Part.Check, [...])` styles the part inside a widget, here a check box's box; inside `When`, the state is the widget's (`When(State.Checked, [Inside(Part.Check, [...])])`). `Mark.icon(name, px)` is the icon GTK draws in a part (the tick). More parts come with the components that need them.
+
 A token can be used at an opacity: `Token.Primary.alpha(0.9)` (a hover), `Token.Ring.alpha(0.5)` (a focus halo). `look([...])` makes an app's own variant. `examples/components.la` shows each in light and dark.
 
 **Motion.** What eases when a style changes, how a node comes in, and what loops: GTK's own CSS transitions and animations.
