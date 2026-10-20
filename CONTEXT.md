@@ -1869,6 +1869,12 @@ Branch: window-close-icon → main
 
 ---
 
+## SESSION 127 — 2026-10-21 — Push v0.49.1 — open
+
+Branch: main
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
