@@ -1508,9 +1508,17 @@ Branch: main
 
 ---
 
-## SESSION 98 — 2026-10-20 — The first full run: three stale tests fixed — open
+## SESSION 98 — 2026-10-20 — The first full run: three stale tests fixed — closed
 
 Branch: main
+
+### WHAT WAS DONE
+- The user ran `lughac test test/`: 421 tests, 418 passed, 3 failed, all stale expectations, no code bugs: palettes (colours carry alpha `#…ff`; a hover background's extra `bgi-none` rule and its `kv-hover-` class), live_type (a press rule's class repeats four times since FocusWithin). Fixed; palettes and live_type pass (17/17).
+
+### STILL OPEN AT CLOSE
+- The examples' own tests (`lughac test examples/tasks.la examples/browser.la examples/controls.la`) and every example's build, before a push.
+- PRP-045 (progress) awaits the user's approval.
+- main and tags v0.18.0–v0.39.0 not pushed.
 
 ---
 
@@ -1521,4 +1529,4 @@ Branch: main
 3. kivuli is at 0.39.0 on main, local; GitHub has up to v0.17.0. Tags v0.18.0–v0.39.0 wait for the user's go, after a full test run (none since session 32: the user is speeding tests up). lugha-gtk is at 0.1.34, pushed (standing go).
 4. `src/` is in folders (view/, styles/, core/, render/; DECISION-026); `test/` stays flat (DECISION-027, open: a lughac change).
 5. The plan (session 34): shadcn-like components. Done: palettes and tokens (PRP-026), motion (PRP-027), `kivuli.ui` with Badge (PRP-028: variants are `Look`s through `.style`; component files import the entry's modules, not `lib`) and Button (PRP-029: `ui.button` beside the native one; variants restate colours in states to outrank GTK's button rules; `Token.alpha`). Then text alignment (PRP-030: start by default, `Text.center()`) and Card (PRP-031: parts as functions; no font size on containers, since scales compound; DECISION-028 open) and Input (PRP-032: `State.FocusWithin`, as a GTK field's text child takes the focus). Field (PRP-033: parts, `field_horizontal`). the input group (PRP-034: the frame draws border and ring; `group_input` has none). Separator (PRP-035), Checkbox with widget parts (PRP-036: `Inside(Part, …)`, `Mark.icon`), disabled check boxes (PRP-037), Slider and disabled sliders (PRP-038), dropdown (PRP-039: parts as paths, states inside parts, a placeholder). Then a native switch and `ui.switch` (PRP-040), Tabs from the model (PRP-041), dropdown menus (PRP-042: `.dropdown_menu`, labels, submenus, hints, `Menu.look()`). Then check and radio menu items (PRP-043: stateful actions set from the view), the tooltip look (PRP-044: `Part.Tooltip` = `~ tooltip` on the root; unconfirmed by hand). Next is the user's choice (later: tooltip, dialog, progress, avatar; groups in drop-downs; disabled drop-downs) (GTK entry icons dropped: the input group covers them) (button variants, input, card, badge, separator, select, checkbox, slider), then widgets kivuli lacks (switch, tabs, tooltip, dialog, progress, avatar).
-6. Gotchas: a named import binds the module's last name (E0311/E0314: no `styles.effects`); `lughac fmt` reflows text scripted edits expect: re-read first; Lugha strings interpolate `{…}`: write `{{`; an app's GtkCssProvider needs `lgtk_css_provider_new_for_scheme` for dark rules; files may not exceed 500 lines; gate any push on the test run's real exit status; never chain a bare `git push` in kivuli; no Co-Authored-By trailer on commits; no shadcn by name in code comments; check only affected examples and build only the one being run; commit `lughac fmt` output before switching branches; chain git steps with `&&`, never `;`.
+6. Gotchas: a named import binds the module's last name (E0311/E0314: no `styles.effects`); `lughac fmt` reflows text scripted edits expect: re-read first; Lugha strings interpolate `{…}`: write `{{`; an app's GtkCssProvider needs `lgtk_css_provider_new_for_scheme` for dark rules; files may not exceed 500 lines; gate any push on the test run's real exit status (the full suite last passed in session 98, 421 tests); never chain a bare `git push` in kivuli; no Co-Authored-By trailer on commits; no shadcn by name in code comments; check only affected examples and build only the one being run; commit `lughac fmt` output before switching branches; chain git steps with `&&`, never `;`.
