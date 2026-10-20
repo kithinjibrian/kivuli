@@ -1031,6 +1031,12 @@ Branch: main
 
 ---
 
+## SESSION 61 — 2026-10-20 — PRP-033: kivuli.ui Field — open
+
+Branch: prp-033-ui-field
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
