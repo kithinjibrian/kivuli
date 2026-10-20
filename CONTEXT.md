@@ -805,9 +805,18 @@ Branch: prp-028-ui-badge
 
 ---
 
-## SESSION 44 — 2026-10-20 — badge_with; no shadcn in comments; no co-author line — open
+## SESSION 44 — 2026-10-20 — badge_with; no shadcn in comments; no co-author line — closed
 
-Branch: prp-028-ui-badge
+Branch: prp-028-ui-badge (not merged)
+
+### WHAT WAS DONE
+- The user liked the badges and asked for icons: `badge_with(content)` (A): the badge's look on a row, 4 px apart, icons at 12 px unless sized. Added to PRP-028; a "With icons" section in examples/components.la (only that example built). Tests type-checked.
+- Code comments no longer name shadcn (src, examples).
+- Commits carry no Co-Authored-By trailer from now on (the user's request; saved as memory). `.claude/settings.json` changed in the working tree by the user: left alone.
+
+### STILL OPEN AT CLOSE
+- The user to look at the icon badges; then merge PRP-028 and tag v0.23.0.
+- Tests not run since session 32; main and tags v0.18.0–v0.22.0 not pushed.
 
 ---
 
@@ -818,4 +827,4 @@ Branch: prp-028-ui-badge
 3. kivuli is at 0.22.0 on main, local; GitHub has up to v0.17.0. Tags v0.18.0–v0.22.0 wait for the user's go, after a full test run (none since session 32: the user is speeding tests up). lugha-gtk is at 0.1.34, pushed (standing go).
 4. `src/` is in folders (view/, styles/, core/, render/; DECISION-026); `test/` stays flat (DECISION-027, open: a lughac change).
 5. The plan (session 34): shadcn-like components. Done: palettes and tokens (PRP-026), motion (PRP-027). Next: `kivuli.ui` (button variants, input, card, badge, separator, select, checkbox, slider), then widgets kivuli lacks (switch, tabs, tooltip, dialog, progress, avatar).
-6. Gotchas: a named import binds the module's last name (E0311/E0314: no `styles.effects`); `lughac fmt` reflows text scripted edits expect: re-read first; Lugha strings interpolate `{…}`: write `{{`; an app's GtkCssProvider needs `lgtk_css_provider_new_for_scheme` for dark rules; files may not exceed 500 lines; gate any push on the test run's real exit status; never chain a bare `git push` in kivuli.
+6. Gotchas: a named import binds the module's last name (E0311/E0314: no `styles.effects`); `lughac fmt` reflows text scripted edits expect: re-read first; Lugha strings interpolate `{…}`: write `{{`; an app's GtkCssProvider needs `lgtk_css_provider_new_for_scheme` for dark rules; files may not exceed 500 lines; gate any push on the test run's real exit status; never chain a bare `git push` in kivuli; no Co-Authored-By trailer on commits; no shadcn by name in code comments; check only affected examples and build only the one being run.
