@@ -1,0 +1,117 @@
+/**
+ * Dropdown (PRP-039): kivuli's native drop-down in the palette's colours:
+ * its trigger like a `ui.input`, its pop-up list and items as parts, a
+ * placeholder while nothing is picked. Named `dropdown`, as the native one
+ * is (`select` is a Lugha keyword). Pure.
+ *
+ * Depends on: views, widgets, styles, theming, values, boxes, fonts, drawing, motion
+ * Used by: ui
+ */
+
+// The public items the entry re-exports, by their own modules (rule 2: no `lib`).
+import view.views { View };
+import view.widgets { dropdown as native_dropdown };
+import styles { Inside, Look, Part, When, State, look };
+import styles.theming { Color, Paint, Token };
+import styles.values { Drop, Line, Radius };
+import styles.boxes { Background, Border, Outline, Sizing, Spacing };
+import styles.fonts { Font, Text };
+import styles.drawing { Shadow };
+import styles.motion { Motion };
+
+fun clear(): Color = Color { red: 0, green: 0, blue: 0, alpha: 0 };
+
+/** A shadow `y` pixels down, `blur` wide, black at `alpha` of 255. */
+fun shadow(y: i64, blur: i64, alpha: i64): Shadow = Shadow {
+    boxes: [
+        Drop {
+            y: y,
+            blur: blur,
+            color: Paint.Color(Color { red: 0, green: 0, blue: 0, alpha: alpha }),
+            ..Drop.theme(),
+        },
+    ],
+    text: [],
+};
+
+/** A 3 px halo of `paint`: the focus ring. */
+fun halo(paint: Paint): Shadow = Shadow {
+    boxes: [Drop { spread: 3, color: paint, ..Drop.theme() }],
+    text: [],
+};
+
+/** The trigger's border at rest and its ring while it has keyboard focus. */
+fun edges(border: Paint, ring_border: Paint, ring: Paint): Look = look([
+    Inside(Part.Trigger, [Border.all(1, border)]),
+    When(State.Focus, [
+        Inside(Part.Trigger, [
+            Border.all(1, ring_border),
+            halo(ring),
+            Outline { style: Line.None, ..Outline.theme() },
+        ]),
+    ]),
+]);
+
+/**
+ * A drop-down in the palette's colours offering `choices` (a label and the
+ * message picking it sends), `selected` shown picked; while `selected`
+ * matches no label, `placeholder` shows, muted.
+ *
+ * Example:
+ *     ui.dropdown([("Apple", Msg.Fruit("apple")), ("Banana", Msg.Fruit("banana"))], m.fruit, "Select a fruit")
+ */
+public fun dropdown<Msg>(
+    choices: (string, Msg)[],
+    selected: string,
+    placeholder: string,
+): View<Msg> {
+    let picked = choices.iter().any(fun(c) = c.0 == selected);
+    let trigger_text = if picked { look([]) } else { look([Text.color(Token.MutedForeground)]) };
+    native_dropdown(choices, selected).placeholder(placeholder).style([
+        Inside(Part.Trigger, [
+            Font.sm(),
+            Border.rounded_md(),
+            Sizing.min_height(36),
+            Spacing.padding_x(12),
+            Background.color(clear()),
+            shadow(1, 2, 13),
+            trigger_text,
+            Motion.colors(150),
+            Motion.shadow(150),
+        ]),
+        edges(Token.Input.paint(), Token.Ring.paint(), Token.Ring.alpha(0.5)),
+        Inside(Part.Arrow, [Text.color(Token.MutedForeground)]),
+        Inside(Part.List, [
+            Background.color(Token.Popover),
+            Text.color(Token.PopoverForeground),
+            Border.all(1, Token.Border),
+            Border.rounded_md(),
+            shadow(4, 6, 26),
+            Spacing.padding(4),
+        ]),
+        Inside(Part.Item, [
+            Font.sm(),
+            Spacing.padding_y(6),
+            Spacing.padding_left(8),
+            // Room for the tick GTK shows on the picked item.
+            Spacing.padding_right(32),
+            Border { radius: Radius.Small, ..Border.theme() },
+            When(State.Hover, [
+                Background.color(Token.Accent),
+                Text.color(Token.AccentForeground),
+            ]),
+        ]),
+    ])
+}
+
+/** A drop-down's variants, given through `.style`: `ui.dropdown(…).style([Dropdown.invalid()])`. */
+public struct Dropdown {}
+
+impl Dropdown {
+    /** Nothing valid is picked: a red trigger, and a red ring while focused. */
+    public fun invalid(): Look = edges(
+        Token.Destructive.paint(),
+        Token.Destructive.paint(),
+        Token.Destructive.alpha(0.2),
+    );
+}

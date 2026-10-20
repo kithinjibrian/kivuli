@@ -144,8 +144,9 @@ fun check(s: Sheet): Result<(), string> {
     }
     for (part, sub) of s.parts {
         let named = "Inside(Part.{part}, …)";
-        if sub.states.len > 0 || sub.parts.len > 0 {
-            return Err("{named}: a part can't hold a When or another Inside");
+        // A `When` inside a part is the part's own state; a part inside a part isn't a thing.
+        if sub.parts.len > 0 {
+            return Err("{named}: a part can't hold another Inside");
         }
         // A part is a descendant rule: what isn't a plain rule can't reach it.
         if sub.background.image.is_some() || needs_clamp(

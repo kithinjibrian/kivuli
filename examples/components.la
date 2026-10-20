@@ -18,6 +18,7 @@ import kivuli {
     button,
     checkbox,
     column,
+    dropdown,
     icon,
     input,
     Sizing,
@@ -52,6 +53,7 @@ import kivuli.ui {
     group_button_with,
     InputGroup,
     separator_with,
+    Dropdown,
 };
 
 struct Model {
@@ -62,6 +64,7 @@ struct Model {
     user: string,
     same: bool,
     volume: i64,
+    fruit: string,
 }
 
 enum Msg {
@@ -72,6 +75,7 @@ enum Msg {
     User(string),
     Same(bool),
     Volume(i64),
+    Fruit(string),
 }
 
 fun update(m: Model, msg: Msg): Model = match msg {
@@ -82,6 +86,7 @@ fun update(m: Model, msg: Msg): Model = match msg {
     User(s) => Model { user: s, ..m },
     Same(b) => Model { same: b, ..m },
     Volume(n) => Model { volume: n, ..m },
+    Fruit(f) => Model { fruit: f, ..m },
 };
 
 fun palette_of(n: i64): Palette = if n == 1 {
@@ -105,6 +110,11 @@ fun centred(v: View<Msg>): View<Msg> = v.align(Align.Center);
 fun view(m: Model): View<Msg> = scroll(page(m)).palette(palette_of(m.base)).scheme(
     if m.dark { Scheme.Dark } else { Scheme.Light },
 ).window("Components", 760, 720);
+
+/** The fruit drop-downs' choices. */
+fun fruits(): (string, Msg)[] = ["Apple", "Banana", "Blueberry", "Grapes", "Pineapple"].map(
+    fun(f: string) = (f, Msg.Fruit(f)),
+);
 
 /** Every component, top to bottom; the window scrolls through it. */
 fun page(m: Model): View<Msg> = column([
@@ -229,6 +239,24 @@ fun page(m: Model): View<Msg> = column([
             ).disabled(m.same),
             field_horizontal([checkbox("A native check box, for comparison", m.same, Msg.Same)]),
         ]).style([Spacing.gap(12)]),
+    ),
+    section(
+        "Dropdown",
+        column([
+            ui.dropdown(fruits(), m.fruit, "Select a fruit").style([Sizing.width(220)]),
+            field([
+                field_label("Fruit"),
+                ui.dropdown(fruits(), m.fruit, "Select a fruit").style([
+                    if m.fruit == "" { Dropdown.invalid() } else { look([]) },
+                ]),
+                if m.fruit == "" {
+                    field_error("Please select a fruit.")
+                } else {
+                    field_description("You picked {m.fruit}.")
+                },
+            ]).style([if m.fruit == "" { Field.invalid() } else { look([]) }]),
+            dropdown(fruits(), m.fruit),
+        ]).style([Spacing.gap(16), Sizing.max_width(420)]),
     ),
     section(
         "Slider",
@@ -357,7 +385,16 @@ fun page(m: Model): View<Msg> = column([
 
 fun main(): i32 = sandbox(
     "org.kivuli.components",
-    Model { dark: false, base: 0, email: "", password: "", user: "", same: true, volume: 40 },
+    Model {
+        dark: false,
+        base: 0,
+        email: "",
+        password: "",
+        user: "",
+        same: true,
+        volume: 40,
+        fruit: "",
+    },
     update,
     view,
 );

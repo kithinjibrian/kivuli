@@ -15,6 +15,7 @@ import kivuli {
     LineHeight,
     Decoration,
     Transform,
+    TextAlign,
     Paint,
     Background,
     Gradient,
@@ -29,6 +30,8 @@ import kivuli {
     Radius,
     Shadow,
     Effects,
+    Motion,
+    Mark,
     Spacing,
     Edges,
     button,
@@ -64,6 +67,7 @@ fun the_theme_values_set_nothing() {
         letter_spacing: 0,
         decoration: Decoration.Theme,
         transform: Transform.Theme,
+        align: TextAlign.Theme,
     });
     assert_eq(Sheet.theme(), Sheet {
         font: Font.theme(),
@@ -76,6 +80,9 @@ fun the_theme_values_set_nothing() {
         states: [],
         shadow: Shadow.theme(),
         effects: Effects.theme(),
+        motion: Motion.theme(),
+        parts: [],
+        mark: Mark.theme(),
     });
     assert_eq(Side.theme(), Side { width: Width.Theme, color: Paint.Theme, style: Line.Theme });
     assert_eq(Border.theme(), Border {

@@ -116,6 +116,8 @@ struct Choices<Msg> {
     shown: (string, Option<Msg>)[],
     /** True while kivuli changes the widget or a pick is being sent: the handler then does nothing. */
     busy: bool,
+    /** The blank item's label (`.placeholder`): `""` until a style gives one. */
+    placeholder: string,
 }
 
 /** A node's context menu on screen (`popovers`). */

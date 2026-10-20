@@ -99,13 +99,11 @@ fun a_mark_is_gtks_icon_source() {
 
 @test
 fun what_a_part_cant_take_is_refused() {
-    let nested = sheet_of(
+    // A When inside a part is allowed now (PRP-039): its state sits on the part.
+    let hovered = sheet_of(
         box().style([Inside(Part.Check, [When(State.Hover, [Background.color(Token.Accent)])])]),
     );
-    assert_eq(
-        check(nested),
-        Err("Inside(Part.Check, …): a part can't hold a When or another Inside"),
-    );
+    assert_eq(check(hovered), Ok(()));
     let gap = sheet_of(box().style([Inside(Part.Check, [Spacing.gap(4)])]));
     assert_eq(
         check(gap),
@@ -142,4 +140,39 @@ fun a_sliders_parts_are_its_trough_highlight_and_knob() {
         Sheet.theme(),
     );
     assert(keys(hovered).iter().any(fun(x) = x.ends_with(":hover slider")));
+}
+
+@test
+fun a_dropdowns_parts_are_paths_and_an_item_takes_its_own_hover() {
+    let s = Inside(Part.Item, [
+        Background.color(Token.Popover),
+        When(State.Hover, [Background.color(Token.Accent)]),
+    ]).apply(
+        Inside(Part.List, [Background.color(Token.Popover)]).apply(
+            Inside(Part.Arrow, [Background.color(Token.Muted)]).apply(
+                Inside(Part.Trigger, [Background.color(Token.Card)]).apply(Sheet.theme()),
+            ),
+        ),
+    );
+    let k = keys(s);
+    assert(k.iter().any(fun(x) = x == "kv-trigger-bgt-card > button"));
+    assert(k.iter().any(fun(x) = x == "kv-arrow-bgt-muted arrow"));
+    assert(k.iter().any(fun(x) = x == "kv-list-bgt-popover popover > contents"));
+    assert(k.iter().any(fun(x) = x == "kv-item-bgt-popover popover row"));
+    // A state inside a part sits on the part.
+    assert(k.iter().any(fun(x) = x == "kv-item-hover-bgt-accent popover row:hover"));
+    // Under the widget's state, the part comes after.
+    let focused = When(State.Focus, [Inside(Part.Trigger, [Border.all(1, Token.Ring)])]).apply(
+        Sheet.theme(),
+    );
+    for x of keys(focused) {
+        assert(x.ends_with(":focus-visible > button"));
+    }
+    assert_eq(check(s), Ok(()));
+}
+
+@test
+fun an_inside_inside_an_inside_is_still_refused() {
+    let v = box().style([Inside(Part.Item, [Inside(Part.Arrow, [Background.color(Token.Muted)])])]);
+    assert_eq(check(sheet_of(v)), Err("Inside(Part.Item, …): a part can't hold another Inside"));
 }

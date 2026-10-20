@@ -42,7 +42,8 @@ fun sync_choices<Msg>(drop: GtkWidget, state: Ref<Choices<Msg>>) {
     let now = state.get();
     let mut want: (string, Option<Msg>)[] = [];
     if now.pick.is_none() {
-        want.push(("", None));
+        // The blank item: the placeholder's text, picking it sends nothing.
+        want.push((now.placeholder, None));
     }
     for (label, msg) of now.offered {
         want.push((label, Some(msg)));

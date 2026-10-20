@@ -231,3 +231,39 @@ fun a_slider_sends_whole_steps_once_follows_the_model_and_does_not_echo() {
     assert_eq(seen.get(), ["50 14", "42", "18", "90 18", "20"]);
     assert_eq(received.get(), ["Volume(42)", "Font(18)", "Loud", "Small", "Font(20)"]);
 }
+
+/** Nothing picked, its placeholder changing when Grow is clicked. */
+fun view_placeholder(n: i64): View<Pick> = column([
+    dropdown([("S", Pick.Size("S")), ("M", Pick.Size("M"))], "").placeholder(
+        if n == 0 { "Pick a size" } else { "Choose" },
+    ),
+    button("Grow", Pick.Grow),
+]);
+
+@test
+fun a_placeholder_labels_the_blank_item_and_changes_on_the_same_widget() {
+    if !has_display() {
+        skip("no display");
+    }
+    let received: Ref<string[]> = Ref.new([]);
+    let seen: Ref<string[]> = Ref.new([]);
+    with_app(
+        "org.kivuli.test.placeholder",
+        0,
+        fun(n: i64, msg: Pick): i64 = match msg {
+            Grow => n + 1,
+            _ => n,
+        },
+        view_placeholder,
+        received,
+        fun(kids: Live<Pick>[], done: fun()) {
+            let drop = widget(kids[0]);
+            note(seen, listed(kids[0]));
+            emit_widget(widget(kids[1]), "clicked");
+            note(seen, "same {widget(kids[0]) == drop} {listed(kids[0])}");
+            done();
+        },
+    );
+    assert_eq(seen.get(), ["Pick a size|S|M @0", "same true Choose|S|M @0"]);
+    assert_eq(received.get(), ["Grow"]);
+}
