@@ -1,6 +1,6 @@
 # PRP-053 — SVG images
 
-Status: draft (session 116)
+Status: approved (session 116)
 Discovery: session 116, 2026-10-20 (GTK 4.22's own SVG renderer, `GtkSvg` in `gtk/gtksvg.h`: a `GdkPaintable`, so pictures and button images show it sharp at any size; its `GtkSvgFeatures` turn off external resources, animations and GTK's extensions). *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: `Image.File` and `Image.Bytes` take SVG beside PNG and JPEG, everywhere an image is shown but backgrounds.
