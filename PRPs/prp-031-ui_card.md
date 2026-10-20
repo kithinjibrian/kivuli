@@ -30,12 +30,12 @@ card([
 ## REQUIREMENTS
 
 ### The card *(you: A: parts)*
-- `card<Msg>(parts: View<Msg>[]): View<Msg>`: a column, `Background.color(Token.Card)`, `Text.color(Token.CardForeground)`, `Font.sm()`, a 1 px border of `Foreground` at 10% (the reference's ring), padding 16 top and bottom and none across (the parts pad themselves across), 16 px between parts, corners rounded by the palette's radius plus 4 (shadcn's `rounded-xl`), which clips the footer's corners.
+- `card<Msg>(parts: View<Msg>[]): View<Msg>`: a column, `Background.color(Token.Card)`, `Text.color(Token.CardForeground)`, the theme's text size (see the notes), a 1 px border of `Foreground` at 10% (the reference's ring), padding 16 top and bottom and none across (the parts pad themselves across), 16 px between parts, corners rounded by the palette's radius plus 4 (shadcn's `rounded-xl`), which clips the footer's corners.
 - **`Radius.XLarge` and `Border.rounded_xl()`** *(proposed: the radius + 4 px, `calc(var(--kv-radius) + 4px)`; the card needs one size above `Large`)*.
 - One size *(you: A)*: the small size waits until a container's spacing can reach its parts (recorded as an open question in DECISIONS).
 
 ### The parts
-- `card_header<Msg>(title: string, description: string): View<Msg>`: the title (`Font.medium()`, the theme's size, one size up from the card's text) over the description (`Font.sm()`, `Token.MutedForeground`), 4 px apart, 16 px across. An empty description is left out.
+- `card_header<Msg>(title: string, description: string): View<Msg>`: the title (`Font.lg()`, `Font.medium()`) over the description (`Font.sm()`, `Token.MutedForeground`), 4 px apart, 16 px across. An empty description is left out.
 - `card_header_with<Msg>(title: string, description: string, action: View<Msg>): View<Msg>`: the same, with `action` (a button, a badge) at the top of the end side.
 - `card_content<Msg>(children: View<Msg>[]): View<Msg>`: a column, 16 px across, 8 px between children *(proposed: the reference's content is a plain block, and apps nearly always stack fields; 8 is the form gap)*.
 - `card_footer<Msg>(children: View<Msg>[]): View<Msg>`: a row, 8 px apart *(proposed)*, padding 16, a 1 px `Border` top, `Muted` at 50% behind it, and a margin of −16 at the bottom so it meets the card's edge (the card's corners clip it).
@@ -50,3 +50,7 @@ card([
 
 ## ACCEPTANCE
 - [ ] The OBJECTIVE compiles; fmt clean; no file over 500 lines; README, DESIGN, CHANGELOG 0.26.0, CLAUDE.md, DECISIONS (container spacing reaching its parts: open); merged, tagged; pushed only on your go.
+
+## NOTES FROM THE BUILD
+
+- **No font size on the card**: a `Size.Scale` is a percentage of the parent's size, so the reference's `text-sm` card would have shrunk everything inside it (a small description to about 77%, buttons and badges too). The card keeps the theme's size (near the reference's 14 px on GNOME); the title is `Font.lg()`, the description `Font.sm()`.

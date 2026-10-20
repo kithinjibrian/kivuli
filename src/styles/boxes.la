@@ -152,8 +152,11 @@ impl Border {
     /** Corners at the palette's radius less 2 pixels (`Radius.Medium`): buttons and fields. */
     public fun rounded_md(): Border = Border { radius: Radius.Medium, ..Border.theme() };
 
-    /** Corners at the palette's radius (`Radius.Large`): cards. */
+    /** Corners at the palette's radius (`Radius.Large`). */
     public fun rounded_lg(): Border = Border { radius: Radius.Large, ..Border.theme() };
+
+    /** Corners at the palette's radius plus 4 pixels (`Radius.XLarge`): cards. */
+    public fun rounded_xl(): Border = Border { radius: Radius.XLarge, ..Border.theme() };
 
     /** Each corner's own radius: top left, top right, bottom right, bottom left. */
     public fun corners(tl: i64, tr: i64, br: i64, bl: i64): Border = Border {

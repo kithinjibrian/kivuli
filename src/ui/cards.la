@@ -1,0 +1,101 @@
+/**
+ * Card (PRP-031): a container in the palette's card colours, and its parts:
+ * a header (a title over a description, an action at the end), content,
+ * and a footer that runs to the card's edges. Each part is a plain function
+ * returning a view, so any can be left out, repeated, or mixed with an app's
+ * own views. One size: 16 px of spacing. Pure.
+ *
+ * Depends on: views, looks, widgets, styles, theming, boxes, fonts
+ * Used by: ui
+ */
+
+// The public items the entry re-exports, by their own modules (rule 2: no `lib`).
+import view.views { View };
+import view.looks { Align };
+import view.widgets { column, row, text };
+import styles.theming { Token };
+import styles.boxes { Background, Border, Spacing };
+import styles.fonts { Font, Text };
+
+/**
+ * A card holding `parts`, 16 px apart: usually a `card_header`, a
+ * `card_content` and a `card_footer`. The parts pad themselves across, so
+ * a footer can reach the edges; the rounded corners clip it.
+ *
+ * Example:
+ *     card([card_header("Storage", "12 of 64 GB used"), card_content([meter])])
+ */
+public fun card<Msg>(parts: View<Msg>[]): View<Msg> = column(parts).style([
+    Background.color(Token.Card),
+    Text.color(Token.CardForeground),
+    // No font size: a scale is a share of the parent's, so a small card
+    // would shrink every badge, button and description inside it too.
+    // A hairline of the text colour, faint, instead of a shadow.
+    Border.all(1, Token.Foreground.alpha(0.1)),
+    Border.rounded_xl(),
+    Spacing.padding_y(16),
+    Spacing.gap(16),
+]);
+
+/** A card's title and, unless it's `""`, the description under it. */
+fun titled<Msg>(title: string, description: string): View<Msg> {
+    let mut lines: View<Msg>[] = [text(title).style([Font.lg(), Font.medium()])];
+    if description != "" {
+        lines.push(text(description).style([Font.sm(), Text.color(Token.MutedForeground)]));
+    }
+    column(lines).style([Spacing.gap(4)])
+}
+
+/**
+ * A card's header: `title` over `description` (left out when it's `""`).
+ *
+ * Example:
+ *     card_header("Login to your account", "Enter your email below to log in")
+ */
+public fun card_header<Msg>(title: string, description: string): View<Msg> = titled(
+    title,
+    description,
+).style([Spacing.padding_x(16)]);
+
+/**
+ * A card's header with `action` (a button, a badge) at the top of its end
+ * side.
+ *
+ * Example:
+ *     card_header_with("Design systems meetup", "A talk on component APIs", badge("Featured"))
+ */
+public fun card_header_with<Msg>(
+    title: string,
+    description: string,
+    action: View<Msg>,
+): View<Msg> = row([titled(title, description).expand(), action.align(Align.Start)]).style([
+    Spacing.padding_x(16),
+    Spacing.gap(16),
+]);
+
+/**
+ * A card's content: `children` in a column, 8 px apart.
+ *
+ * Example:
+ *     card_content([input(m.email, Msg.Email), input(m.password, Msg.Password)])
+ */
+public fun card_content<Msg>(children: View<Msg>[]): View<Msg> = column(children).style([
+    Spacing.padding_x(16),
+    Spacing.gap(8),
+]);
+
+/**
+ * A card's footer: `children` in a row, 8 px apart, on a faint muted band
+ * that runs to the card's edges.
+ *
+ * Example:
+ *     card_footer([ui.button("Accept", Msg.Accept), ui.button("Decline", Msg.Decline).style([Button.outline()])])
+ */
+public fun card_footer<Msg>(children: View<Msg>[]): View<Msg> = row(children).style([
+    Spacing.padding(16),
+    Spacing.gap(8),
+    Border.top(1, Token.Border),
+    Background.color(Token.Muted.alpha(0.5)),
+    // Over the card's bottom padding, so the band meets its edge.
+    Spacing.margin_bottom(-16),
+]);

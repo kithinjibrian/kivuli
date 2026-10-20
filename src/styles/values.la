@@ -153,8 +153,10 @@ public enum Radius {
     Small,
     /** The palette's radius less 2 pixels: a button, a field. */
     Medium,
-    /** The palette's radius: a card. */
+    /** The palette's radius. */
     Large,
+    /** The palette's radius plus 4 pixels: a card. */
+    XLarge,
 }
 
 /** One side of a border. Fields left `Theme` stay the theme's. */

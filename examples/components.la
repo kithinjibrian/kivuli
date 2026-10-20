@@ -17,11 +17,23 @@ import kivuli {
     button,
     column,
     icon,
+    input,
+    Sizing,
     row,
     sandbox,
     text,
 };
-import kivuli.ui { badge, badge_with, Badge, Button };
+import kivuli.ui {
+    badge,
+    badge_with,
+    Badge,
+    Button,
+    card,
+    card_header,
+    card_header_with,
+    card_content,
+    card_footer,
+};
 
 struct Model {
     dark: bool,
@@ -156,21 +168,46 @@ fun view(m: Model): View<Msg> = column([
             centred(badge("A pill").style([Border.rounded(999)])),
         ]).style([Spacing.gap(8)]),
     ),
-    column([
+    section(
+        "Card",
         row([
-            centred(text("Pro plan").style([Font.heading()])),
-            centred(badge("Current").style([Badge.secondary()])),
-        ]).style([Spacing.gap(8)]),
-        text("12 of 20 seats used").style([Text.color(Token.MutedForeground)]),
-    ]).style([
-        Background.color(Token.Card),
-        Text.color(Token.CardForeground),
-        Border.all(1, Token.Border),
-        Border.rounded_lg(),
-        Spacing.padding(20),
-        Spacing.gap(6),
-        Shadow.sm(),
-    ]),
+            card([
+                card_header("Login to your account", "Enter your email below to log in"),
+                card_content([
+                    text("Email").style([Font.medium()]),
+                    input("", fun(s: string) = Msg.Base(m.base)).placeholder("m@example.com"),
+                    text("Password").style([Font.medium()]),
+                    input("", fun(s: string) = Msg.Base(m.base)),
+                ]),
+                card_footer([
+                    ui.button("Login", Msg.Base(m.base)),
+                    ui.button("Login with Google", Msg.Base(m.base)).style([Button.outline()]),
+                ]),
+            ]).style([Sizing.width(340)]),
+            column([
+                card([
+                    card_header_with(
+                        "Design systems meetup",
+                        "A practical talk on component APIs",
+                        badge("Featured").style([Badge.secondary()]),
+                    ),
+                    card_content([text("Thursday, 6 pm · Room 2")]),
+                ]),
+                card([
+                    card_header("Terms of Service", ""),
+                    card_content([
+                        text(
+                            "By using this app you agree to keep your password to yourself and your shortcuts tidy.",
+                        ).wrap(),
+                    ]),
+                    card_footer([
+                        ui.button("Accept", Msg.Base(m.base)),
+                        ui.button("Decline", Msg.Base(m.base)).style([Button.outline()]),
+                    ]),
+                ]),
+            ]).style([Spacing.gap(16)]).expand(),
+        ]).style([Spacing.gap(16)]),
+    ),
 ]).style([Spacing.padding(32), Spacing.gap(20)]).palette(palette_of(m.base)).scheme(
     if m.dark { Scheme.Dark } else { Scheme.Light },
 ).window("Components", 760, 720);
