@@ -12,6 +12,15 @@ Rules:
 
 ## OPEN — Requires human input before implementation
 
+### DECISION-029 — lughac: the examples' tests can't run together
+
+**Status:** open (a lughac bug to report; run one at a time meanwhile)
+**Raised:** 2026-10-20 — Session 114
+
+**Question:** `lughac test examples/tasks.la examples/browser.la examples/controls.la` stops with E0304 (`main` belongs in the main file) for browser.la and controls.la, then "error: these test files check alone but not together; please report it". Each file alone passes (8, 5, 3 tests). lughac asks for it to be reported, in the lugha repository under its own rules.
+
+**Outcome so far:** the examples' tests run one file at a time (`for f in tasks browser controls; do lughac test examples/$f.la; done`), which runs the same tests. Revisit once lughac runs several main files' tests in one call.
+
 ### DECISION-028 — A container's spacing reaching its parts
 
 **Status:** open (not blocking: deferred by the user, session 53)

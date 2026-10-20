@@ -1712,6 +1712,19 @@ Branch: prp-052-sheet → main
 
 ---
 
+## SESSION 114 — 2026-10-20 — Full check after build all; a lughac report — closed
+
+Branch: main
+
+### WHAT WAS DONE
+- Full suite: 462 tests, 462 passed (exit 0). The examples' own tests, each alone: tasks 8, browser 5, controls 3, all pass. Every example built.
+- `lughac test examples/tasks.la examples/browser.la examples/controls.la` (as CLAUDE.md writes it) fails: E0304 `main` belongs in the main file, "these test files check alone but not together; please report it". Recorded as DECISION-029 (a lughac report); run them one at a time until it's fixed.
+
+### STILL OPEN AT CLOSE
+- By hand: the five new pieces in `examples/components.la`. Push main and tags v0.18.0–v0.47.0 only on the user's go.
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
