@@ -581,9 +581,18 @@ Branch: main (PRP-023 on prp-023-header_bar, merged)
 
 ---
 
-## SESSION 29 — 2026-10-20 — Click away clears focus: discovery — open
+## SESSION 29 — 2026-10-20 — PRP-024: clicking away clears focus, kivuli 0.19.0 — closed
 
-Branch: main
+Branch: main (PRP-024 on prp-024-click_away, merged)
+
+### WHAT WAS DONE
+- The user's `examples/search_bar.la` kept its field focused when clicking away: GTK's behaviour (a window keeps a focused widget; a click moves focus only onto something that takes it), not autofocus repeating. Interview: always on. PRP-024 approved and built: lugha-gtk 0.1.31 (`gtk_window_set_focus`, pushed); a primary-button bubble-phase click gesture on the window clears its focus (`Running.blur`). Test: live_focus (new, mutation-checked); live_forms, live_menu, live still pass; every example built. Docs updated. kivuli 0.19.0, tagged locally.
+
+### STILL OPEN AT CLOSE
+- Not pushed, waiting for the user's go: main and tag v0.19.0. The full suite wasn't run: run it before the push.
+- For the user to check by hand: `lughac run examples/search_bar.la`: click beside the field and it loses focus; buttons and other widgets still take their clicks.
+- The user's examples/search_bar.la is untracked (theirs; its app id is hello's, "org.kivuli.hello"); my build loop left examples/search_bar (a binary, not in .gitignore; protected, left alone).
+- `reports/.gitkeep` deleted in the working tree, not by Claude; left alone.
 
 ---
 

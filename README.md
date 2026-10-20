@@ -142,7 +142,7 @@ lughac run examples/split.la      # one component, two copies, through map
 | `.selectable()` | Text the user can select and copy. |
 | `.tooltip(hint)` | Hover text on any node; tests can click a button by it. |
 | `.shortcut(keys)` | Keys that press a button from anywhere in the window: `"Ctrl+N"`, `"Ctrl+Shift+Delete"`, `"Escape"`. A disabled button's shortcut does nothing; unreadable keys, or two enabled buttons with the same ones, stop the app with a message. |
-| `.autofocus()` | Keyboard focus goes to the node when it's first shown. |
+| `.autofocus()` | Keyboard focus goes to the node when it's first shown. Clicking anywhere that doesn't take focus itself (empty space, text, pictures) clears the window's focus, as on the web. |
 | `.disabled(bool)` | Buttons, text fields and text areas: greyed out by the theme, and they send nothing. A disabled field still shows its value and follows the model. `.disabled(false)` changes nothing. |
 | `.step(n)` | Sliders: move in steps of `n`, counted from the least value. |
 | `.equal()`, `.max_per_line(n)` | Wraps: every child as wide as the widest (a tidy grid); at most `n` children on a line (`n <= 0`: no limit, the default). |

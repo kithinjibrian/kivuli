@@ -146,6 +146,10 @@ Dark mode: apps follow the desktop's preference. Forcing dark from an app is def
 
 ---
 
+## Keyboard focus: clicking away (PRP-024)
+
+GTK keeps a window's focused widget whatever is clicked beside it; kivuli clears it, as a web page blurs a field. When the window opens, kivuli adds a primary-button `GtkGestureClick` to the window in the bubble phase (GTK's default), so it sees only clicks no widget under the pointer took (buttons, fields, text areas, check boxes, drop-downs, sliders and selectable text take their own). On a press it calls `gtk_window_set_focus(window, NULL)` (lugha-gtk 0.1.31). Tab, `Cmd.focus` and `.autofocus` are untouched; context menus' right-click gestures are on their own nodes.
+
 ## Background work (`Cmd.task`, `Sub.receive`; PRP-011)
 
 Lugha runs every green thread on the program's one OS thread, and GTK's main loop holds that thread inside one `extern` call (`g_application_run`). So kivuli hands Lugha's scheduler turns: while any task or `Sub.receive` is active, a GLib timeout (every 4 ms) calls `task.yield_now()`, which never blocks (it wakes due sleepers, polls sockets with `epoll_wait(…, 0)`, and runs ready threads one round, Lugha's preemption cutting a busy one off every 4,096 steps). It keeps yielding while yields find work, up to 2 ms of the 4 ms, then dispatches finished tasks' messages and received values on GTK's thread, one `update` at a time. With nothing in flight the source removes itself. An OS thread per task is impossible in Lugha (one OS thread; callbacks only on the thread that registered them).

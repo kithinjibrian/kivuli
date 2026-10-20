@@ -12,6 +12,12 @@
 import gtk {
     GtkApplication,
     GtkCssProvider,
+    GtkEventController,
+    connect_click,
+    gtk_gesture_click_new,
+    gtk_gesture_single_set_button,
+    gtk_widget_add_controller,
+    gtk_window_set_focus,
     GtkWidget,
     connect_app,
     g_application_quit,
@@ -84,6 +90,8 @@ struct Running<Model, Msg> {
     turning: Ref<bool>,
     // The app's stylesheet: every CSS rule a view has needed so far.
     styles: Styles,
+    // The window's click-away gesture (tests press it).
+    blur: GtkEventController,
 }
 
 /**
@@ -142,6 +150,7 @@ fun mount<Model, Msg>(
         receiving: Ref.new(no_receivers),
         turning: Ref.new(false),
         styles: styles_for(window),
+        blur: click_away(window),
     };
     let (model, cmd) = program.init;
     let view = program.view;
@@ -231,6 +240,28 @@ fun paint_or_stop<Msg>(v: View<Msg>): View<Msg> = match painted(v) {
     Ok(p) => p,
     Err(problem) => panic("kivuli: {problem}"),
 };
+
+/**
+ * Clicking away clears keyboard focus, as a web page blurs a field (PRP-024):
+ * a primary-button gesture on the window, in the bubble phase (GTK's
+ * default), so it sees only clicks no widget under the pointer took (buttons,
+ * fields, text areas and the like take their own). GTK otherwise keeps a
+ * field focused whatever is clicked beside it.
+ */
+fun click_away(window: GtkWidget): GtkEventController {
+    let gesture = gtk_gesture_click_new();
+    gtk_gesture_single_set_button(gesture, 1);
+    connect_click(
+        gesture,
+        "pressed",
+        fun(g: GtkEventController, n: i32, x: f64, y: f64) {
+            gtk_window_set_focus(window, None);
+        },
+        0,
+    );
+    gtk_widget_add_controller(window, gesture);
+    gesture
+}
 
 /** The app's stylesheet, empty, applied to `window`'s display. */
 fun styles_for(window: GtkWidget): Styles {

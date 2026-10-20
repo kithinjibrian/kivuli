@@ -8,6 +8,11 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.19.0] — 2026-10-20
+
+### Changed
+- Clicking away clears keyboard focus (PRP-024): a click anywhere that doesn't take focus itself (empty space, text, pictures) leaves the focused field, as on the web; GTK alone keeps it focused. Every app, nothing to write. Needs lugha-gtk 0.1.31.
+
 ## [0.18.0] — 2026-10-20
 
 ### Breaking
