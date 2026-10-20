@@ -1,6 +1,6 @@
 // Drop-downs in groups (PRP-049): the node a grouped drop-down is, empty
 // groups left out, the pick across groups, `map`, a plain drop-down as no
-// groups, and the diff's SetChoices. No GTK.
+// groups, and the diff's SetChoices; disabled drop-downs (PRP-050). No GTK.
 import kivuli.core.diff { Patch, diff as patches };
 import kivuli { View, dropdown, dropdown_grouped };
 
@@ -22,7 +22,7 @@ fun a_grouped_dropdown_is_its_choices_in_order_and_its_groups() {
     match food("Carrot") {
         Dropdown(choices, selected, groups) => {
             assert_eq(choices.map(fun(c) = c.0), ["Apple", "Banana", "Carrot"]);
-            assert_eq(choices[2].1, Msg.Pick("carrot"));
+            assert_eq(choices[2].1, Some(Msg.Pick("carrot")));
             assert_eq(selected, "Carrot");
             // The empty group is left out; each group is its heading and size.
             assert_eq(groups, [("Fruits", 2), ("Vegetables", 1)]);
@@ -46,7 +46,7 @@ fun map_keeps_the_groups() {
         Pick(s) => s,
     }) {
         Dropdown(choices, _, groups) => {
-            assert_eq(choices[1].1, "banana");
+            assert_eq(choices[1].1, Some("banana"));
             assert_eq(groups, [("Fruits", 2), ("Vegetables", 1)]);
         }
         _ => panic("expected a drop-down"),
@@ -64,6 +64,38 @@ fun the_diff_sends_the_groups_with_the_choices() {
             assert_eq(selected, "Apple");
             assert_eq(groups, [("Fruits", 2), ("Vegetables", 1)]);
         }
+        _ => panic("expected SetChoices"),
+    }
+}
+
+fun sends(v: View<Msg>): bool[] = match v {
+    Dropdown(choices, _, _) => choices.map(fun(c) = c.1.is_some()),
+    Styled(inner, _) => sends(inner),
+    _ => panic("expected a drop-down"),
+};
+
+@test
+fun disabling_a_dropdown_takes_every_message_away() {
+    let plain: View<Msg> = dropdown([("Apple", Msg.Pick("apple")), ("Pear", Msg.Pick("pear"))], "");
+    assert_eq(sends(plain.disabled(true)), [false, false]);
+    assert_eq(sends(plain.disabled(false)), [true, true]);
+    assert_eq(sends(food("").disabled(true)), [false, false, false]);
+    // Styled first, then disabled: still reaches the drop-down.
+    assert_eq(sends(food("").name("food").disabled(true)), [false, false, false]);
+}
+
+@test
+fun map_keeps_a_disabled_dropdown_disabled() {
+    match food("").disabled(true).map(fun(m: Msg): i64 = 1) {
+        Dropdown(choices, _, _) => assert(choices.iter().all(fun(c) = c.1.is_none())),
+        _ => panic("expected a drop-down"),
+    }
+}
+
+@test
+fun the_diff_sends_the_disabling() {
+    match patches(food("Apple"), food("Apple").disabled(true))[0] {
+        SetChoices(_, choices, _, _) => assert(choices.iter().all(fun(c) = c.1.is_none())),
         _ => panic("expected SetChoices"),
     }
 }

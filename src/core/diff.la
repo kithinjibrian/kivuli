@@ -42,7 +42,7 @@ enum Patch<Msg> {
     /** The check box at the path turns toggles into messages with this function from now on; `None` disables it. */
     SetOnToggle(i64[], Option<fun(bool): Msg>),
     /** The drop-down at the path offers these choices, the one labelled so shown picked, in these groups. */
-    SetChoices(i64[], (string, Msg)[], string, (string, i64)[]),
+    SetChoices(i64[], (string, Option<Msg>)[], string, (string, i64)[]),
     /** The slider at the path runs from the first number to the second. */
     SetRange(i64[], i64, i64),
     /** The slider at the path shows this number. */

@@ -16,7 +16,7 @@ import styles.theming { Color, Paint, Token };
 import styles.values { Drop, Line, Radius };
 import styles.boxes { Background, Border, Outline, Sizing, Spacing };
 import styles.fonts { Font, Text };
-import styles.drawing { Shadow };
+import styles.drawing { Effects, Shadow };
 import styles.motion { Motion };
 
 fun clear(): Color = Color { red: 0, green: 0, blue: 0, alpha: 0 };
@@ -132,6 +132,7 @@ fun dressed<Msg>(native: View<Msg>, picked: bool, placeholder: string): View<Msg
             Spacing.padding_x(8),
         ]),
         Inside(Part.GroupLine, [Background.color(Token.Border)]),
+        When(State.Disabled, [Effects.opacity(0.5)]),
     ])
 }
 

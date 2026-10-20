@@ -211,15 +211,21 @@ public fun text_area<Msg>(value: string, on_change: fun(string): Msg): View<Msg>
  * Builds a drop-down offering `choices`, each a label and the message picking
  * it sends; `selected` is the label shown picked. When it matches no label, a
  * blank item is shown picked (picking it sends nothing). With two equal
- * labels, `selected` picks the first. `.name(id)` lets tests find it.
+ * labels, `selected` picks the first. `.disabled(true)` greys it, sending
+ * nothing. `.name(id)` lets tests find it.
  *
  * Example:
  *     dropdown([("Normal", Msg.Weight(false)), ("Bold", Msg.Weight(true))], if m.bold { "Bold" } else { "Normal" })
  */
 public fun dropdown<Msg>(choices: (string, Msg)[], selected: string): View<Msg> = View.Dropdown(
-    choices,
+    offered(choices),
     selected,
     [],
+);
+
+/** `choices` each sending its message: a drop-down's until `.disabled` takes them away. */
+fun offered<Msg>(choices: (string, Msg)[]): (string, Option<Msg>)[] = choices.map(
+    fun(c) = (c.0, Some(c.1)),
 );
 
 /**
@@ -240,7 +246,7 @@ public fun dropdown_grouped<Msg>(groups: (string, (string, Msg)[])[], selected: 
             sizes.push((heading, members.len));
         }
     }
-    View.Dropdown(choices, selected, sizes)
+    View.Dropdown(offered(choices), selected, sizes)
 }
 
 /**

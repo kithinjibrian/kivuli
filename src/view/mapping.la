@@ -41,7 +41,10 @@ fun mapped<Msg, B>(v: View<Msg>, f: fun(Msg): B): View<B> = match v {
         None => None,
     }),
     Dropdown(choices, selected, groups) => View.Dropdown(
-        choices.map(fun(choice) = (choice.0, f(choice.1))),
+        choices.map(fun(choice) = (choice.0, match choice.1 {
+            Some(msg) => Some(f(msg)),
+            None => None,
+        })),
         selected,
         groups,
     ),
@@ -78,7 +81,7 @@ fun mapped<Msg, B>(v: View<Msg>, f: fun(Msg): B): View<B> = match v {
     ),
 };
 
-/** `.disabled`: when `off`, a button's, field's, text area's, check box's or slider's messages taken away. */
+/** `.disabled`: when `off`, a button's, field's, text area's, check box's, slider's, switch's or drop-down's messages taken away. */
 fun disabled_node<Msg>(v: View<Msg>, off: bool): View<Msg> = if !off {
     v
 } else {
@@ -90,6 +93,11 @@ fun disabled_node<Msg>(v: View<Msg>, off: bool): View<Msg> = if !off {
         Checkbox(label, checked, _) => View.Checkbox(label, checked, None),
         Slider(min, max, value, _) => View.Slider(min, max, value, None),
         Switch(on, _) => View.Switch(on, None),
+        Dropdown(choices, selected, groups) => View.Dropdown(
+            choices.map(fun(c) = (c.0, None)),
+            selected,
+            groups,
+        ),
         Styled(inside, s) => View.Styled(disabled_node(inside, true), s),
         Menu(inside, entries) => View.Menu(disabled_node(inside, true), entries),
         _ => v,
