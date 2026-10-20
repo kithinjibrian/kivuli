@@ -689,9 +689,20 @@ Branch: prp-026-palettes (not merged: its tests haven't run)
 
 ---
 
-## SESSION 36 — 2026-10-20 — PRP-026 fix: dark mode never applied — open
+## SESSION 36 — 2026-10-20 — PRP-026 fix: dark mode never applied — closed
 
-Branch: prp-026-palettes
+Branch: prp-026-palettes (not merged)
+
+### WHAT WAS DONE
+- The user ran examples/palette.la: palettes and the brand colour worked, Dark changed nothing. Cause (C probe): an app's GtkCssProvider keeps `prefers-color-scheme` at "default" whatever GTK's setting; binding it to `gtk-interface-color-scheme` fixes it, live.
+- lugha-gtk 0.1.33: `lgtk_css_provider_new_for_scheme`, `lgtk_css_provider_color_scheme`; settings and clamp tests pass; pushed and tagged.
+- kivuli's stylesheet is made with it (live.la stays at 500 lines); live_palette checks the stylesheet turns dark (type-checked). The Yaru-dark warnings are the system theme's (its gtk.css imports a resource this GTK lacks), not kivuli's.
+
+### STILL OPEN AT CLOSE
+- The user to rerun `lughac run examples/palette.la` and try Dark.
+- Run palettes, live_palette, theming, live_type, then merge prp-026-palettes and tag v0.21.0.
+- `src/render/live.la` at 500 lines: split proposed (render/windows.la), waiting for the user.
+- Not pushed: main and tags v0.18.0–v0.20.0.
 
 ---
 
