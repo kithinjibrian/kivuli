@@ -778,9 +778,18 @@ Branch: main
 
 ---
 
-## SESSION 42 — 2026-10-20 — PRP-028: kivuli.ui, Badge — open
+## SESSION 42 — 2026-10-20 — PRP-028: kivuli.ui, Badge, built, not merged — closed
 
-Branch: prp-028-ui-badge
+Branch: prp-028-ui-badge (not merged: waiting for the user's look)
+
+### WHAT WAS DONE
+- PRP-028 built: `Look`/`look` in styles.la (exported); `kivuli.ui` (src/ui.la re-exporting src/ui/badges.la): `badge(label)`, `Badge.secondary/outline/destructive()`. Component files import the entry's modules directly, not `lib`. examples/components.la (variants, beside text, adjusted, on a card; light/dark, palettes). Docs; 0.23.0 (not tagged).
+- test/badges.la written and type-checked only (the user's call).
+
+### STILL OPEN AT CLOSE
+- The user to look: `lughac run examples/components.la`; then merge and tag v0.23.0.
+- Next component: Button (variants default, secondary, outline, ghost, destructive, link; sizes), on the same convention.
+- Tests not run since session 32; main and tags v0.18.0–v0.22.0 not pushed.
 
 ---
 
