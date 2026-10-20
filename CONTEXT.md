@@ -1171,9 +1171,16 @@ Branch: prp-036-ui-checkbox (not merged: waiting for the user's look)
 
 ---
 
-## SESSION 72 — 2026-10-20 — Split sheets.la; disabled check boxes discovery — open
+## SESSION 72 — 2026-10-20 — Split sheets.la; disabled check boxes PRP-037 draft — closed
 
-Branch: prp-036-ui-checkbox
+Branch: prp-036-ui-checkbox (the split; PRP-036 still not merged)
+
+### WHAT WAS DONE
+- sheets.la (514 lines) split on the user's approval: its checks are styles/checks.la (239); sheets.la 303. Unused imports trimmed; importers updated; type-checks.
+- PRP-037 (disabled check boxes) drafted: `View.Checkbox`'s toggle becomes an `Option`, as rule 6 says.
+
+### STILL OPEN AT CLOSE
+- PRP-037 awaits the user's approval. PRP-036 awaits the user's look and a merge (PRP-037 builds on it).
 
 ---
 
