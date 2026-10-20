@@ -1,6 +1,6 @@
 # PRP-034 — kivuli.ui: Input group
 
-Status: built (session 64) on branch prp-034-ui-input-group
+Status: built (session 64); merged into main in session 65 without running its tests (the user's call)
 Discovery: session 63, 2026-10-20 (after Field, the user's order; the reference is ui.shadcn.com/docs/components/base/input-group, whose page shows no class strings). *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: `input_group(start, control, end)`: one frame around a field and what sits beside it, with `group_input`, `group_text`, `group_button`, `group_button_with`, and `InputGroup.invalid()`.
