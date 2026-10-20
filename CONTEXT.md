@@ -1508,6 +1508,12 @@ Branch: main
 
 ---
 
+## SESSION 98 — 2026-10-20 — The first full run: three stale tests fixed — open
+
+Branch: main
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
