@@ -1419,6 +1419,12 @@ Branch: main
 
 ---
 
+## SESSION 91 — 2026-10-20 — PRP-043: check and radio menu items — open
+
+Branch: prp-043-check-radio-menu
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
