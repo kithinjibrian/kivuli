@@ -1470,6 +1470,12 @@ Branch: main
 
 ---
 
+## SESSION 95 — 2026-10-20 — PRP-044: tooltip look — open
+
+Branch: prp-044-tooltip-look
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
