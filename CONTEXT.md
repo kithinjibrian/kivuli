@@ -1548,9 +1548,15 @@ Branch: main (prp-045-progress merged)
 
 ---
 
-## SESSION 101 — 2026-10-20 — Avatar: discovery — open
+## SESSION 101 — 2026-10-20 — Avatar: discovery, PRP-046 draft — closed
 
 Branch: main
+
+### WHAT WAS DONE
+- Interview: `ui.avatar(image, initials)` as a picture layered over its fallback (A): a picture that can't load shows nothing, so the initials show through. PRP-046 drafted (`Avatar.size`, `avatar_group`).
+
+### STILL OPEN AT CLOSE
+- PRP-046 awaits the user's approval.
 
 ---
 
