@@ -1673,6 +1673,12 @@ Branch: prp-049-dropdown-groups → main
 
 ---
 
+## SESSION 111 — 2026-10-20 — PRP-050: disabled drop-downs — open
+
+Branch: prp-050-disabled-dropdowns
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
