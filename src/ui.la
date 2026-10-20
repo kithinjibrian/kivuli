@@ -20,4 +20,12 @@ public import ui.fields {
     field_group,
     Field,
 };
+public import ui.input_groups {
+    input_group,
+    group_input,
+    group_text,
+    group_button,
+    group_button_with,
+    InputGroup,
+};
 public import ui.cards { card, card_header, card_header_with, card_content, card_footer };

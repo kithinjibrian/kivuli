@@ -1,6 +1,6 @@
 # PRP-034 — kivuli.ui: Input group
 
-Status: draft, for the user's approval (session 63)
+Status: built (session 64) on branch prp-034-ui-input-group
 Discovery: session 63, 2026-10-20 (after Field, the user's order; the reference is ui.shadcn.com/docs/components/base/input-group, whose page shows no class strings). *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: `input_group(start, control, end)`: one frame around a field and what sits beside it, with `group_input`, `group_text`, `group_button`, `group_button_with`, and `InputGroup.invalid()`.
@@ -37,8 +37,14 @@ input_group([group_text("$")], group_input(m.price, Msg.Price), [group_text("USD
 - No header or footer rows (`block-start`, `block-end`) and no text-area group (with a later `ui.textarea`); no spinner or ⌘K parts (an app puts `icon(…).style([Motion.spin()])` or a `badge` in an add-on); no GTK entry icons (later, the user's order).
 
 ## TESTS (narrow; type-check now, run once the user's faster tests are in)
-- [ ] `test/input_groups.la` (new, pure): the frame's values and focus-within ring; add-ons muted, centred, icons 16 px; the control's padding beside add-ons (8) and without (12); `group_input` has no frame in any state; `group_text`; the group buttons' size; `InputGroup.invalid()`; the OBJECTIVE reads as written.
-- [ ] GTK parses the generated rules (the C probe); `examples/components.la` gains an Input group section (the OBJECTIVE's five), the only example built. How it looks: by hand.
+- [x] (written, type-checked) `test/input_groups.la` (new, pure): the frame's values and focus-within ring; add-ons muted, centred, icons 16 px; the control's padding beside add-ons (8) and without (12); `group_input` has no frame in any state; `group_text`; the group buttons' size; `InputGroup.invalid()`; the OBJECTIVE reads as written.
+- [x] GTK parses the generated rules (116 lines, 0 errors) (the C probe); `examples/components.la` gains an Input group section (the OBJECTIVE's five), the only example built. How it looks: by hand.
 
 ## ACCEPTANCE
 - [ ] The OBJECTIVE compiles; fmt clean; no file over 500 lines; README, DESIGN, CHANGELOG 0.29.0, CLAUDE.md; merged, tagged; pushed only on your go.
+
+## NOTES FROM THE BUILD
+
+- **`group_input` has a 34 px minimum**: inside the frame's 1 px border, so the group stays 36 px high.
+- **`group_text` carries `Font.sm()` itself**, not the add-on row: a scale is a share of the parent's, so a small row would shrink the buttons in it too.
+- **Tests not run** (the user's call): input_groups type-checks; only components built.
