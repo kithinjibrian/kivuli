@@ -373,6 +373,8 @@ public struct Sizing {
     public height: Width,
     public min_height: Width,
     public max_height: Width,
+    /** The size GTK draws icons at, inside this node too (`-gtk-icon-size`); its own 16 px by default. */
+    public icon: Width,
 }
 
 impl Sizing {
@@ -384,6 +386,7 @@ impl Sizing {
         height: Width.Theme,
         min_height: Width.Theme,
         max_height: Width.Theme,
+        icon: Width.Theme,
     };
 
     /** Exactly `px` wide (within the minimum and maximum). */
@@ -404,6 +407,9 @@ impl Sizing {
     /** At most `px` high. */
     public fun max_height(px: i64): Sizing = Sizing { max_height: Width.Px(px), ..Sizing.theme() };
 
+    /** Icons drawn `px` pixels square: the node's own, and those inside it (a button's, a window control's). */
+    public fun icon(px: i64): Sizing = Sizing { icon: Width.Px(px), ..Sizing.theme() };
+
     /** `s` with every size this value sets. */
     public fun apply(self, s: Sheet): Sheet {
         let was = s.sizing;
@@ -420,6 +426,7 @@ impl Sizing {
                 height: pick(self.height, was.height),
                 min_height: pick(self.min_height, was.min_height),
                 max_height: pick(self.max_height, was.max_height),
+                icon: pick(self.icon, was.icon),
             },
             ..s,
         }

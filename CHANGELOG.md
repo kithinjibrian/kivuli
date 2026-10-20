@@ -8,6 +8,15 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.50.0] — 2026-10-21
+
+### Added
+- `Sizing.icon(px)`: the size GTK draws icons at in a node and inside it (`-gtk-icon-size`).
+
+### Changed
+- `WindowControls.look()` draws the controls' glyphs at 24 px.
+- `Sizing` has a new field, `icon`: a `Sizing { … }` written with every field needs it (one built with `..Sizing.theme()` doesn't).
+
 ## [0.49.2] — 2026-10-21
 
 ### Changed

@@ -94,6 +94,11 @@ fun box_css(s: Sheet): (string, string)[] {
         Px(n) => out.push(("kv-minh-{n}", "min-height: {n}px;")),
         Theme => {}
     }
+    // GTK's own property, inherited: the icons inside take it too.
+    match s.sizing.icon {
+        Px(n) => out.push(("kv-icon-{n}", "-gtk-icon-size: {n}px;")),
+        Theme => {}
+    }
     // Each list is one rule: CSS draws its shadows, filters and moves together.
     if s.shadow.boxes.len > 0 {
         let css = s.shadow.boxes.map(fun(d) = drop_css(d, true)).join(", ");
