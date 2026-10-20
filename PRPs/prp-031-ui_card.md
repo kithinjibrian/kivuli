@@ -1,6 +1,6 @@
 # PRP-031 — kivuli.ui: Card
 
-Status: built (session 54) on branch prp-031-ui-card
+Status: built (session 54); merged into main in session 55 without running its tests (the user's call)
 Discovery: session 53, 2026-10-20 (the third component; the reference is the current card at ui.shadcn.com/docs/components/base/card). *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: `card([...])` and its parts `card_header(title, description)`, `card_header_with(title, description, action)`, `card_content([...])`, `card_footer([...])`, one size (16 px spacing).
