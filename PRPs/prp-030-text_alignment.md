@@ -1,6 +1,6 @@
 # PRP-030 — Text alignment
 
-Status: built (session 51) on branch prp-030-text-align
+Status: built (session 51); merged into main in session 52 without running its tests (the user's call)
 Discovery: sessions 48–50, 2026-10-20 (raised from the components screenshot: headings and a card's description centred). *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: where text sits inside its label: `Text.start()`, `Text.center()`, `Text.end()`, with start as the default for all text (breaking: GTK centres).
