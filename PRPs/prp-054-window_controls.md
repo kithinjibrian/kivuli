@@ -1,6 +1,6 @@
 # PRP-054 — Styling the window controls
 
-Status: draft (session 122)
+Status: approved (session 122)
 Discovery: session 122, 2026-10-21 (rapidkoi's DECISION-035: its header bar is in its frame colour with 48 px icon buttons, but GTK's − □ × keep the desktop's look, and kivuli 0.48 can't reach them; a bar's classes go on `headerbar` only, so the controls stay GTK's: DESIGN, PRP-023). *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: `Part.WindowButton` and `Part.WindowClose`, inside a header bar's style; `kivuli.ui`'s `WindowControls.look()`.
