@@ -11,7 +11,8 @@
 import view.views { View };
 import view.walk { check_content, nodes };
 import view.looks { Style };
-import styles.sheets { check, picture, rules };
+import styles.sheets { picture, rules };
+import styles.checks { check };
 import styles.box_rules { needs_clamp };
 import styles.values { Width };
 import styles { Sheet };

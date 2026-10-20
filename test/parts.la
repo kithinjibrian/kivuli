@@ -3,7 +3,8 @@
 // state; its classes go on the node; `Mark.icon` is GTK's icon source; what
 // a part can't take is refused. No GTK.
 import kivuli.styles { Sheet };
-import kivuli.styles.sheets { check, rules };
+import kivuli.styles.sheets { rules };
+import kivuli.styles.checks { check };
 import kivuli.styles.paint { painted };
 import kivuli.view.looks { Style };
 import kivuli {
