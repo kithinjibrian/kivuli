@@ -1056,9 +1056,17 @@ Branch: main (prp-033-ui-field merged)
 
 ---
 
-## SESSION 63 — 2026-10-20 — components.la scrolls; input group discovery — open
+## SESSION 63 — 2026-10-20 — components.la scrolls; input group discovery, PRP-034 draft — closed
 
 Branch: main
+
+### WHAT WAS DONE
+- examples/components.la scrolls (the user's request): the page in a `scroll`, palette and scheme on it.
+- Read the reference input group page. Interview: `input_group(start, control, end)` with parts (A); headers, footers and text areas later.
+- PRP-034 drafted.
+
+### STILL OPEN AT CLOSE
+- PRP-034 awaits the user's approval.
 
 ---
 
