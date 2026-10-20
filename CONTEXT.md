@@ -1419,9 +1419,16 @@ Branch: main
 
 ---
 
-## SESSION 91 — 2026-10-20 — PRP-043: check and radio menu items — open
+## SESSION 91 — 2026-10-20 — PRP-043: check and radio menu items, built, not merged — closed
 
-Branch: prp-043-check-radio-menu
+Branch: prp-043-check-radio-menu (not merged: waiting for the user's look)
+
+### WHAT WAS DONE
+- lugha-gtk 0.1.38 (stateful actions, GVariant values, a menu item's target; pushed, tagged).
+- `MenuEntry.Check`/`Radio`, `check_item`, `radio_group`; plain, check and radio actions numbered apart; `sync_checks`/`sync_radios` set states each refresh; the model's radio items with targets; `Part.MenuCheck`/`MenuRadio` and marks in `Menu.look()`. A View menu in components.la. Docs; 0.38.0 (not tagged). Every test and example type-checks; tests not run.
+
+### STILL OPEN AT CLOSE
+- The user to look; then merge, tag v0.38.0.
 
 ---
 
