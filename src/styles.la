@@ -169,6 +169,16 @@ public enum Part {
     List,
     /** An item in a drop-down's pop-up (`popover row`), not the one shown in the button. */
     Item,
+    /** A menu's box (`popover.menu > contents`): `.menu`'s and `.dropdown_menu`'s. */
+    MenuBox,
+    /** A menu's item (`popover.menu modelbutton`). */
+    MenuItem,
+    /** A menu group's title (`popover.menu label.title`, from `menu_label`). */
+    MenuLabel,
+    /** A line between a menu's groups (`popover.menu separator`). */
+    MenuSeparator,
+    /** The shortcut shown at a menu item's end (`popover.menu accelerator`, from `.hint`). */
+    MenuHint,
 }
 
 /** Style values for one part: made by `Inside`. */

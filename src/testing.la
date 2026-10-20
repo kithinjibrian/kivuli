@@ -9,7 +9,7 @@
  */
 
 import view.views { View };
-import view.menus { MenuEntry };
+import view.menus { MenuEntry, items };
 import view.looks { Style };
 import view.walk { nodes };
 import view.keys;
@@ -68,12 +68,10 @@ public fun pick<Msg>(v: View<Msg>, owner: string, item: string): Result<Msg, Loo
     let entries = only(owners, "menu on \"{owner}\"")?;
     let what = "menu item \"{item}\"";
     let mut found: Option<Msg>[] = [];
-    for entry of entries {
-        match entry {
-            Item(label, msg) => if label == item {
-                found.push(msg);
-            },
-            Separator => {}
+    // Inside submenus too.
+    for (label, msg) of items(entries) {
+        if label == item {
+            found.push(msg);
         }
     }
     match only(found, what)? {

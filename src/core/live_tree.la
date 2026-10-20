@@ -139,6 +139,10 @@ struct Popup<Msg> {
     /** The right-click and long-press gestures (tests emit their `pressed`). */
     click: GtkEventController,
     hold: GtkEventController,
+    /** The primary-click gesture: it opens the menu while `on_click` (`.dropdown_menu`). */
+    primary: GtkEventController,
+    /** Whether a primary click opens the menu (`.dropdown_menu`), not only a right-click. */
+    on_click: Ref<bool>,
     /** What the Menu key and Shift+F10 run (tests run it). */
     keys: GtkShortcutAction,
 }

@@ -39,7 +39,7 @@ public import styles.values {
     Move,
 };
 public import view.pictures { Image };
-public import view.menus { MenuEntry, item, menu_separator };
+public import view.menus { MenuEntry, item, menu_label, menu_separator, submenu };
 public import view.widgets {
     text,
     button,

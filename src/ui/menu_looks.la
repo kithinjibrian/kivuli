@@ -1,0 +1,93 @@
+/**
+ * Dropdown menu (PRP-042): `Menu.look()`, a menu in the palette's colours
+ * (the box, items, group titles, separators, shortcut hints, as parts), and
+ * `ui.dropdown_menu`, a trigger whose click opens its menu in that look.
+ * Right-click menus can take the look too. GTK draws no icons beside menu
+ * items. Pure.
+ *
+ * Depends on: views, menus, styles, theming, values, boxes, fonts, drawing
+ * Used by: ui
+ */
+
+// The public items the entry re-exports, by their own modules (rule 2: no `lib`).
+import view.views { View };
+import view.menus { MenuEntry };
+import styles { Inside, Look, Part, When, State, look };
+import styles.theming { Color, Paint, Token };
+import styles.values { Drop, Radius };
+import styles.boxes { Background, Border, Sizing, Spacing };
+import styles.fonts { Font, Text };
+import styles.drawing { Shadow };
+
+/** The menu's shadow: two layers, black at 10%. */
+fun lift(): Shadow = Shadow {
+    boxes: [
+        Drop {
+            y: 4,
+            blur: 6,
+            spread: -1,
+            color: Paint.Color(Color { red: 0, green: 0, blue: 0, alpha: 26 }),
+            ..Drop.theme(),
+        },
+        Drop {
+            y: 2,
+            blur: 4,
+            spread: -2,
+            color: Paint.Color(Color { red: 0, green: 0, blue: 0, alpha: 26 }),
+            ..Drop.theme(),
+        },
+    ],
+    text: [],
+};
+
+/** A menu's looks, given through `.style` on the node the menu opens from. */
+public struct Menu {}
+
+impl Menu {
+    /**
+     * A menu in the palette's colours: on the node a `.menu` or
+     * `.dropdown_menu` is on.
+     *
+     * Example:
+     *     tab(t).menu([item("Close", Msg.Close)]).style([Menu.look()])
+     */
+    public fun look(): Look = look([
+        Inside(Part.MenuBox, [
+            Background.color(Token.Popover),
+            Text.color(Token.PopoverForeground),
+            Border.all(1, Token.Border),
+            Border.rounded_md(),
+            Spacing.padding(4),
+            lift(),
+            Sizing.min_width(128),
+        ]),
+        Inside(Part.MenuItem, [
+            Font.sm(),
+            Spacing.padding_y(6),
+            Spacing.padding_x(8),
+            Border { radius: Radius.Small, ..Border.theme() },
+            When(State.Hover, [Background.color(Token.Accent), Text.color(Token.AccentForeground)]),
+        ]),
+        Inside(Part.MenuLabel, [Font.sm(), Font.medium(), Spacing.padding_y(6), Spacing.padding_x(8)]),
+        // A hairline out to the box's edges: over its 4 px padding.
+        Inside(Part.MenuSeparator, [
+            Background.color(Token.Border),
+            Sizing.min_height(1),
+            Spacing.margin_y(4),
+            Spacing.margin_x(-4),
+        ]),
+        Inside(Part.MenuHint, [Font.xs(), Text.color(Token.MutedForeground), Text.letter_spacing(1)]),
+    ]);
+}
+
+/**
+ * `trigger` (usually a `ui.button`) opening `entries` below it when clicked,
+ * in the palette's look.
+ *
+ * Example:
+ *     ui.dropdown_menu(ui.button("Open", Msg.Nothing).style([Button.outline()]), [menu_label("My Account"), item("Profile", Msg.Profile)])
+ */
+public fun dropdown_menu<Msg>(
+    trigger: View<Msg>,
+    entries: MenuEntry<Msg>[],
+): View<Msg> = trigger.dropdown_menu(entries).style([Menu.look()]);

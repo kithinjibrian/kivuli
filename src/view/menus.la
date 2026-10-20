@@ -1,16 +1,23 @@
 /**
- * Context menu entries: the items and separators `.menu` takes, and the
- * functions that build them. Plain data: no GTK (`popovers` shows them).
+ * Menu entries: what `.menu` and `.dropdown_menu` take (items, separators,
+ * group labels, submenus, hinted items), and the functions that build them.
+ * Plain data: no GTK (`popovers` shows them).
  *
  * Used by: diff, lib (re-exports it), live_tree, mapping, popovers, testing, views
  */
 
-/** One line of a context menu. */
+/** One line of a menu. */
 public enum MenuEntry<Msg> {
     /** An item: its label, and the message picking it sends (`None`: disabled, greyed out). */
     Item(string, Option<Msg>),
+    /** An item with a shortcut shown at its end (`.hint`), in kivuli's key form. */
+    Hinted(string, Option<Msg>, string),
     /** A line between groups of items. */
     Separator,
+    /** A group's title: the entries after it, up to the next separator or label, are its group. */
+    Label(string),
+    /** An item opening its own entries beside the menu. */
+    Submenu(string, MenuEntry<Msg>[]),
 }
 
 impl MenuEntry<Msg> {
@@ -22,15 +29,42 @@ impl MenuEntry<Msg> {
      * Example:
      *     item("Close other tabs", Msg.CloseOthers(t.id)).disabled(m.tabs.len == 1)
      */
-    public fun disabled(self, off: bool): MenuEntry<Msg> = match self {
-        Item(label, _) => if off { MenuEntry.Item(label, None) } else { self },
-        Separator => self,
+    public fun disabled(self, off: bool): MenuEntry<Msg> = if !off {
+        self
+    } else {
+        match self {
+            Item(label, _) => MenuEntry.Item(label, None),
+            Hinted(label, _, keys) => MenuEntry.Hinted(label, None, keys),
+            _ => self,
+        }
     };
 
-    /** The same entry, sending `f(msg)` instead of `msg`. */
+    /**
+     * Shows `keys` (kivuli's form: `"Ctrl+P"`) at the item's end, as GTK draws
+     * a shortcut. Only a hint: pressing it does nothing unless a button has
+     * that `.shortcut`. `""` takes the hint away; ignored on anything but an
+     * item.
+     *
+     * Example:
+     *     item("Profile", Msg.Profile).hint("Ctrl+P")
+     */
+    public fun hint(self, keys: string): MenuEntry<Msg> = match self {
+        Item(label, msg) => if keys == "" { self } else { MenuEntry.Hinted(label, msg, keys) },
+        Hinted(label, msg, _) => if keys == "" {
+            MenuEntry.Item(label, msg)
+        } else {
+            MenuEntry.Hinted(label, msg, keys)
+        },
+        _ => self,
+    };
+
+    /** The same entry, sending `f(msg)` instead of `msg` (inside submenus too). */
     public fun map<B>(self, f: fun(Msg): B): MenuEntry<B> = match self {
         Item(label, msg) => MenuEntry.Item(label, msg.map(f)),
+        Hinted(label, msg, keys) => MenuEntry.Hinted(label, msg.map(f), keys),
         Separator => MenuEntry.Separator,
+        Label(text) => MenuEntry.Label(text),
+        Submenu(label, entries) => MenuEntry.Submenu(label, entries.map(fun(e) = e.map(f))),
     };
 }
 
@@ -50,25 +84,54 @@ public fun item<Msg>(label: string, msg: Msg): MenuEntry<Msg> = MenuEntry.Item(l
  */
 public fun menu_separator<Msg>(): MenuEntry<Msg> = MenuEntry.Separator;
 
-/** The message of the item at `index` among the items (separators not counted), if it has one. */
-fun message_of<Msg>(entries: MenuEntry<Msg>[], index: i64): Option<Msg> {
-    let mut i = 0;
+/**
+ * A group's title.
+ *
+ * Example:
+ *     .dropdown_menu([menu_label("My Account"), item("Profile", Msg.Profile), item("Billing", Msg.Billing)])
+ */
+public fun menu_label<Msg>(text: string): MenuEntry<Msg> = MenuEntry.Label(text);
+
+/**
+ * An item labelled `label` opening `entries` beside the menu.
+ *
+ * Example:
+ *     submenu("Invite users", [item("Email", Msg.Email), item("Message", Msg.Message)])
+ */
+public fun submenu<Msg>(
+    label: string,
+    entries: MenuEntry<Msg>[],
+): MenuEntry<Msg> = MenuEntry.Submenu(label, entries);
+
+/** Every item, submenus' too, depth first: each one's label and message (the order actions are numbered in). */
+fun items<Msg>(entries: MenuEntry<Msg>[]): (string, Option<Msg>)[] {
+    let mut out: (string, Option<Msg>)[] = [];
     for e of entries {
         match e {
-            Item(_, msg) => {
-                if i == index {
-                    return msg;
+            Item(label, msg) => out.push((label, msg)),
+            Hinted(label, msg, _) => out.push((label, msg)),
+            Submenu(_, inner) => {
+                for i of items(inner) {
+                    out.push(i);
                 }
-                i = i + 1;
             }
-            Separator => {}
+            _ => {}
         }
     }
-    None
+    out
 }
 
-/** What GTK's menu model shows for `entries`: each item's label, `|` for a separator. */
+/** The message of the item at `index` among the items (`items`' order), if it has one. */
+fun message_of<Msg>(entries: MenuEntry<Msg>[], index: i64): Option<Msg> {
+    let all = items(entries);
+    if index < all.len { all[index].1 } else { None }
+}
+
+/** What GTK's menu model shows for `entries`: one line per entry, `|` for a separator. */
 fun layout<Msg>(entries: MenuEntry<Msg>[]): string[] = entries.map(fun(e) = match e {
     Item(label, _) => "item {label}",
+    Hinted(label, _, keys) => "item {label} {keys}",
     Separator => "|",
+    Label(text) => "label {text}",
+    Submenu(label, inner) => "sub {label} [ {layout(inner).join(" ")} ]",
 });

@@ -1,0 +1,89 @@
+// Menus opened by a click (PRP-042): a `.dropdown_menu` opens on a primary
+// press, a `.menu` doesn't (it waits for a right-click); both popovers nest
+// their submenus. Needs a display, so it is skipped without one. (That a
+// button's own message isn't sent, and how the menu looks: by hand in
+// examples/components.la.)
+import std.env;
+import gtk {
+    GtkApplication,
+    connect_app,
+    g_application_quit,
+    g_application_run,
+    g_object_unref,
+    gtk_application_new,
+    gtk_application_window_new,
+    gtk_popover_menu_get_flags,
+    gtk_popover_popdown,
+    gtk_widget_get_visible,
+    lgtk_emit_pressed,
+};
+import kivuli.render.live { mount, live_of };
+import kivuli.core.effects { sandbox_app };
+import kivuli.core.live_tree { Live, Popup };
+import kivuli { View, button, column, item, menu_label, menu_separator, submenu };
+
+fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
+
+fun note(seen: Ref<string[]>, s: string) {
+    seen.update(fun(xs) {
+        let mut ys = xs;
+        ys.push(s);
+        ys
+    });
+}
+
+fun view_menus(n: i64): View<i64> = column([
+    button("Open", 0).dropdown_menu([
+        menu_label("My Account"),
+        item("Profile", 1).hint("Ctrl+P"),
+        menu_separator(),
+        submenu("Invite", [item("Email", 2)]),
+    ]),
+    button("Tab", 0).menu([item("Close", 3)]),
+]);
+
+fun popup_of(node: Live<i64>): Popup<i64> = match node {
+    Menu(_, popup) => popup,
+    _ => panic("expected a node with a menu"),
+};
+
+@test
+fun a_dropdown_menu_opens_on_a_click_and_a_context_menu_does_not() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen: Ref<string[]> = Ref.new([]);
+    let application = gtk_application_new("org.kivuli.test.dropdown_menu", 0);
+    connect_app(
+        application,
+        "activate",
+        fun(a: GtkApplication) {
+            let window = gtk_application_window_new(a);
+            let app = mount(
+                a,
+                window,
+                sandbox_app("org.kivuli.test", 0, fun(n: i64, msg: i64): i64 = n, view_menus),
+            );
+            let kids = match live_of(app) {
+                Box(_, _, ks) => ks,
+                _ => panic("expected a column"),
+            };
+            let drop = popup_of(kids[0]);
+            let context = popup_of(kids[1]);
+            note(
+                seen,
+                "nested {gtk_popover_menu_get_flags(drop.popover)} {gtk_popover_menu_get_flags(context.popover)}",
+            );
+            lgtk_emit_pressed(drop.primary, 1, 4.0, 4.0);
+            note(seen, "dropdown open {gtk_widget_get_visible(drop.popover)}");
+            gtk_popover_popdown(drop.popover);
+            lgtk_emit_pressed(context.primary, 1, 4.0, 4.0);
+            note(seen, "context open on a click {gtk_widget_get_visible(context.popover)}");
+            g_application_quit(a);
+        },
+        0,
+    );
+    g_application_run(application, 0, None);
+    g_object_unref(application);
+    assert_eq(seen.get(), ["nested 1 1", "dropdown open 1", "context open on a click 0"]);
+}

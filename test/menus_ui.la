@@ -1,0 +1,63 @@
+// kivuli.ui's dropdown menu (PRP-042): `Menu.look()`'s values from the
+// reference, and `ui.dropdown_menu` putting its trigger's menu on a click
+// in that look. No GTK.
+import kivuli.styles { Sheet };
+import kivuli.view.looks { Style };
+import kivuli { View, Part, State, Token, Paint, Width, Radius, Size, Weight, button, item };
+import kivuli.ui { Menu };
+
+fun style_of<M>(v: View<M>): Style = match v {
+    Styled(_, s) => s,
+    _ => panic("expected a styled node"),
+};
+
+fun part(s: Sheet, p: Part): Sheet {
+    for (q, sub) of s.parts {
+        if q == p {
+            return sub;
+        }
+    }
+    panic("no rules for that part")
+}
+
+@test
+fun the_menus_look_is_the_references() {
+    let s = Menu.look().apply(Sheet.theme());
+    let b = part(s, Part.MenuBox);
+    assert_eq(b.background.color, Paint.Token(Token.Popover));
+    assert_eq(b.text.color, Paint.Token(Token.PopoverForeground));
+    assert_eq(b.border.top.color, Paint.Token(Token.Border));
+    assert_eq(b.border.radius, Radius.Medium);
+    assert_eq(b.spacing.padding.top, Width.Px(4));
+    assert_eq(b.sizing.min_width, Width.Px(128));
+    let i = part(s, Part.MenuItem);
+    assert_eq(i.font.size, Size.Scale(0.875));
+    assert_eq(i.spacing.padding.top, Width.Px(6));
+    assert_eq(i.spacing.padding.left, Width.Px(8));
+    assert_eq(i.border.radius, Radius.Small);
+    let hovered = part(s, Part.MenuItem).states;
+    assert(hovered.len > 0);
+    let l = part(s, Part.MenuLabel);
+    assert_eq(l.font.weight, Weight.Medium);
+    let sep = part(s, Part.MenuSeparator);
+    assert_eq(sep.background.color, Paint.Token(Token.Border));
+    assert_eq(sep.spacing.margin.left, Width.Px(-4));
+    let h = part(s, Part.MenuHint);
+    assert_eq(h.font.size, Size.Scale(0.75));
+    assert_eq(h.text.color, Paint.Token(Token.MutedForeground));
+}
+
+@test
+fun a_dropdown_menu_opens_on_a_click_in_the_look() {
+    let v: View<i64> = ui.dropdown_menu(button("Open", 0), [item("Profile", 1)]);
+    let s = style_of(v);
+    assert(s.menu_on_click);
+    assert(s.sheet.parts.len >= 5);
+    match v {
+        Styled(inside, _) => match inside {
+            Menu(_, entries) => assert_eq(entries.len, 1),
+            _ => panic("a dropdown menu is a menu node"),
+        },
+        _ => panic("a dropdown menu is styled"),
+    }
+}

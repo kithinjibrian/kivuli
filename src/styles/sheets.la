@@ -152,6 +152,11 @@ fun part_node(part: Part): string = match part {
     Arrow => "arrow",
     List => "popover > contents",
     Item => "popover row",
+    MenuBox => "popover.menu > contents",
+    MenuItem => "popover.menu modelbutton",
+    MenuLabel => "popover.menu label.title",
+    MenuSeparator => "popover.menu separator",
+    MenuHint => "popover.menu accelerator",
 };
 
 /** The code a part's classes carry (`kv-item-…`). */
@@ -164,6 +169,11 @@ fun part_code(part: Part): string = match part {
     Arrow => "arrow",
     List => "list",
     Item => "item",
+    MenuBox => "menu",
+    MenuItem => "menuitem",
+    MenuLabel => "menulabel",
+    MenuSeparator => "menuseparator",
+    MenuHint => "menuhint",
 };
 
 /**

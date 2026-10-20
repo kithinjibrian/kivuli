@@ -91,6 +91,8 @@ public struct Style {
     bar_classes: string[],
     /** The window opens maximized (`.maximized()`). Root only. */
     maximized: bool,
+    /** A primary click opens the node's menu too (`.dropdown_menu`), not only a right-click. */
+    menu_on_click: bool,
     /** The app's colours by name (`.palette(…)`). Root only. */
     palette: Option<Palette>,
     /** Light, dark or the system's (`.scheme(…)`); `None` leaves GTK's setting alone. Root only. */
@@ -126,6 +128,7 @@ fun plain(): Style = Style {
     bar: Sheet.theme(),
     bar_classes: [],
     maximized: false,
+    menu_on_click: false,
     palette: None,
     scheme: None,
     equal: false,
