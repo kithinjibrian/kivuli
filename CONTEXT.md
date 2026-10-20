@@ -1145,9 +1145,16 @@ Branch: main (prp-035-ui-separator merged)
 
 ---
 
-## SESSION 70 — 2026-10-20 — kivuli.ui Checkbox: discovery — open
+## SESSION 70 — 2026-10-20 — kivuli.ui Checkbox: discovery, PRP-036 draft — closed
 
 Branch: main
+
+### WHAT WAS DONE
+- Probed GTK 4.22: descendant part rules (`.kv-x check`, under a state too), `-gtk-icon-source` for the tick, slider and placeholder parts all parse. Interview: a public `Inside(Part, …)` value (A); the reference checkbox look, with `Mark.icon(name, px)` (yes).
+- PRP-036 drafted.
+
+### STILL OPEN AT CLOSE
+- PRP-036 awaits the user's approval.
 
 ---
 
