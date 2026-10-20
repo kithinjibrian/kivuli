@@ -65,4 +65,5 @@ button("Native", Msg.A)                                         // GTK's own, un
 - **`button_with`'s gap is 8 at every size**: the gap is on the content row, which a size's `Look` (on the button) can't reach; shadcn's `sm` uses 6.
 - **The ghost and link variants are `Paint.Color(transparent)`**, not "no background": GTK's own button background would show through `Theme`.
 - **State rules outrank GTK's** (checked in the generated CSS: `.kv-hover-…:hover` is two classes' worth against `button:hover`'s class and element).
+- **A box inside a box (found by hand, session 48)**: `styling.style_label` gave a button's (and a check box's) own label every class of the button, padding, border, background and shadow included, so styled buttons drew a second box inside and counted their padding twice. The label now takes only its text-decoration classes (`-td-`), the one text value CSS doesn't inherit. `test/live_buttons_ui.la` checks the button keeps its box classes and its label doesn't.
 - **Tests not run** (the user is fixing slow test runs): buttons_ui and palettes type-check; GTK parsed the generated rules; only examples/components.la built.

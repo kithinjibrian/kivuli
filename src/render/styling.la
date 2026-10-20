@@ -122,8 +122,8 @@ fun apply_style<Msg>(node: Live<Msg>, style: Style, axis: i32) {
     } else if clipped_by_us {
         gtk_widget_set_overflow(w, 0);
     }
-    // The label kivuli puts in a button or check box takes them too: CSS
-    // doesn't inherit every text property (`text-decoration` isn't).
+    // The label kivuli puts in a button or check box takes its decoration
+    // classes: CSS doesn't inherit `text-decoration`; everything else it does.
     match node {
         Button(_, _, _, _, label, _) => style_label(label, style),
         Checkbox(_, label, _) => style_label(label, style),
@@ -336,11 +336,16 @@ fun rounds(r: Radius): bool = match r {
     Small | Medium | Large => true,
 };
 
-/** Gives a widget's own label the style's classes, and only those of kivuli's. */
+/** Gives a widget's own label the style's text-decoration classes, and no other of kivuli's. */
 fun style_label(label: GtkWidget, style: Style) {
     lgtk_remove_css_classes_with_prefix(label, "kv-");
     for class of style.classes {
-        gtk_widget_add_css_class(label, class);
+        // Only text decoration: it's the one text value a label doesn't
+        // inherit from its button. A box value (padding, border, background,
+        // shadow) on the label too would draw a second box inside the first.
+        if class.contains("-td-") {
+            gtk_widget_add_css_class(label, class);
+        }
     }
 }
 
