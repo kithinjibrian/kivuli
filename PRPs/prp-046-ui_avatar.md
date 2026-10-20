@@ -1,6 +1,6 @@
 # PRP-046 — kivuli.ui: Avatar
 
-Status: built (session 102) on branch prp-046-ui-avatar
+Status: built (session 102); merged into main in session 103 (its own test runs and passes)
 Discovery: session 101, 2026-10-20 (the reference's avatar: a round 32 px picture, a `Muted` fallback circle with initials when the picture can't load, a stacked group ringed in the page colour). *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: `ui.avatar(image, initials)`, `Avatar.size(px)` and `avatar_group(avatars)`, from what kivuli has: an overlay, a checked picture, a rounded node that clips.
