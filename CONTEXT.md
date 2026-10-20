@@ -1329,6 +1329,12 @@ Branch: main (prp-040-switch merged)
 
 ---
 
+## SESSION 84 — 2026-10-20 — kivuli.ui Tabs: discovery — open
+
+Branch: main
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
