@@ -1,0 +1,49 @@
+/**
+ * Separator (PRP-035): kivuli's native separator as a 1 px line in the
+ * palette's `Border` colour (GTK runs it across a column and down a row),
+ * and a line with a label in its middle. Pure.
+ *
+ * Depends on: views, looks, widgets, theming, boxes, fonts
+ * Used by: ui
+ */
+
+// The public items the entry re-exports, by their own modules (rule 2: no `lib`).
+import view.views { View };
+import view.looks { Align };
+import view.widgets { column, row, text, separator as native_separator };
+import styles.theming { Token };
+import styles.boxes { Background, Sizing, Spacing };
+import styles.fonts { Font, Text };
+
+/**
+ * A 1 px line in the palette's border colour: across a column, down a row.
+ *
+ * Example:
+ *     column([header, ui.separator(), body])
+ */
+public fun separator<Msg>(): View<Msg> = native_separator().style([
+    Background.color(Token.Border),
+    // One pixel thick whichever way GTK runs it.
+    Sizing.min_height(1),
+    Sizing.min_width(1),
+]);
+
+/** A 1 px line taking a share of a row's spare room. */
+fun line<Msg>(): View<Msg> = column([]).style([
+    Background.color(Token.Border),
+    Sizing.min_height(1),
+]).expand().align(Align.Center);
+
+/**
+ * A line across a column with `label` in its middle, small and muted:
+ * between a form and its other options. For columns: in a row it shows
+ * sideways.
+ *
+ * Example:
+ *     separator_with("Or continue with")
+ */
+public fun separator_with<Msg>(label: string): View<Msg> = row([
+    line(),
+    text(label).style([Font.sm(), Text.color(Token.MutedForeground)]).align(Align.Center),
+    line(),
+]).style([Spacing.gap(8)]);

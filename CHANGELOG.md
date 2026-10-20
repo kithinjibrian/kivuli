@@ -8,6 +8,11 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.30.0] — 2026-10-20
+
+### Added
+- `kivuli.ui`'s Separator (PRP-035): `ui.separator()` and `separator_with(label)`.
+
 ## [0.29.0] — 2026-10-20
 
 ### Added

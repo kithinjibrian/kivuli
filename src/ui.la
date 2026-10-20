@@ -28,4 +28,5 @@ public import ui.input_groups {
     group_button_with,
     InputGroup,
 };
+public import ui.separators { separator, separator_with };
 public import ui.cards { card, card_header, card_header_with, card_content, card_footer };
