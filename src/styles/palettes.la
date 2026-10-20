@@ -12,7 +12,7 @@ import styles.theming { Color, Token, digits, hex, token_name };
 
 /**
  * An app's colours by name, each with a light and a dark value, and the
- * radius components round to. Start from one of shadcn's bases.
+ * radius components round to. Start from one of the five bases.
  *
  * Example:
  *     column(rows).palette(Palette.zinc().with(Token.Primary, hex("#2563eb"), hex("#3b82f6")).radius(8))
@@ -36,7 +36,7 @@ struct Shades {
     ring: string,
 }
 
-/** Every token from `s`, as shadcn's bases share them out. */
+/** Every token from `s`: the bases share their few shades out the same way. */
 fun tokens(s: Shades): (Token, Color)[] = [
     (Token.Background, hex(s.background)),
     (Token.Foreground, hex(s.foreground)),
@@ -116,7 +116,7 @@ fun dark(
 };
 
 impl Palette {
-    /** shadcn's default: neutral greys with a touch of blue. */
+    /** The default: neutral greys with a touch of blue. */
     public fun zinc(): Palette = base(
         light("#09090b", "#18181b", "#fafafa", "#f4f4f5", "#71717a", "#e4e4e7"),
         dark("#09090b", "#fafafa", "#18181b", "#27272a", "#a1a1aa", "#d4d4d8"),

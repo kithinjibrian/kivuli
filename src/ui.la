@@ -1,5 +1,5 @@
 /**
- * kivuli.ui: components drawn from the palette's tokens, after shadcn
+ * kivuli.ui: components drawn from the palette's tokens
  * (`import kivuli.ui { badge, Badge };`). Each is built only from the public
  * style API, so an app can copy one and change it. A variant is a `Look`
  * given through `.style`.

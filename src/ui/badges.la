@@ -1,5 +1,5 @@
 /**
- * Badge (PRP-028): a small label in the palette's colours, shadcn v4's. Its
+ * Badge (PRP-028): a small label in the palette's colours. Its
  * variants are `Look`s, given through `.style`, so an app's own values after
  * one win. Built only from the public style API, as an app's own would be.
  * Pure.

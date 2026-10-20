@@ -1,6 +1,6 @@
 // kivuli.ui's components, one at a time as they arrive: today the badge in
 // each variant, beside text and on a card, in light and dark and in each
-// palette. Compare with shadcn's (ui.shadcn.com/docs/components/badge).
+// palette.
 import kivuli {
     View,
     Align,
