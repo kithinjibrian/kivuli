@@ -1303,6 +1303,12 @@ Branch: main
 
 ---
 
+## SESSION 82 — 2026-10-20 — PRP-040: switch — open
+
+Branch: prp-040-switch
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
