@@ -1548,6 +1548,12 @@ Branch: main (prp-045-progress merged)
 
 ---
 
+## SESSION 101 — 2026-10-20 — Avatar: discovery — open
+
+Branch: main
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
