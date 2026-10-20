@@ -1,6 +1,6 @@
 # PRP-043 — Check and radio menu items
 
-Status: built (session 91) on branch prp-043-check-radio-menu
+Status: built (sessions 91–92); merged into main in session 93 without running its tests (the user's call)
 Discovery: session 90, 2026-10-20 (PRP-042's follow-up; the reference's `DropdownMenuCheckboxItem` and `RadioGroup`/`RadioItem`: text indented 32 px, a 16 px tick or an 8 px dot at the start). *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: `check_item(label, checked, on_toggle)` and `radio_group(selected, choices)` menu entries, ticked from the model, for `.menu` and `.dropdown_menu`; their look in `Menu.look()`.
