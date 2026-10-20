@@ -59,6 +59,7 @@ fun each_states_rules_carry_its_pseudo_class_and_rank() {
         button("x", 1).style([
             When(State.Hover, [bg("#111111")]),
             When(State.Focus, [bg("#222222")]),
+            When(State.FocusWithin, [bg("#2a2a2a")]),
             When(State.Press, [bg("#333333")]),
             When(State.Checked, [bg("#444444")]),
             When(State.Disabled, [bg("#555555")]),
@@ -68,9 +69,11 @@ fun each_states_rules_carry_its_pseudo_class_and_rank() {
     assert_eq(found, [
         "kv-hover-bg-111111ff:hover",
         "kv-focus-bg-222222ff.kv-focus-bg-222222ff:focus-visible",
-        "kv-press-bg-333333ff.kv-press-bg-333333ff.kv-press-bg-333333ff:active",
-        "kv-checked-bg-444444ff.kv-checked-bg-444444ff.kv-checked-bg-444444ff.kv-checked-bg-444444ff:checked",
-        "kv-disabled-bg-555555ff.kv-disabled-bg-555555ff.kv-disabled-bg-555555ff.kv-disabled-bg-555555ff.kv-disabled-bg-555555ff:disabled",
+        // Focus inside (a text field's): after Focus, before Press.
+        "kv-within-bg-2a2a2aff.kv-within-bg-2a2a2aff.kv-within-bg-2a2a2aff:focus-within",
+        "kv-press-bg-333333ff.kv-press-bg-333333ff.kv-press-bg-333333ff.kv-press-bg-333333ff:active",
+        "kv-checked-bg-444444ff.kv-checked-bg-444444ff.kv-checked-bg-444444ff.kv-checked-bg-444444ff.kv-checked-bg-444444ff:checked",
+        "kv-disabled-bg-555555ff.kv-disabled-bg-555555ff.kv-disabled-bg-555555ff.kv-disabled-bg-555555ff.kv-disabled-bg-555555ff.kv-disabled-bg-555555ff:disabled",
     ]);
     let hover = rules(s).filter(fun(r) = r.0 == "kv-hover-bg-111111ff:hover");
     assert_eq(hover[0].1, "background-color: #111111ff;");

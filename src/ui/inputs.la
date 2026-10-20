@@ -1,0 +1,94 @@
+/**
+ * Input (PRP-032): kivuli's native text field in the palette's colours, so
+ * `.placeholder`, `.on_submit`, `.disabled` and the kept cursor work as on
+ * any field. Its ring shows while it's typed in (`State.FocusWithin`: a GTK
+ * field's typing area takes the focus, not the field). The placeholder and
+ * selected text keep the theme's colours: they're parts inside the field
+ * that class rules don't reach. Pure.
+ *
+ * Depends on: views, widgets, styles, theming, values, boxes, fonts, drawing, motion
+ * Used by: ui
+ */
+
+// The public items the entry re-exports, by their own modules (rule 2: no `lib`).
+import view.views { View };
+import view.widgets { input as native_input };
+import styles { Look, look, When, State };
+import styles.theming { Color, Paint, Token };
+import styles.values { Drop, Line };
+import styles.boxes { Background, Border, Outline, Sizing, Spacing };
+import styles.fonts { Font, Text };
+import styles.drawing { Effects, Shadow };
+import styles.motion { Motion };
+
+fun clear(): Color = Color { red: 0, green: 0, blue: 0, alpha: 0 };
+
+/** The faint shadow under a field: one pixel down, black at 5%. */
+fun hairline_shadow(): Shadow = Shadow {
+    boxes: [
+        Drop {
+            y: 1,
+            blur: 2,
+            color: Paint.Color(Color { red: 0, green: 0, blue: 0, alpha: 13 }),
+            ..Drop.theme(),
+        },
+    ],
+    text: [],
+};
+
+/** A 3 px halo of `paint`: the focus ring. */
+fun halo(paint: Paint): Shadow = Shadow {
+    boxes: [Drop { spread: 3, color: paint, ..Drop.theme() }],
+    text: [],
+};
+
+/** A field's border colour at rest and its halo while typed in. */
+fun edges(border: Paint, ring_border: Paint, ring: Paint): Look = look([
+    Border.all(1, border),
+    When(State.FocusWithin, [
+        Border.all(1, ring_border),
+        halo(ring),
+        // The ring instead of GTK's focus outline.
+        Outline { style: Line.None, ..Outline.theme() },
+    ]),
+    // GTK's own `entry:disabled` outranks a plain class: say it again.
+    When(State.Disabled, [Border.all(1, border), Effects.opacity(0.5)]),
+]);
+
+/**
+ * A text field in the palette's colours showing `value`; each edit sends
+ * `on_change(text)`. `.placeholder(…)`, `.on_submit(…)` and `.disabled(…)`
+ * work as on kivuli's own `input`.
+ *
+ * Example:
+ *     ui.input(m.email, Msg.Email).placeholder("m@example.com")
+ */
+public fun input<Msg>(value: string, on_change: fun(string): Msg): View<Msg> = native_input(
+    value,
+    on_change,
+).style([
+    Font.sm(),
+    Border.rounded_md(),
+    Sizing.min_height(36),
+    Spacing.padding_x(12),
+    Spacing.padding_y(4),
+    Background.color(clear()),
+    Text.color(Token.Foreground),
+    hairline_shadow(),
+    edges(Token.Input.paint(), Token.Ring.paint(), Token.Ring.alpha(0.5)),
+    When(State.Disabled, [Background.color(clear()), Text.color(Token.Foreground)]),
+    Motion.colors(150),
+    Motion.shadow(150),
+]);
+
+/** An input's variants, given through `.style`: `ui.input(m.email, Msg.Email).style([Input.invalid()])`. */
+public struct Input {}
+
+impl Input {
+    /** What was typed is wrong: a red border, and a red ring while typed in. */
+    public fun invalid(): Look = edges(
+        Token.Destructive.paint(),
+        Token.Destructive.paint(),
+        Token.Destructive.alpha(0.2),
+    );
+}

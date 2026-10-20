@@ -1,13 +1,14 @@
 // kivuli.ui's components, one at a time as they arrive: the button in each
-// variant and size (Tab through them for the focus ring), and the badge in
-// each variant, beside text, with icons and on a card, in light and dark and in each
-// palette.
+// variant and size (Tab through them for the focus ring), the input (type
+// in it for its ring; no "@" marks it invalid), the badge in each variant,
+// and cards, in light and dark and in each palette.
 import kivuli {
     View,
     Align,
     Token,
     Palette,
     Scheme,
+    look,
     Background,
     Border,
     Font,
@@ -28,6 +29,7 @@ import kivuli.ui {
     badge_with,
     Badge,
     Button,
+    Input,
     card,
     card_header,
     card_header_with,
@@ -38,16 +40,22 @@ import kivuli.ui {
 struct Model {
     dark: bool,
     base: i64,
+    email: string,
+    password: string,
 }
 
 enum Msg {
     Dark(bool),
     Base(i64),
+    Email(string),
+    Password(string),
 }
 
 fun update(m: Model, msg: Msg): Model = match msg {
     Dark(on) => Model { dark: on, ..m },
     Base(n) => Model { base: n, ..m },
+    Email(s) => Model { email: s, ..m },
+    Password(s) => Model { password: s, ..m },
 };
 
 fun palette_of(n: i64): Palette = if n == 1 {
@@ -169,15 +177,25 @@ fun view(m: Model): View<Msg> = column([
         ]).style([Spacing.gap(8)]),
     ),
     section(
+        "Input",
+        row([
+            ui.input(m.email, Msg.Email).placeholder("Email"),
+            ui.input(m.email, Msg.Email).placeholder("Invalid").style([
+                if m.email.contains("@") || m.email == "" { look([]) } else { Input.invalid() },
+            ]),
+            ui.input("Disabled", Msg.Email).disabled(true),
+        ]).style([Spacing.gap(8)]),
+    ),
+    section(
         "Card",
         row([
             card([
                 card_header("Login to your account", "Enter your email below to log in"),
                 card_content([
                     text("Email").style([Font.medium()]),
-                    input("", fun(s: string) = Msg.Base(m.base)).placeholder("m@example.com"),
+                    ui.input(m.email, Msg.Email).placeholder("m@example.com"),
                     text("Password").style([Font.medium()]),
-                    input("", fun(s: string) = Msg.Base(m.base)),
+                    ui.input(m.password, Msg.Password),
                 ]),
                 card_footer([
                     ui.button("Login", Msg.Base(m.base)),
@@ -212,4 +230,9 @@ fun view(m: Model): View<Msg> = column([
     if m.dark { Scheme.Dark } else { Scheme.Light },
 ).window("Components", 760, 720);
 
-fun main(): i32 = sandbox("org.kivuli.components", Model { dark: false, base: 0 }, update, view);
+fun main(): i32 = sandbox(
+    "org.kivuli.components",
+    Model { dark: false, base: 0, email: "", password: "" },
+    update,
+    view,
+);
