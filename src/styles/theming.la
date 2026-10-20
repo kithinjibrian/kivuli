@@ -29,7 +29,7 @@ public enum Paint {
 }
 
 /**
- * A palette's named colours, shadcn's set: each has a light and a dark value
+ * A palette's named colours: each has a light and a dark value
  * (`Palette`), and a `…Foreground` is the text colour on its partner.
  *
  * Example:

@@ -1,0 +1,174 @@
+// kivuli.ui's Badge (PRP-028): a badge's own values, each variant over
+// them, an app's values after a variant winning, and `Look`, the bundle a
+// variant is. No GTK.
+import kivuli.styles { Sheet };
+import kivuli.view.looks { Style };
+import kivuli {
+    View,
+    Look,
+    look,
+    Align,
+    Token,
+    Paint,
+    Text,
+    Font,
+    Border,
+    Spacing,
+    Background,
+    Radius,
+    Side,
+    Width,
+    Line,
+    Edges,
+    Weight,
+    Size,
+    Color,
+    row,
+    text,
+    icon,
+};
+import kivuli.ui { badge, badge_with, Badge };
+
+fun style_of<M>(v: View<M>): Style = match v {
+    Styled(_, s) => s,
+    _ => panic("expected a styled node"),
+};
+
+fun sheet_of<M>(v: View<M>): Sheet = style_of(v).sheet;
+
+fun b(label: string): View<i64> = badge(label);
+
+fun clear(): Paint = Paint.Color(Color { red: 0, green: 0, blue: 0, alpha: 0 });
+
+@test
+fun a_badge_is_small_text_in_the_primary_colours() {
+    let v: View<i64> = badge("Beta");
+    match v {
+        Styled(inside, _) => match inside {
+            Text(label) => assert_eq(label, "Beta"),
+            _ => panic("a badge is text"),
+        },
+        _ => panic("a badge is styled"),
+    }
+    let s = sheet_of(v);
+    assert_eq(s.spacing.padding, Edges {
+        all: Width.Theme,
+        top: Width.Px(2),
+        right: Width.Px(8),
+        bottom: Width.Px(2),
+        left: Width.Px(8),
+    });
+    assert_eq(s.border.radius, Radius.Small);
+    assert_eq(s.border.top, Side { width: Width.Px(1), color: clear(), style: Line.Solid });
+    assert_eq(s.font.size, Size.Scale(0.75));
+    assert_eq(s.font.weight, Weight.Medium);
+    assert_eq(s.background.color, Paint.Token(Token.Primary));
+    assert_eq(s.text.color, Paint.Token(Token.PrimaryForeground));
+    assert_eq(style_of(v).align, Align.Start);
+}
+
+@test
+fun each_variant_sets_its_colours_over_the_badge() {
+    let secondary = sheet_of(b("a").style([Badge.secondary()]));
+    assert_eq(secondary.background.color, Paint.Token(Token.Secondary));
+    assert_eq(secondary.text.color, Paint.Token(Token.SecondaryForeground));
+    let destructive = sheet_of(b("a").style([Badge.destructive()]));
+    assert_eq(destructive.background.color, Paint.Token(Token.Destructive));
+    assert_eq(destructive.text.color, Paint.Token(Token.DestructiveForeground));
+    let outline = sheet_of(b("a").style([Badge.outline()]));
+    assert_eq(outline.background.color, clear());
+    assert_eq(outline.text.color, Paint.Token(Token.Foreground));
+    assert_eq(outline.border.left, Side {
+        width: Width.Px(1),
+        color: Paint.Token(Token.Border),
+        style: Line.Solid,
+    });
+    // A variant changes colours only: the size stays the badge's.
+    assert_eq(outline.spacing.padding, sheet_of(b("a")).spacing.padding);
+    assert_eq(outline.border.radius, Radius.Small);
+}
+
+@test
+fun an_apps_values_after_a_variant_win() {
+    let s = sheet_of(b("Beta").style([Badge.outline(), Text.color(Token.Primary)]));
+    assert_eq(s.text.color, Paint.Token(Token.Primary));
+    assert_eq(s.border.left.color, Paint.Token(Token.Border));
+    let pill = sheet_of(b("Beta").style([Border.rounded(999)]));
+    assert_eq(pill.border.radius, Radius.All(999));
+}
+
+@test
+fun a_look_applies_its_items_in_order() {
+    let l = look([Font.bold(), Text.dim(), Font.light()]);
+    let s = l.apply(Sheet.theme());
+    assert_eq(s.font.weight, Weight.Light);
+    assert_eq(s.text.color, Paint.Faded(0.55));
+    // Looks inside looks, and after other values, merge like their items.
+    let nested = look([look([Font.mono()]), Font.italic()]).apply(Font.bold().apply(Sheet.theme()));
+    assert_eq(nested.font.weight, Weight.Bold);
+    assert_eq(nested.font.family, Font.mono().family);
+    assert_eq(nested.font.style, Font.italic().style);
+    assert_eq(look([]).apply(Sheet.theme()), Sheet.theme());
+}
+
+@test
+fun the_objective_reads_as_written() {
+    let v: View<i64> = row([
+        text("Inbox"),
+        badge("12").align(Align.Center),
+        badge("Beta"),
+        badge("Draft").style([Badge.secondary()]),
+        badge("Draft").style([Badge.outline()]),
+        badge("Failed").style([Badge.destructive()]),
+        badge("Beta").style([Badge.outline(), Text.color(Token.Primary)]),
+        badge("Beta").style([Border.rounded(999)]),
+    ]);
+    match v {
+        Row(xs) => assert_eq(style_of(xs[1]).align, Align.Center),
+        _ => panic("expected a row"),
+    }
+}
+
+fun bw(content: View<i64>[]): View<i64> = badge_with(content);
+
+@test
+fun a_badge_with_content_is_a_row_with_the_badges_look() {
+    let v = bw([icon("emblem-ok-symbolic"), text("Verified")]);
+    let s = sheet_of(v);
+    // The same look as a text badge, and the gap between its items.
+    let plain = sheet_of(b("Verified"));
+    assert_eq(s.background.color, plain.background.color);
+    assert_eq(s.spacing.padding, plain.spacing.padding);
+    assert_eq(s.border.radius, Radius.Small);
+    assert_eq(s.font.size, plain.font.size);
+    assert_eq(s.spacing.gap, Width.Px(4));
+    assert_eq(style_of(v).align, Align.Start);
+    match v {
+        Styled(inside, _) => match inside {
+            Row(xs) => {
+                assert_eq(xs.len, 2);
+                // Icons shrink to 12 px; text is left alone.
+                assert_eq(style_of(xs[0]).size, 12);
+                match xs[1] {
+                    Text(t) => assert_eq(t, "Verified"),
+                    _ => panic("the text stays plain text"),
+                }
+            }
+            _ => panic("a badge with content is a row"),
+        },
+        _ => panic("a badge is styled"),
+    }
+}
+
+@test
+fun a_badge_with_content_takes_variants_and_keeps_an_apps_icon_size() {
+    let v = bw([text("3"), icon("go-up-symbolic").size(16)]).style([Badge.secondary()]);
+    assert_eq(sheet_of(v).background.color, Paint.Token(Token.Secondary));
+    match v {
+        Styled(inside, _) => match inside {
+            Row(xs) => assert_eq(style_of(xs[1]).size, 16),
+            _ => panic("a badge with content is a row"),
+        },
+        _ => panic("a badge is styled"),
+    }
+}

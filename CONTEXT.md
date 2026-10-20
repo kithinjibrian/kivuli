@@ -778,6 +778,54 @@ Branch: main
 
 ---
 
+## SESSION 42 — 2026-10-20 — PRP-028: kivuli.ui, Badge, built, not merged — closed
+
+Branch: prp-028-ui-badge (not merged: waiting for the user's look)
+
+### WHAT WAS DONE
+- PRP-028 built: `Look`/`look` in styles.la (exported); `kivuli.ui` (src/ui.la re-exporting src/ui/badges.la): `badge(label)`, `Badge.secondary/outline/destructive()`. Component files import the entry's modules directly, not `lib`. examples/components.la (variants, beside text, adjusted, on a card; light/dark, palettes). Docs; 0.23.0 (not tagged).
+- test/badges.la written and type-checked only (the user's call).
+
+### STILL OPEN AT CLOSE
+- The user to look: `lughac run examples/components.la`; then merge and tag v0.23.0.
+- Next component: Button (variants default, secondary, outline, ghost, destructive, link; sizes), on the same convention.
+- Tests not run since session 32; main and tags v0.18.0–v0.22.0 not pushed.
+
+---
+
+## SESSION 43 — 2026-10-20 — CLAUDE.md: narrow example builds — closed
+
+Branch: prp-028-ui-badge
+
+### WHAT WAS DONE
+- The user asked why every example was rebuilt and wants to work faster. CLAUDE.md's TESTING rule and COMMANDS done-line now say: check only the examples that use what changed, build only the one the user will run, build them all before a push. Saved as memory too.
+
+### STILL OPEN AT CLOSE
+- As session 42: the user to look at examples/components.la, then merge PRP-028 and tag v0.23.0.
+
+---
+
+## SESSION 44 — 2026-10-20 — badge_with; no shadcn in comments; no co-author line — closed
+
+Branch: prp-028-ui-badge (not merged)
+
+### WHAT WAS DONE
+- The user liked the badges and asked for icons: `badge_with(content)` (A): the badge's look on a row, 4 px apart, icons at 12 px unless sized. Added to PRP-028; a "With icons" section in examples/components.la (only that example built). Tests type-checked.
+- Code comments no longer name shadcn (src, examples).
+- Commits carry no Co-Authored-By trailer from now on (the user's request; saved as memory). `.claude/settings.json` changed in the working tree by the user: left alone.
+
+### STILL OPEN AT CLOSE
+- The user to look at the icon badges; then merge PRP-028 and tag v0.23.0.
+- Tests not run since session 32; main and tags v0.18.0–v0.22.0 not pushed.
+
+---
+
+## SESSION 45 — 2026-10-20 — Merge PRP-028 — open
+
+Branch: main (merging prp-028-ui-badge)
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
@@ -785,4 +833,4 @@ Branch: main
 3. kivuli is at 0.22.0 on main, local; GitHub has up to v0.17.0. Tags v0.18.0–v0.22.0 wait for the user's go, after a full test run (none since session 32: the user is speeding tests up). lugha-gtk is at 0.1.34, pushed (standing go).
 4. `src/` is in folders (view/, styles/, core/, render/; DECISION-026); `test/` stays flat (DECISION-027, open: a lughac change).
 5. The plan (session 34): shadcn-like components. Done: palettes and tokens (PRP-026), motion (PRP-027). Next: `kivuli.ui` (button variants, input, card, badge, separator, select, checkbox, slider), then widgets kivuli lacks (switch, tabs, tooltip, dialog, progress, avatar).
-6. Gotchas: a named import binds the module's last name (E0311/E0314: no `styles.effects`); `lughac fmt` reflows text scripted edits expect: re-read first; Lugha strings interpolate `{…}`: write `{{`; an app's GtkCssProvider needs `lgtk_css_provider_new_for_scheme` for dark rules; files may not exceed 500 lines; gate any push on the test run's real exit status; never chain a bare `git push` in kivuli.
+6. Gotchas: a named import binds the module's last name (E0311/E0314: no `styles.effects`); `lughac fmt` reflows text scripted edits expect: re-read first; Lugha strings interpolate `{…}`: write `{{`; an app's GtkCssProvider needs `lgtk_css_provider_new_for_scheme` for dark rules; files may not exceed 500 lines; gate any push on the test run's real exit status; never chain a bare `git push` in kivuli; no Co-Authored-By trailer on commits; no shadcn by name in code comments; check only affected examples and build only the one being run.

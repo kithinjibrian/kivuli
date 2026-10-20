@@ -1,0 +1,91 @@
+/**
+ * Badge (PRP-028): a small label in the palette's colours. Its
+ * variants are `Look`s, given through `.style`, so an app's own values after
+ * one win. Built only from the public style API, as an app's own would be.
+ * Pure.
+ *
+ * Depends on: views, looks, widgets, styles, theming, boxes, fonts
+ * Used by: ui
+ */
+
+// The public items the entry re-exports, by their own modules (rule 2: no `lib`).
+import view.views { View };
+import view.looks { Align };
+import view.widgets { row, text };
+import view.pictures { Image };
+import styles { Look, look };
+import styles.theming { Color, Token };
+import styles.boxes { Background, Border, Spacing };
+import styles.fonts { Font, Text };
+
+/** No colour at all: so every variant has a border, and is one size. */
+fun clear(): Color = Color { red: 0, green: 0, blue: 0, alpha: 0 };
+
+/** What every badge looks like, before its variant. */
+fun badge_look(): Look = look([
+    Spacing.padding_x(8),
+    Spacing.padding_y(2),
+    Border.rounded_sm(),
+    Border.all(1, clear()),
+    Font.xs(),
+    Font.medium(),
+    Background.color(Token.Primary),
+    Text.color(Token.PrimaryForeground),
+]);
+
+/**
+ * A small label: a count, a status, "New". As wide as its text in a column;
+ * in a row, `.align(Align.Center)` centres it across the row's height.
+ *
+ * Example:
+ *     row([text("Inbox"), badge("12").align(Align.Center)])
+ */
+public fun badge<Msg>(label: string): View<Msg> = text(label).style([badge_look()]).align(
+    Align.Start,
+);
+
+/**
+ * A badge showing `content` in a row: an icon and text, in either order.
+ * Icons shrink to 12 pixels unless given a size; the text takes the badge's
+ * font and colour, and symbolic icons its colour too.
+ *
+ * Example:
+ *     badge_with([icon("emblem-ok-symbolic"), text("Verified")])
+ */
+public fun badge_with<Msg>(content: View<Msg>[]): View<Msg> = row(
+    content.map(fun(v: View<Msg>): View<Msg> = shrunk(v)),
+).style([badge_look()]).style([Spacing.gap(4)]).align(Align.Start);
+
+/** `v` at 12 pixels if it's an icon given no size of its own. */
+fun shrunk<Msg>(v: View<Msg>): View<Msg> = match v {
+    Image(Icon(_)) => v.size(12),
+    Styled(inner, s) => match inner {
+        Image(Icon(_)) => if s.size == 0 { v.size(12) } else { v },
+        _ => v,
+    },
+    _ => v,
+};
+
+/** A badge's variants, given through `.style`: `badge("Draft").style([Badge.outline()])`. */
+public struct Badge {}
+
+impl Badge {
+    /** Quieter: the palette's secondary colours. */
+    public fun secondary(): Look = look([
+        Background.color(Token.Secondary),
+        Text.color(Token.SecondaryForeground),
+    ]);
+
+    /** Just a border: no background, the page's text colour. */
+    public fun outline(): Look = look([
+        Background.color(clear()),
+        Text.color(Token.Foreground),
+        Border.all(1, Token.Border),
+    ]);
+
+    /** Something gone wrong: the palette's destructive colours. */
+    public fun destructive(): Look = look([
+        Background.color(Token.Destructive),
+        Text.color(Token.DestructiveForeground),
+    ]);
+}
