@@ -1,6 +1,6 @@
 # PRP-040 — Switch: a native switch, and kivuli.ui's
 
-Status: built (session 82) on branch prp-040-switch
+Status: built (session 82); merged into main in session 83 without running its tests (the user's call)
 Discovery: session 81, 2026-10-20 (the user's next component; the reference is shadcn's current switch). *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: a native `switch(on, on_toggle)` on GtkSwitch (disableable from the start, rule 6), `kivuli.testing.flip`, and `ui.switch` in the palette's colours.
