@@ -1,5 +1,5 @@
 /**
- * Tabs (PRP-041; the file isn't `tabs`, which would clash with the function): a row of triggers, one shown active, built of native
+ * Tabs (PRP-041, PRP-048 vertical; the file isn't `tabs`, which would clash with the function): a row or column of triggers, one shown active, built of native
  * buttons. Which tab is open is the app's model (rule 7): a trigger sends
  * its message, and the app shows that tab's panel. Pure.
  *
@@ -10,7 +10,7 @@
 // The public items the entry re-exports, by their own modules (rule 2: no `lib`).
 import view.views { View };
 import view.looks { Align };
-import view.widgets { row, button as native_button, button_with as native_button_with };
+import view.widgets { column, row, button as native_button, button_with as native_button_with };
 import view.pictures { Image };
 import styles { Look, look, When, State };
 import styles.theming { Color, Paint, Token };
@@ -110,6 +110,42 @@ fun styled<Msg>(triggers: View<Msg>[], active: i64, on: Look, off: Look): View<M
     out
 }
 
+/** The raised trigger's look: the page's colour, the small shadow, kept under GTK's states. */
+fun raised(): Look = look([
+    Background.color(Token.Background),
+    Text.color(Token.Foreground),
+    lift(),
+    When(State.Hover, [Background.color(Token.Background)]),
+    When(State.Press, [Background.color(Token.Background)]),
+]);
+
+/** The pill under the triggers. */
+fun pill(): Look = look([Background.color(Token.Muted), Border.rounded_lg(), Spacing.padding(3)]);
+
+/** A line trigger's look: no corners, a 2 px line in `paint` along its bottom, or down its end edge. */
+fun lined(bottom: bool, paint: Paint): Look = look([
+    Border { radius: Radius.All(0), ..Border.theme() },
+    if bottom { Border.bottom(2, paint) } else { Border.right(2, paint) },
+]);
+
+/**
+ * `triggers` stacked: each fills the column, its content at the start (a
+ * `tab`'s text, a `tab_with`'s row).
+ */
+fun stacked<Msg>(triggers: View<Msg>[]): View<Msg>[] = triggers.map(fun(
+    t: View<Msg>,
+): View<Msg> = match t {
+    ButtonWith(content, msg) => View.ButtonWith(content.align(Align.Start), msg),
+    Styled(inner, s) => match inner {
+        ButtonWith(content, msg) => View.Styled(
+            View.ButtonWith(content.align(Align.Start), msg),
+            s,
+        ),
+        _ => t,
+    },
+    _ => t,
+}.style([Text.start()]));
+
 /**
  * Tabs: `triggers` (`tab`, `tab_with`) on a muted pill, the one at `active`
  * (from 0) raised; past the end, none is. Show the active tab's panel
@@ -119,19 +155,24 @@ fun styled<Msg>(triggers: View<Msg>[], active: i64, on: Look, off: Look): View<M
  *     column([ui.tabs([tab("Account", Msg.Tab(0)), tab("Password", Msg.Tab(1))], m.tab), panel(m)])
  */
 public fun tabs<Msg>(triggers: View<Msg>[], active: i64): View<Msg> {
-    let raised = look([
-        Background.color(Token.Background),
-        Text.color(Token.Foreground),
-        lift(),
-        When(State.Hover, [Background.color(Token.Background)]),
-        When(State.Press, [Background.color(Token.Background)]),
-    ]);
     let flat = look([Border.rounded_md()]);
-    row(styled(triggers, active, look([Border.rounded_md(), raised]), flat)).style([
-        Background.color(Token.Muted),
-        Border.rounded_lg(),
-        Spacing.padding(3),
+    row(styled(triggers, active, look([Border.rounded_md(), raised()]), flat)).style([
+        pill(),
         Sizing.min_height(36),
+    ]).align(Align.Start)
+}
+
+/**
+ * Tabs stacked on the muted pill: `triggers` in a column, each as wide as
+ * the widest, its content at the start; the one at `active` raised.
+ *
+ * Example:
+ *     row([ui.tabs_vertical([tab("Account", Msg.Tab(0)), tab("Password", Msg.Tab(1))], m.tab), panel(m)])
+ */
+public fun tabs_vertical<Msg>(triggers: View<Msg>[], active: i64): View<Msg> {
+    let flat = look([Border.rounded_md()]);
+    column(styled(stacked(triggers), active, look([Border.rounded_md(), raised()]), flat)).style([
+        pill(),
     ]).align(Align.Start)
 }
 
@@ -142,14 +183,26 @@ public fun tabs<Msg>(triggers: View<Msg>[], active: i64): View<Msg> {
  *     ui.tabs_line([tab("Overview", Msg.Tab(0)), tab("Reports", Msg.Tab(1))], m.tab)
  */
 public fun tabs_line<Msg>(triggers: View<Msg>[], active: i64): View<Msg> {
-    let edge = fun(paint: Paint): Look = look([
-        Border { radius: Radius.All(0), ..Border.theme() },
-        Border.bottom(2, paint),
-    ]);
     // Every trigger has the 2 px line, so they're one height; only the active one shows it.
-    let on = look([edge(Token.Foreground.paint()), Text.color(Token.Foreground)]);
-    row(styled(triggers, active, on, edge(Paint.Color(clear())))).style([
+    let on = look([lined(true, Token.Foreground.paint()), Text.color(Token.Foreground)]);
+    row(styled(triggers, active, on, lined(true, Paint.Color(clear())))).style([
         Spacing.padding(0),
         Spacing.gap(8),
+    ]).align(Align.Start)
+}
+
+/**
+ * Tabs as a line, stacked: `triggers` in a column, the one at `active`
+ * marked by a line down its end edge.
+ *
+ * Example:
+ *     ui.tabs_line_vertical([tab("Overview", Msg.Tab(0)), tab("Reports", Msg.Tab(1))], m.tab)
+ */
+public fun tabs_line_vertical<Msg>(triggers: View<Msg>[], active: i64): View<Msg> {
+    // As `tabs_line`: every trigger has the line, so they're one width.
+    let on = look([lined(false, Token.Foreground.paint()), Text.color(Token.Foreground)]);
+    column(styled(stacked(triggers), active, on, lined(false, Paint.Color(clear())))).style([
+        Spacing.padding(0),
+        Spacing.gap(4),
     ]).align(Align.Start)
 }

@@ -2,7 +2,20 @@
 // both variants, an index past the end, icons, a disabled trigger. No GTK.
 import kivuli.styles { Sheet };
 import kivuli.view.looks { Style };
-import kivuli { View, State, Token, Paint, Width, Radius, Size, Weight, icon, text };
+import kivuli {
+    View,
+    State,
+    Token,
+    Paint,
+    Width,
+    Radius,
+    Size,
+    Weight,
+    Align,
+    TextAlign,
+    icon,
+    text,
+};
 import kivuli.ui { tab, tab_with };
 
 fun style_of<M>(v: View<M>): Style = match v {
@@ -15,7 +28,14 @@ fun sheet_of<M>(v: View<M>): Sheet = style_of(v).sheet;
 fun triggers<M>(v: View<M>): View<M>[] = match v {
     Styled(x, _) => triggers(x),
     Row(xs) => xs,
+    Column(xs) => xs,
     _ => panic("expected a row of triggers"),
+};
+
+fun is_column<M>(v: View<M>): bool = match v {
+    Styled(x, _) => is_column(x),
+    Column(_) => true,
+    _ => false,
 };
 
 fun in_state(s: Sheet, state: State): Sheet {
@@ -106,6 +126,66 @@ fun a_tab_with_icons_and_a_disabled_tab() {
                 assert(msg.is_none());
             }
             _ => panic("a tab is a button"),
+        },
+        _ => panic("a trigger is styled"),
+    }
+}
+
+fun two_vertical(active: i64): View<i64> = ui.tabs_vertical(
+    [tab("Account", 1), tab("Password", 2)],
+    active,
+);
+
+fun two_line_vertical(active: i64): View<i64> = ui.tabs_line_vertical(
+    [tab("Account", 1), tab("Password", 2)],
+    active,
+);
+
+@test
+fun vertical_tabs_are_a_column_on_the_pill() {
+    let v = two_vertical(1);
+    assert(is_column(v));
+    assert_eq(sheet_of(v).background.color, Paint.Token(Token.Muted));
+    assert_eq(style_of(v).align, Align.Start);
+    let ts = triggers(v);
+    assert_eq(ts.len, 2);
+    // Each trigger fills the column, its text at the start.
+    for t of ts {
+        assert_eq(style_of(t).align, Align.Fill);
+        assert_eq(sheet_of(t).text.align, TextAlign.Start);
+    }
+    assert_eq(sheet_of(ts[0]).text.color, Paint.Token(Token.MutedForeground));
+    assert_eq(sheet_of(ts[1]).background.color, Paint.Token(Token.Background));
+    for t of triggers(two_vertical(5)) {
+        assert_eq(sheet_of(t).text.color, Paint.Token(Token.MutedForeground));
+    }
+}
+
+@test
+fun the_vertical_line_runs_down_the_end_edge() {
+    let v = two_line_vertical(0);
+    assert(is_column(v));
+    let ts = triggers(v);
+    let on = sheet_of(ts[0]);
+    assert_eq(on.border.right.width, Width.Px(2));
+    assert_eq(on.border.right.color, Paint.Token(Token.Foreground));
+    assert(on.border.bottom.width != Width.Px(2));
+    // An idle trigger keeps an invisible line, so the two are one width.
+    assert_eq(sheet_of(ts[1]).border.right.width, Width.Px(2));
+    assert(sheet_of(ts[1]).border.right.color != Paint.Token(Token.Foreground));
+    assert_eq(sheet_of(ts[1]).text.align, TextAlign.Start);
+}
+
+@test
+fun a_vertical_tab_with_icons_starts_its_row() {
+    let v: View<i64> = ui.tabs_vertical(
+        [tab_with([icon("view-reveal-symbolic"), text("Preview")], 1)],
+        0,
+    );
+    match triggers(v)[0] {
+        Styled(inside, _) => match inside {
+            ButtonWith(content, _) => assert_eq(style_of(content).align, Align.Start),
+            _ => panic("a tab with content is a button_with"),
         },
         _ => panic("a trigger is styled"),
     }

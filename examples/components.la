@@ -364,6 +364,24 @@ fun page(m: Model): View<Msg> = column([
                 ],
                 m.tab,
             ),
+            row([
+                ui.tabs_vertical(
+                    [
+                        tab("General", Msg.Tab(0)),
+                        tab("Security", Msg.Tab(1)),
+                        tab_with([icon("mail-unread-symbolic"), text("Notifications")], Msg.Tab(2)),
+                    ],
+                    m.tab,
+                ),
+                ui.tabs_line_vertical(
+                    [
+                        tab("Overview", Msg.Tab(0)),
+                        tab("Analytics", Msg.Tab(1)),
+                        tab("Reports", Msg.Tab(2)).disabled(true),
+                    ],
+                    m.tab,
+                ),
+            ]).style([Spacing.gap(24)]),
         ]).style([Spacing.gap(16), Sizing.max_width(480)]),
     ),
     section(

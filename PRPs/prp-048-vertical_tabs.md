@@ -32,3 +32,9 @@ ui.tabs_line_vertical([tab("Overview", Msg.Tab(0)), tab("Reports", Msg.Tab(1))],
 
 ## ACCEPTANCE
 - [ ] The OBJECTIVE compiles; fmt clean; no file over 500 lines; README, DESIGN, CHANGELOG 0.43.0; merged, tagged; pushed only on your go.
+
+## NOTES FROM THE BUILD
+
+- **A native button's text alignment now places its content** (`Text.start()`/`end()` set the halign of the box holding its image and label; GTK's centre otherwise, unchanged): needed for "its text at the start" on a `tab`, which `.style([Text.start()])` didn't do before. Tested in `test/live_text_align.la`.
+- **Paused before merging**: `examples/components.la` is at 602 lines (over the limit since PRP-041; 581 before this PRP), and `test/live_forms.la` at 562. A split is proposed to the user.
+- Tests run and pass: tabs_ui (8), live_text_align, live_buttons_ui, live_style (14 in all). components built.
