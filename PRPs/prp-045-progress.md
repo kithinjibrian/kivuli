@@ -1,6 +1,6 @@
 # PRP-045 — Progress: a native progress bar, and kivuli.ui's
 
-Status: built (session 99) on branch prp-045-progress
+Status: built (session 99); merged into main in session 100 (its own tests run and pass)
 Discovery: session 97, 2026-10-20 (the reference's progress: an 8 px round track in `Primary` at 20%, a `Primary` fill). *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: a native `progress(value)` on GtkProgressBar (the value out of 100, display only), `Part.Fill`, and `ui.progress(value)` in the palette's colours.
