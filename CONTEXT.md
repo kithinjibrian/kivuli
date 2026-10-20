@@ -720,9 +720,18 @@ Branch: main (the split on refactor-live-split, merged)
 
 ---
 
-## SESSION 38 — 2026-10-20 — Motion: discovery — open
+## SESSION 38 — 2026-10-20 — Motion: discovery, PRP-027 draft — closed
 
 Branch: main
+
+### WHAT WAS DONE
+- Interview: transitions plus named animations (B); a `Motion` group with property-group utilities, easing and delay (A); reduced motion stops decorative motion, keeps spin and pulse (A); entrances only, played on a new widget (A).
+- GTK 4.22 probe: transitions (lists, curves, delays, steps), `@keyframes`, `prefers-reduced-motion` all parse; `gtk-interface-reduced-motion` exists (4.22), and a provider's `prefers-reduced-motion` needs binding like the colour scheme.
+- PRP-027 (motion) drafted.
+
+### STILL OPEN AT CLOSE
+- PRP-027 awaits the user's approval.
+- Tests not run since session 32; main and tags v0.18.0–v0.21.0 not pushed.
 
 ---
 
