@@ -140,6 +140,10 @@ fun rules(s: Sheet): (string, string)[] {
 /** A part's CSS node name, and the code its classes carry. */
 fun part_node(part: Part): string = match part {
     Check => "check",
+    Trough => "trough",
+    Highlight => "highlight",
+    // GTK calls a slider's thumb `slider`.
+    Knob => "slider",
 };
 
 /**

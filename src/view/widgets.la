@@ -213,7 +213,7 @@ public fun slider<Msg>(
     max: i64,
     value: i64,
     on_change: fun(i64): Msg,
-): View<Msg> = View.Slider(min, max, value, on_change);
+): View<Msg> = View.Slider(min, max, value, Some(on_change));
 
 /**
  * Builds a theme icon by name, at the theme's size; `.size(n)` makes it `n`

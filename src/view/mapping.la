@@ -37,12 +37,10 @@ fun mapped<Msg, B>(v: View<Msg>, f: fun(Msg): B): View<B> = match v {
         choices.map(fun(choice) = (choice.0, f(choice.1))),
         selected,
     ),
-    Slider(min, max, value, on_change) => View.Slider(
-        min,
-        max,
-        value,
-        fun(n: i64): B = f(on_change(n)),
-    ),
+    Slider(min, max, value, on_change) => View.Slider(min, max, value, match on_change {
+        Some(g) => Some(fun(n: i64): B = f(g(n))),
+        None => None,
+    }),
     Image(img) => View.Image(img),
     Spacer => View.Spacer,
     Separator => View.Separator,
@@ -67,7 +65,7 @@ fun mapped<Msg, B>(v: View<Msg>, f: fun(Msg): B): View<B> = match v {
     ),
 };
 
-/** `.disabled`: when `off`, a button's, field's, text area's or check box's messages taken away. */
+/** `.disabled`: when `off`, a button's, field's, text area's, check box's or slider's messages taken away. */
 fun disabled_node<Msg>(v: View<Msg>, off: bool): View<Msg> = if !off {
     v
 } else {
@@ -77,6 +75,7 @@ fun disabled_node<Msg>(v: View<Msg>, off: bool): View<Msg> = if !off {
         Input(value, _) => View.Input(value, None),
         TextArea(value, _) => View.TextArea(value, None),
         Checkbox(label, checked, _) => View.Checkbox(label, checked, None),
+        Slider(min, max, value, _) => View.Slider(min, max, value, None),
         Styled(inside, s) => View.Styled(disabled_node(inside, true), s),
         Menu(inside, entries) => View.Menu(disabled_node(inside, true), entries),
         _ => v,

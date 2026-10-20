@@ -1,0 +1,71 @@
+/**
+ * Slider (PRP-038): kivuli's native slider in the palette's colours, its
+ * track, filled part and thumb styled as parts. Pure.
+ *
+ * Depends on: views, widgets, styles, theming, values, boxes, drawing, motion
+ * Used by: ui
+ */
+
+// The public items the entry re-exports, by their own modules (rule 2: no `lib`).
+import view.views { View };
+import view.widgets { slider as native_slider };
+import styles { Inside, Part, When, State };
+import styles.theming { Color, Paint, Token };
+import styles.values { Drop, Radius };
+import styles.boxes { Background, Border, Sizing, Spacing };
+import styles.drawing { Effects, Shadow };
+import styles.motion { Motion };
+
+fun round(): Border = Border { radius: Radius.All(999), ..Border.theme() };
+
+/** The thumb's small shadow: one pixel down, black at 10%. */
+fun lift(): Shadow = Shadow {
+    boxes: [
+        Drop {
+            y: 1,
+            blur: 3,
+            color: Paint.Color(Color { red: 0, green: 0, blue: 0, alpha: 26 }),
+            ..Drop.theme(),
+        },
+    ],
+    text: [],
+};
+
+/** A 4 px halo of `Ring` at 50% around the thumb. */
+fun halo(): Shadow = Shadow {
+    boxes: [Drop { spread: 4, color: Token.Ring.alpha(0.5), ..Drop.theme() }],
+    text: [],
+};
+
+/**
+ * A slider in the palette's colours from `min` to `max`, showing `value`;
+ * each move sends `on_change(n)`. `.step(…)`, `.disabled(…)` and `.name(…)`
+ * work as on kivuli's own `slider`.
+ *
+ * Example:
+ *     ui.slider(0, 100, m.volume, Msg.Volume)
+ */
+public fun slider<Msg>(min: i64, max: i64, value: i64, on_change: fun(i64): Msg): View<Msg> = native_slider(
+    min,
+    max,
+    value,
+    on_change,
+).style([
+    Inside(Part.Trough, [Sizing.min_height(6), round(), Background.color(Token.Muted)]),
+    Inside(Part.Highlight, [round(), Background.color(Token.Primary)]),
+    Inside(Part.Knob, [
+        Sizing.min_width(16),
+        Sizing.min_height(16),
+        round(),
+        Border.all(1, Token.Primary),
+        Background.color(Token.Background),
+        lift(),
+        // Centred on the 6 px track: (16 - 6) / 2 over it each way.
+        Spacing.margin(-5),
+        Motion.shadow(150),
+    ]),
+    // Hover is the whole slider's: a part's own hover isn't reachable through `When`.
+    When(State.Hover, [Inside(Part.Knob, [halo()])]),
+    When(State.Focus, [Inside(Part.Knob, [halo()])]),
+    When(State.Disabled, [Effects.opacity(0.5)]),
+]);

@@ -238,6 +238,8 @@ fun create_in<Msg>(v: View<Msg>, axis: i32, send: fun(Msg)): Live<Msg> = match v
         // Set before connecting, so the first number isn't sent as a move.
         show_number(scale, range, last, value);
         let current = Ref.new(on_change);
+        // Disabled means no message (rule 6): greyed, and nothing sent.
+        gtk_widget_set_sensitive(scale, flag(on_change.is_some()));
         connect_widget(
             scale,
             "value-changed",
@@ -250,8 +252,10 @@ fun create_in<Msg>(v: View<Msg>, axis: i32, send: fun(Msg)): Live<Msg> = match v
                     gtk_range_set_value(s, v as f64);
                 } else if v != last.get() {
                     last.set(v);
-                    let f = current.get();
-                    send(f(v));
+                    match current.get() {
+                        Some(f) => send(f(v)),
+                        None => {}
+                    }
                 }
             },
             0,

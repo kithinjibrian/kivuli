@@ -48,7 +48,7 @@ public enum View<Msg> {
     /** A drop-down: each choice's label and the message picking it sends, and the label shown picked. */
     Dropdown((string, Msg)[], string),
     /** A whole-number slider: its least and greatest value, its value, and the message each move sends. */
-    Slider(i64, i64, i64, fun(i64): Msg),
+    Slider(i64, i64, i64, Option<fun(i64): Msg>),
     /** An image: a theme icon, a file or bytes (`Image`). */
     Image(Image),
     /** Empty room that grows along its column or row, pushing what follows to the end. */

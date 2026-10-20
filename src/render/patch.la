@@ -189,7 +189,10 @@ fun apply<Msg>(
     }
     SetOnSlide(path, on_change) => {
         match at(live, path) {
-            Slider(_, _, _, current) => current.set(on_change),
+            Slider(scale, _, _, current) => {
+                current.set(on_change);
+                gtk_widget_set_sensitive(scale, flag(on_change.is_some()));
+            }
             _ => panic("kivuli: a SetOnSlide patch points at something that isn't a slider"),
         }
         live
