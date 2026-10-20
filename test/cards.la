@@ -1,0 +1,115 @@
+// kivuli.ui's Card (PRP-031): the card's values, each part's, the empty
+// description left out, the header's action, the footer meeting the card's
+// edge, parts left out and repeated. No GTK.
+import kivuli.styles { Sheet };
+import kivuli.view.looks { Style };
+import kivuli { View, Align, Token, Paint, Radius, Width, Weight, Size, Sizing, text };
+import kivuli.ui { card, card_header, card_header_with, card_content, card_footer, badge, Button };
+
+fun style_of<M>(v: View<M>): Style = match v {
+    Styled(_, s) => s,
+    _ => panic("expected a styled node"),
+};
+
+fun sheet_of<M>(v: View<M>): Sheet = style_of(v).sheet;
+
+/** The views inside a styled column or row. */
+fun inner<M>(v: View<M>): View<M>[] = match v {
+    Styled(x, _) => inner(x),
+    Column(xs) => xs,
+    Row(xs) => xs,
+    _ => panic("expected a column or a row"),
+};
+
+fun header(t: string, d: string): View<i64> = card_header(t, d);
+
+@test
+fun a_card_is_a_column_in_the_card_colours() {
+    let v: View<i64> = card([header("Title", "Description")]);
+    let s = sheet_of(v);
+    assert_eq(s.background.color, Paint.Token(Token.Card));
+    assert_eq(s.text.color, Paint.Token(Token.CardForeground));
+    // No size of its own: a scale is relative to the parent, so it would shrink everything inside.
+    assert_eq(s.font.size, Size.Theme);
+    assert_eq(s.border.top.width, Width.Px(1));
+    assert_eq(s.border.top.color, Token.Foreground.alpha(0.1));
+    assert_eq(s.border.radius, Radius.XLarge);
+    assert_eq(s.spacing.padding.top, Width.Px(16));
+    assert_eq(s.spacing.padding.bottom, Width.Px(16));
+    assert_eq(s.spacing.padding.left, Width.Theme);
+    assert_eq(s.spacing.gap, Width.Px(16));
+    assert_eq(inner(v).len, 1);
+}
+
+@test
+fun a_header_is_a_title_over_a_muted_description() {
+    let h = header("Login", "Enter your email");
+    assert_eq(sheet_of(h).spacing.padding.left, Width.Px(16));
+    assert_eq(sheet_of(h).spacing.gap, Width.Px(4));
+    let parts = inner(h);
+    assert_eq(parts.len, 2);
+    assert_eq(sheet_of(parts[0]).font.weight, Weight.Medium);
+    assert_eq(sheet_of(parts[0]).font.size, Size.Scale(1.125));
+    assert_eq(sheet_of(parts[1]).text.color, Paint.Token(Token.MutedForeground));
+    assert_eq(sheet_of(parts[1]).font.size, Size.Scale(0.875));
+    // No description: just the title.
+    assert_eq(inner(header("Login", "")).len, 1);
+}
+
+@test
+fun a_header_with_an_action_puts_it_at_the_end() {
+    let h: View<i64> = card_header_with("Meetup", "A talk", badge("Featured"));
+    let row = inner(h);
+    assert_eq(row.len, 2);
+    assert(style_of(row[0]).expand);
+    assert_eq(style_of(row[1]).align, Align.Start);
+    assert_eq(inner(row[0]).len, 2);
+}
+
+@test
+fun content_and_footer_pad_themselves_and_the_footer_meets_the_edge() {
+    let c: View<i64> = card_content([text("a"), text("b")]);
+    assert_eq(sheet_of(c).spacing.padding.left, Width.Px(16));
+    assert_eq(sheet_of(c).spacing.gap, Width.Px(8));
+    assert_eq(inner(c).len, 2);
+    let f: View<i64> = card_footer([ui.button("OK", 1)]);
+    let s = sheet_of(f);
+    assert_eq(s.spacing.padding.top, Width.Px(16));
+    assert_eq(s.spacing.padding.left, Width.Px(16));
+    assert_eq(s.spacing.margin.bottom, Width.Px(-16));
+    assert_eq(s.spacing.gap, Width.Px(8));
+    assert_eq(s.border.top.color, Paint.Token(Token.Border));
+    assert_eq(s.background.color, Token.Muted.alpha(0.5));
+}
+
+@test
+fun parts_can_be_left_out_repeated_and_mixed_with_an_apps_views() {
+    let v: View<i64> = card([
+        card_content([text("one")]),
+        card_content([text("two")]),
+        text("mine"),
+    ]);
+    assert_eq(inner(v).len, 3);
+}
+
+@test
+fun the_objective_reads_as_written() {
+    let login: View<i64> = card([
+        card_header("Login to your account", "Enter your email below to log in"),
+        card_content([text("email"), text("password")]),
+        card_footer([
+            ui.button("Login", 1),
+            ui.button("Login with Google", 2).style([Button.outline()]),
+        ]),
+    ]).style([Sizing.max_width(380)]);
+    let meetup: View<i64> = card([
+        card_header_with(
+            "Design systems meetup",
+            "A practical talk on component APIs",
+            badge("Featured"),
+        ),
+        card_content([text("Thursday, 6 pm")]),
+    ]);
+    assert_eq(inner(login).len, 3);
+    assert_eq(inner(meetup).len, 2);
+}

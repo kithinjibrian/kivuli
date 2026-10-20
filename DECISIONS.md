@@ -12,6 +12,15 @@ Rules:
 
 ## OPEN — Requires human input before implementation
 
+### DECISION-028 — A container's spacing reaching its parts
+
+**Status:** open (not blocking: deferred by the user, session 53)
+**Raised:** 2026-10-20 — Session 53 (PRP-031, Card)
+
+**Question:** the reference card's `size="sm"` shrinks its spacing from 16 to 12 px, and its header, content and footer follow because they read one CSS variable from the card. kivuli's style values have no variables, and a part is built before it's put in its card, so a card's size can't reach its parts. Options: a style value that sets a named spacing for everything inside (a CSS variable under the hood); the card rewriting its parts' spacing when they're kivuli.ui parts; sizes given to each part.
+
+**Outcome so far:** the card has one size (16 px). Decide when the small card, or another component needing it, is next.
+
 ### DECISION-027 — lughac: a test in a subfolder can't import a shared test file
 
 **Status:** open (needs a lughac change; not worked around)

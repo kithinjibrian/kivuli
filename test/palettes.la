@@ -250,3 +250,12 @@ fun a_tokens_opacity_is_checked() {
         Err("Token.MutedForeground.alpha(-0.1): an opacity is between 0 and 1"),
     );
 }
+
+@test
+fun the_extra_large_radius_is_four_more_than_the_palettes() {
+    assert_eq(Border.rounded_xl().radius, Radius.XLarge);
+    let bodies = rules(Border.rounded_xl().apply(Sheet.theme())).map(fun(r) = r.1);
+    assert(
+        bodies.iter().any(fun(x) = x == "border-top-left-radius: calc(var(--kv-radius) + 4px);"),
+    );
+}

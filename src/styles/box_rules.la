@@ -42,6 +42,7 @@ fun box_css(s: Sheet): (string, string)[] {
         Small => [0, 0, 0, 0].map(fun(n) = ("sm", "calc(var(--kv-radius) - 4px)")),
         Medium => [0, 0, 0, 0].map(fun(n) = ("md", "calc(var(--kv-radius) - 2px)")),
         Large => [0, 0, 0, 0].map(fun(n) = ("lg", "var(--kv-radius)")),
+        XLarge => [0, 0, 0, 0].map(fun(n) = ("xl", "calc(var(--kv-radius) + 4px)")),
     };
     let names = [
         ("tl", "top-left"),
