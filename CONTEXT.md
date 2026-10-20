@@ -793,9 +793,15 @@ Branch: prp-028-ui-badge (not merged: waiting for the user's look)
 
 ---
 
-## SESSION 43 — 2026-10-20 — CLAUDE.md: narrow example builds — open
+## SESSION 43 — 2026-10-20 — CLAUDE.md: narrow example builds — closed
 
 Branch: prp-028-ui-badge
+
+### WHAT WAS DONE
+- The user asked why every example was rebuilt and wants to work faster. CLAUDE.md's TESTING rule and COMMANDS done-line now say: check only the examples that use what changed, build only the one the user will run, build them all before a push. Saved as memory too.
+
+### STILL OPEN AT CLOSE
+- As session 42: the user to look at examples/components.la, then merge PRP-028 and tag v0.23.0.
 
 ---
 

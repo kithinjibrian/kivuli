@@ -65,7 +65,7 @@ Write the test before writing the implementation. No exceptions.
 - Pure tests must need **no display and no GTK window**: view construction, modifiers, `map`, diff (tree → patches), `kivuli.testing`, subscription bookkeeping. Tests of the live GTK layer (`test/live.la`) drive a hidden window and read the widgets back, and must start with `if !has_display() { skip("no display"); }` so they are skipped, not failed, without one.
 - Test behavior visible to callers: inputs, outputs, and every error variant. Do not test private internals or GTK's own behavior.
 - Every new `public` function gets at least one happy-path test and one test per error variant it can return.
-- While working, run only the test files that cover the change (`lughac test test/diff.la test/live_forms.la`), not the whole suite after every edit (the user's request, session 3). Run the full suite and build every example once, just before a PRP's branch is merged.
+- While working, run only the test files that cover the change (`lughac test test/diff.la test/live_forms.la`), not the whole suite after every edit (the user's request, session 3). Likewise for examples: `lughac check` only the examples that use what changed, and `lughac build` only the one the user is about to run (the user's request, session 42). Run the full suite and build every example once, before a push.
 - Opening real windows is the user's job. Never claim a visual behavior works because it compiled.
 
 If the PRP does not describe what to test, add the test cases to the PRP before writing code.
@@ -160,7 +160,7 @@ lughac explain E0312                  # what an error code means
 lughac spec                           # the full Lugha language reference: check it before assuming a feature exists
 ```
 
-A task is done only when `fmt --check` is clean, `lughac test test/` passes (skips allowed only for `no display`), and every file in `examples/` passes `lughac check` and `lughac build`.
+A task is done only when `fmt --check` is clean, `lughac test test/` passes (skips allowed only for `no display`), and the examples that use what changed pass `lughac check`. Every file in `examples/` passes `lughac build` before a push (session 42: building them all after each change was too slow).
 
 > Needs: `lughac` (the user installs it from `../lugha` with `cargo install --path . --locked`; never do it yourself), `libgtk-4-dev` (GTK 4.22), `pkgconf`, `libgc-dev`, `cc`.
 
