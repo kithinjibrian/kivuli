@@ -1,8 +1,6 @@
 /**
- * Style groups beyond `styles` (file size): `Shadow` and `Effects`. Each
- * group's `apply` takes a `Sheet` and `Sheet` holds every group, so this
- * module and `styles` import each other: the second allowed cycle
- * (DECISION-025). Pure.
+ * The drawing groups (PRP-022): `Shadow` and `Effects`. Imports `styles` for
+ * `Sheet`, which imports this back (DECISION-025). Pure.
  *
  * Depends on: styles (`Sheet`), style_values, theming
  * Used by: box_rules, lib, styles

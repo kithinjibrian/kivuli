@@ -1,0 +1,106 @@
+/**
+ * The text groups (PRP-016): `Font` picks the typeface and its size; `Text`
+ * says what's done with the letters. Imports `styles` for `Sheet`, which
+ * imports this back (DECISION-025). Pure.
+ *
+ * Depends on: styles (`Sheet`), style_values, theming
+ * Used by: lib, styles
+ */
+
+import styles { Sheet };
+import theming { Paint };
+import style_values { Family, Size, Weight, FontStyle, LineHeight, Decoration, Transform };
+
+/**
+ * Which typeface a node's text uses, and how big. Fields left `Theme` (and
+ * `tabular` false) stay the GTK theme's.
+ *
+ * Example:
+ *     text("Price").style([Font { weight: Weight.Medium, tabular: true, ..Font.theme() }])
+ */
+public struct Font {
+    public family: Family,
+    public size: Size,
+    public weight: Weight,
+    public style: FontStyle,
+    /** Digits all one width, for numbers in columns. */
+    public tabular: bool,
+}
+
+impl Font {
+    /** Every field the theme's: start here and change what you need. */
+    public fun theme(): Font = Font {
+        family: Family.Theme,
+        size: Size.Theme,
+        weight: Weight.Theme,
+        style: FontStyle.Theme,
+        tabular: false,
+    };
+
+    /** `s` with every field this font sets. */
+    public fun apply(self, s: Sheet): Sheet = Sheet {
+        font: Font {
+            family: if self.family == Family.Theme { s.font.family } else { self.family },
+            size: if self.size == Size.Theme { s.font.size } else { self.size },
+            weight: if self.weight == Weight.Theme { s.font.weight } else { self.weight },
+            style: if self.style == FontStyle.Theme { s.font.style } else { self.style },
+            tabular: self.tabular || s.font.tabular,
+        },
+        ..s,
+    };
+}
+
+/**
+ * What's done with the letters once the font is chosen. Fields left `Theme`
+ * (and `letter_spacing` 0, the font's own) stay the GTK theme's.
+ *
+ * Example:
+ *     text("NEW").style([Text { transform: Transform.Uppercase, letter_spacing: 2, ..Text.theme() }])
+ */
+public struct Text {
+    public color: Paint,
+    public line_height: LineHeight,
+    /** Pixels between letters, over the font's own; negative tightens. */
+    public letter_spacing: i64,
+    public decoration: Decoration,
+    public transform: Transform,
+}
+
+impl Text {
+    /** Every field the theme's: start here and change what you need. */
+    public fun theme(): Text = Text {
+        color: Paint.Theme,
+        line_height: LineHeight.Theme,
+        letter_spacing: 0,
+        decoration: Decoration.Theme,
+        transform: Transform.Theme,
+    };
+
+    /** `s` with every field this text value sets. */
+    public fun apply(self, s: Sheet): Sheet = Sheet {
+        text: Text {
+            color: if self.color == Paint.Theme { s.text.color } else { self.color },
+            line_height: if self.line_height == LineHeight.Theme {
+                s.text.line_height
+            } else {
+                self.line_height
+            },
+            letter_spacing: if self.letter_spacing == 0 {
+                s.text.letter_spacing
+            } else {
+                self.letter_spacing
+            },
+            decoration: if self.decoration == Decoration.Theme {
+                s.text.decoration
+            } else {
+                self.decoration
+            },
+            transform: if self.transform == Transform.Theme {
+                s.text.transform
+            } else {
+                self.transform
+            },
+        },
+        ..s,
+    };
+}

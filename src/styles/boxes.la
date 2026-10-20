@@ -1,0 +1,223 @@
+/**
+ * The box groups (PRPs 017–019): what's behind a node, its border and
+ * outline, the room around it and its size. Imports `styles` for `Sheet`,
+ * which imports this back (DECISION-025). Pure.
+ *
+ * Depends on: styles (`Sheet`), style_values, theming, pictures
+ * Used by: box_rules, lib, styles
+ */
+
+import styles { Sheet };
+import theming { Paint };
+import pictures { Image };
+import style_values { Gradient, Fill, Width, Line, Radius, Side, Edges };
+
+/**
+ * What's behind a node's content: an image over a gradient over a colour,
+ * stacked as CSS stacks them. Fields left `Theme` (and `image` `None`) stay
+ * the GTK theme's. A picture from a file or bytes is checked before GTK sees
+ * it; one that can't be shown shows nothing.
+ *
+ * Example:
+ *     column(rows).style([Background { color: Paint.Faded(0.08), ..Background.theme() }])
+ */
+public struct Background {
+    /** `Faded(x)` is a tint of the theme's text colour, following light and dark. */
+    public color: Paint,
+    public gradient: Gradient,
+    public image: Option<Image>,
+    public fill: Fill,
+}
+
+impl Background {
+    /** Every field the theme's: start here and change what you need. */
+    public fun theme(): Background = Background {
+        color: Paint.Theme,
+        gradient: Gradient.Theme,
+        image: None,
+        fill: Fill.Theme,
+    };
+
+    /** `s` with every field this background sets. */
+    public fun apply(self, s: Sheet): Sheet = Sheet {
+        background: Background {
+            color: if self.color == Paint.Theme { s.background.color } else { self.color },
+            gradient: if self.gradient == Gradient.Theme {
+                s.background.gradient
+            } else {
+                self.gradient
+            },
+            image: if self.image.is_some() { self.image } else { s.background.image },
+            fill: if self.fill == Fill.Theme { s.background.fill } else { self.fill },
+        },
+        ..s,
+    };
+}
+
+/**
+ * A node's border: `all` for every side, each side on its own over it (field
+ * by field), and the corners' radius. Across a style's values the later
+ * wins, so a later `all` resets sides an earlier value set.
+ *
+ * Example:
+ *     card.style([Border { all: hairline, radius: Radius.All(12), ..Border.theme() }])
+ */
+public struct Border {
+    public all: Side,
+    public top: Side,
+    public right: Side,
+    public bottom: Side,
+    public left: Side,
+    public radius: Radius,
+}
+
+impl Border {
+    /** Every field the theme's: start here and change what you need. */
+    public fun theme(): Border = Border {
+        all: Side.theme(),
+        top: Side.theme(),
+        right: Side.theme(),
+        bottom: Side.theme(),
+        left: Side.theme(),
+        radius: Radius.Theme,
+    };
+
+    /** `s` with every side and corner this border sets; `all` is folded into the sides. */
+    public fun apply(self, s: Sheet): Sheet {
+        let was = s.border;
+        // A side's own field beats `all`; both beat what was there.
+        let side = fun(own: Side, before: Side): Side = own.over(self.all.over(before));
+        Sheet {
+            border: Border {
+                all: Side.theme(),
+                top: side(self.top, was.top),
+                right: side(self.right, was.right),
+                bottom: side(self.bottom, was.bottom),
+                left: side(self.left, was.left),
+                radius: if self.radius == Radius.Theme { was.radius } else { self.radius },
+            },
+            ..s,
+        }
+    }
+}
+
+/**
+ * A line around a node, outside its border, that doesn't take room: for
+ * "selected" or a drop target. It hides while the node has keyboard focus,
+ * so the theme's focus ring shows.
+ *
+ * Example:
+ *     tile.style([Outline { width: Width.Px(2), color: Paint.Color(hex("#2a5298")), style: Line.Solid, offset: 2 }])
+ */
+public struct Outline {
+    public width: Width,
+    public color: Paint,
+    public style: Line,
+    /** Pixels outside the border; negative draws inside; 0 is the theme's. */
+    public offset: i64,
+}
+
+impl Outline {
+    /** Every field the theme's. */
+    public fun theme(): Outline = Outline {
+        width: Width.Theme,
+        color: Paint.Theme,
+        style: Line.Theme,
+        offset: 0,
+    };
+
+    /** `s` with every field this outline sets. */
+    public fun apply(self, s: Sheet): Sheet = Sheet {
+        outline: Outline {
+            width: if self.width == Width.Theme { s.outline.width } else { self.width },
+            color: if self.color == Paint.Theme { s.outline.color } else { self.color },
+            style: if self.style == Line.Theme { s.outline.style } else { self.style },
+            offset: if self.offset == 0 { s.outline.offset } else { self.offset },
+        },
+        ..s,
+    };
+}
+
+/**
+ * The room around and between things: padding inside the border, margin
+ * outside it (it may be negative), and the gap between a column's, row's or
+ * wrap's children. Each side as a border's: `all`, a side's own value over it.
+ *
+ * Example:
+ *     card.style([Spacing { padding: Edges { all: Width.Px(16), ..Edges.theme() }, gap: Width.Px(8), ..Spacing.theme() }])
+ */
+public struct Spacing {
+    public padding: Edges,
+    public margin: Edges,
+    public gap: Width,
+}
+
+impl Spacing {
+    /** Every field the theme's: start here and change what you need. */
+    public fun theme(): Spacing = Spacing {
+        padding: Edges.theme(),
+        margin: Edges.theme(),
+        gap: Width.Theme,
+    };
+
+    /** `s` with every side and the gap this spacing sets. */
+    public fun apply(self, s: Sheet): Sheet = Sheet {
+        spacing: Spacing {
+            padding: self.padding.over(s.spacing.padding),
+            margin: self.margin.over(s.spacing.margin),
+            gap: if self.gap == Width.Theme { s.spacing.gap } else { self.gap },
+        },
+        ..s,
+    };
+}
+
+/**
+ * How big a node is, each way: exactly, at least and at most, combined as CSS
+ * combines them (an exact size kept within the minimum and the maximum, the
+ * minimum winning). A node is never smaller than its content's own minimum.
+ * A minimum is GTK's CSS; an exact size or a maximum puts the node in a clamp.
+ *
+ * Example:
+ *     text(m.body).wrap().style([Sizing { max_width: Width.Px(560), ..Sizing.theme() }])
+ */
+public struct Sizing {
+    public width: Width,
+    public min_width: Width,
+    public max_width: Width,
+    public height: Width,
+    public min_height: Width,
+    public max_height: Width,
+}
+
+impl Sizing {
+    /** Every field the theme's: start here and change what you need. */
+    public fun theme(): Sizing = Sizing {
+        width: Width.Theme,
+        min_width: Width.Theme,
+        max_width: Width.Theme,
+        height: Width.Theme,
+        min_height: Width.Theme,
+        max_height: Width.Theme,
+    };
+
+    /** `s` with every size this value sets. */
+    public fun apply(self, s: Sheet): Sheet {
+        let was = s.sizing;
+        let pick = fun(own: Width, before: Width): Width = if own == Width.Theme {
+            before
+        } else {
+            own
+        };
+        Sheet {
+            sizing: Sizing {
+                width: pick(self.width, was.width),
+                min_width: pick(self.min_width, was.min_width),
+                max_width: pick(self.max_width, was.max_width),
+                height: pick(self.height, was.height),
+                min_height: pick(self.min_height, was.min_height),
+                max_height: pick(self.max_height, was.max_height),
+            },
+            ..s,
+        }
+    }
+}
