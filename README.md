@@ -161,12 +161,25 @@ Everything visual comes from the GTK theme unless a node's `.style` says otherwi
 **Styles.** How a node looks is a list of typed values, given with `.style([...])`. There are no class names to invent and nothing to register: a style is written on the node, and reused through an ordinary function.
 
 ```
-fun dim(): Text = Text { color: Paint.Faded(0.55), ..Text.theme() };
-
-text("Storage").style([Font { size: Size.Pt(22), weight: Weight.Bold, ..Font.theme() }])
-text(m.folder).style([Font { family: Family.Monospace, tabular: true, ..Font.theme() }, dim()])
-text("Price").style([Text { decoration: Decoration.Strikethrough, ..Text.theme() }])
+text("Storage").style([Font.size(22), Font.bold()])
+text(m.folder).style([Font.mono(), Font.tabular(), Text.dim()])
+card.style([Spacing.padding(16), Border.rounded(12), Border.all(1, Paint.Faded(0.15)), Shadow.md()])
+text("Price").style([Text { decoration: Decoration.Strikethrough, ..Text.theme() }])   // the full value
 ```
+
+The short forms (utilities) are static functions on each group, each returning the full value it stands for, so the two mix freely:
+
+| Group | Utilities |
+| --- | --- |
+| `Font` | `h1()` (black, 2×), `h2()` (black, 1.5×), `h3()` (bold, 1.5×), `h4()` (bold, 1.3×), `heading()` (bold, 1.1×), `body()` (normal, 1.1×), `caption()` (normal, 0.9×); `xs()` 0.75×, `sm()` 0.875×, `base()`, `lg()` 1.125×, `xl()` 1.25×, `xxl()` 1.5×; `size(pt)`, `scale(x)`; `thin()`, `light()`, `normal()`, `medium()`, `semibold()`, `bold()`, `black()`; `italic()`; `sans()`, `serif()`, `mono()`, `family(name, fallback)`; `tabular()` |
+| `Text` | `upper()`, `lower()`, `capitalize()`; `underline()`, `strike()`; `tight()` (1.2), `loose()` (1.6), `line_height(x)`; `wide()` (+1 px), `narrow()` (−1 px), `letter_spacing(px)`; `dim()` (faded 0.55), `faded(x)`, `color(c)` |
+| `Background` | `color(c)`, `tint(x)` (the theme's text colour at `x`), `linear(angle, stops)`, `radial(stops)`, `image(img)` (cover) |
+| `Border`, `Outline` | `all(px, paint)`, `top`/`right`/`bottom`/`left(px, paint)` (solid), `rounded(px)`, `corners(tl, tr, br, bl)`, `none()`; `Outline.ring(px, paint)` (solid), `Outline.offset(px)` |
+| `Spacing` | `padding(px)`, `padding_x`, `padding_y`, `padding_top`, `_right`, `_bottom`, `_left`; the same for `margin` (may be negative); `gap(px)` |
+| `Sizing` | `width(px)`, `min_width`, `max_width`, `height`, `min_height`, `max_height` |
+| `Shadow`, `Effects` | `Shadow.sm()`, `md()`, `lg()`, `xl()` (Tailwind's layered shadows), `Shadow.off()`; `Effects.opacity(x)`, `blur(px)`, `grayscale()`, `rotate(deg)`, `scale(x)`, `translate(x, y)` |
+
+The full values, field by field:
 
 | Value | Fields |
 | --- | --- |

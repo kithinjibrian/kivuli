@@ -173,7 +173,7 @@ fun main() {
 
 ## RESOLVED
 
-### DECISION-025 — A second allowed import cycle: styles ↔ style_groups
+### DECISION-025 — A second allowed import cycle: styles ↔ styles/ (was style_groups)
 
 **Status:** resolved
 **Raised:** 2026-10-20 — Session 25 (PRP-022)
@@ -182,6 +182,8 @@ fun main() {
 **Question:** `src/styles.la` is near 500 lines, and every style group must sit with `Sheet`: `Sheet` holds each group, and each group's `apply` takes a `Sheet`. Moving groups out makes the two modules import each other, which architecture rule 2 forbids (one exception: `views` ↔ `mapping`).
 
 **Outcome:** a second exception, `styles` ↔ `style_groups`: new style groups (from `Shadow` and `Effects` on) live in `src/style_groups.la`, which imports `styles` for `Sheet` while `styles` imports it for `Sheet`'s fields. No other cycle.
+
+**Widened (session 31, PRP-025, the user's choice of folders):** every style group now lives in the `src/styles/` folder (`styles.fonts`: `Font`, `Text`; `styles.boxes`: `Background`, `Border`, `Outline`, `Spacing`, `Sizing`; `styles.drawing`: `Shadow`, `Effects`; `style_groups.la` is gone), so the cycle is `styles` ↔ the files in `styles/`. `src/styles.la` keeps `Styling`, `Sheet`, `applied`, `State`, `When`.
 
 ### DECISION-014 — An overlay
 

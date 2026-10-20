@@ -1,6 +1,6 @@
 # PRP-025 — Style utilities
 
-Status: approved (session 31)
+Status: built (session 31) on branch prp-025-style_utilities; merged into main
 Discovery: sessions 17 and 27 (parked), resumed in 30 once lughac allowed a field and a function of one name. *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: short static functions on each style group (`Font.bold()`, `Spacing.padding(16)`, `Shadow.md()`), each returning an ordinary style value.
@@ -55,15 +55,21 @@ Each is one line of code and a one-line doc comment, and returns exactly what a 
 Utilities must sit in the file of their type, and `src/styles.la` (about 435 lines) can't hold them. The groups move into a `src/styles/` folder (Lugha maps `src/styles/fonts.la` to `kivuli.styles.fonts`; a file and a folder may share a name, checked in session 30). Each group file imports `styles` for `Sheet` while `styles` imports them for `Sheet`'s fields, so DECISION-025's cycle widens to **`styles` ↔ the files in `styles/`**:
 - `src/styles/fonts.la` (new): `Font`, `Text`, their utilities.
 - `src/styles/boxes.la` (new): `Background`, `Border`, `Outline`, `Spacing`, `Sizing`, their utilities.
-- `src/styles/effects.la` (today's `src/style_groups.la`, moved): `Shadow`, `Effects`, their utilities.
+- `src/styles/drawing.la` (named `effects.la` in the draft; today's `src/style_groups.la`, moved): `Shadow`, `Effects`, their utilities.
 - `src/styles.la` keeps `Styling`, `Sheet`, `applied`, `State` and `When` (about 120 lines).
 
 `style_values.la`, `sheets.la` and `box_rules.la` stay where they are (not this PRP). The move is its own commit, no behaviour change, before the utilities. The entry re-exports as now; apps see no difference.
 
 ## TESTS (narrow)
-- [ ] After the move: the style tests pass unchanged (styles, states, spacing, sizing, shadows, sheets, sheets_border, theming).
-- [ ] `test/utilities.la` (new): every utility equals the full value it stands for (one assertion each); utilities and full values merge as values do; the OBJECTIVE reads as written.
-- [ ] Every example builds; `examples/hello.la` and `examples/borders.la` use a few utilities where they shorten the code.
+- [x] After the move: the style tests pass unchanged (styles, states, spacing, sizing, shadows, sheets, sheets_border, theming).
+- [x] `test/utilities.la` (new): every utility equals the full value it stands for (one assertion each); utilities and full values merge as values do; the OBJECTIVE reads as written.
+- [x] Every example builds; `examples/hello.la` and `examples/borders.la` use a few utilities where they shorten the code.
 
 ## ACCEPTANCE
-- [ ] The OBJECTIVE compiles; fmt clean; no file over 500 lines; README (a utilities table), DESIGN, CHANGELOG 0.20.0, CLAUDE.md (module tree with the `styles/` folder, rule 2's cycle), DECISIONS (025 widened); merged, tagged; pushed only on your go.
+- [x] The OBJECTIVE compiles; fmt clean; no file over 500 lines; README (a utilities table), DESIGN, CHANGELOG 0.20.0, CLAUDE.md (module tree with the `styles/` folder, rule 2's cycle), DECISIONS (025 widened); merged, tagged; pushed only on your go.
+
+## NOTES FROM THE BUILD
+
+- **`styles/drawing.la`, not `styles/effects.la`**: a module import binds its last name, so `styles.effects` clashed with the entry's `effects` (`Cmd`, `Sub`) as E0314.
+- **Utilities are one-line statics** inside each group's `impl`; `Shadow`'s use a private `black_drop`. Tailwind's shadows have negative spreads, which pass the checks (`test/utilities.la` checks them and their CSS).
+- **Narrow runs** (the user's preference): utilities (new, 10), styles, states, spacing, sizing, shadows, sheets, sheets_border, theming, lib; every example built.

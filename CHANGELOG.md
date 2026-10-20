@@ -8,6 +8,14 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.20.0] — 2026-10-20
+
+### Added
+- Style utilities (PRP-025): short static functions on each style group, each returning the full value it stands for: `Font.h1()`…`caption()`, `xs()`…`xxl()`, `size`, `scale`, the weights, `italic`, `sans`/`serif`/`mono`, `family`, `tabular`; `Text.upper`, `underline`, `tight`, `wide`, `dim`, `faded`, `color`…; `Background.color`, `tint`, `linear`, `radial`, `image`; `Border.all`, `top`…`left`, `rounded`, `corners`, `none`; `Outline.ring`, `offset`; `Spacing.padding`, `padding_x`/`_y`/`_top`…, the same for `margin`, `gap`; `Sizing.width`…`max_height`; `Shadow.sm`…`xl`; `Effects.opacity`, `blur`, `grayscale`, `rotate`, `scale`, `translate`. They mix with full values: the last value that sets a field wins.
+
+### Changed
+- The style groups live in a `src/styles/` folder (`fonts`, `boxes`, `drawing`), which `src/styles.la` imports back (DECISION-025, widened). No change for apps.
+
 ## [0.19.0] — 2026-10-20
 
 ### Changed
