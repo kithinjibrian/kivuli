@@ -1082,6 +1082,12 @@ Branch: prp-034-ui-input-group (not merged: waiting for the user's look)
 
 ---
 
+## SESSION 65 — 2026-10-20 — Merge PRP-034 — open
+
+Branch: main (merging prp-034-ui-input-group)
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
