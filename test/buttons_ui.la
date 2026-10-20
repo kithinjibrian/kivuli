@@ -7,6 +7,7 @@ import kivuli.view.looks { Style };
 import kivuli {
     View,
     State,
+    Align,
     Token,
     Paint,
     Text,
@@ -126,6 +127,8 @@ fun a_button_with_content_shrinks_its_icons() {
                 match content {
                     Styled(r, rs) => {
                         assert_eq(rs.sheet.spacing.gap, Width.Px(8));
+                        // Centred in the button, as an icon alone in a square must be.
+                        assert_eq(rs.align, Align.Center);
                         match r {
                             Row(xs) => {
                                 assert_eq(style_of(xs[0]).size, 16);

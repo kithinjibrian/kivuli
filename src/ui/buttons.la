@@ -14,6 +14,7 @@
 
 // The public items the entry re-exports, by their own modules (rule 2: no `lib`).
 import view.views { View };
+import view.looks { Align };
 import view.widgets { row, button as native_button, button_with as native_button_with };
 import view.pictures { Image };
 import styles { Look, look, When, State };
@@ -96,15 +97,16 @@ public fun button<Msg>(label: string, msg: Msg): View<Msg> = native_button(label
 ]);
 
 /**
- * A button showing `content` in a row, 8 px apart: icons and text, in any
- * order. Icons are 16 px unless given a size, and symbolic ones take the
+ * A button showing `content` in a row, 8 px apart and centred: icons and
+ * text, in any order. Icons are 16 px unless given a size, and symbolic ones take the
  * text colour.
  *
  * Example:
  *     ui.button_with([icon("list-add-symbolic"), text("New")], Msg.New)
  */
 public fun button_with<Msg>(content: View<Msg>[], msg: Msg): View<Msg> = native_button_with(
-    row(content.map(fun(v: View<Msg>): View<Msg> = sized(v))).style([Spacing.gap(8)]),
+    // Centred: the content is otherwise as wide as the button, at its start.
+    row(content.map(fun(v: View<Msg>): View<Msg> = sized(v))).style([Spacing.gap(8)]).align(Align.Center),
     msg,
 ).style([button_look()]);
 
