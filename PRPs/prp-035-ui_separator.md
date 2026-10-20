@@ -1,6 +1,6 @@
 # PRP-035 — kivuli.ui: Separator
 
-Status: built (session 68) on branch prp-035-ui-separator
+Status: built (session 68); merged into main in session 69 without running its tests (the user's call)
 Discovery: session 67, 2026-10-20 (the seventh component). *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: `ui.separator()`, kivuli's native separator as a 1 px line in `Border`, and `separator_with(label)`, a line with text in its middle.
