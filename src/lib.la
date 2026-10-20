@@ -12,10 +12,10 @@ public import view.views { Bar, View };
 public import view.looks { Align, Fit, Scheme };
 public import styles.theming { Color, Colorish, Paint, Token, hex, rgb };
 public import styles.palettes { Palette };
-public import styles { Styling, State, StateStyle, When, Look, look };
+public import styles { Styling, State, StateStyle, When, Look, look, Part, PartStyle, Inside };
 public import styles.fonts { Font, Text };
 public import styles.boxes { Background, Border, Outline, Spacing, Sizing };
-public import styles.drawing { Shadow, Effects };
+public import styles.drawing { Shadow, Effects, Mark };
 public import styles.motion { Motion, Animate, Easing, Edge };
 public import styles.values {
     TextAlign,

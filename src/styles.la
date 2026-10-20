@@ -15,7 +15,7 @@
 // `Sheet`, and `Sheet` holds every group.
 import styles.fonts { Font, Text };
 import styles.boxes { Background, Border, Outline, Spacing, Sizing };
-import styles.drawing { Shadow, Effects };
+import styles.drawing { Shadow, Effects, Mark };
 import styles.motion { Motion };
 
 /** Something `.style([…])` can apply: a `Font`, a `Text`, a `Background`, a `Border`, an `Outline`, a `Spacing` or a `Sizing`. */
@@ -40,6 +40,10 @@ public struct Sheet {
     public shadow: Shadow,
     public effects: Effects,
     public motion: Motion,
+    /** Each part's own values (`Inside`), in the order first given. */
+    public parts: (Part, Sheet)[],
+    /** The icon GTK draws in this part (`Mark.icon`): a check box's tick. */
+    public mark: Mark,
 }
 
 impl Sheet {
@@ -56,6 +60,8 @@ impl Sheet {
         shadow: Shadow.theme(),
         effects: Effects.theme(),
         motion: Motion.theme(),
+        parts: [],
+        mark: Mark.theme(),
     };
 }
 
@@ -144,3 +150,41 @@ public fun When(state: State, items: Styling[]): StateStyle = StateStyle {
     state: state,
     items: items,
 };
+
+/** A part inside a widget, as GTK's CSS names it. */
+public enum Part {
+    /** A check box's box (`check`), where GTK draws the tick. */
+    Check,
+}
+
+/** Style values for one part: made by `Inside`. */
+public struct PartStyle {
+    public part: Part,
+    public items: Styling[],
+}
+
+impl PartStyle {
+    /** `s` with these values merged into its sheet for this part (a second `Inside` of it merges into the first). */
+    public fun apply(self, s: Sheet): Sheet {
+        let mut parts = s.parts;
+        let mut i = 0;
+        while i < parts.len {
+            if parts[i].0 == self.part {
+                parts[i] = (self.part, applied(parts[i].1, self.items));
+                return Sheet { parts: parts, ..s };
+            }
+            i = i + 1;
+        }
+        parts.push((self.part, applied(Sheet.theme(), self.items)));
+        Sheet { parts: parts, ..s }
+    }
+}
+
+/**
+ * Style values for a part inside the node's widget, not the node: a check
+ * box's box. Inside `When`, the state is the widget's.
+ *
+ * Example:
+ *     checkbox("Accept", m.ok, Msg.Ok).style([When(State.Checked, [Inside(Part.Check, [Background.color(Token.Primary)])])])
+ */
+public fun Inside(part: Part, items: Styling[]): PartStyle = PartStyle { part: part, items: items };

@@ -1,0 +1,128 @@
+// Styling a widget's parts (PRP-036): `Inside(part, …)` merges like a
+// node's values and is written as a descendant rule, alone or under a
+// state; its classes go on the node; `Mark.icon` is GTK's icon source; what
+// a part can't take is refused. No GTK.
+import kivuli.styles { Sheet };
+import kivuli.styles.sheets { rules };
+import kivuli.styles.checks { check };
+import kivuli.styles.paint { painted };
+import kivuli.view.looks { Style };
+import kivuli {
+    View,
+    Part,
+    Inside,
+    Mark,
+    When,
+    State,
+    Token,
+    Background,
+    Border,
+    Sizing,
+    Spacing,
+    Image,
+    checkbox,
+};
+
+fun box(): View<i64> = checkbox("x", false, fun(b: bool): i64 = 1);
+
+fun sheet_of<M>(v: View<M>): Sheet = match v {
+    Styled(_, s) => s.sheet,
+    _ => panic("expected a styled node"),
+};
+
+fun keys(s: Sheet): string[] = rules(s).map(fun(r) = r.0);
+
+@test
+fun a_part_is_a_descendant_rule() {
+    let s = Inside(Part.Check, [Background.color(Token.Primary)]).apply(Sheet.theme());
+    assert_eq(rules(s), [
+        ("kv-check-bgt-primary check", "background-color: var(--kv-primary);"),
+        ("kv-check-bgi-none check", "background-image: none;"),
+    ]);
+}
+
+@test
+fun a_second_inside_of_a_part_merges_into_the_first() {
+    let s = Inside(Part.Check, [Background.color(Token.Accent)]).apply(
+        Inside(Part.Check, [Background.color(Token.Primary), Sizing.min_width(16)]).apply(
+            Sheet.theme(),
+        ),
+    );
+    assert_eq(s.parts.len, 1);
+    let found = keys(s);
+    assert(found.iter().any(fun(k) = k == "kv-check-bgt-accent check"));
+    assert(!found.iter().any(fun(k) = k == "kv-check-bgt-primary check"));
+    assert(found.iter().any(fun(k) = k.starts_with("kv-check-") && k.ends_with(" check")));
+}
+
+@test
+fun under_a_state_the_pseudo_class_sits_on_the_widget() {
+    let s = When(State.Checked, [Inside(Part.Check, [Background.color(Token.Primary)])]).apply(
+        Sheet.theme(),
+    );
+    let k = keys(s).filter(fun(k) = !k.contains("bgi-none"));
+    assert_eq(k.len, 1);
+    assert(k[0].starts_with("kv-checked-check-bgt-primary."));
+    assert(k[0].ends_with(":checked check"));
+}
+
+@test
+fun a_parts_classes_go_on_the_node() {
+    let v = box().style([Inside(Part.Check, [Background.color(Token.Primary)])]);
+    match painted(v) {
+        Ok(Styled(_, s)) => assert(s.classes.iter().any(fun(c) = c == "kv-check-bgt-primary")),
+        _ => panic("expected a painted, styled node"),
+    }
+}
+
+@test
+fun a_mark_is_gtks_icon_source() {
+    let s = Mark.icon("object-select-symbolic", 14).apply(Sheet.theme());
+    let r = rules(s);
+    assert_eq(r.len, 1);
+    assert_eq(
+        r[0].1,
+        "-gtk-icon-source: -gtk-icontheme(\"object-select-symbolic\"); -gtk-icon-size: 14px;",
+    );
+    assert_eq(check(s), Ok(()));
+    assert_eq(
+        check(Mark.icon("a\"b", 14).apply(Sheet.theme())),
+        Err(
+            "Mark.icon(\"a\"b\", 14): an icon name can't hold quotes, backslashes, ; {{ }} or line breaks",
+        ),
+    );
+    assert_eq(
+        check(Mark.icon("ok", 0).apply(Sheet.theme())),
+        Err("Mark.icon(\"ok\", 0): an icon's size is at least 1 pixel"),
+    );
+}
+
+@test
+fun what_a_part_cant_take_is_refused() {
+    let nested = sheet_of(
+        box().style([Inside(Part.Check, [When(State.Hover, [Background.color(Token.Accent)])])]),
+    );
+    assert_eq(
+        check(nested),
+        Err("Inside(Part.Check, …): a part can't hold a When or another Inside"),
+    );
+    let gap = sheet_of(box().style([Inside(Part.Check, [Spacing.gap(4)])]));
+    assert_eq(
+        check(gap),
+        Err(
+            "Inside(Part.Check, …): a part can't change a background image, an exact or maximum size, or the gap",
+        ),
+    );
+    let fine = sheet_of(box().style([Inside(Part.Check, [Border.rounded(4)])]));
+    assert_eq(check(fine), Ok(()));
+}
+
+@test
+fun under_focus_a_part_keeps_its_node() {
+    let s = When(State.Focus, [Inside(Part.Check, [Border.all(1, Token.Ring)])]).apply(
+        Sheet.theme(),
+    );
+    for k of keys(s) {
+        assert(k.ends_with(":focus-visible check"));
+    }
+}

@@ -1,6 +1,6 @@
 # PRP-036 — kivuli.ui: Checkbox, and styling a widget's parts
 
-Status: draft, for the user's approval (session 70)
+Status: built (session 71) on branch prp-036-ui-checkbox
 Discovery: session 70, 2026-10-20 (the eighth component, and the first whose inside GTK draws). *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: `Inside(part, [...])` and `Part.Check`, style values for a part inside a widget; `Mark.icon(name, px)`, the icon GTK draws in a part; and `ui.checkbox(label, checked, on_toggle)`.
@@ -47,9 +47,15 @@ checkbox("Mine", m.x, Msg.X).style([
 - No indeterminate state, no radio group, no switch (later components); no other parts yet.
 
 ## TESTS (narrow; type-check now, run once the user's faster tests are in)
-- [ ] `test/parts.la` (new, pure): `Inside`'s merge; its rules' selectors (alone, under each state); its classes on the node; `Mark.icon`'s CSS and its checks; a part holding a state or a part refused; the refused values.
-- [ ] `test/checkboxes_ui.la` (new, pure): the checkbox's values, its checked, focus and disabled looks; still a native check box.
-- [ ] GTK parses the generated rules (the C probe); `examples/components.la` gains a Checkbox section and the Field section's check box becomes `ui.checkbox`; only it built. How it looks: by hand.
+- [x] `test/parts.la` (new, pure): `Inside`'s merge; its rules' selectors (alone, under each state); its classes on the node; `Mark.icon`'s CSS and its checks; a part holding a state or a part refused; the refused values.
+- [x] `test/checkboxes_ui.la` (new, pure): the checkbox's values, its checked, focus and disabled looks; still a native check box.
+- [x] GTK parses the generated rules (the C probe); `examples/components.la` gains a Checkbox section and the Field section's check box becomes `ui.checkbox`; only it built. How it looks: by hand.
 
 ## ACCEPTANCE
 - [ ] The OBJECTIVE compiles; fmt clean; no file over 500 lines; README, DESIGN, CHANGELOG 0.31.0, CLAUDE.md; merged, tagged; pushed only on your go.
+
+## NOTES FROM THE BUILD
+
+- **A native check box can't be disabled** (found in the build): `.disabled` handles buttons, fields and text areas, and `View.Checkbox` holds its toggle function, not an `Option`. Out of this PRP's scope (it changes the view, the diff and the patch): raised with the user. The checkbox's disabled look is in place for when it can be.
+- **The focus state kept dropping a rule's whole tail** (for an outline's "step aside"); a part's node would have gone with it. Now only `:not(:focus-visible)` goes (a test covers it).
+- **GTK parsed the checkbox's CSS** (56 lines, 0 errors). Tests type-checked only; only components built.

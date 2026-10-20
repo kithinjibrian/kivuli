@@ -8,6 +8,12 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.31.0] — 2026-10-20
+
+### Added
+- Styling a widget's parts (PRP-036): `Inside(Part.Check, [...])`, inside `When` too; `Mark.icon(name, px)`.
+- `kivuli.ui`'s Checkbox: `ui.checkbox(label, checked, on_toggle)`, its tick always drawn.
+
 ## [0.30.0] — 2026-10-20
 
 ### Added

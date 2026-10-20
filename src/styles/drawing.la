@@ -134,3 +134,32 @@ impl Effects {
         ..s,
     };
 }
+
+/**
+ * The icon GTK draws in a part (`Inside(Part.Check, …)`): a check box's
+ * tick. Symbolic icons take the part's text colour. `icon` `""` is the
+ * theme's.
+ *
+ * Example:
+ *     When(State.Checked, [Inside(Part.Check, [Mark.icon("object-select-symbolic", 14)])])
+ */
+public struct Mark {
+    public icon: string,
+    /** Pixels. */
+    public size: i64,
+}
+
+impl Mark {
+    /** The theme's mark. */
+    public fun theme(): Mark = Mark { icon: "", size: 0 };
+
+    /** The theme icon `name`, `px` pixels square. */
+    public fun icon(name: string, px: i64): Mark = Mark { icon: name, size: px };
+
+    /** `s` with this mark, if it names one. */
+    public fun apply(self, s: Sheet): Sheet = if self.icon == "" {
+        s
+    } else {
+        Sheet { mark: self, ..s }
+    };
+}

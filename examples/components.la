@@ -214,6 +214,14 @@ fun page(m: Model): View<Msg> = column([
         ]).style([Spacing.gap(8)]),
     ),
     section(
+        "Checkbox",
+        column([
+            ui.checkbox("Accept terms and conditions", m.same, Msg.Same),
+            ui.checkbox("Send me product updates", !m.same, fun(b: bool) = Msg.Same(!b)),
+            field_horizontal([checkbox("A native check box, for comparison", m.same, Msg.Same)]),
+        ]).style([Spacing.gap(12)]),
+    ),
+    section(
         "Separator",
         column([
             text("kivuli.ui").style([Font.medium()]),
@@ -278,7 +286,7 @@ fun page(m: Model): View<Msg> = column([
                     field_description("At least 8 characters."),
                 ])
             },
-            field_horizontal([checkbox("Same as shipping address", m.same, Msg.Same)]),
+            field_horizontal([ui.checkbox("Same as shipping address", m.same, Msg.Same)]),
         ]).style([Sizing.max_width(420)]),
     ),
     section(
