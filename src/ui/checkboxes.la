@@ -1,0 +1,79 @@
+/**
+ * Checkbox (PRP-036): kivuli's native check box in the palette's colours,
+ * its box styled as a part (`Inside(Part.Check, …)`) and its tick drawn as
+ * a `Mark`, so it shows whatever the theme. Pure.
+ *
+ * Depends on: views, widgets, styles, theming, values, boxes, fonts, drawing, motion
+ * Used by: ui
+ */
+
+// The public items the entry re-exports, by their own modules (rule 2: no `lib`).
+import view.views { View };
+import view.widgets { checkbox as native_checkbox };
+import styles { Inside, Part, When, State };
+import styles.theming { Color, Paint, Token };
+import styles.values { Drop, Radius };
+import styles.boxes { Background, Border, Sizing, Spacing };
+import styles.fonts { Font, Text };
+import styles.drawing { Effects, Mark, Shadow };
+import styles.motion { Motion };
+
+fun clear(): Color = Color { red: 0, green: 0, blue: 0, alpha: 0 };
+
+/** The faint shadow under the box: one pixel down, black at 5%. */
+fun hairline_shadow(): Shadow = Shadow {
+    boxes: [
+        Drop {
+            y: 1,
+            blur: 2,
+            color: Paint.Color(Color { red: 0, green: 0, blue: 0, alpha: 13 }),
+            ..Drop.theme(),
+        },
+    ],
+    text: [],
+};
+
+/** A 3 px halo of `paint`: the focus ring. */
+fun halo(paint: Paint): Shadow = Shadow {
+    boxes: [Drop { spread: 3, color: paint, ..Drop.theme() }],
+    text: [],
+};
+
+/**
+ * A check box in the palette's colours with `label`; each toggle sends
+ * `on_toggle(checked)`.
+ *
+ * Example:
+ *     ui.checkbox("Accept terms and conditions", m.ok, Msg.Ok)
+ */
+public fun checkbox<Msg>(
+    label: string,
+    checked: bool,
+    on_toggle: fun(bool): Msg,
+): View<Msg> = native_checkbox(label, checked, on_toggle).style([
+    Font.sm(),
+    Font.medium(),
+    Inside(Part.Check, [
+        Sizing.min_width(16),
+        Sizing.min_height(16),
+        Border.all(1, Token.Input),
+        Border { radius: Radius.All(4), ..Border.theme() },
+        Background.color(clear()),
+        hairline_shadow(),
+        Spacing.margin_right(8),
+        Motion.colors(150),
+        Motion.shadow(150),
+    ]),
+    When(State.Checked, [
+        Inside(Part.Check, [
+            Background.color(Token.Primary),
+            Border.all(1, Token.Primary),
+            Text.color(Token.PrimaryForeground),
+            Mark.icon("object-select-symbolic", 14),
+        ]),
+    ]),
+    When(State.Focus, [
+        Inside(Part.Check, [Border.all(1, Token.Ring), halo(Token.Ring.alpha(0.5))]),
+    ]),
+    When(State.Disabled, [Effects.opacity(0.5)]),
+]);

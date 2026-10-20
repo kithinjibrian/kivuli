@@ -102,7 +102,9 @@ fun paint_style<Msg>(node: View<Msg>, s: Style): Result<Style, string> {
     check(s.sheet)?;
     // A rule's key may carry its selector's tail (`:not(:focus-visible)`): the class is before it.
     // A state's key repeats its class (`.c.c:active`): the class is before the first `.` too.
-    let mut classes = rules(s.sheet).map(fun(rule) = rule.0.split(":")[0].split(".")[0]);
+    let mut classes = rules(s.sheet).map(
+        fun(rule) = rule.0.split(":")[0].split(".")[0].split(" ")[0],
+    );
     match picture(s.sheet) {
         Some((class, _, _, _)) => classes.push(class),
         None => {}
@@ -119,7 +121,7 @@ fun bar_classes(bar: Sheet): Result<string[], string> {
         return Err("header_bar(…): a header bar can't have a background image");
     }
     check(bar)?;
-    Ok(rules(bar).map(fun(rule) = rule.0.split(":")[0].split(".")[0]))
+    Ok(rules(bar).map(fun(rule) = rule.0.split(":")[0].split(".")[0].split(" ")[0]))
 }
 
 /**

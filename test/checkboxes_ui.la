@@ -1,0 +1,78 @@
+// kivuli.ui's Checkbox (PRP-036): its label and box, the checked box, the
+// focus ring on the box, disabled at half opacity; still a native check
+// box. No GTK.
+import kivuli.styles { Sheet };
+import kivuli { View, Part, State, Token, Paint, Width, Weight, Size, Radius };
+import kivuli.ui;
+
+fun sheet_of<M>(v: View<M>): Sheet = match v {
+    Styled(_, s) => s.sheet,
+    _ => panic("expected a styled node"),
+};
+
+fun part(s: Sheet, p: Part): Sheet {
+    for (q, sub) of s.parts {
+        if q == p {
+            return sub;
+        }
+    }
+    panic("no rules for that part")
+}
+
+fun in_state(s: Sheet, state: State): Sheet {
+    for (st, sub) of s.states {
+        if st == state {
+            return sub;
+        }
+    }
+    panic("no rules for that state")
+}
+
+fun cb(checked: bool): View<i64> = ui.checkbox("Accept", checked, fun(b: bool): i64 = 1);
+
+@test
+fun the_label_is_small_and_the_box_is_bordered() {
+    let s = sheet_of(cb(false));
+    assert_eq(s.font.size, Size.Scale(0.875));
+    assert_eq(s.font.weight, Weight.Medium);
+    let b = part(s, Part.Check);
+    assert_eq(b.sizing.min_width, Width.Px(16));
+    assert_eq(b.sizing.min_height, Width.Px(16));
+    assert_eq(b.border.radius, Radius.All(4));
+    assert_eq(b.border.top.color, Paint.Token(Token.Input));
+    assert_eq(b.spacing.margin.right, Width.Px(8));
+    assert_eq(b.shadow.boxes.len, 1);
+}
+
+@test
+fun checked_fills_the_box_and_draws_the_tick() {
+    let c = part(in_state(sheet_of(cb(true)), State.Checked), Part.Check);
+    assert_eq(c.background.color, Paint.Token(Token.Primary));
+    assert_eq(c.border.top.color, Paint.Token(Token.Primary));
+    assert_eq(c.text.color, Paint.Token(Token.PrimaryForeground));
+    assert_eq(c.mark.icon, "object-select-symbolic");
+    assert_eq(c.mark.size, 14);
+}
+
+@test
+fun focus_rings_the_box_and_disabled_halves_it() {
+    let s = sheet_of(cb(false));
+    let f = part(in_state(s, State.Focus), Part.Check);
+    assert_eq(f.border.top.color, Paint.Token(Token.Ring));
+    assert_eq(f.shadow.boxes[0].color, Token.Ring.alpha(0.5));
+    assert_eq(in_state(s, State.Disabled).effects.opacity, Some(0.5));
+}
+
+@test
+fun it_is_still_a_native_check_box() {
+    match cb(true) {
+        Styled(inside, _) => match inside {
+            Checkbox(label, checked, _) => {
+                assert_eq(label, "Accept");
+                assert(checked);
+            }
+            _ => panic("a ui checkbox is a native check box"),
+        },
+        _ => panic("a checkbox is styled"),
+    }
+}
