@@ -1,6 +1,6 @@
 # PRP-037 — Disabled check boxes
 
-Status: approved (session 73)
+Status: built (session 73) on branch prp-037-disabled-checkboxes
 Discovery: found in PRP-036's build (session 71): `.disabled` skips check boxes. The user asked for it next (session 72). Architecture rule 6 decides the design: disabled means no message. *(proposed)*: for you to confirm or change.
 
 ## FEATURE: `.disabled(true)` on a check box (native or `ui.checkbox`): it can't be toggled, GTK greys it, and `kivuli.testing.toggle` says it's silent.
@@ -24,11 +24,15 @@ assert_eq(kivuli.testing.toggle(view(m), "Accept terms"), Err(Lookup.Silent("che
 - No separate `disabled` flag (rule 6); no change to how a checked state is shown.
 
 ## TESTS (narrow; type-check now, run once the user's faster tests are in)
-- [ ] `test/lib.la` or `test/map.la`: `.disabled(true)` on a check box (and a styled one) takes its toggle away; `map` keeps `None`.
-- [ ] `test/diff.la` (or a new `test/diff_checkbox.la` if diff.la is full): enabled → disabled → enabled gives `SetOnToggle` with `None`, then `Some`.
-- [ ] `test/testing.la`: `toggle` on a disabled check box is `Silent`.
-- [ ] `test/live_disabled.la`: a disabled check box isn't sensitive and sends nothing when toggled; enabled again, it sends.
-- [ ] `examples/components.la` built, and every example that uses `checkbox` type-checks.
+- [x] `test/lib.la` or `test/map.la`: `.disabled(true)` on a check box (and a styled one) takes its toggle away; `map` keeps `None`.
+- [x] `test/diff.la` (or a new `test/diff_checkbox.la` if diff.la is full): enabled → disabled → enabled gives `SetOnToggle` with `None`, then `Some`.
+- [x] `test/testing.la`: `toggle` on a disabled check box is `Silent`.
+- [x] `test/live_disabled.la`: a disabled check box isn't sensitive and sends nothing when toggled; enabled again, it sends.
+- [x] `examples/components.la` built, and every example that uses `checkbox` type-checks.
 
 ## ACCEPTANCE
 - [ ] fmt clean; no file over 500 lines; README, CHANGELOG; merged, tagged; pushed only on your go.
+
+## NOTES FROM THE BUILD
+
+- **Where the tests went**: map.la (the modifier, a styled one, `map` keeping `None`), a new diff_checkbox.la (diff.la is near the limit; its two check box expectations now carry `Some`), testing.la, live_disabled.la. All type-check; none run (the user's call).
