@@ -1171,6 +1171,12 @@ Branch: prp-036-ui-checkbox (not merged: waiting for the user's look)
 
 ---
 
+## SESSION 72 — 2026-10-20 — Split sheets.la; disabled check boxes discovery — open
+
+Branch: prp-036-ui-checkbox
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
