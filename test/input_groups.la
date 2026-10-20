@@ -1,0 +1,117 @@
+// kivuli.ui's input group (PRP-034): the frame's look and ring, the
+// add-ons (muted, centred, icons at 16 px), the control's padding beside
+// add-ons, a group input with no frame of its own, the compact buttons, and
+// `InputGroup.invalid()`. No GTK.
+import kivuli.styles { Sheet };
+import kivuli.view.looks { Style, Align };
+import kivuli { View, State, Token, Paint, Width, Line, Radius, Size, icon, text };
+import kivuli.ui {
+    input_group,
+    group_input,
+    group_text,
+    group_button,
+    group_button_with,
+    InputGroup,
+};
+
+fun style_of<M>(v: View<M>): Style = match v {
+    Styled(_, s) => s,
+    _ => panic("expected a styled node"),
+};
+
+fun sheet_of<M>(v: View<M>): Sheet = style_of(v).sheet;
+
+fun in_state(s: Sheet, state: State): Sheet {
+    for (st, sub) of s.states {
+        if st == state {
+            return sub;
+        }
+    }
+    panic("no rules for that state")
+}
+
+fun kids<M>(v: View<M>): View<M>[] = match v {
+    Styled(x, _) => kids(x),
+    Row(xs) => xs,
+    _ => panic("expected a row"),
+};
+
+fun q(): View<i64> = group_input("", fun(s: string): i64 = 1);
+
+fun search(): View<i64> = input_group([icon("system-search-symbolic")], q(), []);
+
+@test
+fun the_frame_has_the_fields_look_and_ring() {
+    let s = sheet_of(search());
+    assert_eq(s.border.top.color, Paint.Token(Token.Input));
+    assert_eq(s.border.radius, Radius.Medium);
+    assert_eq(s.sizing.min_height, Width.Px(36));
+    assert_eq(s.shadow.boxes.len, 1);
+    let focus = in_state(s, State.FocusWithin);
+    assert_eq(focus.border.top.color, Paint.Token(Token.Ring));
+    assert_eq(focus.shadow.boxes[0].color, Token.Ring.alpha(0.5));
+}
+
+@test
+fun add_ons_are_muted_centred_and_beside_the_control() {
+    let parts = kids(search());
+    // The start add-ons, then the control; no end add-ons.
+    assert_eq(parts.len, 2);
+    let start = style_of(parts[0]);
+    assert_eq(start.sheet.text.color, Paint.Token(Token.MutedForeground));
+    assert_eq(start.align, Align.Center);
+    assert_eq(start.sheet.spacing.padding.left, Width.Px(12));
+    assert_eq(style_of(kids(parts[0])[0]).size, 16);
+    // The control takes the room, and pads 8 beside the add-ons, 12 where there are none.
+    let control = style_of(parts[1]);
+    assert(control.expand);
+    assert_eq(control.sheet.spacing.padding.left, Width.Px(8));
+    assert_eq(control.sheet.spacing.padding.right, Width.Px(12));
+    let both: View<i64> = input_group([group_text("https://")], q(), [group_text(".com")]);
+    assert_eq(kids(both).len, 3);
+    assert_eq(style_of(kids(both)[2]).sheet.spacing.padding.right, Width.Px(12));
+}
+
+@test
+fun a_group_input_has_no_frame_of_its_own() {
+    let s = sheet_of(q());
+    assert_eq(s.border.top.style, Line.None);
+    assert_eq(s.sizing.min_height, Width.Px(34));
+    assert_eq(in_state(s, State.FocusWithin).border.top.style, Line.None);
+    assert_eq(in_state(s, State.Disabled).border.top.style, Line.None);
+    // Its shadow and halo are off: one transparent drop.
+    assert_eq(s.shadow.boxes[0].spread, 0);
+    assert_eq(in_state(s, State.FocusWithin).shadow.boxes[0].spread, 0);
+}
+
+@test
+fun group_text_and_buttons_are_compact() {
+    let t: View<i64> = group_text("USD");
+    assert_eq(sheet_of(t).font.size, Size.Scale(0.875));
+    let b: View<i64> = group_button("Search", 1);
+    assert_eq(sheet_of(b).sizing.min_height, Width.Px(24));
+    assert_eq(sheet_of(b).spacing.padding.left, Width.Px(8));
+    assert_eq(sheet_of(b).border.radius, Radius.Small);
+    let square: View<i64> = group_button_with([icon("view-reveal-symbolic")], 2);
+    assert_eq(sheet_of(square).sizing.min_width, Width.Px(24));
+    assert_eq(sheet_of(square).spacing.padding.left, Width.Px(0));
+}
+
+@test
+fun an_invalid_group_is_red() {
+    let s = sheet_of(search().style([InputGroup.invalid()]));
+    assert_eq(s.border.left.color, Paint.Token(Token.Destructive));
+    assert_eq(in_state(s, State.FocusWithin).shadow.boxes[0].color, Token.Destructive.alpha(0.2));
+}
+
+@test
+fun the_objective_reads_as_written() {
+    let views: View<i64>[] = [
+        input_group([icon("system-search-symbolic")], q().placeholder("Search…"), []),
+        input_group([group_text("https://")], q(), [group_text(".com")]),
+        input_group([], q(), [group_button("Search", 1)]),
+        input_group([], q(), [group_button_with([icon("view-reveal-symbolic")], 2)]),
+        input_group([group_text("$")], q(), [group_text("USD")]).style([InputGroup.invalid()]),
+    ];
+    assert_eq(views.len, 5);
+}

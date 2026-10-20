@@ -44,6 +44,12 @@ import kivuli.ui {
     field_error,
     field_group,
     Field,
+    input_group,
+    group_input,
+    group_text,
+    group_button,
+    group_button_with,
+    InputGroup,
 };
 
 struct Model {
@@ -205,6 +211,36 @@ fun page(m: Model): View<Msg> = column([
             ]),
             ui.input("Disabled", Msg.Email).disabled(true),
         ]).style([Spacing.gap(8)]),
+    ),
+    section(
+        "Input group",
+        column([
+            input_group(
+                [icon("system-search-symbolic")],
+                group_input(m.user, Msg.User).placeholder("Search…"),
+                [],
+            ),
+            input_group(
+                [group_text("https://")],
+                group_input(m.user, Msg.User).placeholder("example"),
+                [group_text(".com")],
+            ),
+            input_group([], group_input(m.user, Msg.User).placeholder("Find a component"), [
+                group_button("Search", Msg.Base(m.base)),
+            ]),
+            input_group([], group_input(m.password, Msg.Password).placeholder("Password"), [
+                group_button_with([icon("view-reveal-symbolic")], Msg.Base(m.base)),
+            ]),
+            input_group([group_text("$")], group_input(m.user, Msg.User).placeholder("0.00"), [
+                group_text("USD"),
+            ]).style([
+                if m.user.len > 0 && m.user.contains("x") {
+                    InputGroup.invalid()
+                } else {
+                    look([])
+                },
+            ]),
+        ]).style([Spacing.gap(12), Sizing.max_width(420)]),
     ),
     section(
         "Field",
