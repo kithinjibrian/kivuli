@@ -1,6 +1,6 @@
 # PRP-033 — kivuli.ui: Field
 
-Status: built (session 61) on branch prp-033-ui-field
+Status: built (session 61); merged into main in session 62 without running its tests (the user's call)
 Discovery: session 60, 2026-10-20 (the fifth component; the reference is ui.shadcn.com/docs/components/base/field). The input group follows (the user's order: Field, then the group; GTK's own field icons later). *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: `field([...])` and `field_horizontal([...])` with `field_label`, `field_description`, `field_error`, `field_group([...])`, and `Field.invalid()`.
