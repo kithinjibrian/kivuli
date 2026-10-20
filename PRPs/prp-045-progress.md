@@ -1,6 +1,6 @@
 # PRP-045 — Progress: a native progress bar, and kivuli.ui's
 
-Status: approved (session 99)
+Status: built (session 99) on branch prp-045-progress
 Discovery: session 97, 2026-10-20 (the reference's progress: an 8 px round track in `Primary` at 20%, a `Primary` fill). *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: a native `progress(value)` on GtkProgressBar (the value out of 100, display only), `Part.Fill`, and `ui.progress(value)` in the palette's colours.
@@ -32,11 +32,17 @@ column([text("Uploading…"), ui.progress(66)]).style([Spacing.gap(8)])
 - No "busy" pulsing mode (an app puts `Motion.pulse()` on a muted bar), no text on the bar, no vertical bar.
 
 ## TESTS (narrow; type-check every test and example, run once the user's faster tests are in)
-- [ ] lugha-gtk: a fraction set and read back.
-- [ ] `test/progress.la` (new, pure): `progress`'s node; the diff's patch on a change and none without; map and walk.
-- [ ] `test/live_progress.la` (new, GTK): built at its fraction; an update moves it on the same widget; a value past 100 or below 0 shows full or empty; `shown()` covers it.
-- [ ] `test/progress_ui.la` (new, pure), `test/parts.la`: the look's values; `Part.Fill`'s selector.
-- [ ] GTK parses the generated rules; `examples/components.la` gains a Progress section (driven by the Volume slider); only it built. How it looks: by hand.
+- [x] lugha-gtk: a fraction set and read back.
+- [x] `test/progress.la` (new, pure): `progress`'s node; the diff's patch on a change and none without; map and walk.
+- [x] `test/live_progress.la` (new, GTK): built at its fraction; an update moves it on the same widget; a value past 100 or below 0 shows full or empty; `shown()` covers it.
+- [x] `test/progress_ui.la` (new, pure), `test/parts.la`: the look's values; `Part.Fill`'s selector.
+- [x] GTK parses the generated rules; `examples/components.la` gains a Progress section (driven by the Volume slider); only it built. How it looks: by hand.
 
 ## ACCEPTANCE
 - [ ] The OBJECTIVE compiles; fmt clean; no file over 500 lines; README, DESIGN, CHANGELOG 0.40.0, CLAUDE.md; merged, tagged; pushed only on your go.
+
+## NOTES FROM THE BUILD
+
+- **Its tests ran and pass** (progress, live_progress, progress_ui, parts, live: 22), the first PRP since session 32 whose tests ran.
+- **The look's file is `src/ui/progress_bars.la`**; `fraction` lives in `build` and `patch` imports it.
+- **Every test and example type-checks**; only components built.

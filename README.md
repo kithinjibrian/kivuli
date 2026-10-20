@@ -233,6 +233,8 @@ So far:
 
 - `Tooltip.look()` on the root view: every `.tooltip(…)` in the app as a small inverse label, fading in (GTK puts tooltips beside the root, so the look goes there, once).
 
+- `ui.progress(value)` (out of 100): a round track in `Primary` at 20% and a `Primary` fill; the native `progress(value)` is GTK's.
+
 **A widget's parts.** `Inside(Part.Check, [...])` styles the part inside a widget: a check box's box (`Part.Check`), a slider's track, fill and thumb (`Part.Trough`, `Highlight`, `Knob`), a drop-down's trigger, arrow, list and items (`Part.Trigger`, `Arrow`, `List`, `Item`); a `When` inside an `Inside` is the part's own state (an item's hover); inside `When`, the state is the widget's (`When(State.Checked, [Inside(Part.Check, [...])])`). `Mark.icon(name, px)` is the icon GTK draws in a part (the tick). More parts come with the components that need them.
 
 A token can be used at an opacity: `Token.Primary.alpha(0.9)` (a hover), `Token.Ring.alpha(0.5)` (a focus halo). `look([...])` makes an app's own variant. `examples/components.la` shows each in light and dark.
