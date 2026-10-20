@@ -596,6 +596,12 @@ Branch: main (PRP-024 on prp-024-click_away, merged)
 
 ---
 
+## SESSION 30 — 2026-10-20 — Style utilities, resumed: discovery — open
+
+Branch: main
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
