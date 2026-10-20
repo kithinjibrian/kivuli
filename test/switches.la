@@ -1,0 +1,59 @@
+// The native switch (PRP-040): its node, `.disabled` taking its toggle away,
+// `map` keeping it, and how the diff patches it. No GTK.
+import kivuli.core.diff { Patch, diff as patches };
+import kivuli { View, switch };
+
+enum Msg {
+    On(bool),
+}
+
+fun sw(on: bool, off: bool): View<Msg> = switch(on, Msg.On).disabled(off);
+
+@test
+fun a_switch_holds_its_state_and_toggle() {
+    match switch(true, Msg.On) {
+        Switch(on, on_toggle) => {
+            assert(on);
+            match on_toggle {
+                Some(f) => assert_eq("{f(false)}", "{Msg.On(false)}"),
+                None => panic("an enabled switch toggles"),
+            }
+        }
+        _ => panic("expected a switch"),
+    }
+}
+
+@test
+fun disabled_takes_its_toggle_away_and_map_keeps_it_away() {
+    match sw(false, true) {
+        Switch(_, on_toggle) => assert(on_toggle.is_none()),
+        _ => panic("expected a switch"),
+    }
+    match sw(false, true).map(fun(m: Msg): i64 = 1) {
+        Switch(_, on_toggle) => assert(on_toggle.is_none()),
+        _ => panic("expected a switch"),
+    }
+    match sw(false, false).map(fun(m: Msg): i64 = 7) {
+        Switch(_, on_toggle) => match on_toggle {
+            Some(f) => assert_eq(f(true), 7),
+            None => panic("an enabled switch toggles"),
+        },
+        _ => panic("expected a switch"),
+    }
+}
+
+@test
+fun the_diff_sets_its_state_and_re_points_its_toggle() {
+    let flipped = patches(sw(false, false), sw(true, false));
+    assert_eq(flipped.len, 2);
+    match flipped[0] {
+        SetChecked(_, on) => assert(on),
+        _ => panic("expected SetChecked first"),
+    }
+    match patches(sw(true, false), sw(true, true))[0] {
+        SetOnToggle(_, None) => {}
+        _ => panic("expected SetOnToggle with nothing"),
+    }
+    // The same state: only the handler is re-pointed.
+    assert_eq(patches(sw(true, false), sw(true, false)).len, 1);
+}

@@ -13,6 +13,7 @@ import gtk {
     gtk_application_new,
     gtk_application_window_new,
     gtk_check_button_get_active,
+    gtk_switch_get_active,
     gtk_editable_get_text,
     gtk_label_get_text,
     gtk_orientable_get_orientation,
@@ -74,6 +75,7 @@ fun shown<M>(node: Live<M>): string = match node {
         let tick = if gtk_check_button_get_active(w) != 0 { "x" } else { " " };
         "[{tick}] " + gtk_label_get_text(label)
     }
+    Switch(w, _) => if gtk_switch_get_active(w) != 0 { "(on)" } else { "(off)" },
     Spacer(w) => {
         let grows = if gtk_widget_get_vexpand(w) != 0 { "v" } else { "h" };
         "~{grows}"

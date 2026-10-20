@@ -1,0 +1,77 @@
+// kivuli.ui's switch (PRP-040): its track and thumb, on, focus, disabled;
+// still the native switch. No GTK.
+import kivuli.styles { Sheet };
+import kivuli { View, Part, State, Token, Paint, Width, Radius };
+import kivuli.ui;
+
+fun sheet_of<M>(v: View<M>): Sheet = match v {
+    Styled(_, s) => s.sheet,
+    _ => panic("expected a styled node"),
+};
+
+fun part(s: Sheet, p: Part): Sheet {
+    for (q, sub) of s.parts {
+        if q == p {
+            return sub;
+        }
+    }
+    panic("no rules for that part")
+}
+
+fun in_state(s: Sheet, state: State): Sheet {
+    for (st, sub) of s.states {
+        if st == state {
+            return sub;
+        }
+    }
+    panic("no rules for that state")
+}
+
+fun sw(on: bool): View<i64> = ui.switch(on, fun(b: bool): i64 = 1);
+
+@test
+fun the_track_is_input_off_and_primary_on() {
+    let s = sheet_of(sw(false));
+    assert_eq(s.sizing.min_width, Width.Px(32));
+    assert_eq(s.sizing.min_height, Width.Px(18));
+    assert_eq(s.border.radius, Radius.All(999));
+    assert_eq(s.background.color, Paint.Token(Token.Input));
+    assert_eq(in_state(s, State.Checked).background.color, Paint.Token(Token.Primary));
+}
+
+@test
+fun the_thumb_is_round_and_takes_the_on_colour() {
+    let s = sheet_of(sw(true));
+    let k = part(s, Part.Knob);
+    assert_eq(k.sizing.min_width, Width.Px(16));
+    assert_eq(k.sizing.min_height, Width.Px(16));
+    assert_eq(k.border.radius, Radius.All(999));
+    assert_eq(k.background.color, Paint.Token(Token.Background));
+    assert_eq(
+        part(in_state(s, State.Checked), Part.Knob).background.color,
+        Paint.Token(Token.PrimaryForeground),
+    );
+}
+
+@test
+fun focus_rings_it_and_disabled_halves_it() {
+    let s = sheet_of(sw(false));
+    let f = in_state(s, State.Focus);
+    assert_eq(f.border.top.color, Paint.Token(Token.Ring));
+    assert_eq(f.shadow.boxes[0].color, Token.Ring.alpha(0.5));
+    assert_eq(in_state(s, State.Disabled).effects.opacity, Some(0.5));
+}
+
+@test
+fun it_is_still_the_native_switch() {
+    match sw(true).disabled(true) {
+        Styled(inside, _) => match inside {
+            Switch(on, on_toggle) => {
+                assert(on);
+                assert(on_toggle.is_none());
+            }
+            _ => panic("a ui switch is the native switch"),
+        },
+        _ => panic("a switch is styled"),
+    }
+}

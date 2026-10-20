@@ -12,6 +12,7 @@ import kivuli {
     text_area,
     dropdown,
     slider,
+    switch,
     icon,
     image,
     Image,
@@ -31,6 +32,7 @@ import kivuli.testing {
     is_field_disabled,
     pick,
     press,
+    flip,
     slide,
     submit,
     texts,
@@ -352,4 +354,22 @@ fun sliding_a_disabled_slider_is_silent() {
         slider(0, 10, 5, fun(n: i64) = Msg.Done(n > 5)).name("level").disabled(true),
     ]);
     assert_eq(slide(v, "level", 7), Err(Lookup.Silent("slider \"level\"")));
+}
+
+@test
+fun flipping_a_switch_sends_the_opposite_of_its_state() {
+    let v: View<Msg> = column([
+        switch(false, Msg.Done).name("done"),
+        switch(true, Msg.Done).name("other"),
+    ]);
+    assert_eq(flip(v, "done"), Ok(Msg.Done(true)));
+    assert_eq(flip(v, "other"), Ok(Msg.Done(false)));
+    assert_eq(flip(v, "nothing"), Err(Lookup.NotFound("switch \"nothing\"")));
+    let two: View<Msg> = column([
+        switch(false, Msg.Done).name("x"),
+        switch(false, Msg.Done).name("x"),
+    ]);
+    assert_eq(flip(two, "x"), Err(Lookup.Ambiguous("switch \"x\"", 2)));
+    let off: View<Msg> = column([switch(false, Msg.Done).name("done").disabled(true)]);
+    assert_eq(flip(off, "done"), Err(Lookup.Silent("switch \"done\"")));
 }

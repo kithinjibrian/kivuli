@@ -25,6 +25,7 @@ import kivuli {
     row,
     scroll,
     slider,
+    switch,
     sandbox,
     text,
 };
@@ -65,6 +66,7 @@ struct Model {
     same: bool,
     volume: i64,
     fruit: string,
+    airplane: bool,
 }
 
 enum Msg {
@@ -76,6 +78,7 @@ enum Msg {
     Same(bool),
     Volume(i64),
     Fruit(string),
+    Airplane(bool),
 }
 
 fun update(m: Model, msg: Msg): Model = match msg {
@@ -87,6 +90,7 @@ fun update(m: Model, msg: Msg): Model = match msg {
     Same(b) => Model { same: b, ..m },
     Volume(n) => Model { volume: n, ..m },
     Fruit(f) => Model { fruit: f, ..m },
+    Airplane(b) => Model { airplane: b, ..m },
 };
 
 fun palette_of(n: i64): Palette = if n == 1 {
@@ -226,6 +230,20 @@ fun page(m: Model): View<Msg> = column([
             ]),
             ui.input("Disabled", Msg.Email).disabled(true),
         ]).style([Spacing.gap(8)]),
+    ),
+    section(
+        "Switch",
+        column([
+            field_horizontal([ui.switch(m.airplane, Msg.Airplane), field_label("Airplane mode")]),
+            field_horizontal([
+                ui.switch(!m.airplane, fun(b: bool) = Msg.Airplane(!b)).disabled(m.airplane),
+                field_label("Wi-Fi (off in airplane mode)"),
+            ]),
+            field_horizontal([
+                switch(m.airplane, Msg.Airplane),
+                field_label("A native switch, for comparison"),
+            ]),
+        ]).style([Spacing.gap(12)]),
     ),
     section(
         "Checkbox",
@@ -394,6 +412,7 @@ fun main(): i32 = sandbox(
         same: true,
         volume: 40,
         fruit: "",
+        airplane: false,
     },
     update,
     view,

@@ -165,6 +165,7 @@ fun check_content<Msg>(content: View<Msg>): Result<(), string> {
             Input(_, _) => Some("a text field"),
             TextArea(_, _) => Some("a text area"),
             Checkbox(label, _, _) => Some("a check box (\"{label}\")"),
+            Switch(_, _) => Some("a switch"),
             Dropdown(_, _) => Some("a drop-down"),
             Slider(_, _, _, _) => Some("a slider"),
             _ => None,

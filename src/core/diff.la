@@ -159,6 +159,7 @@ fun diff_inside<Msg>(
         None => (None, None),
     }),
     (TextArea(a, _), TextArea(b, on_change)) => diff_text_area(path, a, b, on_change),
+    (Switch(a, _), Switch(b, on_toggle)) => diff_switch(path, a, b, on_toggle),
     (Checkbox(la, ca, _), Checkbox(lb, cb, on_toggle)) => diff_checkbox(
         path,
         la,
@@ -262,6 +263,21 @@ fun diff_checkbox<Msg>(
     }
     if old_checked != checked {
         out.push(Patch.SetChecked(path, checked));
+    }
+    out.push(Patch.SetOnToggle(path, on_toggle));
+    out
+}
+
+/** A switch's state, set when it changed; its handler always re-pointed (functions can't be compared). */
+fun diff_switch<Msg>(
+    path: i64[],
+    was: bool,
+    on: bool,
+    on_toggle: Option<fun(bool): Msg>,
+): Patch<Msg>[] {
+    let mut out: Patch<Msg>[] = [];
+    if was != on {
+        out.push(Patch.SetChecked(path, on));
     }
     out.push(Patch.SetOnToggle(path, on_toggle));
     out
