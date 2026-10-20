@@ -1158,6 +1158,12 @@ Branch: main
 
 ---
 
+## SESSION 71 — 2026-10-20 — PRP-036: Checkbox and widget parts — open
+
+Branch: prp-036-ui-checkbox
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
