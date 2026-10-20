@@ -1598,9 +1598,16 @@ Branch: main
 
 ---
 
-## SESSION 105 — 2026-10-20 — PRP-047: dialog — open
+## SESSION 105 — 2026-10-20 — PRP-047: dialog, built, not merged — closed
 
-Branch: prp-047-dialog
+Branch: prp-047-dialog (not merged: waiting for the user's look)
+
+### WHAT WAS DONE
+- lugha-gtk 0.1.40 (can-target, can-focus; pushed, tagged).
+- Style `inert`, `focusable`, `dialog_root`; `.inert`, `.focusable`, `.dialog` (body and `Dialog` in mapping.la); styling sets them; paint refuses `.dialog` below the root; src/ui/dialogs.la. A Dialog section in components.la. Tests run and pass (dialogs, live_dialog; 16 GTK tests re-run). Docs; 0.42.0 (not tagged).
+
+### STILL OPEN AT CLOSE
+- The user to look (open, Escape, backdrop, ✕, Tab stays in the dialog); then merge, tag v0.42.0.
 
 ---
 

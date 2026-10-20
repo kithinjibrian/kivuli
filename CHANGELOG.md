@@ -8,6 +8,11 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.42.0] — 2026-10-20
+
+### Added
+- Dialogs (PRP-047): `.dialog(Option<Dialog<Msg>>)` on the root; `kivuli.ui`'s `ui.dialog(close, parts)`, `dialog_header`, `dialog_footer`. `.inert(on)` and `.focusable(on)` on any node. Needs lugha-gtk 0.1.40.
+
 ## [0.41.0] — 2026-10-20
 
 ### Added

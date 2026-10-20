@@ -1,6 +1,6 @@
 # PRP-047 — Dialog: a modal over the page
 
-Status: approved (session 105)
+Status: built (session 105) on branch prp-047-dialog
 Discovery: session 104, 2026-10-20 (the reference's dialog: a backdrop of black at 50%, a centred card (`Background`, a border, `rounded-lg`, 24 px padding, a large shadow, up to 512 px wide) with a title, a muted description, content and a footer of buttons, a close ✕ at its top right; Escape or a click on the backdrop closes it; it fades in). One window only (CLAUDE.md anti-pattern 9). *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: `.dialog(Option<Dialog<Msg>>)` on the root, `ui.dialog(close, parts)`, `dialog_header`, `dialog_footer`; and the native modifiers `.inert(bool)` and `.focusable(bool)` that make it modal.
@@ -40,11 +40,18 @@ fun confirm(): Dialog<Msg> = ui.dialog(Msg.Cancel, [
 - No second window (anti-pattern 9), no nested dialogs, no dialog anywhere but the root, no zoom (a scale would move the text); no sheet or drawer (later, from the same pieces).
 
 ## TESTS (narrow; type-check every test and example; run this PRP's own)
-- [ ] `test/dialogs.la` (new, pure): `.dialog(None)` and `.dialog(Some(…))` are both an overlay over the page (the page `.inert` only while open); the backdrop and card layers; the card's look; the ✕'s message and Escape shortcut; header and footer; `.dialog` below the root refused; the diff between closed and open adds layers and keeps the page.
-- [ ] `test/live_dialog.la` (new, GTK): opening keeps the page's widgets (same widgets, inert), the backdrop and ✕ send the close message, closing makes the page take focus and clicks again.
-- [ ] lugha-gtk: can-target and can-focus set and read back.
-- [ ] `test/lib.la` or `test/live_style.la`: `.inert` and `.focusable` land on the widget.
-- [ ] GTK parses the generated rules; `examples/components.la` gains a Dialog section (a button opening the delete dialog; Escape, the backdrop and Cancel close it); only it built. How it looks: by hand.
+- [x] `test/dialogs.la` (new, pure): `.dialog(None)` and `.dialog(Some(…))` are both an overlay over the page (the page `.inert` only while open); the backdrop and card layers; the card's look; the ✕'s message and Escape shortcut; header and footer; `.dialog` below the root refused; the diff between closed and open adds layers and keeps the page.
+- [x] `test/live_dialog.la` (new, GTK): opening keeps the page's widgets (same widgets, inert), the backdrop and ✕ send the close message, closing makes the page take focus and clicks again.
+- [x] lugha-gtk: can-target and can-focus set and read back.
+- [x] `test/lib.la` or `test/live_style.la`: `.inert` and `.focusable` land on the widget.
+- [x] GTK parses the generated rules; `examples/components.la` gains a Dialog section (a button opening the delete dialog; Escape, the backdrop and Cancel close it); only it built. How it looks: by hand.
 
 ## ACCEPTANCE
 - [ ] The OBJECTIVE compiles; fmt clean; no file over 500 lines; README, DESIGN, CHANGELOG 0.42.0, CLAUDE.md; merged, tagged; pushed only on your go.
+
+## NOTES FROM THE BUILD
+
+- **`Dialog` and `.dialog`'s body live in `view/mapping.la`** (views.la is at 491 lines; `views` may import `mapping`); `ui.dialog` builds the card in `ui/dialogs.la`. The backdrop is built as view nodes in `mapping` (it can't import `widgets`, which imports `views`).
+- **`.focusable` is set on buttons only**: making a box or label focusable would add it to the Tab order. `.inert` sets can-target and can-focus on every widget each restyle (both default on, so nothing else changes): the GTK tests that cover styling, forms, focus, overlays, menus and button content still pass (16).
+- **`.inert` and `.focusable` are covered by `test/live_dialog.la`** (the page's can-target and can-focus, the backdrop's focusable), not a separate live_style test.
+- **Tests run and pass**: dialogs (5), live_dialog (1). Every test and example type-checks; only components built; GTK parsed the CSS (96 lines).
