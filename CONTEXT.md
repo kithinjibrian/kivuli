@@ -706,9 +706,17 @@ Branch: prp-026-palettes (not merged)
 
 ---
 
-## SESSION 37 — 2026-10-20 — Merge PRP-026; split render/live.la — open
+## SESSION 37 — 2026-10-20 — Merge PRP-026; split render/live.la — closed
 
-Branch: main
+Branch: main (the split on refactor-live-split, merged)
+
+### WHAT WAS DONE
+- The user saw dark mode work and said to merge now: PRP-026 merged without running its tests (the user's call), tagged v0.21.0 locally. The user's uncommitted `.gitignore` line was stashed for the checkout and restored.
+- `src/render/live.la` (500 lines) split: `window_of`, `show_window`, `show_maximized` and `click_away` moved to `src/render/windows.la`; live.la is 439 lines. No behaviour change: examples build, the live tests touching it type-check, fmt clean.
+
+### STILL OPEN AT CLOSE
+- Tests not run since session 32 (the user is fixing slow test runs): run the full suite, then push main and tags v0.18.0–v0.21.0 on the user's go.
+- Next in the shadcn plan: motion (transitions), then the first `kivuli.ui` component set.
 
 ---
 
@@ -716,5 +724,7 @@ Branch: main
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
 2. Read CLAUDE.md, MEMORY.md, DECISIONS.md, then this file's last session; go by `git log` for what's merged.
-3. kivuli 0.1.0 is published (github.com/kithinjibrian/kivuli); PRPs 001–005 are merged. Pushing kivuli needs the user's go each time; lugha-gtk has a standing go.
-4. Gotchas: a named import binds the module name too (E0311); `lughac fmt` reflows text scripted edits expect: re-read first; files may not exceed 500 lines; gate any push on the test run's real exit status.
+3. kivuli is at 0.21.0 on main, local; GitHub has up to v0.17.0. Tags v0.18.0–v0.21.0 wait for the user's go, after a full test run (none since session 32: the user is speeding tests up). lugha-gtk is at 0.1.33, pushed (standing go).
+4. `src/` is in folders (view/, styles/, core/, render/; DECISION-026); `test/` stays flat (DECISION-027, open: a lughac change).
+5. The plan (session 34): shadcn-like components. Done: palettes and tokens (PRP-026). Next: motion (transitions, `prefers-reduced-motion`), then `kivuli.ui` (button variants, input, card, badge, separator, select, checkbox, slider), then widgets kivuli lacks (switch, tabs, tooltip, dialog, progress, avatar).
+6. Gotchas: a named import binds the module's last name (E0311/E0314: no `styles.effects`); `lughac fmt` reflows text scripted edits expect: re-read first; Lugha strings interpolate `{…}`: write `{{`; an app's GtkCssProvider needs `lgtk_css_provider_new_for_scheme` for dark rules; files may not exceed 500 lines; gate any push on the test run's real exit status; never chain a bare `git push` in kivuli.
