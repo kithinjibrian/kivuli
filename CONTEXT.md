@@ -1120,6 +1120,12 @@ Branch: main
 
 ---
 
+## SESSION 68 — 2026-10-20 — PRP-035: kivuli.ui Separator — open
+
+Branch: prp-035-ui-separator
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.

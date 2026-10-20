@@ -1,6 +1,6 @@
 # PRP-035 — kivuli.ui: Separator
 
-Status: draft, for the user's approval (session 67)
+Status: approved (session 68)
 Discovery: session 67, 2026-10-20 (the seventh component). *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: `ui.separator()`, kivuli's native separator as a 1 px line in `Border`, and `separator_with(label)`, a line with text in its middle.
