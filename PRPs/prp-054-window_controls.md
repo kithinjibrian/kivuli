@@ -44,3 +44,8 @@ header_bar(start, title, end).style([WindowControls.look()])
 
 ## ACCEPTANCE
 - [ ] The OBJECTIVE compiles; fmt clean; no file over 500 lines; README, DESIGN, CHANGELOG 0.49.0, CLAUDE.md; merged, tagged; pushed only on your go. Then rapidkoi's DECISION-035 can take it (a kivuli bump there, in its own session).
+
+## NOTES FROM THE BUILD
+
+- **Probed** (session 123, `scratchpad/probe/wc.c`): `headerbar > windowhandle > box > box.end > windowcontrols.end > button.image-button.{minimize,maximize,close} > image`; a rule on `.kv-… windowcontrols > button.close` reaches the button. The proposed selectors hold.
+- **Found: the themes draw the hover circle on the icon, not the button.** GTK's Default and Yaru-dark (this desktop's): `windowcontrols button > image { border-radius: 9999px; min-width/height: 30px }`, `button:hover > image { background-color: … }`, and `button:hover { background: none }`. So a background on `Part.WindowButton` sits behind the theme's round circle, which still shows. Stopped: a third part for the icon (`windowcontrols > button > image`) is beyond the PRP's two; asked the user.

@@ -1821,9 +1821,15 @@ Branch: main
 
 ---
 
-## SESSION 123 — 2026-10-21 — PRP-054: window controls — open
+## SESSION 123 — 2026-10-21 — PRP-054: window controls, paused on a scope question — closed
 
-Branch: prp-054-window-controls
+Branch: prp-054-window-controls (nothing built beyond the probe)
+
+### WHAT WAS DONE
+- Probed GTK's header bar: the parts' selectors hold. Found the themes (Default, Yaru-dark) draw the hover circle on the controls' `image`, so styling the button alone leaves it. Stopped: a third part (`Part.WindowIcon`) needs the user's yes.
+
+### STILL OPEN AT CLOSE
+- The user's answer on `Part.WindowIcon`.
 
 ---
 
