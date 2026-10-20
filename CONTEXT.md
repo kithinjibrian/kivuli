@@ -735,9 +735,19 @@ Branch: main
 
 ---
 
-## SESSION 39 — 2026-10-20 — PRP-027: motion — open
+## SESSION 39 — 2026-10-20 — PRP-027: motion, built, not merged — closed
 
-Branch: prp-027-motion
+Branch: prp-027-motion (not merged: waiting for the user's hand check)
+
+### WHAT WAS DONE
+- lugha-gtk 0.1.34: reduced motion (set, reset, read; the scheme provider follows `prefers-reduced-motion` too); tests pass; pushed and tagged.
+- PRP-027 built: `Motion` (styles/motion.la: transitions by group, easing, delay, `fade_in`, `slide_in`, `spin`, `pulse`), its CSS (styles/motion_rules.la: one transition and one animation rule, keyframes, reduced-motion blocks through `rule_text`), checks; `Sheet.motion`. GTK parsed every generated rule (C probe). examples/motion.la. Docs; kivuli 0.22.0 (not tagged).
+- Tests written and type-checked only (motion, live_motion), as the user asked.
+
+### STILL OPEN AT CLOSE
+- The user to try `lughac run examples/motion.la` (eases, the tile, toasts sliding in, spinner, skeletons; then Reduce Animation on).
+- Then merge prp-027-motion and tag v0.22.0; tests to run once the user's fix is in.
+- Not pushed: main and tags v0.18.0–v0.21.0.
 
 ---
 
