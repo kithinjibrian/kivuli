@@ -1,6 +1,6 @@
 # PRP-026 — Palettes and colour tokens
 
-Status: built (session 35) on branch prp-026-palettes; not merged (its tests haven't run)
+Status: built (sessions 35–36); merged into main in session 37 without running its tests (the user's call)
 Discovery: session 34, 2026-10-20 (shadcn-like components; this is the first of their PRPs). *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: named colour tokens (`Token.Primary`, `Token.Muted`, …) that follow light and dark mode, an app-wide `.palette(…)` with shadcn's five bases, a radius token, and `.scheme(…)` to follow the system or force light or dark.
