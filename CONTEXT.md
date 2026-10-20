@@ -968,9 +968,16 @@ Branch: main (prp-031-ui-card merged)
 
 ---
 
-## SESSION 56 — 2026-10-20 — kivuli.ui Input: discovery — open
+## SESSION 56 — 2026-10-20 — kivuli.ui Input: discovery, PRP-032 draft — closed
 
 Branch: main
+
+### WHAT WAS DONE
+- The reference page shows no class string; the look follows shadcn's published input. Interview: `ui.input` and `Input.invalid()` only, Field next (A); a new `State.FocusWithin` (`:focus-within`), as a GTK field's focus is on the text inside it (A).
+- PRP-032 drafted.
+
+### STILL OPEN AT CLOSE
+- PRP-032 awaits the user's approval.
 
 ---
 
