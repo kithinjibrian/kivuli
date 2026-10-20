@@ -30,7 +30,7 @@ import gtk {
     gtk_application_new,
     gtk_application_window_new,
     gtk_css_provider_load_from_string,
-    gtk_css_provider_new,
+    lgtk_css_provider_new_for_scheme,
     gtk_style_context_add_provider_for_display,
     gtk_widget_get_display,
     gtk_widget_grab_focus,
@@ -267,9 +267,9 @@ fun click_away(window: GtkWidget): GtkEventController {
     gesture
 }
 
-/** The app's stylesheet, empty, applied to `window`'s display. */
+/** The app's stylesheet, applied to `window`'s display; its `prefers-color-scheme` rules follow GTK's scheme. */
 fun styles_for(window: GtkWidget): Styles {
-    let provider = gtk_css_provider_new();
+    let provider = lgtk_css_provider_new_for_scheme();
     // The display keeps the provider for the app's life.
     gtk_style_context_add_provider_for_display(gtk_widget_get_display(window), provider, 600);
     Styles { provider: provider, classes: Ref.new(#{}), css: Ref.new([default_tokens().1]) }

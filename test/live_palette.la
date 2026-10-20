@@ -1,7 +1,7 @@
 // Palettes and schemes on real GTK widgets (PRP-026): the root carries its
 // palette's class and the stylesheet its rule; a changed palette is a new
-// class on the same widget; `.scheme` sets GTK's colour scheme and `System`
-// gives it back. Needs a display, so it is skipped without one. (How light
+// class on the same widget; `.scheme` sets GTK's colour scheme, which the
+// app's stylesheet follows (its dark rules apply), and `System` gives it back. Needs a display, so it is skipped without one. (How light
 // and dark look: examples/palette.la.)
 import std.env;
 import gtk {
@@ -15,6 +15,7 @@ import gtk {
     gtk_application_window_new,
     gtk_widget_has_css_class,
     lgtk_color_scheme,
+    lgtk_css_provider_color_scheme,
     lgtk_reset_color_scheme,
 };
 import kivuli.render.live { mount, live_of };
@@ -77,7 +78,7 @@ fun the_root_carries_its_palette_and_scheme_sets_gtks() {
             flip();
             note(
                 seen,
-                "same {widget(live_of(app)) == root} slate {gtk_widget_has_css_class(root, slate)} zinc {gtk_widget_has_css_class(root, zinc)} dark {lgtk_color_scheme() == 2}",
+                "same {widget(live_of(app)) == root} slate {gtk_widget_has_css_class(root, slate)} zinc {gtk_widget_has_css_class(root, zinc)} dark {lgtk_color_scheme() == 2} stylesheet dark {lgtk_css_provider_color_scheme(app.styles.provider) == 2}",
             );
             flip();
             note(seen, "system again {lgtk_color_scheme() == own}");
@@ -90,7 +91,7 @@ fun the_root_carries_its_palette_and_scheme_sets_gtks() {
     g_object_unref(application);
     assert_eq(seen.get(), [
         "zinc 1 rule true tokens first true light true",
-        "same true slate 1 zinc 0 dark true",
+        "same true slate 1 zinc 0 dark true stylesheet dark true",
         "system again true",
     ]);
 }
