@@ -1,0 +1,40 @@
+/**
+ * Progress (PRP-045): kivuli's native progress bar in the palette's colours,
+ * its track (`Part.Trough`) and fill (`Part.Fill`) styled as parts. GTK
+ * sizes the fill from the value, so it moves at once (no easing). Pure.
+ *
+ * Depends on: views, widgets, styles, theming, values, boxes, drawing
+ * Used by: ui
+ */
+
+// The public items the entry re-exports, by their own modules (rule 2: no `lib`).
+import view.views { View };
+import view.widgets { progress as native_progress };
+import styles { Inside, Part };
+import styles.theming { Token };
+import styles.values { Radius };
+import styles.boxes { Background, Border, Sizing };
+import styles.drawing { Shadow };
+
+fun round(): Border = Border { radius: Radius.All(999), ..Border.theme() };
+
+/**
+ * A progress bar in the palette's colours, filled to `value` out of 100.
+ *
+ * Example:
+ *     ui.progress(m.uploaded)
+ */
+public fun progress<Msg>(value: i64): View<Msg> = native_progress(value).style([
+    Inside(Part.Trough, [
+        Sizing.min_height(8),
+        round(),
+        Background.color(Token.Primary.alpha(0.2)),
+        Shadow.off(),
+    ]),
+    Inside(Part.Fill, [
+        Sizing.min_height(8),
+        round(),
+        Background.color(Token.Primary),
+        Shadow.off(),
+    ]),
+]);

@@ -8,6 +8,14 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.40.0] — 2026-10-20
+
+### Added
+- A native `progress(value)` (PRP-045), out of 100; `Part.Fill`; `kivuli.ui`'s `ui.progress(value)`. Needs lugha-gtk 0.1.39.
+
+### Fixed
+- Three test expectations that were wrong (found by the first full run since the folder refactor: 421 tests).
+
 ## [0.39.0] — 2026-10-20
 
 ### Added

@@ -37,6 +37,8 @@ enum Patch<Msg> {
     SetOnSubmit(i64[], Option<Msg>),
     /** The check box at the path is ticked (or not). */
     SetChecked(i64[], bool),
+    /** The progress bar at the path shows this value out of 100. */
+    SetProgress(i64[], i64),
     /** The check box at the path turns toggles into messages with this function from now on; `None` disables it. */
     SetOnToggle(i64[], Option<fun(bool): Msg>),
     /** The drop-down at the path offers these choices, the one labelled so shown picked. */
@@ -160,6 +162,7 @@ fun diff_inside<Msg>(
     }),
     (TextArea(a, _), TextArea(b, on_change)) => diff_text_area(path, a, b, on_change),
     (Switch(a, _), Switch(b, on_toggle)) => diff_switch(path, a, b, on_toggle),
+    (Progress(a), Progress(b)) => if a == b { [] } else { [Patch.SetProgress(path, b)] },
     (Checkbox(la, ca, _), Checkbox(lb, cb, on_toggle)) => diff_checkbox(
         path,
         la,

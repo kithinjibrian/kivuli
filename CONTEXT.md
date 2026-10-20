@@ -1522,6 +1522,25 @@ Branch: main
 
 ---
 
+## SESSION 99 — 2026-10-20 — PRP-045: progress, built, not merged — closed
+
+Branch: prp-045-progress (not merged: waiting for the user's look)
+
+### WHAT WAS DONE
+- lugha-gtk 0.1.39 (progress bars; test passes; pushed, tagged).
+- `View.Progress`/`Live.Progress`, build (fraction clamped), `SetProgress`, map, `shown()` arm; `Part.Fill`; src/ui/progress_bars.la. A Progress section in components.la. Its tests run and pass (22). Docs; 0.40.0 (not tagged).
+
+### STILL OPEN AT CLOSE
+- The user to look; then merge, tag v0.40.0. Before a push: the examples' tests and every example's build.
+
+---
+
+## SESSION 100 — 2026-10-20 — Merge PRP-045 — open
+
+Branch: main (merging prp-045-progress)
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.

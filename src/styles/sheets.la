@@ -161,6 +161,7 @@ fun part_node(part: Part): string = match part {
     MenuRadio => "popover.menu radio",
     // The root view's siblings in the window: GTK's tooltip windows.
     Tooltip => "~ tooltip",
+    Fill => "progress",
 };
 
 /** The code a part's classes carry (`kv-item-…`). */
@@ -181,6 +182,7 @@ fun part_code(part: Part): string = match part {
     MenuCheck => "menucheck",
     MenuRadio => "menuradio",
     Tooltip => "tooltip",
+    Fill => "fill",
 };
 
 /**

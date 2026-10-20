@@ -57,6 +57,7 @@ public import view.widgets {
     input,
     checkbox,
     switch,
+    progress,
     spacer,
     separator,
     scroll,

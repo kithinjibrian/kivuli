@@ -39,6 +39,8 @@ import gtk {
     gtk_header_bar_set_title_widget,
     gtk_image_new_from_icon_name,
     gtk_label_new,
+    gtk_progress_bar_new,
+    gtk_progress_bar_set_fraction,
     gtk_switch_get_active,
     gtk_switch_new,
     gtk_switch_set_active,
@@ -192,6 +194,11 @@ fun create_in<Msg>(v: View<Msg>, axis: i32, send: fun(Msg)): Live<Msg> = match v
             0,
         );
         Live.Checkbox(check, text, current)
+    }
+    Progress(value) => {
+        let bar = gtk_progress_bar_new();
+        gtk_progress_bar_set_fraction(bar, fraction(value));
+        Live.Progress(bar)
     }
     Switch(on, on_toggle) => {
         let sw = gtk_switch_new();
@@ -473,3 +480,12 @@ fun text_of(buffer: GtkTextBuffer): string {
     g_free(owned);
     text
 }
+
+/** A progress bar's value out of 100 as GTK's fraction, clamped to 0..1. */
+fun fraction(value: i64): f64 = if value <= 0 {
+    0.0
+} else if value >= 100 {
+    1.0
+} else {
+    value as f64 / 100.0
+};
