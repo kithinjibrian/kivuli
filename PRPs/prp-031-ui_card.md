@@ -1,6 +1,6 @@
 # PRP-031 — kivuli.ui: Card
 
-Status: draft, for the user's approval (session 53)
+Status: approved (session 54)
 Discovery: session 53, 2026-10-20 (the third component; the reference is the current card at ui.shadcn.com/docs/components/base/card). *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: `card([...])` and its parts `card_header(title, description)`, `card_header_with(title, description, action)`, `card_content([...])`, `card_footer([...])`, one size (16 px spacing).
