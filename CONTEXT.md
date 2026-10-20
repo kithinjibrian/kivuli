@@ -1444,6 +1444,12 @@ Branch: prp-043-check-radio-menu (not merged)
 
 ---
 
+## SESSION 93 — 2026-10-20 — Merge PRP-043 — open
+
+Branch: main (merging prp-043-check-radio-menu)
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
