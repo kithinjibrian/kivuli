@@ -176,3 +176,22 @@ fun an_inside_inside_an_inside_is_still_refused() {
     let v = box().style([Inside(Part.Item, [Inside(Part.Arrow, [Background.color(Token.Muted)])])]);
     assert_eq(check(sheet_of(v)), Err("Inside(Part.Item, …): a part can't hold another Inside"));
 }
+
+@test
+fun a_menus_parts_are_paths_into_its_popover() {
+    let s = Inside(Part.MenuHint, [Background.color(Token.Muted)]).apply(
+        Inside(Part.MenuSeparator, [Background.color(Token.Border)]).apply(
+            Inside(Part.MenuLabel, [Background.color(Token.Card)]).apply(
+                Inside(Part.MenuItem, [Background.color(Token.Accent)]).apply(
+                    Inside(Part.MenuBox, [Background.color(Token.Popover)]).apply(Sheet.theme()),
+                ),
+            ),
+        ),
+    );
+    let k = keys(s);
+    assert(k.iter().any(fun(x) = x == "kv-menu-bgt-popover popover.menu > contents"));
+    assert(k.iter().any(fun(x) = x == "kv-menuitem-bgt-accent popover.menu modelbutton"));
+    assert(k.iter().any(fun(x) = x == "kv-menulabel-bgt-card popover.menu label.title"));
+    assert(k.iter().any(fun(x) = x == "kv-menuseparator-bgt-border popover.menu separator"));
+    assert(k.iter().any(fun(x) = x == "kv-menuhint-bgt-muted popover.menu accelerator"));
+}

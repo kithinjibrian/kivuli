@@ -412,6 +412,19 @@ impl View<Msg> {
     public fun menu(self, entries: MenuEntry<Msg>[]): View<Msg> = with_menu(self, entries);
 
     /**
+     * Gives the node a menu that a click opens below it, as `.menu`'s does on
+     * a right-click (which still works): a button's own message isn't sent
+     * then. Applied again, the new entries replace the old.
+     *
+     * Example:
+     *     button("Open", Msg.Nothing).dropdown_menu([menu_label("My Account"), item("Profile", Msg.Profile)])
+     */
+    public fun dropdown_menu(self, entries: MenuEntry<Msg>[]): View<Msg> = restyle(
+        with_menu(self, entries),
+        fun(s: Style) = Style { menu_on_click: true, ..s },
+    );
+
+    /**
      * The same view, sending `f(msg)` wherever it would send `msg`: how a
      * component with its own message type sits inside a bigger app. Map its
      * commands and subscriptions too (`Cmd.map`, `Sub.map`).

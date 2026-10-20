@@ -73,7 +73,9 @@ import render.controls { sync_choices };
 fun apply_style<Msg>(node: Live<Msg>, style: Style, axis: i32) {
     // A header's modifiers are its body's: `.header` keeps them outside the frame.
     match node {
-        Menu(inner, _) => {
+        Menu(inner, popup) => {
+            // `.dropdown_menu`: a primary click opens it too.
+            popup.on_click.set(style.menu_on_click);
             apply_style(inner, style, axis);
             return;
         }

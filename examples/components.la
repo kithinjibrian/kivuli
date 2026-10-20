@@ -18,6 +18,10 @@ import kivuli {
     button,
     checkbox,
     column,
+    submenu,
+    menu_separator,
+    menu_label,
+    item,
     dropdown,
     icon,
     input,
@@ -57,6 +61,7 @@ import kivuli.ui {
     Dropdown,
     tab,
     tab_with,
+    Menu,
 };
 
 struct Model {
@@ -70,6 +75,7 @@ struct Model {
     fruit: string,
     airplane: bool,
     tab: i64,
+    picked: string,
 }
 
 enum Msg {
@@ -83,6 +89,7 @@ enum Msg {
     Fruit(string),
     Airplane(bool),
     Tab(i64),
+    Picked(string),
 }
 
 fun update(m: Model, msg: Msg): Model = match msg {
@@ -96,6 +103,7 @@ fun update(m: Model, msg: Msg): Model = match msg {
     Fruit(f) => Model { fruit: f, ..m },
     Airplane(b) => Model { airplane: b, ..m },
     Tab(n) => Model { tab: n, ..m },
+    Picked(what) => Model { picked: what, ..m },
 };
 
 fun palette_of(n: i64): Palette = if n == 1 {
@@ -235,6 +243,36 @@ fun page(m: Model): View<Msg> = column([
             ]),
             ui.input("Disabled", Msg.Email).disabled(true),
         ]).style([Spacing.gap(8)]),
+    ),
+    section(
+        "Dropdown menu",
+        column([
+            row([
+                ui.dropdown_menu(ui.button("Open", Msg.Picked("")).style([Button.outline()]), [
+                    menu_label("My Account"),
+                    item("Profile", Msg.Picked("Profile")).hint("Shift+Ctrl+P"),
+                    item("Billing", Msg.Picked("Billing")).hint("Ctrl+B"),
+                    item("Settings", Msg.Picked("Settings")).hint("Ctrl+S"),
+                    menu_separator(),
+                    menu_label("Team"),
+                    submenu("Invite users", [
+                        item("Email", Msg.Picked("Invite by email")),
+                        item("Message", Msg.Picked("Invite by message")),
+                    ]),
+                    item("New team", Msg.Picked("New team")).hint("Ctrl+T"),
+                    menu_separator(),
+                    item("API", Msg.Picked("API")).disabled(true),
+                    item("Log out", Msg.Picked("Log out")),
+                ]).align(Align.Center),
+                text("Right-click me").style([Text.color(Token.MutedForeground)]).menu([
+                    item("Copy", Msg.Picked("Copy")),
+                    item("Paste", Msg.Picked("Paste")),
+                ]).style([Menu.look()]).align(Align.Center),
+            ]).style([Spacing.gap(16)]),
+            text(if m.picked == "" { "Nothing picked yet." } else { "Picked: {m.picked}" }).style([
+                Text.color(Token.MutedForeground),
+            ]),
+        ]).style([Spacing.gap(12)]),
     ),
     section(
         "Tabs",
@@ -456,6 +494,7 @@ fun main(): i32 = sandbox(
         fruit: "",
         airplane: false,
         tab: 0,
+        picked: "",
     },
     update,
     view,

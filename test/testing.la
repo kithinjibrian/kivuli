@@ -21,6 +21,7 @@ import kivuli {
     overlay,
     button_with,
     item,
+    submenu,
     menu_separator,
     header_bar,
 };
@@ -372,4 +373,12 @@ fun flipping_a_switch_sends_the_opposite_of_its_state() {
     assert_eq(flip(two, "x"), Err(Lookup.Ambiguous("switch \"x\"", 2)));
     let off: View<Msg> = column([switch(false, Msg.Done).name("done").disabled(true)]);
     assert_eq(flip(off, "done"), Err(Lookup.Silent("switch \"done\"")));
+}
+
+@test
+fun picking_finds_items_inside_submenus() {
+    let v: View<Msg> = column([
+        button("More", Msg.Clear).menu([submenu("Invite", [item("Email", Msg.Done(true))])]),
+    ]);
+    assert_eq(pick(v, "More", "Email"), Ok(Msg.Done(true)));
 }

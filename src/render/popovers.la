@@ -34,7 +34,15 @@ import gtk {
     gtk_gesture_click_new,
     gtk_gesture_long_press_new,
     gtk_gesture_single_set_button,
-    gtk_popover_menu_new_from_model,
+    GMenuItem,
+    g_menu_append_item,
+    g_menu_append_submenu,
+    g_menu_item_new,
+    g_menu_item_unref,
+    gtk_event_controller_set_propagation_phase,
+    gtk_gesture_set_state,
+    gtk_popover_menu_new_from_model_full,
+    lgtk_menu_item_set_string,
     gtk_popover_menu_set_menu_model,
     gtk_popover_popdown,
     gtk_popover_popup,
@@ -53,7 +61,8 @@ import gtk {
     gtk_widget_set_parent,
     gtk_widget_unparent,
 };
-import view.menus { MenuEntry, layout, message_of };
+import view.menus { MenuEntry, items, layout, message_of };
+import view.keys { parse };
 import core.live_tree { Popup };
 import render.styling { flag };
 
@@ -68,7 +77,8 @@ fun attach<Msg>(w: GtkWidget, entries: MenuEntry<Msg>[], send: fun(Msg)): Popup<
     // The widget holds the group now; ours is dropped, and the group lives as long as it.
     g_simple_action_group_unref(group);
     let empty = g_menu_new();
-    let popover = gtk_popover_menu_new_from_model(Some(empty));
+    // Nested: a submenu opens beside its item, not in its menu's place.
+    let popover = gtk_popover_menu_new_from_model_full(Some(empty), 1);
     gtk_widget_set_parent(popover, w);
     // A context menu opens where it was asked for, without an arrow.
     gtk_popover_set_has_arrow(popover, 0);
@@ -118,10 +128,29 @@ fun attach<Msg>(w: GtkWidget, entries: MenuEntry<Msg>[], send: fun(Msg)): Popup<
         0,
     );
     gtk_widget_add_controller(w, hold);
+    // A primary click opens it too while `on_click` (`.dropdown_menu`): seen in
+    // the capture phase and claimed, so a button under it doesn't get the click.
+    let on_click = Ref.new(false);
+    let primary = gtk_gesture_click_new();
+    gtk_gesture_single_set_button(primary, 1);
+    gtk_event_controller_set_propagation_phase(primary, 1);
+    connect_click(
+        primary,
+        "pressed",
+        fun(g: GtkEventController, n: i32, x: f64, y: f64) {
+            // Below the whole node, as a drop-down opens.
+            if on_click.get() && open(0, 0, gtk_widget_get_width(w), gtk_widget_get_height(w)) {
+                // GTK_EVENT_SEQUENCE_CLAIMED.
+                gtk_gesture_set_state(g, 1);
+            }
+        },
+        0,
+    );
+    gtk_widget_add_controller(w, primary);
     // Local scope: the keys work while the node or something inside it has focus.
     let controller = gtk_shortcut_controller_new();
     gtk_shortcut_controller_set_scope(controller, 0);
-    let keys = gtk_callback_action_new(
+    let menu_keys = gtk_callback_action_new(
         fun(owner: GtkWidget, args: Option<GVariant>): i32 = flag(
             open(0, 0, gtk_widget_get_width(owner), gtk_widget_get_height(owner)),
         ),
@@ -132,7 +161,7 @@ fun attach<Msg>(w: GtkWidget, entries: MenuEntry<Msg>[], send: fun(Msg)): Popup<
     // The shortcut takes the action; ours is kept for tests to run it.
     gtk_shortcut_controller_add_shortcut(
         controller,
-        gtk_shortcut_new(trigger, gtk_shortcut_action_ref(keys)),
+        gtk_shortcut_new(trigger, gtk_shortcut_action_ref(menu_keys)),
     );
     gtk_widget_add_controller(w, controller);
     let popup = Popup {
@@ -144,7 +173,9 @@ fun attach<Msg>(w: GtkWidget, entries: MenuEntry<Msg>[], send: fun(Msg)): Popup<
         shown: Ref.new([]),
         click: click,
         hold: hold,
-        keys: keys,
+        primary: primary,
+        on_click: on_click,
+        keys: menu_keys,
     };
     g_menu_unref(empty);
     refresh(popup, entries, send);
@@ -202,38 +233,71 @@ fun refresh<Msg>(p: Popup<Msg>, entries: MenuEntry<Msg>[], send: fun(Msg)) {
     }
 }
 
-fun items_in<Msg>(entries: MenuEntry<Msg>[]): i64 {
-    let mut n = 0;
-    for e of entries {
-        match e {
-            Item(_, _) => {
-                n = n + 1;
-            }
-            Separator => {}
-        }
-    }
-    n
-}
+fun items_in<Msg>(entries: MenuEntry<Msg>[]): i64 = items(entries).len;
 
-/** The menu model: items in sections, a new section after each separator. */
-fun model_of<Msg>(entries: MenuEntry<Msg>[]): GMenu {
+/**
+ * The menu model: items in sections, a new section after each separator and
+ * at each label (the section's title); submenus nested, their items numbered
+ * on from the menu's (`items`' order).
+ */
+fun model_of<Msg>(entries: MenuEntry<Msg>[]): GMenu = model_from(entries, Ref.new(0));
+
+fun model_from<Msg>(entries: MenuEntry<Msg>[], next: Ref<i64>): GMenu {
     let menu = g_menu_new();
-    let mut section = g_menu_new();
-    let mut i = 0;
+    let section = Ref.new(g_menu_new());
+    let title: Ref<Option<string>> = Ref.new(None);
+    let filled = Ref.new(false);
+    // An empty, untitled section would draw a stray separator: only a filled
+    // or titled one is added.
+    let close = fun() {
+        if filled.get() || title.get().is_some() {
+            g_menu_append_section(menu, title.get(), section.get());
+        }
+        g_menu_unref(section.get());
+        section.set(g_menu_new());
+        title.set(None);
+        filled.set(false);
+    };
     for e of entries {
         match e {
             Item(label, _) => {
-                g_menu_append(section, Some(label), Some("kv.item{i}"));
-                i = i + 1;
+                add_item(section.get(), label, "", next);
+                filled.set(true);
             }
-            Separator => {
-                g_menu_append_section(menu, None, section);
-                g_menu_unref(section);
-                section = g_menu_new();
+            Hinted(label, _, combo) => {
+                add_item(section.get(), label, combo, next);
+                filled.set(true);
+            }
+            Separator => close(),
+            Label(text) => {
+                close();
+                title.set(Some(text));
+            }
+            Submenu(label, inner) => {
+                let sub = model_from(inner, next);
+                g_menu_append_submenu(section.get(), Some(label), sub);
+                g_menu_unref(sub);
+                filled.set(true);
             }
         }
     }
-    g_menu_append_section(menu, None, section);
-    g_menu_unref(section);
+    if filled.get() || title.get().is_some() {
+        g_menu_append_section(menu, title.get(), section.get());
+    }
+    g_menu_unref(section.get());
     menu
+}
+
+/** Appends the next item to `section`, with `combo` shown at its end unless `""`. */
+fun add_item(section: GMenu, label: string, combo: string, next: Ref<i64>) {
+    let item: GMenuItem = g_menu_item_new(Some(label), Some("kv.item{next.get()}"));
+    next.set(next.get() + 1);
+    if combo != "" {
+        match parse(combo) {
+            Ok(accel) => lgtk_menu_item_set_string(item, "accel", accel),
+            Err(problem) => panic("kivuli: item(\"{label}\").hint(\"{combo}\"): {problem}"),
+        }
+    }
+    g_menu_append_item(section, item);
+    g_menu_item_unref(item);
 }

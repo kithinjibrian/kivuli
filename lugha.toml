@@ -4,4 +4,4 @@ version = "0.36.0"
 source = "src"
 
 [packages]
-gtk = { git = "https://github.com/kithinjibrian/lugha-gtk", version = "0.1.36" }
+gtk = { git = "https://github.com/kithinjibrian/lugha-gtk", version = "0.1.37" }
