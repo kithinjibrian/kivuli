@@ -1,6 +1,6 @@
 # PRP-044 — Tooltips in the palette's look
 
-Status: built (session 95) on branch prp-044-tooltip-look
+Status: built (session 95); merged into main in session 96 without running its tests (the user's call)
 Discovery: session 94, 2026-10-20 (the reference's tooltip: `bg-foreground text-background rounded-md px-3 py-1.5 text-xs`, fading and zooming in, with an arrow). GTK puts a tooltip in its own window, hung off the surface its widget is on (a drop-down probe, session 77, showed `popover > tooltip.background`): for the main window, the tooltip window is the root view's sibling, after it. *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: `Part.Tooltip`, the tooltip window beside the root (`~ tooltip`), and `kivuli.ui`'s `Tooltip.look()`: every `.tooltip(…)` in the app in the palette's look, set once on the root.
