@@ -1905,6 +1905,12 @@ Branch: main
 
 ---
 
+## SESSION 130 — 2026-10-21 — Sizing.icon: the window controls' glyphs 24 px — open
+
+Branch: icon-size
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
