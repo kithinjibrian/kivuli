@@ -1,0 +1,154 @@
+// The components gallery's choosers: tabs, switches, check boxes, drop-downs, sliders.
+import kivuli {
+    View,
+    Align,
+    Token,
+    look,
+    Font,
+    Spacing,
+    Text,
+    checkbox,
+    column,
+    dropdown,
+    icon,
+    Sizing,
+    row,
+    slider,
+    switch,
+    text,
+};
+import kivuli.ui {
+    card,
+    card_header,
+    field,
+    field_horizontal,
+    field_label,
+    field_description,
+    field_error,
+    Field,
+    Dropdown,
+    tab,
+    tab_with,
+};
+import gallery.state { Model, Msg, section };
+
+/** The fruit drop-downs' choices. */
+fun fruits(): (string, Msg)[] = ["Apple", "Banana", "Blueberry", "Grapes", "Pineapple"].map(
+    fun(f: string) = (f, Msg.Fruit(f)),
+);
+
+/** The Tabs, Switch, Checkbox, Dropdown and Slider sections, top to bottom. */
+public fun sections(m: Model): View<Msg>[] = [
+    section(
+        "Tabs",
+        column([
+            ui.tabs(
+                [
+                    tab("Account", Msg.Tab(0)),
+                    tab("Password", Msg.Tab(1)),
+                    tab("Notifications", Msg.Tab(2)),
+                ],
+                m.tab,
+            ),
+            card([
+                if m.tab == 0 {
+                    card_header("Account", "Make changes to your account here.")
+                } else if m.tab == 1 {
+                    card_header("Password", "Change your password here.")
+                } else {
+                    card_header("Notifications", "Choose what we tell you about.")
+                },
+            ]),
+            ui.tabs_line(
+                [
+                    tab("Overview", Msg.Tab(0)),
+                    tab("Analytics", Msg.Tab(1)),
+                    tab("Reports", Msg.Tab(2)).disabled(true),
+                ],
+                m.tab,
+            ),
+            ui.tabs(
+                [
+                    tab_with([icon("view-reveal-symbolic"), text("Preview")], Msg.Tab(0)),
+                    tab_with([icon("text-x-generic-symbolic"), text("Code")], Msg.Tab(1)),
+                ],
+                m.tab,
+            ),
+            row([
+                ui.tabs_vertical(
+                    [
+                        tab("General", Msg.Tab(0)),
+                        tab("Security", Msg.Tab(1)),
+                        tab_with([icon("mail-unread-symbolic"), text("Notifications")], Msg.Tab(2)),
+                    ],
+                    m.tab,
+                ),
+                ui.tabs_line_vertical(
+                    [
+                        tab("Overview", Msg.Tab(0)),
+                        tab("Analytics", Msg.Tab(1)),
+                        tab("Reports", Msg.Tab(2)).disabled(true),
+                    ],
+                    m.tab,
+                ),
+            ]).style([Spacing.gap(24)]),
+        ]).style([Spacing.gap(16), Sizing.max_width(480)]),
+    ),
+    section(
+        "Switch",
+        column([
+            field_horizontal([ui.switch(m.airplane, Msg.Airplane), field_label("Airplane mode")]),
+            field_horizontal([
+                ui.switch(!m.airplane, fun(b: bool) = Msg.Airplane(!b)).disabled(m.airplane),
+                field_label("Wi-Fi (off in airplane mode)"),
+            ]),
+            field_horizontal([
+                switch(m.airplane, Msg.Airplane),
+                field_label("A native switch, for comparison"),
+            ]),
+        ]).style([Spacing.gap(12)]),
+    ),
+    section(
+        "Checkbox",
+        column([
+            ui.checkbox("Accept terms and conditions", m.same, Msg.Same),
+            ui.checkbox("Send me product updates", !m.same, fun(b: bool) = Msg.Same(!b)),
+            ui.checkbox(
+                "Disabled while the box above is ticked",
+                false,
+                fun(b: bool) = Msg.Same(!m.same),
+            ).disabled(m.same),
+            field_horizontal([checkbox("A native check box, for comparison", m.same, Msg.Same)]),
+        ]).style([Spacing.gap(12)]),
+    ),
+    section(
+        "Dropdown",
+        column([
+            ui.dropdown(fruits(), m.fruit, "Select a fruit").style([Sizing.width(220)]),
+            field([
+                field_label("Fruit"),
+                ui.dropdown(fruits(), m.fruit, "Select a fruit").style([
+                    if m.fruit == "" { Dropdown.invalid() } else { look([]) },
+                ]),
+                if m.fruit == "" {
+                    field_error("Please select a fruit.")
+                } else {
+                    field_description("You picked {m.fruit}.")
+                },
+            ]).style([if m.fruit == "" { Field.invalid() } else { look([]) }]),
+            dropdown(fruits(), m.fruit),
+        ]).style([Spacing.gap(16), Sizing.max_width(420)]),
+    ),
+    section(
+        "Slider",
+        column([
+            row([
+                text("Volume").style([Font.medium()]).align(Align.Center),
+                ui.slider(0, 100, m.volume, Msg.Volume).expand(),
+                text("{m.volume}").style([Text.color(Token.MutedForeground)]).align(Align.Center),
+            ]).style([Spacing.gap(12)]),
+            ui.slider(0, 100, m.volume, Msg.Volume).disabled(m.same),
+            slider(0, 100, m.volume, Msg.Volume),
+        ]).style([Spacing.gap(16), Sizing.max_width(420)]),
+    ),
+];

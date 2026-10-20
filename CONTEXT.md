@@ -1648,9 +1648,16 @@ Branch: prp-048-vertical-tabs (not merged)
 
 ---
 
-## SESSION 109 — 2026-10-20 — File split (components, live_forms); PRP-048 merge; build all — open
+## SESSION 109 — 2026-10-20 — File split (components, live_forms); PRP-048 merged — closed
 
-Branch: prp-048-vertical-tabs
+Branch: prp-048-vertical-tabs → main
+
+### WHAT WAS DONE
+- The split (A): `examples/components.la` → itself (57 lines) and `examples/gallery/` (state, actions, choices, display; `import gallery.x;` from the main file's folder, probed first); `test/live_forms.la` → itself and `test/live_shortcuts.la` (6 tests pass). No file over 500 lines.
+- PRP-048 merged; v0.43.0 tagged locally. GTK parsed the vertical tabs' rules.
+
+### STILL OPEN AT CLOSE
+- "build all" goes on: PRP-049 (drop-down groups) next.
 
 ---
 
@@ -1658,7 +1665,7 @@ Branch: prp-048-vertical-tabs
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
 2. Read CLAUDE.md, MEMORY.md, DECISIONS.md, then this file's last session; go by `git log` for what's merged.
-3. kivuli is at 0.42.0 on main, local; GitHub has up to v0.17.0. Tags v0.18.0–v0.42.0 wait for the user's go, after a full test run (none since session 32: the user is speeding tests up). lugha-gtk is at 0.1.40, pushed (standing go).
+3. kivuli is at 0.43.0 on main, local; GitHub has up to v0.17.0. Tags v0.18.0–v0.43.0 wait for the user's go, after a full test run (none since session 32: the user is speeding tests up). lugha-gtk is at 0.1.40, pushed (standing go).
 4. `src/` is in folders (view/, styles/, core/, render/; DECISION-026); `test/` stays flat (DECISION-027, open: a lughac change).
 5. The plan (session 34): shadcn-like components. Done: palettes and tokens (PRP-026), motion (PRP-027), `kivuli.ui` with Badge (PRP-028: variants are `Look`s through `.style`; component files import the entry's modules, not `lib`) and Button (PRP-029: `ui.button` beside the native one; variants restate colours in states to outrank GTK's button rules; `Token.alpha`). Then text alignment (PRP-030: start by default, `Text.center()`) and Card (PRP-031: parts as functions; no font size on containers, since scales compound; DECISION-028 open) and Input (PRP-032: `State.FocusWithin`, as a GTK field's text child takes the focus). Field (PRP-033: parts, `field_horizontal`). the input group (PRP-034: the frame draws border and ring; `group_input` has none). Separator (PRP-035), Checkbox with widget parts (PRP-036: `Inside(Part, …)`, `Mark.icon`), disabled check boxes (PRP-037), Slider and disabled sliders (PRP-038), dropdown (PRP-039: parts as paths, states inside parts, a placeholder). Then a native switch and `ui.switch` (PRP-040), Tabs from the model (PRP-041), dropdown menus (PRP-042: `.dropdown_menu`, labels, submenus, hints, `Menu.look()`). Then check and radio menu items (PRP-043: stateful actions set from the view), the tooltip look (PRP-044: `Part.Tooltip` = `~ tooltip` on the root; unconfirmed by hand), progress (PRP-045), avatar (PRP-046: a picture layered over its initials), dialog (PRP-047: `.dialog` on the root, an always-there overlay, the page `.inert`, Escape on the ✕). Next is the user's choice (later: tooltip, dialog, progress, avatar; groups in drop-downs; disabled drop-downs) (GTK entry icons dropped: the input group covers them) (button variants, input, card, badge, separator, select, checkbox, slider), then widgets kivuli lacks (switch, tabs, tooltip, dialog, progress, avatar).
 6. Gotchas: a named import binds the module's last name (E0311/E0314: no `styles.effects`); `lughac fmt` reflows text scripted edits expect: re-read first; Lugha strings interpolate `{…}`: write `{{`; an app's GtkCssProvider needs `lgtk_css_provider_new_for_scheme` for dark rules; files may not exceed 500 lines; gate any push on the test run's real exit status (the full suite last passed in session 98, 421 tests); never chain a bare `git push` in kivuli; no Co-Authored-By trailer on commits; no shadcn by name in code comments; check only affected examples and build only the one being run; commit `lughac fmt` output before switching branches; chain git steps with `&&`, never `;`.

@@ -1,6 +1,6 @@
 # PRP-048 — kivuli.ui: vertical tabs
 
-Status: approved (session 107, "build all")
+Status: built (session 108); merged into main in session 109 (its own tests run and pass)
 Discovery: session 107, 2026-10-20 (the reference's vertical tabs: the list a column, each trigger the list's full width with its text at the start; the line variant's line on the trigger's end edge). *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: `ui.tabs_vertical(triggers, active)` and `ui.tabs_line_vertical(triggers, active)`, beside `tabs` and `tabs_line`.
@@ -27,8 +27,8 @@ ui.tabs_line_vertical([tab("Overview", Msg.Tab(0)), tab("Reports", Msg.Tab(1))],
 - No orientation argument on the existing functions (B), no keyboard arrow navigation between triggers (GTK's Tab order is it, as for `tabs`).
 
 ## TESTS (narrow; type-check every test and example; run this PRP's own)
-- [ ] `test/tabs_ui.la`: both are columns; the active trigger's look and the others'; the end-edge line (`tabs_line_vertical`), the bottom line absent; triggers fill and start their content; past the end none is active.
-- [ ] GTK parses the generated rules; `examples/components.la`'s Tabs section gains both vertical kinds; only it built. How it looks: by hand.
+- [x] `test/tabs_ui.la`: both are columns; the active trigger's look and the others'; the end-edge line (`tabs_line_vertical`), the bottom line absent; triggers fill and start their content; past the end none is active.
+- [x] GTK parses the generated rules; `examples/components.la`'s Tabs section gains both vertical kinds; only it built. How it looks: by hand.
 
 ## ACCEPTANCE
 - [ ] The OBJECTIVE compiles; fmt clean; no file over 500 lines; README, DESIGN, CHANGELOG 0.43.0; merged, tagged; pushed only on your go.
@@ -36,5 +36,5 @@ ui.tabs_line_vertical([tab("Overview", Msg.Tab(0)), tab("Reports", Msg.Tab(1))],
 ## NOTES FROM THE BUILD
 
 - **A native button's text alignment now places its content** (`Text.start()`/`end()` set the halign of the box holding its image and label; GTK's centre otherwise, unchanged): needed for "its text at the start" on a `tab`, which `.style([Text.start()])` didn't do before. Tested in `test/live_text_align.la`.
-- **Paused before merging**: `examples/components.la` is at 602 lines (over the limit since PRP-041; 581 before this PRP), and `test/live_forms.la` at 562. A split is proposed to the user.
-- Tests run and pass: tabs_ui (8), live_text_align, live_buttons_ui, live_style (14 in all). components built.
+- **Paused before merging** (session 108): `examples/components.la` was at 602 lines, `test/live_forms.la` at 562. Split on the user's go (session 109): components' sections into `examples/gallery/` (state, actions, choices, display); live_forms' shortcut and focus tests into `test/live_shortcuts.la` (a cleaner seam than the text areas first proposed). Both run and pass (6).
+- Tests run and pass: tabs_ui (8), live_text_align, live_buttons_ui, live_style (14 in all). components built; GTK parsed the rules (51 lines, 0 errors).

@@ -4,17 +4,13 @@
 import std.env;
 import gtk {
     GtkApplication,
-    GtkShortcut,
     GtkTextBuffer,
-    GtkWidget,
     connect_app,
     connect_buffer,
     emit_widget,
     g_application_quit,
     g_application_run,
-    g_free,
     g_object_unref,
-    g_timeout_add_full,
     gtk_application_new,
     gtk_application_window_new,
     gtk_check_button_get_active,
@@ -23,16 +19,9 @@ import gtk {
     gtk_editable_set_text,
     gtk_entry_get_placeholder_text,
     gtk_label_get_text,
-    gtk_root_get_focus,
     gtk_scrolled_window_get_child,
-    gtk_shortcut_action_activate,
-    gtk_shortcut_get_action,
-    gtk_shortcut_get_trigger,
-    gtk_shortcut_trigger_to_string,
     gtk_text_buffer_set_text,
     gtk_text_view_get_wrap_mode,
-    gtk_widget_is_ancestor,
-    lgtk_cstring_text,
     lgtk_text_cursor,
     lgtk_text_place_cursor,
 };
@@ -40,7 +29,7 @@ import kivuli.render.live { dispatch, mount, live_of };
 import kivuli.core.effects { sandbox_app };
 import kivuli.render.build { text_of };
 import kivuli.core.live_tree { Live, widget };
-import kivuli { App, Cmd, Sub, View, button, checkbox, column, input, text, text_area };
+import kivuli { View, button, checkbox, column, input, text, text_area };
 
 fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
 
@@ -376,187 +365,4 @@ fun a_text_area_sends_edits_keeps_its_cursor_and_does_not_echo() {
         "Set(\"hi\")",
         "Set(\"hi there, friend\")",
     ]);
-}
-
-enum Keys {
-    Typed(string),
-    Add,
-    Clear,
-}
-
-struct Count {
-    items: i64,
-}
-
-fun update_count(c: Count, msg: Keys): Count = match msg {
-    Typed(_) => c,
-    Add => Count { items: c.items + 1 },
-    Clear => Count { items: 0 },
-};
-
-// Add's keys change after two adds; Clear is disabled while there's nothing.
-fun view_count(c: Count): View<Keys> = column([
-    input("", Keys.Typed).name("task").autofocus(),
-    button("Add", Keys.Add).shortcut(if c.items < 2 { "Ctrl+N" } else { "Ctrl+M" }),
-    button("Clear", Keys.Clear).shortcut("Ctrl+L").disabled(c.items == 0),
-]);
-
-// The trigger in a button's shortcut, as GTK writes it; "none" without one.
-fun trigger_of(node: Live<Keys>): string {
-    let Button(_, _, _, current, _, _) = node else {
-        panic("expected a button");
-    };
-    match current.get() {
-        Some(shortcut) => {
-            let text = gtk_shortcut_trigger_to_string(gtk_shortcut_get_trigger(shortcut));
-            let read = lgtk_cstring_text(text);
-            g_free(text);
-            read
-        }
-        None => "none",
-    }
-}
-
-// What GTK does when the button's keys are pressed.
-fun press_keys(node: Live<Keys>) {
-    let Button(w, _, _, current, _, _) = node else {
-        panic("expected a button");
-    };
-    match current.get() {
-        Some(shortcut) => {
-            gtk_shortcut_action_activate(gtk_shortcut_get_action(shortcut), 0, w, None);
-        }
-        None => {}
-    }
-}
-
-// Whether keyboard focus is on `w` or inside it (an entry hands it to its text).
-fun focused(window: GtkWidget, w: GtkWidget): bool = match gtk_root_get_focus(window) {
-    Some(f) => f == w || gtk_widget_is_ancestor(f, w) != 0,
-    None => false,
-};
-
-@test
-fun shortcuts_press_their_buttons_and_autofocus_takes_focus() {
-    if !has_display() {
-        skip("no display");
-    }
-    let seen: Ref<string[]> = Ref.new([]);
-    let received: Ref<string[]> = Ref.new([]);
-    let note = fun(s: string) {
-        seen.update(fun(xs) {
-            let mut ys = xs;
-            ys.push(s);
-            ys
-        });
-    };
-    let application = gtk_application_new("org.kivuli.test.keys", 0);
-    connect_app(
-        application,
-        "activate",
-        fun(a: GtkApplication) {
-            let window = gtk_application_window_new(a);
-            let app = mount(a, window, sandbox_app(
-                "org.kivuli.test",
-                Count { items: 0 },
-                fun(c: Count, msg: Keys): Count {
-                    received.update(fun(xs) {
-                        let mut ys = xs;
-                        ys.push("{msg}");
-                        ys
-                    });
-                    update_count(c, msg)
-                },
-                view_count,
-            ));
-            let kids = fun(): Live<Keys>[] {
-                let Box(_, _, ks) = live_of(app) else {
-                    panic("expected a column");
-                };
-                ks
-            };
-            note("add {trigger_of(kids()[1])}, clear {trigger_of(kids()[2])}");
-            press_keys(kids()[2]);
-            press_keys(kids()[1]);
-            press_keys(kids()[1]);
-            note("add {trigger_of(kids()[1])}");
-            // Autofocus happens on the loop's next turn: look after one.
-            g_timeout_add_full(0, 50, fun(): i32 {
-                note("field focused {focused(window, widget(kids()[0]))}");
-                g_application_quit(a);
-                0
-            });
-        },
-        0,
-    );
-    g_application_run(application, 0, None);
-    g_object_unref(application);
-
-    assert_eq(seen.get(), [
-        "add <Control>n, clear <Control>l",
-        "add <Control>m",
-        "field focused true",
-    ]);
-    // The disabled Clear's shortcut sent nothing; Add's sent Add twice.
-    assert_eq(received.get(), ["Add", "Add"]);
-}
-
-@test
-fun cmd_focus_moves_focus_to_a_named_node() {
-    if !has_display() {
-        skip("no display");
-    }
-    let seen: Ref<string[]> = Ref.new([]);
-    let application = gtk_application_new("org.kivuli.test.focus", 0);
-    connect_app(
-        application,
-        "activate",
-        fun(a: GtkApplication) {
-            let window = gtk_application_window_new(a);
-            let app = mount(a, window, App {
-                id: "org.kivuli.test",
-                init: (Count { items: 0 }, Cmd.focus("task")),
-                update: fun(c: Count, msg: Keys): (Count, Cmd<Keys>) = match msg {
-                    Add => (c, Cmd.focus("notes")),
-                    _ => (c, Cmd.focus("nowhere")),
-                },
-                view: fun(c: Count): View<Keys> = column([
-                    input("", Keys.Typed).name("task"),
-                    text_area("", Keys.Typed).name("notes"),
-                ]),
-                subscriptions: fun(c: Count): Sub<Keys> = Sub.none(),
-            });
-            let Box(_, _, kids) = live_of(app) else {
-                panic("expected a column");
-            };
-            let entry = widget(kids[0]);
-            let area = widget(kids[1]);
-            note_focus(seen, window, entry, area);
-            dispatch(app, Keys.Add);
-            note_focus(seen, window, entry, area);
-            dispatch(app, Keys.Clear);
-            note_focus(seen, window, entry, area);
-            g_application_quit(a);
-        },
-        0,
-    );
-    g_application_run(application, 0, None);
-    g_object_unref(application);
-    // init's Cmd.focus("task"), then "notes" (the text area's editor), then an unknown name: no change.
-    assert_eq(seen.get(), ["task", "notes", "notes"]);
-}
-
-fun note_focus(seen: Ref<string[]>, window: GtkWidget, entry: GtkWidget, area: GtkWidget) {
-    let at = if focused(window, entry) {
-        "task"
-    } else if focused(window, area) {
-        "notes"
-    } else {
-        "neither"
-    };
-    seen.update(fun(xs) {
-        let mut ys = xs;
-        ys.push(at);
-        ys
-    });
 }

@@ -1,0 +1,185 @@
+// The components gallery's displays and forms: avatars, progress, separators, input groups, fields, cards.
+import kivuli {
+    View,
+    Image,
+    Align,
+    Token,
+    look,
+    Font,
+    Spacing,
+    Text,
+    column,
+    progress,
+    icon,
+    Sizing,
+    row,
+    text,
+};
+import kivuli.ui {
+    badge,
+    Badge,
+    Button,
+    Input,
+    card,
+    card_header,
+    card_header_with,
+    card_content,
+    card_footer,
+    field,
+    field_horizontal,
+    field_label,
+    field_description,
+    field_error,
+    field_group,
+    Field,
+    input_group,
+    group_input,
+    group_text,
+    group_button,
+    group_button_with,
+    InputGroup,
+    separator_with,
+    Avatar,
+    avatar_group,
+};
+import gallery.state { Model, Msg, section };
+
+/** The Avatar, Progress, Separator, Input group, Field and Card sections, top to bottom. */
+public fun sections(m: Model): View<Msg>[] = [
+    section(
+        "Avatar",
+        row([
+            ui.avatar(Some(Image.File("examples/assets/sample.png")), "CN").align(Align.Center),
+            ui.avatar(None, "LR").align(Align.Center),
+            // A missing file shows nothing, so its initials show through.
+            ui.avatar(Some(Image.File("examples/assets/missing.png")), "ER").align(Align.Center),
+            avatar_group([
+                ui.avatar(Some(Image.File("examples/assets/sample.png")), "CN"),
+                ui.avatar(None, "LR"),
+                ui.avatar(None, "ER"),
+            ]).align(Align.Center),
+            ui.avatar(Some(Image.File("examples/assets/sample.png")), "CN").style([Avatar.size(48)]).align(
+                Align.Center,
+            ),
+        ]).style([Spacing.gap(16)]),
+    ),
+    section(
+        "Progress",
+        column([
+            text("{m.volume}% (drag the Volume slider)").style([Text.color(Token.MutedForeground)]),
+            ui.progress(m.volume),
+            progress(m.volume),
+        ]).style([Spacing.gap(12), Sizing.max_width(420)]),
+    ),
+    section(
+        "Separator",
+        column([
+            text("kivuli.ui").style([Font.medium()]),
+            text("Components drawn from the palette's tokens.").style([
+                Text.color(Token.MutedForeground),
+            ]),
+            ui.separator(),
+            row([text("Blog"), ui.separator(), text("Docs"), ui.separator(), text("Source")]).style(
+                [Spacing.gap(12)],
+            ),
+            separator_with("Or continue with"),
+        ]).style([Spacing.gap(12), Sizing.max_width(420)]),
+    ),
+    section(
+        "Input group",
+        column([
+            input_group(
+                [icon("system-search-symbolic")],
+                group_input(m.user, Msg.User).placeholder("Search…"),
+                [],
+            ),
+            input_group(
+                [group_text("https://")],
+                group_input(m.user, Msg.User).placeholder("example"),
+                [group_text(".com")],
+            ),
+            input_group([], group_input(m.user, Msg.User).placeholder("Find a component"), [
+                group_button("Search", Msg.Base(m.base)),
+            ]),
+            input_group([], group_input(m.password, Msg.Password).placeholder("Password"), [
+                group_button_with([icon("view-reveal-symbolic")], Msg.Base(m.base)),
+            ]),
+            input_group([group_text("$")], group_input(m.user, Msg.User).placeholder("0.00"), [
+                group_text("USD"),
+            ]).style([
+                if m.user.len > 0 && m.user.contains("x") {
+                    InputGroup.invalid()
+                } else {
+                    look([])
+                },
+            ]),
+        ]).style([Spacing.gap(12), Sizing.max_width(420)]),
+    ),
+    section(
+        "Field",
+        field_group([
+            field([
+                field_label("Username"),
+                ui.input(m.user, Msg.User),
+                field_description("Choose a unique username for your account."),
+            ]),
+            if m.password.len > 0 && m.password.len < 8 {
+                field([
+                    field_label("Password"),
+                    ui.input(m.password, Msg.Password).style([Input.invalid()]),
+                    field_error("Must be at least 8 characters."),
+                ]).style([Field.invalid()])
+            } else {
+                field([
+                    field_label("Password"),
+                    ui.input(m.password, Msg.Password),
+                    field_description("At least 8 characters."),
+                ])
+            },
+            field_horizontal([ui.checkbox("Same as shipping address", m.same, Msg.Same)]),
+        ]).style([Sizing.max_width(420)]),
+    ),
+    section(
+        "Card",
+        row([
+            card([
+                card_header("Login to your account", "Enter your email below to log in"),
+                card_content([
+                    field_group([
+                        field([
+                            field_label("Email"),
+                            ui.input(m.email, Msg.Email).placeholder("m@example.com"),
+                        ]),
+                        field([field_label("Password"), ui.input(m.password, Msg.Password)]),
+                    ]),
+                ]),
+                card_footer([
+                    ui.button("Login", Msg.Base(m.base)),
+                    ui.button("Login with Google", Msg.Base(m.base)).style([Button.outline()]),
+                ]),
+            ]).style([Sizing.width(340)]),
+            column([
+                card([
+                    card_header_with(
+                        "Design systems meetup",
+                        "A practical talk on component APIs",
+                        badge("Featured").style([Badge.secondary()]),
+                    ),
+                    card_content([text("Thursday, 6 pm · Room 2")]),
+                ]),
+                card([
+                    card_header("Terms of Service", ""),
+                    card_content([
+                        text(
+                            "By using this app you agree to keep your password to yourself and your shortcuts tidy.",
+                        ).wrap(),
+                    ]),
+                    card_footer([
+                        ui.button("Accept", Msg.Base(m.base)),
+                        ui.button("Decline", Msg.Base(m.base)).style([Button.outline()]),
+                    ]),
+                ]),
+            ]).style([Spacing.gap(16)]).expand(),
+        ]).style([Spacing.gap(16)]),
+    ),
+];
