@@ -867,6 +867,7 @@ Branch: prp-029-ui-button (not merged)
 
 ### WHAT WAS DONE
 - The user's screenshot: styled buttons drew a second box inside and were twice as padded. Cause: `style_label` gave the label every class of its button. Now only text-decoration classes. test/live_buttons_ui.la (type-checked). components.la rebuilt. (Opened late: the fix was made before this entry was written.)
+- Then the icon-only button's icon sat at its left edge: `ui.button_with`'s content row filled the button. It's `.align(Align.Center)` now (a button's content aligns across its width). Test updated, type-checked.
 - Seen in the screenshot, not kivuli's: native GTK buttons draw as bare text because the system theme (Yaru-dark) can't load in this GTK.
 
 ### STILL OPEN AT CLOSE
