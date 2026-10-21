@@ -1929,9 +1929,15 @@ Branch: main
 
 ---
 
-## SESSION 132 — 2026-10-21 — Popover: discovery — open
+## SESSION 132 — 2026-10-21 — Popover: discovery, PRP-055 draft — closed
 
 Branch: main
+
+### WHAT WAS DONE
+- Interview: the model decides open (A); a builder `ui.popover(trigger, open, content, on_close)` (A, from "continue"), the side by `popover_at(Edge, …)`. PRP-055 drafted (a GtkPopover parented to a wrapper box, built always, popup/popdown on `open`, `closed` sends the close message; `Part.Popover`; diff arm in a new core/diff_popover.la).
+
+### STILL OPEN AT CLOSE
+- PRP-055 awaits approval.
 
 ---
 
