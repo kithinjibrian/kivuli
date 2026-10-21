@@ -1,0 +1,162 @@
+// A popover on real GTK widgets (PRP-055): built closed, opened and closed
+// by the model on the same widgets, GTK closing it sending the close
+// message once (kivuli's own close sending nothing), a field inside keeping
+// its text, the side and arrow, and the popover unparented when its node
+// goes. Needs a display, so it is skipped without one.
+import std.env;
+import gtk {
+    GtkApplication,
+    GtkWidget,
+    connect_app,
+    emit_widget,
+    g_application_quit,
+    g_application_run,
+    g_object_unref,
+    gtk_application_new,
+    gtk_application_window_new,
+    gtk_editable_get_text,
+    gtk_editable_set_text,
+    gtk_popover_get_has_arrow,
+    gtk_popover_get_position,
+    gtk_popover_popdown,
+    gtk_widget_get_parent,
+    gtk_widget_get_visible,
+    gtk_widget_ref,
+    gtk_widget_unref,
+};
+import kivuli.render.live { mount, live_of };
+import kivuli.core.effects { sandbox_app };
+import kivuli.core.live_tree { Live, widget };
+import kivuli { View, button, column, input, popover, text };
+
+fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
+
+fun note(seen: Ref<string[]>, s: string) {
+    seen.update(fun(xs) {
+        let mut ys = xs;
+        ys.push(s);
+        ys
+    });
+}
+
+enum Msg {
+    Open,
+    Close,
+    Save,
+    Typed(string),
+    Drop,
+}
+
+struct Model {
+    open: bool,
+    words: string,
+    gone: bool,
+}
+
+fun update(m: Model, msg: Msg): Model = match msg {
+    Open => Model { open: true, ..m },
+    Close => Model { open: false, ..m },
+    Save => Model { open: false, ..m },
+    Typed(s) => Model { words: s, ..m },
+    Drop => Model { gone: true, ..m },
+};
+
+fun view(m: Model): View<Msg> = column([
+    if m.gone {
+        text("no popover")
+    } else {
+        popover(
+            button("Open", Msg.Open),
+            m.open,
+            column([input(m.words, Msg.Typed), button("Save", Msg.Save)]),
+            Msg.Close,
+        )
+    },
+    button("Drop", Msg.Drop),
+]);
+
+/** The popover node's parts: its trigger's widget, the GtkPopover, its field and Save button. */
+fun parts(root: Live<Msg>): (GtkWidget, GtkWidget, GtkWidget, GtkWidget) {
+    let Box(_, _, kids) = root else {
+        panic("expected a column");
+    };
+    let Popover(_, trigger, pop, content, _, _) = kids[0] else {
+        panic("expected a popover");
+    };
+    let Box(_, _, inside) = content else {
+        panic("expected the content's column");
+    };
+    (widget(trigger), pop, widget(inside[0]), widget(inside[1]))
+}
+
+@test
+fun a_popover_follows_the_model_and_gtk_closing_it_sends_close() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen: Ref<string[]> = Ref.new([]);
+    let application = gtk_application_new("org.kivuli.test.popover", 0);
+    connect_app(
+        application,
+        "activate",
+        fun(a: GtkApplication) {
+            let window = gtk_application_window_new(a);
+            let app = mount(a, window, sandbox_app(
+                "org.kivuli.test",
+                Model { open: false, words: "", gone: false },
+                fun(m: Model, msg: Msg): Model {
+                    note(seen, "{msg}");
+                    update(m, msg)
+                },
+                view,
+            ));
+            let (trigger, pop, field, save) = parts(live_of(app));
+            note(
+                seen,
+                "built visible {gtk_widget_get_visible(pop)} side {gtk_popover_get_position(pop)} arrow {gtk_popover_get_has_arrow(pop)}",
+            );
+            emit_widget(trigger, "clicked");
+            let (_, pop_now, field_now, _) = parts(live_of(app));
+            note(
+                seen,
+                "open visible {gtk_widget_get_visible(pop)} same {pop_now == pop && field_now == field}",
+            );
+            gtk_editable_set_text(field, "hello");
+            // kivuli's own close (the model's Save): no Close sent.
+            emit_widget(save, "clicked");
+            note(seen, "saved visible {gtk_widget_get_visible(pop)}");
+            emit_widget(trigger, "clicked");
+            // GTK's own close (a click outside, Escape): Close sent, once.
+            gtk_popover_popdown(pop);
+            note(
+                seen,
+                "gtk closed visible {gtk_widget_get_visible(pop)} text {gtk_editable_get_text(field)}",
+            );
+            let Box(_, _, kids) = live_of(app) else {
+                panic("expected a column");
+            };
+            // Held, so it can be read after its node goes.
+            let held = gtk_widget_ref(pop);
+            emit_widget(widget(kids[1]), "clicked");
+            note(seen, "dropped parent {gtk_widget_get_parent(held).is_some()}");
+            gtk_widget_unref(held);
+            g_application_quit(a);
+        },
+        0,
+    );
+    g_application_run(application, 0, None);
+    g_object_unref(application);
+    assert_eq(seen.get(), [
+        "built visible 0 side 3 arrow 1",
+        "Open",
+        "open visible 1 same true",
+        "Typed(\"hello\")",
+        "Save",
+        "saved visible 0",
+        "Open",
+        "Close",
+        "gtk closed visible 0 text hello",
+        "Drop",
+        "dropped parent false",
+    ]);
+}

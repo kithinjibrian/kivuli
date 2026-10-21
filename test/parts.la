@@ -276,6 +276,12 @@ fun a_bars_window_controls_are_parts_with_their_own_hover() {
 }
 
 @test
+fun a_popovers_panel_is_its_own_popovers_contents() {
+    let s = Inside(Part.Popover, [Background.color(Token.Popover)]).apply(Sheet.theme());
+    assert(keys(s).iter().any(fun(x) = x == "kv-popover-bgt-popover > popover > contents"));
+}
+
+@test
 fun a_progress_bars_fill_is_its_progress_node() {
     let s = Inside(Part.Fill, [Background.color(Token.Primary)]).apply(Sheet.theme());
     assert(keys(s).iter().any(fun(x) = x == "kv-fill-bgt-primary progress"));

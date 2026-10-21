@@ -66,6 +66,9 @@ fun paint<Msg>(v: View<Msg>): Result<View<Msg>, string> = match v {
     Wrap(xs) => Ok(View.Wrap(paint_all(xs)?)),
     KeyedWrap(pairs) => Ok(View.KeyedWrap(paint_keyed(pairs)?)),
     Overlay(base, layers) => Ok(View.Overlay(paint(base)?, paint_all(layers)?)),
+    Popover(trigger, open, content, close, side, arrow) => Ok(
+        View.Popover(paint(trigger)?, open, paint(content)?, close, side, arrow),
+    ),
     Menu(x, entries) => Ok(View.Menu(paint(x)?, entries)),
     ButtonWith(content, msg) => {
         check_content(content)?;

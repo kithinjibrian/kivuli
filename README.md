@@ -126,6 +126,7 @@ lughac run examples/split.la      # one component, two copies, through map
 | `column(children)`, `row(children)` | Children top to bottom, or left to right. |
 | `keyed_column(children)` | Like `column`, with `(key, view)` children matched by key: reordering, inserting or deleting moves, adds or removes just those widgets. |
 | `wrap(children)`, `keyed_wrap(children)` | Children side by side, moving to a new line when a line is full, so they re-flow as the window resizes (tiles, tags). `keyed_wrap` matches `(key, view)` children by key, like `keyed_column`. No selection: clicks come from the children. |
+| `popover(trigger, open, content, on_close)`, `popover_at(side, …)` | `content` in a popover beside `trigger` (below by default) while `open`; a click outside or Escape sends `on_close`, so the model says whether it's open, and a button inside closes it by setting the model. The content is built while closed too, so its fields keep their text. `kivuli.ui`'s `ui.popover(…)`/`ui.popover_at(…)`: a panel in the popover colours, 288 px wide, no arrow. |
 | `overlay(base, layers)` | `layers` drawn on top of `base`, in order (a later one above). `[]` shows only the base, so opening and closing a panel is just the list changing; the base is never rebuilt. The overlay takes the base's size. |
 | `scroll(child)` | Scrolls its child when it's bigger than the room it's given. |
 | `spacer()`, `separator()` | Room that grows along its column or row; a line across it. |

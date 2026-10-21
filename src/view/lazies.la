@@ -61,6 +61,17 @@ fun resolve<Msg>(v: View<Msg>, old: Option<View<Msg>>): View<Msg> = match v {
         Some(Overlay(b, ls)) => View.Overlay(resolve(base, Some(b)), resolve_children(layers, ls)),
         _ => View.Overlay(resolve(base, None), resolve_children(layers, [])),
     },
+    Popover(trigger, open, content, close, side, arrow) => match counterpart(old) {
+        Some(Popover(t, _, c, _, _, _)) => View.Popover(
+            resolve(trigger, Some(t)),
+            open,
+            resolve(content, Some(c)),
+            close,
+            side,
+            arrow,
+        ),
+        _ => View.Popover(resolve(trigger, None), open, resolve(content, None), close, side, arrow),
+    },
     Scroll(x) => View.Scroll(resolve(x, match counterpart(old) {
         Some(Scroll(y)) => Some(y),
         _ => None,

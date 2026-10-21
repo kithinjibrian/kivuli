@@ -11,6 +11,7 @@ import styles.palettes { Palette };
 import styles { Sheet, Styling, applied };
 import view.pictures { Image };
 import view.menus { MenuEntry };
+import styles.motion { Edge };
 // The one import cycle kivuli allows (DECISION-018): mapping maps views.
 import view.mapping {
     Dialog,
@@ -77,6 +78,8 @@ public enum View<Msg> {
     KeyedWrap((string, View<Msg>)[]),
     /** A base view with layers drawn on top of it, in order (later on top). */
     Overlay(View<Msg>, View<Msg>[]),
+    /** A popover beside its trigger: the trigger, open, the content, the close message, the side, GTK's arrow. */
+    Popover(View<Msg>, bool, View<Msg>, Msg, Edge, bool),
     /** A node with a context menu (`.menu`): the node, and the menu's entries. */
     Menu(View<Msg>, MenuEntry<Msg>[]),
     /**

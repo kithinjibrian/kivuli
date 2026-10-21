@@ -77,6 +77,7 @@ import view.views { View };
 
 import render.buttons { create_button, create_button_with };
 import render.popovers { attach };
+import render.panels { make_popover };
 import styles.box_rules { needs_clamp };
 import render.styling { LAYER, NO_LINE_LIMIT, align_text, apply_style, flag, show_number };
 import styles.values { TextAlign };
@@ -314,6 +315,16 @@ fun create_in<Msg>(v: View<Msg>, axis: i32, send: fun(Msg)): Live<Msg> = match v
         }
         Live.Overlay(over, shown, Live.Layers(over, kids))
     }
+    // The trigger and content fill the popover's box and the popover.
+    Popover(trigger, open, content, close, side, arrow) => make_popover(
+        create_in(trigger, 1, send),
+        create_in(content, 1, send),
+        open,
+        close,
+        side,
+        arrow,
+        send,
+    ),
     // On screen a keyed wrap is a wrap: the keys matter only to the diff.
     Wrap(children) => create_wrap(children, send),
     KeyedWrap(children) => create_wrap(children.map(fun(pair) = pair.1), send),

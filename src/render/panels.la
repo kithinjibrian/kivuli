@@ -1,0 +1,101 @@
+/**
+ * Popovers of views (PRP-055): a `GtkPopover` parented to a box holding the
+ * trigger, its child the content's widget, built whether open or not, and
+ * opened or closed as the model says. GTK closing it (a click outside,
+ * Escape) sends the close message; kivuli closing it sends nothing. Not
+ * responsible for building the trigger or the content (`build`).
+ *
+ * Depends on: live_tree, styling (`flag`), motion (`Edge`), gtk.raw
+ * Used by: build, patch
+ */
+
+import gtk {
+    GtkWidget,
+    connect_widget,
+    gtk_box_append,
+    gtk_box_new,
+    gtk_popover_new,
+    gtk_popover_popdown,
+    gtk_popover_popup,
+    gtk_popover_set_child,
+    gtk_popover_set_has_arrow,
+    gtk_popover_set_position,
+    gtk_widget_get_visible,
+    gtk_widget_set_parent,
+    gtk_widget_unparent,
+};
+import core.live_tree { Live, widget };
+import render.styling { flag };
+import styles.motion { Edge };
+
+/**
+ * A popover holding `content` beside `trigger` on `side`, open if `open`;
+ * GTK closing it sends `close` through `send`.
+ */
+fun make_popover<Msg>(
+    trigger: Live<Msg>,
+    content: Live<Msg>,
+    open: bool,
+    close: Msg,
+    side: Edge,
+    arrow: bool,
+    send: fun(Msg),
+): Live<Msg> {
+    let box = gtk_box_new(1, 0);
+    gtk_box_append(box, widget(trigger));
+    let pop = gtk_popover_new();
+    gtk_widget_set_parent(pop, box);
+    gtk_popover_set_child(pop, Some(widget(content)));
+    let current = Ref.new(close);
+    let quiet = Ref.new(false);
+    // Connected once (rule 5): the message is read from `current`.
+    connect_widget(
+        pop,
+        "closed",
+        fun(p: GtkWidget) {
+            if !quiet.get() {
+                send(current.get());
+            }
+        },
+        0,
+    );
+    // A widget must not be freed with a popover still parented to it.
+    connect_widget(
+        box,
+        "destroy",
+        fun(gone: GtkWidget) {
+            gtk_widget_unparent(pop);
+        },
+        0,
+    );
+    let node = Live.Popover(box, trigger, pop, content, current, quiet);
+    show_popover(node, open, side, arrow, close);
+    node
+}
+
+/** `node`'s popover as the view says: open or closed, its side, its arrow, its close message. */
+fun show_popover<Msg>(node: Live<Msg>, open: bool, side: Edge, arrow: bool, close: Msg) {
+    let Popover(_, _, pop, _, current, quiet) = node else {
+        panic("kivuli: a popover's patch points at something that isn't a popover");
+    };
+    current.set(close);
+    gtk_popover_set_position(pop, position(side));
+    gtk_popover_set_has_arrow(pop, flag(arrow));
+    let shown = gtk_widget_get_visible(pop) != 0;
+    if open && !shown {
+        gtk_popover_popup(pop);
+    } else if !open && shown {
+        // kivuli closing it: its `closed` mustn't send the close message.
+        quiet.set(true);
+        gtk_popover_popdown(pop);
+        quiet.set(false);
+    }
+}
+
+/** `GtkPositionType`: 0 left, 1 right, 2 top, 3 bottom. */
+fun position(side: Edge): i32 = match side {
+    Left => 0,
+    Right => 1,
+    Top => 2,
+    Bottom => 3,
+};

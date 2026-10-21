@@ -66,6 +66,8 @@ public import view.widgets {
     wrap,
     keyed_wrap,
     overlay,
+    popover,
+    popover_at,
     lazy,
     text_area,
     dropdown,

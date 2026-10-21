@@ -43,6 +43,7 @@ fun walk<Msg>(v: View<Msg>, style: Style, check: bool): (View<Msg>, Style)[] = m
         }
         with_children(v, style, xs, check)
     }
+    Popover(trigger, _, content, _, _, _) => with_children(v, style, [trigger, content], check),
     Scroll(x) => with_children(v, style, [x], check),
     // Every walk checks a button's content, so an app's pure tests stop on it too.
     ButtonWith(content, _) => {
@@ -115,6 +116,11 @@ fun find_name<Msg>(v: View<Msg>, name: string, path: i64[]): Option<i64[]> = mat
     Overlay(base, layers) => match find_name(base, name, with_index(path, 0)) {
         Some(found) => Some(found),
         None => find_in(layers, name, with_index(path, 1)),
+    },
+    // As the diff counts a popover: the trigger 0, the content 1.
+    Popover(trigger, _, content, _, _, _) => match find_name(trigger, name, with_index(path, 0)) {
+        Some(found) => Some(found),
+        None => find_name(content, name, with_index(path, 1)),
     },
     Scroll(x) => find_name(x, name, with_index(path, 0)),
     ButtonWith(content, _) => find_name(content, name, with_index(path, 0)),

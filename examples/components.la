@@ -72,6 +72,8 @@ fun main(): i32 = sandbox(
         panel: "Bottom",
         deleting: false,
         sheet: -1,
+        dimensions: false,
+        width: "100%",
     },
     update,
     view,

@@ -169,6 +169,8 @@ fun part_node(part: Part): string = match part {
     WindowClose => "windowcontrols > button.close",
     WindowIcon => "windowcontrols > button > image",
     WindowCloseIcon => "windowcontrols > button.close > image",
+    // The popover is a CSS child of the box holding its trigger.
+    Popover => "> popover > contents",
 };
 
 /** The code a part's classes carry (`kv-item-…`). */
@@ -196,6 +198,7 @@ fun part_code(part: Part): string = match part {
     WindowClose => "windowclose",
     WindowIcon => "windowicon",
     WindowCloseIcon => "windowcloseicon",
+    Popover => "popover",
 };
 
 /**

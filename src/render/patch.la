@@ -26,6 +26,7 @@ import gtk {
     gtk_overlay_add_overlay,
     gtk_overlay_remove_overlay,
     gtk_overlay_set_child,
+    gtk_popover_set_child,
     gtk_range_set_range,
     gtk_scrolled_window_set_child,
     gtk_text_buffer_set_text,
@@ -47,6 +48,7 @@ import render.textures { show_in_image, show_picture };
 import core.live_tree { Choices, Live, titlebar, widget };
 import core.paths { at, at_outer, axis_of, parent, sibling_before, update_at, update_menu_at };
 import render.popovers { attach, refresh };
+import render.panels { show_popover };
 
 /** Applies one patch to the widgets, and returns the `Live` tree that now mirrors them. */
 fun apply<Msg>(
@@ -251,6 +253,10 @@ fun apply<Msg>(
             Live.Menu(node, attach(widget(node), entries, send))
         },
     }),
+    SetPopover(path, open, side, arrow, close) => {
+        show_popover(at(live, path), open, side, arrow, close);
+        live
+    }
     SetStyle(path, style) => {
         // With its clamp, if it has one: a restyle resets the clamp's limits.
         apply_style(at_outer(live, path), style, axis_of(live, path));
@@ -362,6 +368,17 @@ fun apply<Msg>(
                 next[i] = fresh;
                 Live.Box(box, orientation, next)
             }
+            // A popover's trigger is its box's one child; its content the popover's.
+            Popover(box, trigger, pop, content, close, quiet) => if i == 0 {
+                let fresh = create_in(v, 1, send);
+                gtk_box_remove(box, widget(trigger));
+                gtk_box_append(box, widget(fresh));
+                Live.Popover(box, fresh, pop, content, close, quiet)
+            } else {
+                let fresh = create_in(v, 1, send);
+                gtk_popover_set_child(pop, Some(widget(fresh)));
+                Live.Popover(box, trigger, pop, fresh, close, quiet)
+            },
             // An overlay's base is its child; replacing it drops the old one.
             Overlay(over, _, layers) => {
                 let fresh = create_in(v, 1, send);

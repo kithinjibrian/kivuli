@@ -87,6 +87,25 @@ fun step<Msg>(
         next[i] = update_in(kids[i], path, depth + 1, f, with_menu);
         Live.Layers(over, next)
     }
+    Popover(box, trigger, pop, content, close, quiet) => if path[depth] == 0 {
+        Live.Popover(
+            box,
+            update_in(trigger, path, depth + 1, f, with_menu),
+            pop,
+            content,
+            close,
+            quiet,
+        )
+    } else {
+        Live.Popover(
+            box,
+            trigger,
+            pop,
+            update_in(content, path, depth + 1, f, with_menu),
+            close,
+            quiet,
+        )
+    },
     Framed(bar, body, title, start, end) => match path[depth] {
         0 => Live.Framed(bar, update_in(body, path, depth + 1, f, with_menu), title, start, end),
         1 => Live.Framed(bar, body, update_in(title, path, depth + 1, f, with_menu), start, end),
@@ -135,6 +154,7 @@ fun at_outer<Msg>(node: Live<Msg>, path: i64[]): Live<Msg> {
             ButtonWith(_, _, _, _, kid) => kid,
             Wrap(_, kids) => kids[i],
             Overlay(_, base, layers) => if i == 0 { base } else { layers },
+            Popover(_, trigger, _, content, _, _) => if i == 0 { trigger } else { content },
             Layers(_, kids) => kids[i],
             Framed(_, body, title, start, end) => match i {
                 0 => body,

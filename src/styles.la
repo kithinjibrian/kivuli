@@ -205,6 +205,8 @@ public enum Part {
     WindowIcon,
     /** The close control's icon alone (`windowcontrols > button.close > image`): for a bar's `.style` only. */
     WindowCloseIcon,
+    /** A popover's panel (`> popover > contents`): `popover`'s own, not one inside its content. */
+    Popover,
 }
 
 /** Style values for one part: made by `Inside`. */
