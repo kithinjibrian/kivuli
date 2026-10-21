@@ -1,6 +1,6 @@
 # PRP-055 — Popover
 
-Status: draft (session 132)
+Status: approved (session 132)
 Discovery: session 132, 2026-10-21 (the reference's popover: a panel of any content in the popover colours, 288 px wide, `rounded-md`, a border, 16 px padding, a medium shadow, 4 px below its trigger, centred on it; a click outside or Escape closes it; it fades and zooms in). *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: `popover(trigger, open, content, on_close)` and `popover_at(side, …)`, native; `ui.popover(…)` and `ui.popover_at(…)` in the palette's look. Open is the model's.
