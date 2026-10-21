@@ -1,0 +1,109 @@
+// Popovers (PRP-055): the node `popover` and `popover_at` make, `map`, the
+// diff (opening and closing in place, the content diffed inside it), and
+// kivuli.testing reaching inside. No GTK.
+import kivuli.core.diff { Patch, diff as patches };
+import kivuli.testing { click };
+import kivuli { View, Edge, button, column, popover, popover_at, text };
+
+/** Patches hold functions, which have no `==`: compared as printed. */
+fun assert_same<T>(actual: T, expected: T) {
+    assert_eq("{actual}", "{expected}");
+}
+
+enum Msg {
+    Open,
+    Close,
+    Save,
+}
+
+fun shown(open: bool, words: string): View<Msg> = popover(
+    button("Open", Msg.Open),
+    open,
+    column([text(words), button("Save", Msg.Save)]),
+    Msg.Close,
+);
+
+@test
+fun a_popover_is_its_trigger_its_content_and_how_it_opens() {
+    match shown(true, "hi") {
+        Popover(trigger, open, content, close, side, arrow) => {
+            match trigger {
+                Button(label, _, _) => assert_eq(label, "Open"),
+                _ => panic("the trigger is the button"),
+            }
+            assert(open);
+            match content {
+                Column(xs) => assert_eq(xs.len, 2),
+                _ => panic("the content is the column"),
+            }
+            assert_eq(close, Msg.Close);
+            assert_eq(side, Edge.Bottom);
+            assert(arrow);
+        }
+        _ => panic("expected a popover"),
+    }
+    let above: View<Msg> = popover_at(Edge.Top, text("t"), false, text("c"), Msg.Close);
+    match above {
+        Popover(_, open, _, _, side, _) => {
+            assert(!open);
+            assert_eq(side, Edge.Top);
+        }
+        _ => panic("expected a popover"),
+    }
+}
+
+@test
+fun map_reaches_the_trigger_the_content_and_the_close() {
+    let mapped = shown(false, "x").map(fun(m: Msg): string = "{m}");
+    match mapped {
+        Popover(trigger, _, content, close, _, _) => {
+            assert_eq(close, "Close");
+            match trigger {
+                Button(_, msg, _) => assert_eq(msg, Some("Open")),
+                _ => panic("the trigger is the button"),
+            }
+            match content {
+                Column(xs) => match xs[1] {
+                    Button(_, msg, _) => assert_eq(msg, Some("Save")),
+                    _ => panic("the save button"),
+                },
+                _ => panic("the content is the column"),
+            }
+        }
+        _ => panic("expected a popover"),
+    }
+}
+
+// Buttons always re-point their message (SetMsg), here the trigger [0] and Save [1, 1].
+@test
+fun opening_and_closing_is_one_patch_in_place() {
+    let opened: Patch<Msg>[] = [
+        Patch.SetPopover([], true, Edge.Bottom, true, Msg.Close),
+        Patch.SetMsg([0], Some(Msg.Open)),
+        Patch.SetMsg([1, 1], Some(Msg.Save)),
+    ];
+    assert_same(patches(shown(false, "a"), shown(true, "a")), opened);
+    let closed: Patch<Msg>[] = [
+        Patch.SetPopover([], false, Edge.Bottom, true, Msg.Close),
+        Patch.SetMsg([0], Some(Msg.Open)),
+        Patch.SetMsg([1, 1], Some(Msg.Save)),
+    ];
+    assert_same(patches(shown(true, "a"), shown(false, "a")), closed);
+}
+
+@test
+fun the_content_is_diffed_inside_it_as_child_one() {
+    let changed: Patch<Msg>[] = [
+        Patch.SetPopover([], true, Edge.Bottom, true, Msg.Close),
+        Patch.SetMsg([0], Some(Msg.Open)),
+        Patch.SetText([1, 0], "b"),
+        Patch.SetMsg([1, 1], Some(Msg.Save)),
+    ];
+    assert_same(patches(shown(true, "a"), shown(true, "b")), changed);
+}
+
+@test
+fun testing_finds_buttons_in_the_trigger_and_the_content() {
+    assert_eq(click(shown(false, "a"), "Open"), Ok(Msg.Open));
+    assert_eq(click(shown(false, "a"), "Save"), Ok(Msg.Save));
+}

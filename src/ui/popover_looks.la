@@ -1,0 +1,83 @@
+/**
+ * Popover (PRP-055): kivuli's native popover with its panel in the palette's
+ * colours: a card in the popover colours, 288 px wide at least, with no
+ * arrow, fading in. Open is still the model's. Pure.
+ *
+ * Depends on: views, styles, theming, values, boxes, fonts, drawing, motion
+ * Used by: ui
+ */
+
+// The public items the entry re-exports, by their own modules (rule 2: no `lib`).
+import view.views { View };
+import styles { Inside, Look, Part, look };
+import styles.theming { Color, Paint, Token };
+import styles.values { Drop };
+import styles.boxes { Background, Border, Sizing, Spacing };
+import styles.fonts { Text };
+import styles.drawing { Shadow };
+import styles.motion { Edge, Motion };
+
+/** A medium shadow: two layers, black at 10%. */
+fun medium(): Shadow = Shadow {
+    boxes: [
+        Drop {
+            y: 4,
+            blur: 6,
+            spread: -1,
+            color: Paint.Color(Color { red: 0, green: 0, blue: 0, alpha: 26 }),
+            ..Drop.theme(),
+        },
+        Drop {
+            y: 2,
+            blur: 4,
+            spread: -2,
+            color: Paint.Color(Color { red: 0, green: 0, blue: 0, alpha: 26 }),
+            ..Drop.theme(),
+        },
+    ],
+    text: [],
+};
+
+/** The panel's look. */
+fun panel(): Look = look([
+    Inside(Part.Popover, [
+        Background.color(Token.Popover),
+        Text.color(Token.PopoverForeground),
+        Border.all(1, Token.Border),
+        Border.rounded_md(),
+        Spacing.padding(16),
+        // A minimum, so wider content isn't cut.
+        Sizing.min_width(288),
+        medium(),
+        Motion.fade_in(150),
+    ]),
+]);
+
+/**
+ * Shows `trigger`, and `content` on a panel in the popover colours below it
+ * while `open`; a click outside or Escape sends `on_close`. As kivuli's own
+ * `popover`, without GTK's arrow.
+ *
+ * Example:
+ *     ui.popover(ui.button("Dimensions", Msg.Open(true)), m.editing, form(m), Msg.Open(false))
+ */
+public fun popover<Msg>(
+    trigger: View<Msg>,
+    open: bool,
+    content: View<Msg>,
+    on_close: Msg,
+): View<Msg> = popover_at(Edge.Bottom, trigger, open, content, on_close);
+
+/**
+ * As `ui.popover`, on `side` of the trigger; GTK flips it when there's no room.
+ *
+ * Example:
+ *     ui.popover_at(Edge.Top, ui.button("Info", Msg.Info(true)), m.info, details(m), Msg.Info(false))
+ */
+public fun popover_at<Msg>(
+    side: Edge,
+    trigger: View<Msg>,
+    open: bool,
+    content: View<Msg>,
+    on_close: Msg,
+): View<Msg> = View.Popover(trigger, open, content, on_close, side, false).style([panel()]);

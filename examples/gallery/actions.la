@@ -31,6 +31,7 @@ import kivuli.ui {
     Dialog,
     field,
     field_label,
+    field_horizontal,
     dialog_header,
     dialog_footer,
 };
@@ -73,7 +74,7 @@ public fun edit_sheet(m: Model): Dialog<Msg> = ui.sheet(
     ],
 );
 
-/** The Button, Badge, Input, Dialog, Sheet and Dropdown menu sections, top to bottom. */
+/** The Button, Badge, Input, Dialog, Sheet, Popover and Dropdown menu sections, top to bottom. */
 public fun sections(m: Model): View<Msg>[] = [
     section(
         "Button",
@@ -188,6 +189,22 @@ public fun sections(m: Model): View<Msg>[] = [
             ui.button("Bottom", Msg.Sheet(2)).style([Button.outline()]),
             ui.button("Left", Msg.Sheet(3)).style([Button.outline()]),
         ]).style([Spacing.gap(8)]),
+    ),
+    section(
+        "Popover",
+        row([
+            ui.popover(
+                ui.button("Dimensions", Msg.Dimensions(!m.dimensions)).style([Button.outline()]),
+                m.dimensions,
+                column([
+                    dialog_header("Dimensions", "Set the dimensions for the layer."),
+                    field_horizontal([field_label("Width"), ui.input(m.width, Msg.Width)]),
+                    dialog_footer([ui.button("Save", Msg.Picked("Width {m.width}")).style([Button.sm()])]),
+                ]).style([Spacing.gap(16)]),
+                // A click outside or Escape.
+                Msg.Dimensions(false),
+            ).align(Align.Center),
+        ]),
     ),
     section(
         "Dropdown menu",

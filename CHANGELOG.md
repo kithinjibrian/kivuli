@@ -8,6 +8,11 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.51.0] — 2026-10-21
+
+### Added
+- Popovers (PRP-055): `popover(trigger, open, content, on_close)` and `popover_at(side, …)`, open as the model says; `kivuli.ui`'s `ui.popover` and `ui.popover_at`; `Part.Popover`. Needs lugha-gtk 0.1.44.
+
 ## [0.50.0] — 2026-10-21
 
 ### Added

@@ -83,6 +83,12 @@ enum Live<Msg> {
     /** An overlay: the `GtkOverlay`, its base (child 0), and its layers (child 1). */
     Overlay(GtkWidget, Live<Msg>, Live<Msg>),
     /**
+     * A popover: the box holding its trigger (child 0) and parenting the
+     * `GtkPopover`, the popover, its content (child 1), the message GTK
+     * closing it sends, and whether kivuli itself is closing it (then nothing is sent).
+     */
+    Popover(GtkWidget, Live<Msg>, GtkWidget, Live<Msg>, Ref<Msg>, Ref<bool>),
+    /**
      * A node with a context menu, and the menu's parts. Paths look through it
      * (`paths`): only `SetMenu` and the patches replacing or removing the node see it.
      */
@@ -177,6 +183,7 @@ fun widget<Msg>(node: Live<Msg>): GtkWidget = match node {
     Scroll(w, _) => w,
     Wrap(w, _) => w,
     Overlay(w, _, _) => w,
+    Popover(w, _, _, _, _, _) => w,
     Layers(w, _) => w,
     Menu(node, _) => widget(node),
     Clamp(_, clamp) => clamp,

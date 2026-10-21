@@ -1,0 +1,60 @@
+// kivuli.ui's popover (PRP-055): the panel in the popover colours, 288 px
+// wide, no arrow; still a native popover; `popover_at`'s side. No GTK.
+import kivuli.styles { Sheet };
+import kivuli.view.looks { Style };
+import kivuli { View, Edge, Part, Token, Paint, Width, Radius, button, text };
+import kivuli.ui;
+
+fun style_of<M>(v: View<M>): Style = match v {
+    Styled(_, s) => s,
+    _ => panic("expected a styled node"),
+};
+
+fun part(s: Sheet, p: Part): Sheet {
+    for (q, sub) of s.parts {
+        if q == p {
+            return sub;
+        }
+    }
+    panic("no rules for that part")
+}
+
+fun shown(): View<i64> = ui.popover(button("Open", 1), true, text("inside"), 2);
+
+@test
+fun the_panel_is_in_the_popover_colours() {
+    let p = part(style_of(shown()).sheet, Part.Popover);
+    assert_eq(p.background.color, Paint.Token(Token.Popover));
+    assert_eq(p.text.color, Paint.Token(Token.PopoverForeground));
+    assert_eq(p.border.top.color, Paint.Token(Token.Border));
+    assert_eq(p.border.top.width, Width.Px(1));
+    assert_eq(p.border.radius, Radius.Medium);
+    assert_eq(p.spacing.padding.top, Width.Px(16));
+    assert_eq(p.sizing.min_width, Width.Px(288));
+    assert(p.shadow.boxes.len > 0);
+    assert_eq(p.motion.fade, Some(150));
+}
+
+@test
+fun it_is_still_a_native_popover_without_an_arrow() {
+    match shown() {
+        Styled(inner, _) => match inner {
+            Popover(_, open, _, close, side, arrow) => {
+                assert(open);
+                assert_eq(close, 2);
+                assert_eq(side, Edge.Bottom);
+                assert(!arrow);
+            }
+            _ => panic("still a popover"),
+        },
+        _ => panic("expected a styled node"),
+    }
+    let above: View<i64> = ui.popover_at(Edge.Top, button("Open", 1), false, text("x"), 2);
+    match above {
+        Styled(inner, _) => match inner {
+            Popover(_, _, _, _, side, _) => assert_eq(side, Edge.Top),
+            _ => panic("still a popover"),
+        },
+        _ => panic("expected a styled node"),
+    }
+}

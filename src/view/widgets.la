@@ -10,6 +10,7 @@
 import view.views { Bar, View };
 import styles { Sheet };
 import view.pictures { Image };
+import styles.motion { Edge };
 
 /**
  * Builds a line of text.
@@ -180,6 +181,38 @@ public fun overlay<Msg>(base: View<Msg>, layers: View<Msg>[]): View<Msg> = View.
     base,
     layers,
 );
+
+/**
+ * Shows `trigger`, and `content` in a popover below it while `open`. GTK
+ * closes it on a click outside or Escape and `on_close` is sent: the model
+ * says whether it's open (rule 7), so a button inside closes it by setting
+ * the model. The content is built while closed too, so its fields keep
+ * their text. GTK's own look, with its arrow.
+ *
+ * Example:
+ *     popover(button("Dimensions", Msg.Open(true)), m.editing, form(m), Msg.Open(false))
+ */
+public fun popover<Msg>(
+    trigger: View<Msg>,
+    open: bool,
+    content: View<Msg>,
+    on_close: Msg,
+): View<Msg> = View.Popover(trigger, open, content, on_close, Edge.Bottom, true);
+
+/**
+ * As `popover`, on `side` of the trigger (`Edge.Top`, `Bottom`, `Left`,
+ * `Right`); GTK flips it when there's no room there.
+ *
+ * Example:
+ *     popover_at(Edge.Top, button("Info", Msg.Info(true)), m.info, details(m), Msg.Info(false))
+ */
+public fun popover_at<Msg>(
+    side: Edge,
+    trigger: View<Msg>,
+    open: bool,
+    content: View<Msg>,
+    on_close: Msg,
+): View<Msg> = View.Popover(trigger, open, content, on_close, side, true);
 
 /**
  * Builds `build()` only when `key` differs from the key this lazy node had

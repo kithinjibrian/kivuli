@@ -94,6 +94,8 @@ fun shown<M>(node: Live<M>): string = match node {
     Wrap(_, kids) => "wrap({kids.len})",
     Overlay(_, base, _) => "overlay(" + shown(base) + ")",
     Layers(_, kids) => "layers({kids.len})",
+    // Shown in full by test/live_popover.la.
+    Popover(_, trigger, _, _, _, _) => "popover(" + shown(trigger) + ")",
     // Shown in full by test/live_menu.la.
     Menu(inner, _) => shown(inner) + " (menu)",
     // Shown in full by test/live_sizing.la.

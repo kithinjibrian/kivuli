@@ -20,6 +20,9 @@ public struct Model {
     public deleting: bool,
     /** The edge a sheet is open on (0 top, 1 right, 2 bottom, 3 left), -1 for none. */
     public sheet: i64,
+    /** Whether the Popover section's popover is open. */
+    public dimensions: bool,
+    public width: string,
 }
 
 /** Everything the gallery's controls send. */
@@ -39,6 +42,8 @@ public enum Msg {
     Panel(string),
     Deleting(bool),
     Sheet(i64),
+    Dimensions(bool),
+    Width(string),
 }
 
 /** The gallery's update: each message sets its field. */
@@ -53,12 +58,14 @@ public fun update(m: Model, msg: Msg): Model = match msg {
     Fruit(f) => Model { fruit: f, ..m },
     Airplane(b) => Model { airplane: b, ..m },
     Tab(n) => Model { tab: n, ..m },
-    // Picking anything also closes the dialog and the sheet (their buttons pick).
-    Picked(what) => Model { picked: what, deleting: false, sheet: -1, ..m },
+    // Picking anything also closes the dialog, the sheet and the popover (their buttons pick).
+    Picked(what) => Model { picked: what, deleting: false, sheet: -1, dimensions: false, ..m },
     StatusBar(b) => Model { status_bar: b, ..m },
     Panel(p) => Model { panel: p, ..m },
     Deleting(on) => Model { deleting: on, ..m },
     Sheet(edge) => Model { sheet: edge, ..m },
+    Dimensions(open) => Model { dimensions: open, ..m },
+    Width(w) => Model { width: w, ..m },
 };
 
 /** The palette each Base button picks. */

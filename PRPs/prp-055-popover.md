@@ -1,6 +1,6 @@
 # PRP-055 — Popover
 
-Status: draft (session 132)
+Status: built (session 133); merged into main in session 133 (its own tests run and pass)
 Discovery: session 132, 2026-10-21 (the reference's popover: a panel of any content in the popover colours, 288 px wide, `rounded-md`, a border, 16 px padding, a medium shadow, 4 px below its trigger, centred on it; a click outside or Escape closes it; it fades and zooms in). *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: `popover(trigger, open, content, on_close)` and `popover_at(side, …)`, native; `ui.popover(…)` and `ui.popover_at(…)` in the palette's look. Open is the model's.
@@ -46,12 +46,21 @@ popover_at(Edge.Top, trigger, m.open, content, Msg.Close)
 - No hover-opened popovers (that's a hover card), no modal popovers, no popover without a trigger, no arrow in `ui.popover`, no state of kivuli's own (anti-pattern 9).
 
 ## TESTS (narrow; type-check every test and example; run this PRP's own)
-- [ ] `test/popovers.la` (new, pure): the node of `popover` and `popover_at`; `map`; `walk` reaches trigger and content; the diff: open → closed is one patch on the same node, content changes are patches inside it, a changed side or close message patches in place.
-- [ ] `test/testing.la`: `click` finds a button inside a popover.
-- [ ] `test/live_popover.la` (new, GTK): built closed, opened on update (visible), closed on update; GTK closing it (`popdown` from outside kivuli) sends the close message once, kivuli's own close sends nothing; a field inside keeps its text across open and close; the side and arrow read back; removing it unparents the popover.
-- [ ] `test/popovers_ui.la` (new, pure), `test/parts.la`: the look's values; `Part.Popover`'s selector.
-- [ ] lugha-gtk: a popover's child, position and arrow set and read back.
-- [ ] GTK parses the generated rules; `examples/components.la` gains a Popover section (the reference's Dimensions form); only it built. How it looks: by hand.
+- [x] `test/popovers.la` (new, pure): the node of `popover` and `popover_at`; `map`; `walk` reaches trigger and content; the diff: open → closed is one patch on the same node, content changes are patches inside it, a changed side or close message patches in place.
+- [x] `test/testing.la`: `click` finds a button inside a popover.
+- [x] `test/live_popover.la` (new, GTK): built closed, opened on update (visible), closed on update; GTK closing it (`popdown` from outside kivuli) sends the close message once, kivuli's own close sends nothing; a field inside keeps its text across open and close; the side and arrow read back; removing it unparents the popover.
+- [x] `test/popovers_ui.la` (new, pure), `test/parts.la`: the look's values; `Part.Popover`'s selector.
+- [x] lugha-gtk: a popover's child, position and arrow set and read back.
+- [x] GTK parses the generated rules; `examples/components.la` gains a Popover section (the reference's Dimensions form); only it built. How it looks: by hand.
 
 ## ACCEPTANCE
 - [ ] The OBJECTIVE compiles; fmt clean; no file over 500 lines; README, DESIGN, CHANGELOG 0.51.0, CLAUDE.md; merged, tagged; pushed only on your go.
+
+## NOTES FROM THE BUILD
+
+- **No `core/diff_popover.la`**: its arm would need `diff_at`, so the file would import `diff` back, a cycle the rules forbid. The arm is six lines in `diff.la` (487 lines).
+- **The GTK side is a new `render/panels.la`** (`make_popover`, `show_popover`): `popovers.la` (context menus) is at 441 lines, and `build` would import it back. `build` creates the trigger and content and hands them over.
+- **`SetPopover` every render**, as a button's `SetMsg`: the close message can't be compared, so it's re-pointed each time.
+- **`views.la` is at 500 lines**, the limit: the next view kind or modifier needs DECISION-018 reopened (every modifier there) or a split proposed.
+- **lugha-gtk 0.1.44**: `gtk_popover_new`, `set_child`/`get_child`, `set_position`/`get_position`, `get_has_arrow`. Pushed, tagged.
+- **Tests run and pass**: popovers (5), popovers_ui (2), parts (24 with them, pure); live_popover (opened and closed by the model on the same widgets, GTK's close sending once and kivuli's none, the field's text kept, side and arrow, unparented when dropped), live (4); live_overlay, live_menu, live_dialog, live_lazy, live_map, live_style (9). Every test and example type-checks; components built; GTK parsed the rules (27 lines, 0 errors).
