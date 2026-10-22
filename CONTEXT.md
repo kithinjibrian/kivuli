@@ -2001,9 +2001,15 @@ Branch: main
 
 ---
 
-## SESSION 138 — 2026-10-22 — Fitting scrolls and scroll-to (rapidkoi's DECISION-037): discovery — open
+## SESSION 138 — 2026-10-22 — Fitting scrolls and scroll-to: discovery, PRP-057 and PRP-058 drafts — closed
 
 Branch: main
+
+### WHAT WAS DONE
+- Rapidkoi's request (DECISION-037), two features, two PRPs: PRP-057 `scroll_fit(child)` (a builder, A; GTK's propagate-natural sizes), PRP-058 `Cmd.scroll_to(name)` (as little as possible, A; `gtk_viewport_scroll_to`).
+
+### STILL OPEN AT CLOSE
+- Both await approval ("build all" builds them in order).
 
 ---
 
