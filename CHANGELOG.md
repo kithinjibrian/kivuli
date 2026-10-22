@@ -8,6 +8,14 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.54.0] — 2026-10-22
+
+### Added
+- `Cmd.scroll_to(name)` (PRP-058): the nearest scroll around a named node scrolls as little as it can to show it; the focus stays put. Needs lugha-gtk 0.1.46.
+
+### Changed
+- `Cmd` has a new variant, `ScrollTo(string)`.
+
 ## [0.53.0] — 2026-10-22
 
 ### Added

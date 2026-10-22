@@ -29,6 +29,7 @@ import gtk {
     gtk_style_context_add_provider_for_display,
     gtk_widget_get_display,
     gtk_widget_grab_focus,
+    lgtk_scroll_to,
     gtk_window_present,
     gtk_window_set_child,
     gtk_window_set_titlebar,
@@ -273,6 +274,23 @@ fun focus_named<Model, Msg>(app: Running<Model, Msg>, name: string) {
     }
 }
 
+/**
+ * Scrolls the node named `name` in the view shown now into view (GTK does it
+ * at the scroll's next layout, so a node added by this update is reached
+ * too); nothing if there's none or it's in no scroll.
+ */
+fun scroll_named<Model, Msg>(app: Running<Model, Msg>, name: string) {
+    let Some(s) = app.state.get() else {
+        return;
+    };
+    match path_of_name(s.tree, name) {
+        Some(path) => {
+            let _ = lgtk_scroll_to(widget(at(s.live, path)));
+        }
+        None => {}
+    }
+}
+
 /** Carries out `cmd`: timers for `Cmd.after`, quitting for `Cmd.quit`. */
 fun perform<Model, Msg>(app: Running<Model, Msg>, cmd: Cmd<Msg>) {
     for c of commands(cmd) {
@@ -287,6 +305,7 @@ fun perform<Model, Msg>(app: Running<Model, Msg>, cmd: Cmd<Msg>) {
             }
             Quit => g_application_quit(app.application),
             Focus(name) => focus_named(app, name),
+            ScrollTo(name) => scroll_named(app, name),
             Task(job) => {
                 // A green thread does the work; its one message waits on its own channel.
                 let result: Chan<Msg> = Chan.buffered(1);

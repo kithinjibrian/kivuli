@@ -23,6 +23,8 @@ public enum Cmd<Msg> {
     Quit,
     /** Give keyboard focus to the node with this `.name`. */
     Focus(string),
+    /** Scroll the node with this `.name` into view, the focus left where it is. */
+    ScrollTo(string),
     /** Run this on a green thread; send what it returns (its work then `done`). */
     Task(fun(): Msg),
 }
@@ -78,6 +80,17 @@ impl Cmd<Msg> {
     public fun focus(name: string): Cmd<Msg> = Cmd.Focus(name);
 
     /**
+     * Scrolls the nearest `scroll` or `scroll_fit` around the node named
+     * `name` (`.name(name)`) as little as it can to show it, once the update
+     * is shown: nothing if it's already in view, if no node has that name or
+     * if it's in no scroll. The keyboard focus stays where it is.
+     *
+     * Example:
+     *     Opened(id) => (Model { current: id, ..m }, Cmd.scroll_to("app-{id}"))
+     */
+    public fun scroll_to(name: string): Cmd<Msg> = Cmd.ScrollTo(name);
+
+    /**
      * The same command, sending `f(msg)` wherever it would send `msg`: for a
      * component's commands inside a bigger app.
      *
@@ -91,6 +104,7 @@ impl Cmd<Msg> {
         After(ms, msg) => Cmd.After(ms, f(msg)),
         Quit => Cmd.Quit,
         Focus(name) => Cmd.Focus(name),
+        ScrollTo(name) => Cmd.ScrollTo(name),
         Task(job) => Cmd.Task(fun(): B = f(job())),
     };
 }
