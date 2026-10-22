@@ -1965,9 +1965,15 @@ Branch: main
 
 ---
 
-## SESSION 135 — 2026-10-22 — Group hover (rapidkoi's DECISION-036): discovery — open
+## SESSION 135 — 2026-10-22 — Group states: discovery, PRP-056 draft — closed
 
 Branch: main
+
+### WHAT WAS DONE
+- Rapidkoi's request (DECISION-036). Interview: a style value `Group.mark()`, not a `.group()` modifier (views.la is full) (A); `State.GroupHover` and `State.GroupFocusWithin` (A). PRP-056 drafted.
+
+### STILL OPEN AT CLOSE
+- PRP-056 awaits approval.
 
 ---
 
