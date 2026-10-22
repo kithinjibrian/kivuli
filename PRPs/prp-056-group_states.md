@@ -1,6 +1,6 @@
 # PRP-056 — Group states: a child styled by its group's hover or focus
 
-Status: draft (session 135)
+Status: approved (session 135)
 Discovery: session 135, 2026-10-22 (rapidkoi's DECISION-036: a small × on each app in its sidebar, shown whenever the pointer is anywhere over that app's button; Tailwind's `group` / `group-hover`; GTK's CSS has descendant selectors, `.parent:hover .child`). *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: `Group.mark()`, a style value making a node a group; `State.GroupHover` and `State.GroupFocusWithin`, states a node takes while an enclosing group is hovered or holds the focus.

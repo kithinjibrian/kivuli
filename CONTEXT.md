@@ -1977,6 +1977,12 @@ Branch: main
 
 ---
 
+## SESSION 136 — 2026-10-22 — PRP-056: group states — open
+
+Branch: prp-056-group-states
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
