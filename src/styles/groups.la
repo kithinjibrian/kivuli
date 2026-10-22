@@ -1,0 +1,29 @@
+/**
+ * Groups (PRP-056): `Group.mark()`, a node whose hover and focus its
+ * children can follow (`State.GroupHover`, `State.GroupFocusWithin`): a
+ * close button shown while the pointer is anywhere over its row. A style
+ * group, importing styles back (DECISION-025). Pure.
+ *
+ * Depends on: styles
+ * Used by: lib, sheets
+ */
+
+import styles { Sheet };
+
+/** A node made a group, through `.style`. */
+public struct Group {}
+
+impl Group {
+    /**
+     * Makes the node a group: a child's `When(State.GroupHover, …)` and
+     * `When(State.GroupFocusWithin, …)` follow it. For an overlay's layers,
+     * mark the overlay: a layer isn't inside its base.
+     *
+     * Example:
+     *     button_with(row([face, spacer(), close]), Msg.Select(id)).style([Group.mark()])
+     */
+    public fun mark(): Group = Group {};
+
+    /** `s` made a group. */
+    public fun apply(self, s: Sheet): Sheet = Sheet { group: true, ..s };
+}

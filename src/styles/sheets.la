@@ -18,6 +18,10 @@ import styles.box_rules { box_css };
 /** Each value `s` sets, as its class and CSS declarations, font first; checked values only. */
 fun rules(s: Sheet): (string, string)[] {
     let mut out: (string, string)[] = [];
+    // A group sets nothing itself: its class is what its children's group rules name.
+    if s.group {
+        out.push(("kv-group", ""));
+    }
     match s.font.family {
         Theme => {}
         Named(name, fallback) => {
@@ -223,6 +227,8 @@ fun part_rules(part: Part, base: (string, string)[]): (string, string)[] = base.
  * `rules` for one state: each class gets the state's prefix, and its rule the
  * state's pseudo-class, its class repeated to the state's rank so a later
  * state in the order (Hover < Focus < FocusWithin < Press < Checked < Disabled) wins.
+ * A group state (`ghover`, `gwithin`) has no pseudo-class of its own: its
+ * group's comes before it when the rule is written, ranking it with Focus.
  */
 fun state_rules(state: State, base: (string, string)[]): (string, string)[] {
     let (code, pseudo, rank) = match state {
@@ -232,6 +238,10 @@ fun state_rules(state: State, base: (string, string)[]): (string, string)[] {
         Press => ("press", ":active", 4),
         Checked => ("checked", ":checked", 5),
         Disabled => ("disabled", ":disabled", 6),
+        // The group's pseudo-class goes before the node, where the rule is
+        // written (`rule_text`): the key keeps the node's class first.
+        GroupHover => ("ghover", "", 1),
+        GroupFocusWithin => ("gwithin", "", 1),
     };
     base.map(fun(rule) {
         // A part's rule carries its node after a space: the class is before it.

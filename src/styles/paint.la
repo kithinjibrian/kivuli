@@ -147,6 +147,9 @@ fun bar_classes(bar: Sheet): Result<string[], string> {
     if needs_clamp(bar.sizing) || bar.spacing.gap != Width.Theme {
         return Err("header_bar(…): a header bar's size and gap are the window's");
     }
+    if bar.group {
+        return Err("Group.mark() belongs on a node's own style");
+    }
     if bar.background.image.is_some() {
         return Err("header_bar(…): a header bar can't have a background image");
     }

@@ -20,6 +20,17 @@ import styles.box_rules { check_effects, needs_clamp, sides };
  * @returns `Err` naming the first value that can't, and why
  */
 fun check(s: Sheet): Result<(), string> {
+    // A group is a node: a state or a part of one can't be.
+    for (_, sub) of s.states {
+        if sub.group {
+            return Err("Group.mark() belongs on a node's own style");
+        }
+    }
+    for (_, sub) of s.parts {
+        if sub.group {
+            return Err("Group.mark() belongs on a node's own style");
+        }
+    }
     match s.font.family {
         Named(name, fallback) => {
             if name == "" {
