@@ -2025,6 +2025,12 @@ Branch: prp-057-scroll-fit → main
 
 ---
 
+## SESSION 140 — 2026-10-22 — PRP-058: Cmd.scroll_to — open
+
+Branch: prp-058-scroll-to
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
