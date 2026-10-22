@@ -2049,6 +2049,12 @@ Branch: main
 
 ---
 
+## SESSION 142 — 2026-10-22 — Bug: a drop-down inside a popover breaks its dismissal (rapidkoi's DECISION-040) — open
+
+Branch: main
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
