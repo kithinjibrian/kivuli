@@ -8,6 +8,7 @@
  */
 
 import gtk {
+    gtk_scrolled_window_get_propagate_natural_height,
     GVariant,
     GtkEventController,
     GtkShortcut,
@@ -155,10 +156,11 @@ fun apply_style<Msg>(node: Live<Msg>, style: Style, axis: i32) {
         Label(w) => align_text(w, style.sheet.text.align),
         _ => {}
     }
-    // Spacers and scrolls always take spare room (see `create_in`).
+    // Spacers and scrolls take spare room (see `create_in`), a fitting scroll
+    // (`scroll_fit`) only when `.expand()`ed.
     let grows = style.expand || match node {
         Spacer(_) => true,
-        Scroll(_, _) => true,
+        Scroll(w, _) => gtk_scrolled_window_get_propagate_natural_height(w) == 0,
         _ => false,
     };
     if axis == LAYER {

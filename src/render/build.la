@@ -55,6 +55,8 @@ import gtk {
     gtk_scrolled_window_get_child,
     gtk_scrolled_window_new,
     gtk_scrolled_window_set_child,
+    gtk_scrolled_window_set_propagate_natural_height,
+    gtk_scrolled_window_set_propagate_natural_width,
     gtk_separator_new,
     gtk_text_buffer_set_text,
     gtk_text_view_get_buffer,
@@ -281,12 +283,9 @@ fun create_in<Msg>(v: View<Msg>, axis: i32, send: fun(Msg)): Live<Msg> = match v
     // Across the axis: a horizontal line in a column, a vertical one in a row.
     // Across the axis: a horizontal line in a column (or a layer), a vertical one in a row.
     Separator => Live.Separator(gtk_separator_new(if axis == 0 { 1 } else { 0 })),
-    Scroll(child) => {
+    Scroll(child, fit) => {
         let scrolled = gtk_scrolled_window_new();
-        // A scrolled window asks for almost no room of its own: let it take
-        // the spare room both ways, or it shows a sliver.
-        gtk_widget_set_hexpand(scrolled, 1);
-        gtk_widget_set_vexpand(scrolled, 1);
+        fit_scroll(scrolled, fit);
         let kid = create_in(child, 1, send);
         gtk_scrolled_window_set_child(scrolled, Some(widget(kid)));
         Live.Scroll(scrolled, kid)
@@ -458,6 +457,19 @@ fun text_of(buffer: GtkTextBuffer): string {
 }
 
 /** A progress bar's value out of 100 as GTK's fraction, clamped to 0..1. */
+/**
+ * A scroll fitting its content (`scroll_fit`: GTK asks for the child's
+ * natural size, and it takes no spare room), or not (`scroll`: a scrolled
+ * window asks for almost no room of its own, so it takes the spare room
+ * both ways, or it shows a sliver).
+ */
+fun fit_scroll(scrolled: GtkWidget, fit: bool) {
+    gtk_scrolled_window_set_propagate_natural_height(scrolled, flag(fit));
+    gtk_scrolled_window_set_propagate_natural_width(scrolled, flag(fit));
+    gtk_widget_set_hexpand(scrolled, flag(!fit));
+    gtk_widget_set_vexpand(scrolled, flag(!fit));
+}
+
 fun fraction(value: i64): f64 = if value <= 0 {
     0.0
 } else if value >= 100 {

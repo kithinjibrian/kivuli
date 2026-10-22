@@ -74,6 +74,7 @@ fun main(): i32 = sandbox(
         sheet: -1,
         dimensions: false,
         width: "100%",
+        rows: 3,
     },
     update,
     view,

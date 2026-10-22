@@ -132,7 +132,7 @@ fun spacers_separators_and_scrolls_are_plain_nodes() {
     let expected: View<Msg> = View.Column([
         View.Spacer,
         View.Separator,
-        View.Scroll(View.Text("long")),
+        View.Scroll(View.Text("long"), false),
     ]);
     assert_same(column([spacer(), separator(), scroll(text("long"))]), expected);
 }

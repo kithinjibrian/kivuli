@@ -134,7 +134,17 @@ public fun separator<Msg>(): View<Msg> = View.Separator;
  * Example:
  *     scroll(column(rows))
  */
-public fun scroll<Msg>(child: View<Msg>): View<Msg> = View.Scroll(child);
+public fun scroll<Msg>(child: View<Msg>): View<Msg> = View.Scroll(child, false);
+
+/**
+ * Shows `child` in a scrolled area as big as the child, until its parent
+ * can't give that much: then it scrolls. Unlike `scroll`, it takes no spare
+ * room, so what comes after it follows it.
+ *
+ * Example:
+ *     column([scroll_fit(column(apps)), plus_button])
+ */
+public fun scroll_fit<Msg>(child: View<Msg>): View<Msg> = View.Scroll(child, true);
 
 /**
  * Stacks `children` top to bottom, like `column`, but matches them across

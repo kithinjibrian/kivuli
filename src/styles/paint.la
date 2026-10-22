@@ -61,7 +61,7 @@ fun paint<Msg>(v: View<Msg>): Result<View<Msg>, string> = match v {
     }
     Column(xs) => Ok(View.Column(paint_all(xs)?)),
     Row(xs) => Ok(View.Row(paint_all(xs)?)),
-    Scroll(x) => Ok(View.Scroll(paint(x)?)),
+    Scroll(x, fit) => Ok(View.Scroll(paint(x)?, fit)),
     Keyed(pairs) => Ok(View.Keyed(paint_keyed(pairs)?)),
     Wrap(xs) => Ok(View.Wrap(paint_all(xs)?)),
     KeyedWrap(pairs) => Ok(View.KeyedWrap(paint_keyed(pairs)?)),

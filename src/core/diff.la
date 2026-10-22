@@ -58,6 +58,8 @@ enum Patch<Msg> {
     SetStyle(i64[], Style),
     /** The popover at the path is open or not, on this side, with GTK's arrow or not; GTK closing it sends this message. */
     SetPopover(i64[], bool, Edge, bool, Msg),
+    /** The scroll at the path fits its content (`scroll_fit`) or takes the spare room (`scroll`). */
+    SetFit(i64[], bool),
     /**
      * The widget at the path has this context menu from now on (`[]`: none).
      * Every update: its messages can't be compared.
@@ -194,8 +196,11 @@ fun diff_inside<Msg>(
     },
     (Spacer, Spacer) => [],
     (Separator, Separator) => [],
-    // A scroll has one child, at index 0 of its path.
-    (Scroll(a), Scroll(b)) => diff_at(child(path, 0), a, b),
+    // A scroll has one child, at index 0 of its path; fitting is set in place.
+    (Scroll(a, fit_a), Scroll(b, fit_b)) => joined(
+        if fit_a == fit_b { [] } else { [Patch.SetFit(path, fit_b)] },
+        diff_at(child(path, 0), a, b),
+    ),
     (Keyed(xs), Keyed(ys)) => diff_keyed(path, xs, ys),
     (Wrap(xs), Wrap(ys)) => diff_children(path, xs, ys),
     (KeyedWrap(xs), KeyedWrap(ys)) => diff_keyed(path, xs, ys),
