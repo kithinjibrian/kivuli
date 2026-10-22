@@ -63,6 +63,7 @@ public import view.widgets {
     spacer,
     separator,
     scroll,
+    scroll_fit,
     keyed_column,
     wrap,
     keyed_wrap,

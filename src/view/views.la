@@ -68,8 +68,8 @@ public enum View<Msg> {
     Spacer,
     /** A thin line across its column or row. */
     Separator,
-    /** One child, scrolled when it's bigger than the room it's given. */
-    Scroll(View<Msg>),
+    /** One child, scrolled when it's bigger than the room it's given; whether it fits its content (`scroll_fit`). */
+    Scroll(View<Msg>, bool),
     /** Children stacked top to bottom, each with a key naming it across views. */
     Keyed((string, View<Msg>)[]),
     /** Children side by side, moving to a new line when a line is full. */

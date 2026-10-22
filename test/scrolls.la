@@ -1,0 +1,40 @@
+// Scrolls that fit their content (PRP-057): `scroll` and `scroll_fit`'s
+// nodes, `map`, and the diff: fitting changed is one patch in place, the
+// child diffed inside as before. No GTK.
+import kivuli.core.diff { Patch, diff as patches };
+import kivuli { View, column, scroll, scroll_fit, text };
+
+/** Patches hold functions, which have no `==`: compared as printed. */
+fun assert_same<T>(actual: T, expected: T) {
+    assert_eq("{actual}", "{expected}");
+}
+
+fun fits<M>(v: View<M>): bool = match v {
+    Scroll(_, fit) => fit,
+    _ => panic("expected a scroll"),
+};
+
+@test
+fun scroll_fit_fits_and_scroll_doesnt() {
+    let plain: View<i64> = scroll(column([text("a")]));
+    let fitted: View<i64> = scroll_fit(column([text("a")]));
+    assert(!fits(plain));
+    assert(fits(fitted));
+    assert(fits(fitted.map(fun(n: i64): string = "{n}")));
+}
+
+@test
+fun fitting_changed_is_one_patch_in_place() {
+    let plain: View<i64> = scroll(text("a"));
+    let fitted: View<i64> = scroll_fit(text("a"));
+    let expected: Patch<i64>[] = [Patch.SetFit([], true)];
+    assert_same(patches(plain, fitted), expected);
+    let none: Patch<i64>[] = [];
+    assert_same(patches(fitted, scroll_fit(text("a"))), none);
+}
+
+@test
+fun the_child_is_diffed_inside_as_child_zero() {
+    let expected: Patch<i64>[] = [Patch.SetText([0], "b")];
+    assert_same(patches(scroll_fit(text("a")), scroll_fit(text("b"))), expected);
+}

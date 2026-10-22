@@ -41,7 +41,16 @@ import gtk {
     lgtk_text_place_cursor,
 };
 import core.diff;
-import render.build { fraction, add_to_wrap, create, create_in, editor, pack_one, text_of };
+import render.build {
+    fraction,
+    add_to_wrap,
+    create,
+    create_in,
+    editor,
+    fit_scroll,
+    pack_one,
+    text_of,
+};
 import render.controls { picked, sync_choices };
 import render.styling { LAYER, apply_style, flag, show_content, show_number };
 import render.textures { show_in_image, show_picture };
@@ -253,6 +262,10 @@ fun apply<Msg>(
             Live.Menu(node, attach(widget(node), entries, send))
         },
     }),
+    SetFit(path, fit) => {
+        fit_scroll(widget(at(live, path)), fit);
+        live
+    }
     SetPopover(path, open, side, arrow, close) => {
         show_popover(at(live, path), open, side, arrow, close);
         live

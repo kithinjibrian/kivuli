@@ -13,6 +13,7 @@ import kivuli {
     icon,
     Sizing,
     row,
+    scroll_fit,
     text,
 };
 import kivuli.ui {
@@ -46,6 +47,20 @@ import gallery.state { Model, Msg, section };
 
 /** The Avatar, Progress, Separator, Input group, Field and Card sections, top to bottom. */
 public fun sections(m: Model): View<Msg>[] = [
+    section(
+        "Fitting scroll",
+        // In 200 px: the + follows the rows until they overflow, then stays
+        // at the bottom while they scroll.
+        row([
+            column([
+                scroll_fit(column(range(1, m.rows + 1).map(fun(n: i64): View<Msg> = text("Row {n}")).collect()).style([
+                    Spacing.gap(8),
+                ])),
+                ui.button("+ Add a row", Msg.Rows(m.rows + 1)).style([Button.outline(), Button.sm()]),
+            ]).style([Spacing.gap(8), Sizing.height(200), Sizing.width(200)]),
+            ui.button("Fewer", Msg.Rows(m.rows - 1)).style([Button.ghost(), Button.sm()]).align(Align.Start),
+        ]).style([Spacing.gap(12)]),
+    ),
     section(
         "Avatar",
         row([

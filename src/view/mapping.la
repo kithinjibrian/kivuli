@@ -60,7 +60,7 @@ fun mapped<Msg, B>(v: View<Msg>, f: fun(Msg): B): View<B> = match v {
     Image(img) => View.Image(img),
     Spacer => View.Spacer,
     Separator => View.Separator,
-    Scroll(x) => View.Scroll(x.map(f)),
+    Scroll(x, fit) => View.Scroll(x.map(f), fit),
     Keyed(pairs) => View.Keyed(pairs.map(fun(pair) = (pair.0, pair.1.map(f)))),
     Wrap(xs) => View.Wrap(xs.map(fun(x) = x.map(f))),
     KeyedWrap(pairs) => View.KeyedWrap(pairs.map(fun(pair) = (pair.0, pair.1.map(f)))),

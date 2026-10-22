@@ -23,6 +23,8 @@ public struct Model {
     /** Whether the Popover section's popover is open. */
     public dimensions: bool,
     public width: string,
+    /** How many rows the Fitting scroll section's list has. */
+    public rows: i64,
 }
 
 /** Everything the gallery's controls send. */
@@ -44,6 +46,7 @@ public enum Msg {
     Sheet(i64),
     Dimensions(bool),
     Width(string),
+    Rows(i64),
 }
 
 /** The gallery's update: each message sets its field. */
@@ -66,6 +69,7 @@ public fun update(m: Model, msg: Msg): Model = match msg {
     Sheet(edge) => Model { sheet: edge, ..m },
     Dimensions(open) => Model { dimensions: open, ..m },
     Width(w) => Model { width: w, ..m },
+    Rows(n) => Model { rows: if n < 1 { 1 } else { n }, ..m },
 };
 
 /** The palette each Base button picks. */

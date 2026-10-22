@@ -72,10 +72,13 @@ fun resolve<Msg>(v: View<Msg>, old: Option<View<Msg>>): View<Msg> = match v {
         ),
         _ => View.Popover(resolve(trigger, None), open, resolve(content, None), close, side, arrow),
     },
-    Scroll(x) => View.Scroll(resolve(x, match counterpart(old) {
-        Some(Scroll(y)) => Some(y),
-        _ => None,
-    })),
+    Scroll(x, fit) => View.Scroll(
+        resolve(x, match counterpart(old) {
+            Some(Scroll(y, _)) => Some(y),
+            _ => None,
+        }),
+        fit,
+    ),
     Framed(body, start, title, end) => match counterpart(old) {
         Some(Framed(b, s, t, e)) => View.Framed(
             resolve(body, Some(b)),

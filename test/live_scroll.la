@@ -1,0 +1,67 @@
+// Scrolls on real GTK widgets (PRP-057): `scroll_fit` asks for its child's
+// natural size and doesn't expand, `scroll` expands and doesn't ask; changing
+// it on update keeps the widget. Needs a display, so it is skipped without one.
+import std.env;
+import gtk {
+    GtkApplication,
+    connect_app,
+    emit_widget,
+    g_application_quit,
+    g_application_run,
+    g_object_unref,
+    gtk_application_new,
+    gtk_application_window_new,
+    gtk_scrolled_window_get_propagate_natural_height,
+    gtk_scrolled_window_get_propagate_natural_width,
+    gtk_widget_get_vexpand,
+};
+import kivuli.render.live { mount, live_of };
+import kivuli.core.effects { sandbox_app };
+import kivuli.core.live_tree { Live, widget };
+import kivuli { View, button, column, scroll, scroll_fit, text };
+
+fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
+
+enum Msg {
+    Flip,
+}
+
+fun view(fit: bool): View<Msg> = column([
+    if fit { scroll_fit(column([text("a")])) } else { scroll(column([text("a")])) },
+    button("Flip", Msg.Flip),
+]);
+
+@test
+fun a_fitting_scroll_asks_for_its_content_and_doesnt_expand() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen: Ref<string[]> = Ref.new([]);
+    let application = gtk_application_new("org.kivuli.test.scroll", 0);
+    connect_app(
+        application,
+        "activate",
+        fun(a: GtkApplication) {
+            let window = gtk_application_window_new(a);
+            let app = mount(
+                a,
+                window,
+                sandbox_app("org.kivuli.test", true, fun(fit: bool, msg: Msg): bool = !fit, view),
+            );
+            let kids = fun(): Live<Msg>[] = match live_of(app) {
+                Box(_, _, ks) => ks,
+                _ => panic("expected a column"),
+            };
+            let s = widget(kids()[0]);
+            let read = fun(): string = "height {gtk_scrolled_window_get_propagate_natural_height(s)} width {gtk_scrolled_window_get_propagate_natural_width(s)} expands {gtk_widget_get_vexpand(s)}";
+            seen.update(fun(xs) = xs + [read()]);
+            emit_widget(widget(kids()[1]), "clicked");
+            seen.update(fun(xs) = xs + ["same {widget(kids()[0]) == s} " + read()]);
+            g_application_quit(a);
+        },
+        0,
+    );
+    g_application_run(application, 0, None);
+    g_object_unref(application);
+    assert_eq(seen.get(), ["height 1 width 1 expands 0", "same true height 0 width 0 expands 1"]);
+}

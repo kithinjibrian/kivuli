@@ -8,6 +8,14 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.53.0] — 2026-10-22
+
+### Added
+- `scroll_fit(child)` (PRP-057): a scroll as big as its content until its parent can't give that much. Needs lugha-gtk 0.1.45.
+
+### Changed
+- `View.Scroll` carries whether it fits: `Scroll(child, fit)`.
+
 ## [0.52.0] — 2026-10-22
 
 ### Added
