@@ -1,0 +1,69 @@
+// Group states on real widgets (PRP-056): a marked node's widget carries
+// `kv-group`, an overlay marked as a group holds its layers, and the child's
+// group rule's class is on the child. Hovering needs a pointer: by hand
+// (examples/components.la). Needs a display, so it is skipped without one.
+import std.env;
+import gtk {
+    GtkApplication,
+    connect_app,
+    g_application_quit,
+    g_application_run,
+    g_object_unref,
+    gtk_application_new,
+    gtk_application_window_new,
+    gtk_widget_has_css_class,
+};
+import kivuli.render.live { mount, live_of };
+import kivuli.core.effects { sandbox_app };
+import kivuli.core.live_tree { Live, widget };
+import kivuli { View, Group, State, When, Effects, button, column, overlay, text };
+
+fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
+
+fun close(): View<i64> = button("×", 1).style([
+    Effects.opacity(0.0),
+    When(State.GroupHover, [Effects.opacity(1.0)]),
+]);
+
+fun view(n: i64): View<i64> = column([
+    column([text("app"), close()]).style([Group.mark()]),
+    overlay(text("base"), [close()]).style([Group.mark()]),
+]);
+
+@test
+fun groups_carry_their_class_and_children_their_group_rules() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen: Ref<string> = Ref.new("");
+    let application = gtk_application_new("org.kivuli.test.group_states", 0);
+    connect_app(
+        application,
+        "activate",
+        fun(a: GtkApplication) {
+            let window = gtk_application_window_new(a);
+            let app = mount(
+                a,
+                window,
+                sandbox_app("org.kivuli.test", 0, fun(n: i64, m: i64): i64 = n, view),
+            );
+            let Box(_, _, kids) = live_of(app) else {
+                panic("expected a column");
+            };
+            let Box(group, _, inside) = kids[0] else {
+                panic("expected the group's column");
+            };
+            let Overlay(over, _, Layers(_, layers)) = kids[1] else {
+                panic("expected the overlay");
+            };
+            seen.set(
+                "group {gtk_widget_has_css_class(group, "kv-group")} child {gtk_widget_has_css_class(widget(inside[1]), "kv-ghover-op-1000")} overlay {gtk_widget_has_css_class(over, "kv-group")} layer {gtk_widget_has_css_class(widget(layers[0]), "kv-ghover-op-1000")}",
+            );
+            g_application_quit(a);
+        },
+        0,
+    );
+    g_application_run(application, 0, None);
+    g_object_unref(application);
+    assert_eq(seen.get(), "group 1 child 1 overlay 1 layer 1");
+}

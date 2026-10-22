@@ -1,0 +1,76 @@
+// Group states (PRP-056): `Group.mark()` makes a node a group (`kv-group`);
+// `State.GroupHover` and `State.GroupFocusWithin` style a node while an
+// enclosing group is hovered or holds the focus, inside parts too; where
+// `Group.mark()` can't go. No GTK.
+import kivuli.styles { Sheet };
+import kivuli.styles.sheets { rules };
+import kivuli.styles.checks { check };
+import kivuli.styles.motion_rules { rule_text };
+import kivuli.styles.paint { painted };
+import kivuli {
+    View,
+    Group,
+    Inside,
+    Part,
+    State,
+    When,
+    Token,
+    Background,
+    Effects,
+    column,
+    header_bar,
+    text,
+};
+
+fun texts(s: Sheet): string[] = rules(s).map(fun(r) = rule_text(r.0, r.1));
+
+fun has(xs: string[], prefix: string): bool = xs.iter().any(fun(x) = x.starts_with(prefix));
+
+@test
+fun a_group_is_marked_by_its_class() {
+    let s = Group.mark().apply(Sheet.theme());
+    assert(s.group);
+    assert(rules(s).iter().any(fun(r) = r.0 == "kv-group"));
+    assert(!rules(Sheet.theme()).iter().any(fun(r) = r.0 == "kv-group"));
+}
+
+@test
+fun a_group_state_sits_under_its_groups_pseudo_class() {
+    let s = When(State.GroupHover, [Effects.opacity(1.0)]).apply(Sheet.theme());
+    assert(has(texts(s), ".kv-group:hover .kv-ghover-op-1000 {{"));
+    let f = When(State.GroupFocusWithin, [Effects.opacity(1.0)]).apply(Sheet.theme());
+    assert(has(texts(f), ".kv-group:focus-within .kv-gwithin-op-1000 {{"));
+    // The node's class is first in the key, as for every rule: paint reads it from there.
+    assert(rules(s).iter().any(fun(r) = r.0 == "kv-ghover-op-1000"));
+}
+
+@test
+fun a_group_state_reaches_into_a_part() {
+    let s = Inside(Part.Check, [When(State.GroupHover, [Background.color(Token.Primary)])]).apply(
+        Sheet.theme(),
+    );
+    assert(has(texts(s), ".kv-group:hover .kv-check-ghover-bgt-primary check {{"));
+}
+
+@test
+fun a_group_state_ranks_below_press_focus_within_and_disabled() {
+    // One class (plus the group's): the node's own Press repeats its class to outrank it.
+    let g = When(State.GroupHover, [Effects.opacity(1.0)]).apply(Sheet.theme());
+    assert(rules(g).iter().any(fun(r) = r.0 == "kv-ghover-op-1000"));
+    let p = When(State.Press, [Effects.opacity(1.0)]).apply(Sheet.theme());
+    assert(rules(p).iter().any(fun(r) = r.0.starts_with("kv-press-op-1000.kv-press-op-1000.")));
+}
+
+@test
+fun a_group_mark_belongs_on_a_nodes_own_style() {
+    let why = "Group.mark() belongs on a node's own style";
+    assert_eq(check(When(State.Hover, [Group.mark()]).apply(Sheet.theme())), Err(why));
+    assert_eq(check(Inside(Part.Check, [Group.mark()]).apply(Sheet.theme())), Err(why));
+    let page: View<i64> = column([text("x")]);
+    assert_eq(
+        painted(page.header(header_bar([], text("t"), []).style([Group.mark()]))).map(fun(v) = 0),
+        Err(why),
+    );
+    let marked: View<i64> = column([text("x")]).style([Group.mark()]);
+    assert(painted(marked).is_ok());
+}

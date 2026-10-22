@@ -83,6 +83,7 @@ fun the_theme_values_set_nothing() {
         motion: Motion.theme(),
         parts: [],
         mark: Mark.theme(),
+        group: false,
     });
     assert_eq(Side.theme(), Side { width: Width.Theme, color: Paint.Theme, style: Line.Theme });
     assert_eq(Border.theme(), Border {

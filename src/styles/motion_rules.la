@@ -164,15 +164,31 @@ fun keyframes(name: string): string {
 }
 
 /**
+ * `key` as a selector: a class, with its group's state before it when the
+ * class is a group state's (`kv-ghover-…`, `kv-check-ghover-…`).
+ */
+fun with_group(key: string): string {
+    let class = key.split(" ")[0];
+    if class.contains("-ghover-") {
+        ".kv-group:hover .{key}"
+    } else if class.contains("-gwithin-") {
+        ".kv-group:focus-within .{key}"
+    } else {
+        ".{key}"
+    }
+}
+
+/**
  * One rule's whole CSS: `.key { body }`, and for motion's own rules what
  * goes with them: an animation's `@keyframes` before it, and after it what
  * it becomes when the system asks for less motion.
  */
 fun rule_text(key: string, body: string): string {
-    let main = ".{key} {{ {body} }}";
+    let selector = with_group(key);
+    let main = "{selector} {{ {body} }}";
     let reduce = "@media (prefers-reduced-motion: reduce)";
     if body.starts_with("transition: ") {
-        return "{main}\n{reduce} {{ .{key} {{ transition: none; }} }}";
+        return "{main}\n{reduce} {{ {selector} {{ transition: none; }} }}";
     }
     if !body.starts_with("animation: ") {
         return main;

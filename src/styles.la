@@ -44,6 +44,8 @@ public struct Sheet {
     public parts: (Part, Sheet)[],
     /** The icon GTK draws in this part (`Mark.icon`): a check box's tick. */
     public mark: Mark,
+    /** A group (`Group.mark()`): its children's group states follow it. */
+    public group: bool,
 }
 
 impl Sheet {
@@ -62,6 +64,7 @@ impl Sheet {
         motion: Motion.theme(),
         parts: [],
         mark: Mark.theme(),
+        group: false,
     };
 }
 
@@ -114,6 +117,10 @@ public enum State {
     Disabled,
     /** A check box that's ticked (`:checked`). */
     Checked,
+    /** An enclosing group (`Group.mark()`) has the pointer over it (`.kv-group:hover` before the node). */
+    GroupHover,
+    /** Something in an enclosing group has the focus (`.kv-group:focus-within` before the node). */
+    GroupFocusWithin,
 }
 
 /** Style values for one state: made by `When`. */

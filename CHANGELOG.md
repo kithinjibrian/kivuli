@@ -8,6 +8,14 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.52.0] — 2026-10-22
+
+### Added
+- Group states (PRP-056): `Group.mark()`; `State.GroupHover` and `State.GroupFocusWithin`, a node styled while an enclosing group is hovered or holds the focus.
+
+### Changed
+- `Sheet` has a new field, `group` (a `Sheet { … }` with every field needs it).
+
 ## [0.51.0] — 2026-10-21
 
 ### Added

@@ -18,6 +18,7 @@ public import styles.fonts { Font, Text };
 public import styles.boxes { Background, Border, Outline, Spacing, Sizing };
 public import styles.drawing { Shadow, Effects, Mark };
 public import styles.motion { Motion, Animate, Easing, Edge };
+public import styles.groups { Group };
 public import styles.values {
     TextAlign,
     Family,

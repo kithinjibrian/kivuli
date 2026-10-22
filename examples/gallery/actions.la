@@ -19,6 +19,13 @@ import kivuli {
     icon,
     row,
     text,
+    Effects,
+    State,
+    When,
+    Motion,
+    Group,
+    overlay,
+    Sizing,
 };
 import kivuli.ui {
     badge,
@@ -121,6 +128,31 @@ public fun sections(m: Model): View<Msg>[] = [
                 centred(button("Native GTK", Msg.Base(m.base))),
             ]).style([Spacing.gap(8)]),
         ]).style([Spacing.gap(12)]),
+    ),
+    section(
+        "Group hover",
+        // Each tile's × shows while the pointer is anywhere over the tile, or
+        // the focus is in it: the overlay is the group, as the × is its layer.
+        row(["Notes", "Mail", "Music"].map(fun(name: string): View<Msg> = overlay(
+            ui.button_with([text(name)], Msg.Picked("Opened {name}")).style([
+                Button.outline(),
+                Sizing.min_width(120),
+            ]),
+            [
+                ui.button_with([icon("window-close-symbolic")], Msg.Picked("Closed {name}"))
+                    .style([
+                        Button.icon(),
+                        Button.ghost(),
+                        Button.sm(),
+                        Effects.opacity(0.0),
+                        When(State.GroupHover, [Effects.opacity(1.0)]),
+                        When(State.GroupFocusWithin, [Effects.opacity(1.0)]),
+                        Motion.opacity(150),
+                    ])
+                    .tooltip("Close {name}")
+                    .place(Align.End, Align.Center),
+            ],
+        ).style([Group.mark()]))).style([Spacing.gap(8)]),
     ),
     section(
         "Badge",
