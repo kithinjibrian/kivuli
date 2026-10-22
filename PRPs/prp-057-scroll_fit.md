@@ -1,6 +1,6 @@
 # PRP-057 — A scroll that fits its content
 
-Status: draft (session 138)
+Status: approved (session 138, "build all")
 Discovery: session 138, 2026-10-22 (rapidkoi's DECISION-037, part 1: its sidebar lists apps then a +, which should sit right after the last app until the list overflows, then stay at the bottom while the apps scroll, as Chrome's tab strip; GTK's `gtk_scrolled_window_set_propagate_natural_height`/`_width`). *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: `scroll_fit(child)`: a scroll as big as its content until its parent can't give that much, then scrolling.

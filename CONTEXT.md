@@ -2013,6 +2013,12 @@ Branch: main
 
 ---
 
+## SESSION 139 — 2026-10-22 — PRP-057: scroll_fit — open
+
+Branch: prp-057-scroll-fit
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.

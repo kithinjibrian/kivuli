@@ -1,6 +1,6 @@
 # PRP-058 — Scrolling a node into view
 
-Status: draft (session 138)
+Status: approved (session 138, "build all")
 Discovery: session 138, 2026-10-22 (rapidkoi's DECISION-037, part 2: after an app opens or is selected, its sidebar scrolls so the app's button shows, without taking the focus from the address box; `Cmd.focus` scrolls but takes the focus; GTK 4.12's `gtk_viewport_scroll_to`). *(you)*: chosen; *(proposed)*: for you to confirm or change.
 
 ## FEATURE: `Cmd.scroll_to(name)`: the nearest scroll around the node named `name` scrolls as little as it can to show it; the focus doesn't move.
