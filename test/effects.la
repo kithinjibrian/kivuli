@@ -101,6 +101,14 @@ fun focus_commands_flatten_and_map() {
 }
 
 @test
+fun scroll_to_commands_flatten_and_map() {
+    let cmd: Cmd<Msg> = Cmd.batch([Cmd.scroll_to("row-30"), Cmd.none()]);
+    let expected: Cmd<Msg>[] = [Cmd.ScrollTo("row-30")];
+    assert_same(commands(cmd), expected);
+    assert_same(commands(cmd.map(fun(m: Msg): Msg = m)), expected);
+}
+
+@test
 fun a_task_is_a_command_whose_work_gives_its_message() {
     let cmd: Cmd<Msg> = Cmd.batch([Cmd.none(), Cmd.task(fun(): i64 = 6 * 7, Msg.Got)]);
     let cs = commands(cmd);

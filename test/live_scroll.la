@@ -1,6 +1,9 @@
 // Scrolls on real GTK widgets (PRP-057): `scroll_fit` asks for its child's
 // natural size and doesn't expand, `scroll` expands and doesn't ask; changing
-// it on update keeps the widget. Needs a display, so it is skipped without one.
+// it on update keeps the widget; `Cmd.scroll_to` (PRP-058) leaves the focus
+// where it was and ignores an unknown name. Where it scrolls needs a window
+// on screen (a hidden one isn't laid out): by hand. Needs a display, so it
+// is skipped without one.
 import std.env;
 import gtk {
     GtkApplication,
@@ -14,11 +17,13 @@ import gtk {
     gtk_scrolled_window_get_propagate_natural_height,
     gtk_scrolled_window_get_propagate_natural_width,
     gtk_widget_get_vexpand,
+    gtk_root_get_focus,
+    gtk_widget_is_ancestor,
 };
-import kivuli.render.live { mount, live_of };
+import kivuli.render.live { dispatch, mount, live_of };
 import kivuli.core.effects { sandbox_app };
 import kivuli.core.live_tree { Live, widget };
-import kivuli { View, button, column, scroll, scroll_fit, text };
+import kivuli { App, Cmd, Sub, View, button, column, input, scroll, scroll_fit, text };
 
 fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
 
@@ -64,4 +69,61 @@ fun a_fitting_scroll_asks_for_its_content_and_doesnt_expand() {
     g_application_run(application, 0, None);
     g_object_unref(application);
     assert_eq(seen.get(), ["height 1 width 1 expands 0", "same true height 0 width 0 expands 1"]);
+}
+
+enum Go {
+    Show,
+    Missing,
+    Typed(string),
+}
+
+fun rows(n: i64): View<Go> = column([
+    input("", Go.Typed).name("field"),
+    scroll(
+        column(range(0, 40).map(fun(i: i64): View<Go> = text("row {i}").name("row-{i}")).collect()),
+    ),
+]);
+
+@test
+fun scroll_to_leaves_the_focus_alone() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen: Ref<string[]> = Ref.new([]);
+    let application = gtk_application_new("org.kivuli.test.scroll_to", 0);
+    connect_app(
+        application,
+        "activate",
+        fun(a: GtkApplication) {
+            let window = gtk_application_window_new(a);
+            let app = mount(a, window, App {
+                id: "org.kivuli.test",
+                init: (0, Cmd.focus("field")),
+                update: fun(n: i64, msg: Go): (i64, Cmd<Go>) = match msg {
+                    Show => (n, Cmd.scroll_to("row-30")),
+                    _ => (n, Cmd.scroll_to("nowhere")),
+                },
+                view: rows,
+                subscriptions: fun(n: i64): Sub<Go> = Sub.none(),
+            });
+            let field = match live_of(app) {
+                Box(_, _, ks) => widget(ks[0]),
+                _ => panic("expected a column"),
+            };
+            let in_field = fun(): bool = match gtk_root_get_focus(window) {
+                Some(w) => w == field || gtk_widget_is_ancestor(w, field) != 0,
+                None => false,
+            };
+            seen.update(fun(xs) = xs + ["focus {in_field()}"]);
+            dispatch(app, Go.Show);
+            seen.update(fun(xs) = xs + ["after scroll_to {in_field()}"]);
+            dispatch(app, Go.Missing);
+            seen.update(fun(xs) = xs + ["after an unknown name {in_field()}"]);
+            g_application_quit(a);
+        },
+        0,
+    );
+    g_application_run(application, 0, None);
+    g_object_unref(application);
+    assert_eq(seen.get(), ["focus true", "after scroll_to true", "after an unknown name true"]);
 }
