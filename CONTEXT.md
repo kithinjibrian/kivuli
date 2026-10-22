@@ -2049,9 +2049,15 @@ Branch: main
 
 ---
 
-## SESSION 142 — 2026-10-22 — Bug: a drop-down inside a popover breaks its dismissal (rapidkoi's DECISION-040) — open
+## SESSION 142 — 2026-10-22 — Bug: a drop-down inside a popover breaks its dismissal: a probe — closed
 
 Branch: main
+
+### WHAT WAS DONE
+- Rapidkoi's report (DECISION-040). This desktop is Wayland, GTK 4.22.4. Built a plain-GTK C probe (`scratchpad/probe/nest.c`: a GtkDropDown in a GtkPopover) with fix modes: 0 none, 1 focus back to the content, 2 pop the outer popover down and up, 3 `gtk_popover_present`. Needs a real pointer: the user runs it.
+
+### STILL OPEN AT CLOSE
+- The user's results per mode decide the fix (and whether it's GTK's own bug, mode 0).
 
 ---
 
