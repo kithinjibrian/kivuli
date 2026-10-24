@@ -19,11 +19,12 @@ import gtk {
     gtk_widget_get_vexpand,
     gtk_root_get_focus,
     gtk_widget_is_ancestor,
+    lgtk_scrolled_window_policy,
 };
 import kivuli.render.live { dispatch, mount, live_of };
 import kivuli.core.effects { sandbox_app };
 import kivuli.core.live_tree { Live, widget };
-import kivuli { App, Cmd, Sub, View, button, column, input, scroll, scroll_fit, text };
+import kivuli { App, Cmd, Sub, View, Overflow, button, column, input, scroll, scroll_fit, text };
 
 fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
 
@@ -126,4 +127,71 @@ fun scroll_to_leaves_the_focus_alone() {
     g_application_run(application, 0, None);
     g_object_unref(application);
     assert_eq(seen.get(), ["focus true", "after scroll_to true", "after an unknown name true"]);
+}
+
+// Scrolling one way only (PRP-061): the Overflow style sets the scrolled
+// window's policies, across and down; restyled on the same widget; dropped,
+// both ways again. GtkPolicyType: 1 automatic, 2 never.
+fun one_way(step: i64): View<Msg> = column([
+    match step {
+        0 => scroll(column([text("a")])).style([Overflow.scroll_y()]),
+        1 => scroll(column([text("a")])).style([Overflow.scroll_x()]),
+        _ => scroll(column([text("a")])),
+    },
+    button("Next", Msg.Flip),
+]);
+
+@test
+fun overflow_sets_the_scrollbar_policies() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen: Ref<string[]> = Ref.new([]);
+    let application = gtk_application_new("org.kivuli.test.overflow", 0);
+    connect_app(
+        application,
+        "activate",
+        fun(a: GtkApplication) {
+            let window = gtk_application_window_new(a);
+            let app = mount(
+                a,
+                window,
+                sandbox_app(
+                    "org.kivuli.test",
+                    0,
+                    fun(step: i64, msg: Msg): i64 = step + 1,
+                    one_way,
+                ),
+            );
+            let scrolled = fun() = match live_of(app) {
+                Box(_, _, ks) => widget(ks[0]),
+                _ => panic("expected a column"),
+            };
+            let first = scrolled();
+            let note = fun(label: string) {
+                let s = scrolled();
+                seen.update(fun(xs) {
+                    let mut ys = xs;
+                    ys.push(
+                        "{label}: across {lgtk_scrolled_window_policy(s, 1)} down {lgtk_scrolled_window_policy(s, 0)} same {s == first}",
+                    );
+                    ys
+                });
+            };
+            note("scroll_y");
+            dispatch(app, Msg.Flip);
+            note("scroll_x");
+            dispatch(app, Msg.Flip);
+            note("dropped");
+            g_application_quit(a);
+        },
+        0,
+    );
+    g_application_run(application, 0, None);
+    g_object_unref(application);
+    assert_eq(seen.get(), [
+        "scroll_y: across 2 down 1 same true",
+        "scroll_x: across 1 down 2 same true",
+        "dropped: across 1 down 1 same true",
+    ]);
 }

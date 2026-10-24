@@ -1,0 +1,46 @@
+// Scrolling one way only (PRP-061): the Overflow style group's values, its
+// merge, its refusals under states and parts, and its diff. No GTK.
+import kivuli.styles { Sheet };
+import kivuli.styles.checks { check };
+import kivuli.core.diff { Patch, diff as patches };
+import kivuli { View, Inside, Overflow, Part, Scrolling, State, When, column, scroll, text };
+
+@test
+fun scroll_y_and_scroll_x_are_one_axis_each() {
+    let down = Overflow.scroll_y().apply(Sheet.theme()).overflow;
+    assert_eq("{down.x} {down.y}", "Never Auto");
+    let across = Overflow.scroll_x().apply(Sheet.theme()).overflow;
+    assert_eq("{across.x} {across.y}", "Auto Never");
+    let plain = Sheet.theme().overflow;
+    assert_eq("{plain.x} {plain.y}", "Theme Theme");
+}
+
+@test
+fun a_later_value_wins_per_axis_and_theme_sets_nothing() {
+    let s = Overflow.scroll_x().apply(Overflow.scroll_y().apply(Sheet.theme()));
+    assert_eq("{s.overflow.x} {s.overflow.y}", "Auto Never");
+    let only_y = Overflow { x: Scrolling.Theme, y: Scrolling.Auto };
+    let t = only_y.apply(Overflow.scroll_y().apply(Sheet.theme()));
+    assert_eq("{t.overflow.x} {t.overflow.y}", "Never Auto");
+}
+
+@test
+fun overflow_belongs_on_a_nodes_own_style() {
+    let why = "Overflow belongs on a node's own style";
+    assert_eq(check(When(State.Hover, [Overflow.scroll_y()]).apply(Sheet.theme())), Err(why));
+    assert_eq(check(Inside(Part.Check, [Overflow.scroll_x()]).apply(Sheet.theme())), Err(why));
+    assert_eq(check(Overflow.scroll_y().apply(Sheet.theme())), Ok(()));
+}
+
+fun restyles(ps: Patch<i64>[]): i64 = ps.filter(fun(p: Patch<i64>) = match p {
+    SetStyle(_, _) => true,
+    _ => false,
+}).len;
+
+@test
+fun a_changed_overflow_is_one_restyle() {
+    let down: View<i64> = scroll(column([text("a")])).style([Overflow.scroll_y()]);
+    let across: View<i64> = scroll(column([text("a")])).style([Overflow.scroll_x()]);
+    assert_eq(restyles(patches(down, across)), 1);
+    assert_eq(patches(down, across).len, 1);
+}

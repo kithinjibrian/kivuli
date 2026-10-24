@@ -8,6 +8,14 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.57.0] — 2026-10-24
+
+### Added
+- The `Overflow` style (PRP-061; Rapidkoi's DECISION-057): `scroll(…).style([Overflow.scroll_y()])` scrolls up and down only, `Overflow.scroll_x()` sideways only. Needs lugha-gtk 0.1.49.
+
+### Changed
+- `Sheet` has a new field, `overflow` (a `Sheet { … }` with every field needs it).
+
 ## [0.56.0] — 2026-10-24
 
 ### Added

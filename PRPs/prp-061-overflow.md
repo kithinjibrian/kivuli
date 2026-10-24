@@ -1,6 +1,6 @@
 # PRP-061 — Scrolling one way only
 
-Status: approved (2026-10-24: the `.style` design, lugha-gtk 0.1.49)
+Status: approved (2026-10-24: the `.style` design, lugha-gtk 0.1.49) and built
 Request: Rapidkoi's DECISION-057, section 3 of `../rapidkoi/docs/specs/kivuli-requests.md`
 
 ## FEATURE: an `Overflow` style group: `scroll(…).style([Overflow.scroll_y()])` scrolls up and down only, `Overflow.scroll_x()` sideways only.
@@ -8,7 +8,7 @@ Request: Rapidkoi's DECISION-057, section 3 of `../rapidkoi/docs/specs/kivuli-re
 ## OBJECTIVE
 
 ```
-scroll(column(rows)).style([Overflow.scroll_y()])     // up and down only: a wide row wraps or is cut
+scroll(column(rows)).style([Overflow.scroll_y()])     // up and down only: text wraps; a row that can't shrink widens it
 scroll_fit(row(chips)).style([Overflow.scroll_x()])   // sideways only
 scroll(big_table)                                     // both, as today
 ```
@@ -32,7 +32,7 @@ scroll(big_table)                                     // both, as today
 - No clipping (request 12: its own PRP); no change to `scroll`/`scroll_fit` or `View.Scroll`; no CSS rule (a policy isn't CSS).
 
 ## DESIGN
-- `x`/`y` are across/down, as CSS's `overflow-x`/`overflow-y`; GTK's `Never` gives the child the area's width (or height), so it wraps or is cut.
+- `x`/`y` are across/down, as CSS's `overflow-x`/`overflow-y`. GTK's `NEVER` makes the area as wide (or tall) as its content's minimum: text that wraps wraps, and a row that can't shrink widens it ("the content determines the size", `gtkscrolledwindow.h`). Not cut: Rapidkoi's request expected "wraps or is cut"; cutting is request 12's clip, and the two combine. `EXTERNAL` would cut but still scrolls sideways by touchpad or Shift+wheel (`may_hscroll` in `gtkscrolledwindow.c`), so it isn't one way only.
 - No new patch, live node or extern beyond lugha-gtk 0.1.49.
 
 ## TESTS
@@ -42,5 +42,5 @@ scroll(big_table)                                     // both, as today
 ## ACCEPTANCE
 - [ ] The OBJECTIVE compiles and its tests pass
 - [ ] The full suite (in batches), the examples' tests and `fmt --check` pass; every example type-checks
-- [ ] For the user, by eye: an example's scroll with a too-wide row scrolls only down, the row cut or wrapped
+- [ ] For the user, by eye: in `examples/tasks.la` (its list `Overflow.scroll_y()`), a very long task title never brings a sideways scrollbar: the list (and window) widens instead
 - [ ] Once merged and tagged, the user is told, so Rapidkoi can resolve this part of DECISION-057

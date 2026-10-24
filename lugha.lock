@@ -1,3 +1,3 @@
 # Written by lughac; `lughac update` refreshes it.
 [locked]
-gtk = { git = "https://github.com/kithinjibrian/lugha-gtk", version = "0.1.48", commit = "705affe21a4ee1cd42e3a24de21df6204136036f" }
+gtk = { git = "https://github.com/kithinjibrian/lugha-gtk", version = "0.1.49", commit = "0f97dc6be191d9e4baacd9b7e704a932d0b5c5fe" }

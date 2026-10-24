@@ -9,6 +9,7 @@
 
 import gtk {
     gtk_scrolled_window_get_propagate_natural_height,
+    gtk_scrolled_window_set_policy,
     GVariant,
     GtkEventController,
     GtkShortcut,
@@ -72,6 +73,7 @@ import view.keys { parse };
 import view.widgets { snap };
 import render.controls { sync_choices };
 import render.text_fields { show_hint, text_of };
+import styles.overflow { Scrolling };
 
 /**
  * Gives `node`'s widget every field of `style`, defaults included, so a
@@ -198,6 +200,12 @@ fun apply_style<Msg>(node: Live<Msg>, style: Style, axis: i32) {
     match node {
         // The gap is GTK's spacing, not CSS: a flow box reads no CSS gap.
         Box(box, _, _) => gtk_box_set_spacing(box, gap_of(style) as i32),
+        // Which ways it scrolls (PRP-061): set every time, so a dropped Overflow is undone.
+        Scroll(scrolled, _) => gtk_scrolled_window_set_policy(
+            scrolled,
+            policy(style.sheet.overflow.x),
+            policy(style.sheet.overflow.y),
+        ),
         Wrap(flow, _) => {
             // The gap across and down; equal widths; the cap on a line (0: none).
             gtk_flow_box_set_row_spacing(flow, gap_of(style) as u32);
@@ -430,6 +438,12 @@ fun gtk_align(a: Align): i32 = match a {
     Start => 1,
     End => 2,
     Center => 3,
+};
+
+/** A scroll axis as GTK's `GtkPolicyType`: 1 automatic (also when not set), 2 never. */
+fun policy(s: Scrolling): i32 = match s {
+    Never => 2,
+    _ => 1,
 };
 
 /** A Lugha `bool` as a C `gboolean`. */

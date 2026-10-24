@@ -8,6 +8,7 @@ import kivuli {
     Width,
     Edges,
     Spacing,
+    Overflow,
     View,
     Font,
     Text,
@@ -156,7 +157,9 @@ fun list(m: Model): View<Msg> {
             spacer(),
         ]).expand();
     }
-    scroll(keyed_column(visible.map(fun(t) = ("{t.id}", todo_row(t)))).style([gap(4)]))
+    scroll(keyed_column(visible.map(fun(t) = ("{t.id}", todo_row(t)))).style([gap(4)])).style([
+        Overflow.scroll_y(),
+    ])
 }
 
 // Lazy: rebuilt only when the key (everything the row shows) changes.

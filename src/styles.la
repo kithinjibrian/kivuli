@@ -7,7 +7,7 @@
  * `Sizing`) and `drawing` (`Shadow`, `Effects`). Pure: `sheets` checks values
  * and turns them into CSS.
  *
- * Depends on: styles.fonts, styles.boxes, styles.drawing, styles.motion
+ * Depends on: styles.fonts, styles.boxes, styles.drawing, styles.motion, styles.overflow
  * Used by: box_rules, lib, looks, paint, sheets, views, widgets, the files in styles/
  */
 
@@ -17,6 +17,7 @@ import styles.fonts { Font, Text };
 import styles.boxes { Background, Border, Outline, Spacing, Sizing };
 import styles.drawing { Shadow, Effects, Mark };
 import styles.motion { Motion };
+import styles.overflow { Overflow };
 
 /** Something `.style([…])` can apply: a `Font`, a `Text`, a `Background`, a `Border`, an `Outline`, a `Spacing` or a `Sizing`. */
 public interface Styling {
@@ -46,6 +47,8 @@ public struct Sheet {
     public mark: Mark,
     /** A group (`Group.mark()`): its children's group states follow it. */
     public group: bool,
+    /** Which ways a scroll scrolls (`Overflow`): not CSS, the scrolled window's policy. */
+    public overflow: Overflow,
 }
 
 impl Sheet {
@@ -65,6 +68,7 @@ impl Sheet {
         parts: [],
         mark: Mark.theme(),
         group: false,
+        overflow: Overflow.theme(),
     };
 }
 

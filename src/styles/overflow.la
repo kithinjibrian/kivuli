@@ -1,0 +1,64 @@
+/**
+ * Overflow (PRP-061): which ways a scroll scrolls, `Overflow.scroll_y()` up
+ * and down only, `Overflow.scroll_x()` sideways only. A scrollbar policy,
+ * not CSS: `styling` sets it on the scrolled window. A style group,
+ * importing styles back (DECISION-025). Pure.
+ *
+ * Depends on: styles
+ * Used by: lib, styles, checks
+ */
+
+import styles { Sheet };
+
+/** Whether a scroll scrolls one way: across (`x`) or down (`y`). */
+public enum Scrolling {
+    /** Not set: GTK's own, scrolling when the content is bigger. */
+    Theme,
+    /** Scrolls when the content is bigger. */
+    Auto,
+    /**
+     * Never scrolls this way: the area is as wide (or tall) as its content's
+     * minimum, so text that wraps wraps, and a row that can't shrink makes the
+     * area bigger (GTK's `GTK_POLICY_NEVER`). Cutting it is a clip's job.
+     */
+    Never,
+}
+
+/** Which ways a `scroll` or `scroll_fit` scrolls, through `.style`. */
+public struct Overflow {
+    /** Across, as CSS's `overflow-x`. */
+    public x: Scrolling,
+    /** Down, as CSS's `overflow-y`. */
+    public y: Scrolling,
+}
+
+impl Overflow {
+    /** Nothing set: both ways, GTK's own. */
+    public fun theme(): Overflow = Overflow { x: Scrolling.Theme, y: Scrolling.Theme };
+
+    /**
+     * Scrolls up and down only: text wraps at the area's width; a row that
+     * can't shrink makes the area wider instead of scrolling sideways.
+     *
+     * Example:
+     *     scroll(column(rows)).style([Overflow.scroll_y()])
+     */
+    public fun scroll_y(): Overflow = Overflow { x: Scrolling.Never, y: Scrolling.Auto };
+
+    /**
+     * Scrolls sideways only.
+     *
+     * Example:
+     *     scroll_fit(row(chips)).style([Overflow.scroll_x()])
+     */
+    public fun scroll_x(): Overflow = Overflow { x: Scrolling.Auto, y: Scrolling.Never };
+
+    /** `s` with each axis this value sets; a `Theme` axis is skipped. */
+    public fun apply(self, s: Sheet): Sheet = Sheet {
+        overflow: Overflow {
+            x: if self.x == Scrolling.Theme { s.overflow.x } else { self.x },
+            y: if self.y == Scrolling.Theme { s.overflow.y } else { self.y },
+        },
+        ..s,
+    };
+}

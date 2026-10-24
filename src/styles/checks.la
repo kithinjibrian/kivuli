@@ -9,6 +9,7 @@
  */
 
 import styles { Sheet, State, Part };
+import styles.overflow { Scrolling };
 import styles.values { TextAlign, Family, Size, LineHeight, Gradient, Stop, Width, Radius, Edges };
 import view.pictures { Image, is_svg };
 import styles.motion_rules { check_motion };
@@ -20,15 +21,22 @@ import styles.box_rules { check_effects, needs_clamp, sides };
  * @returns `Err` naming the first value that can't, and why
  */
 fun check(s: Sheet): Result<(), string> {
-    // A group is a node: a state or a part of one can't be.
+    // A group is a node: a state or a part of one can't be. A scrollbar
+    // policy is the scrolled window's own setting: none switches it either.
     for (_, sub) of s.states {
         if sub.group {
             return Err("Group.mark() belongs on a node's own style");
+        }
+        if sets_overflow(sub) {
+            return Err("Overflow belongs on a node's own style");
         }
     }
     for (_, sub) of s.parts {
         if sub.group {
             return Err("Group.mark() belongs on a node's own style");
+        }
+        if sets_overflow(sub) {
+            return Err("Overflow belongs on a node's own style");
         }
     }
     match s.font.family {
@@ -196,6 +204,10 @@ fun check(s: Sheet): Result<(), string> {
     }
     Ok(())
 }
+
+fun sets_overflow(
+    s: Sheet,
+): bool = s.overflow.x != Scrolling.Theme || s.overflow.y != Scrolling.Theme;
 
 fun check_width(w: Width): Result<(), string> = match w {
     Px(n) => if n < 0 { Err("Width.Px({n}): a width can't be negative") } else { Ok(()) },
