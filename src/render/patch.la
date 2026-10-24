@@ -42,6 +42,7 @@ import gtk {
     lgtk_text_place_cursor,
 };
 import core.diff;
+import core.lists;
 import render.build { fraction, add_to_wrap, create, create_in, fit_scroll, pack_one };
 import render.text_fields { text_of };
 import render.controls { picked, sync_choices };
@@ -312,20 +313,20 @@ fun apply<Msg>(
         update_at(live, parent(path), 0, fun(node: Live<Msg>): Live<Msg> = match node {
             Box(box, orientation, kids) => {
                 gtk_box_remove(box, widget(kids[i]));
-                Live.Box(box, orientation, diff.without(kids, i))
+                Live.Box(box, orientation, lists.without(kids, i))
             }
             Pack(bar, at_end, kids) => {
                 gtk_header_bar_remove(bar, widget(kids[i]));
-                Live.Pack(bar, at_end, diff.without(kids, i))
+                Live.Pack(bar, at_end, lists.without(kids, i))
             }
             // The child's widget: GTK removes the GtkFlowBoxChild around it.
             Wrap(flow, kids) => {
                 gtk_flow_box_remove(flow, widget(kids[i]));
-                Live.Wrap(flow, diff.without(kids, i))
+                Live.Wrap(flow, lists.without(kids, i))
             }
             Layers(over, kids) => {
                 gtk_overlay_remove_overlay(over, widget(kids[i]));
-                Live.Layers(over, diff.without(kids, i))
+                Live.Layers(over, lists.without(kids, i))
             }
             _ => panic("kivuli: a Remove patch points into something that isn't a column or row"),
         })
@@ -334,18 +335,18 @@ fun apply<Msg>(
         Box(box, orientation, kids) => {
             let kid = create_in(v, orientation, send);
             gtk_box_insert_child_after(box, widget(kid), sibling_before(kids, at));
-            Live.Box(box, orientation, diff.inserted(kids, at, kid))
+            Live.Box(box, orientation, lists.inserted(kids, at, kid))
         }
         Wrap(flow, kids) => {
             let kid = create_in(v, 0, send);
             add_to_wrap(flow, widget(kid), at);
-            Live.Wrap(flow, diff.inserted(kids, at, kid))
+            Live.Wrap(flow, lists.inserted(kids, at, kid))
         }
         _ => panic("kivuli: an Insert patch points at something that isn't a keyed column"),
     }),
     Move(path, from, to) => update_at(live, path, 0, fun(node: Live<Msg>): Live<Msg> = match node {
         Box(box, orientation, kids) => {
-            let next = diff.moved(kids, from, to);
+            let next = lists.moved(kids, from, to);
             gtk_box_reorder_child_after(box, widget(kids[from]), sibling_before(next, to));
             Live.Box(box, orientation, next)
         }
@@ -356,7 +357,7 @@ fun apply<Msg>(
             gtk_flow_box_remove(flow, moving);
             add_to_wrap(flow, moving, to);
             gtk_widget_unref(moving);
-            Live.Wrap(flow, diff.moved(kids, from, to))
+            Live.Wrap(flow, lists.moved(kids, from, to))
         }
         _ => panic("kivuli: a Move patch points at something that isn't a keyed column"),
     }),

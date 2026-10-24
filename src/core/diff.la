@@ -4,7 +4,7 @@
  * calls GTK, so it is tested with no display. Not responsible for applying
  * the changes (that's `live`).
  *
- * Depends on: views, looks, pictures, menus, box_rules
+ * Depends on: views, looks, pictures, menus, box_rules, lists
  * Used by: live (from step 3, part 2), patch
  */
 
@@ -15,6 +15,7 @@ import view.menus { MenuEntry };
 import view.clips { Overflowing };
 import styles.box_rules { needs_clamp };
 import styles.motion { Edge };
+import core.lists { inserted, moved, position, without };
 
 /**
  * One change to the live widgets. A path is the list of child indexes from
@@ -436,48 +437,6 @@ fun diff_keyed<Msg>(
     }
     out
 }
-
-/** Where `key` is in `keys`, looking from index `from`; it must be there. */
-fun position(keys: string[], key: string, from: i64): i64 {
-    let mut i = from;
-    while keys[i] != key {
-        i = i + 1;
-    }
-    i
-}
-
-/** `xs` with `x` placed at index `at`, the elements from there on shifted down one. */
-fun inserted<T>(xs: T[], at: i64, x: T): T[] {
-    let mut out: T[] = [];
-    let mut i = 0;
-    while i < xs.len {
-        if i == at {
-            out.push(x);
-        }
-        out.push(xs[i]);
-        i = i + 1;
-    }
-    if at == xs.len {
-        out.push(x);
-    }
-    out
-}
-
-/** `xs` without the element at index `skip`. */
-fun without<T>(xs: T[], skip: i64): T[] {
-    let mut out: T[] = [];
-    let mut i = 0;
-    while i < xs.len {
-        if i != skip {
-            out.push(xs[i]);
-        }
-        i = i + 1;
-    }
-    out
-}
-
-/** `xs` with the element at `from` taken out and put back at index `to`. */
-fun moved<T>(xs: T[], from: i64, to: i64): T[] = inserted(without(xs, from), to, xs[from]);
 
 fun child(path: i64[], i: i64): i64[] {
     let mut p = path;

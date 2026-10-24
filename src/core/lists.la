@@ -1,0 +1,49 @@
+/**
+ * Plain list helpers for the keyed diff and the patches that follow it:
+ * finding a key, inserting, removing and moving an element. Moved out of
+ * `diff.la` (file size). Pure.
+ *
+ * Used by: diff, patch
+ */
+
+/** Where `key` is in `keys`, looking from index `from`; it must be there. */
+fun position(keys: string[], key: string, from: i64): i64 {
+    let mut i = from;
+    while keys[i] != key {
+        i = i + 1;
+    }
+    i
+}
+
+/** `xs` with `x` placed at index `at`, the elements from there on shifted down one. */
+fun inserted<T>(xs: T[], at: i64, x: T): T[] {
+    let mut out: T[] = [];
+    let mut i = 0;
+    while i < xs.len {
+        if i == at {
+            out.push(x);
+        }
+        out.push(xs[i]);
+        i = i + 1;
+    }
+    if at == xs.len {
+        out.push(x);
+    }
+    out
+}
+
+/** `xs` without the element at index `skip`. */
+fun without<T>(xs: T[], skip: i64): T[] {
+    let mut out: T[] = [];
+    let mut i = 0;
+    while i < xs.len {
+        if i != skip {
+            out.push(xs[i]);
+        }
+        i = i + 1;
+    }
+    out
+}
+
+/** `xs` with the element at `from` taken out and put back at index `to`. */
+fun moved<T>(xs: T[], from: i64, to: i64): T[] = inserted(without(xs, from), to, xs[from]);
