@@ -2121,6 +2121,15 @@ Branch: main
 
 ---
 
+## SESSION 148 — 2026-10-24 — DECISION-041: the cost of Skia, explained — closed
+
+Branch: main
+
+### WHAT WAS DONE
+- Explained the work a Skia renderer means, part by part (bindings, windowing, layout, text, text editing and IME, accessibility, styles, interaction, mobile shells, upkeep). No code, no decision.
+
+---
+
 ## NEXT SESSION START POINT
 
 0. Since session 145 the goal is portability (MEMORY.md decision 20); the renderer is DECISION-041, open. Ask the user before more GTK-only work.
