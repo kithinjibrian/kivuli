@@ -161,6 +161,16 @@ Decisions 1–12 were agreed in the design discussion in the lugha repository (a
 
 ---
 
+### 20. The goal: portability (session 145)
+
+**Decision:** an app written once in Lugha, with pure, testable `update` and `view`, ships with one look to Linux, Windows, macOS, Android and iOS. The pure core (views, diff, styles, `kivuli.testing`) is the product; a renderer is replaceable.
+
+**Why:** the user's statement (session 145). GTK 4 was chosen at kickoff because it was at hand, not for a goal; it has no supported Android or iOS port, and kivuli's own design system (palettes, tokens, variants) already outgrew the GTK theme.
+
+**Depends on:** Lugha compiling for other targets (its runtime is Linux x86-64 only: epoll, an x86-64 context switch, pthread_getattr_np); a lugha PRP. Which renderer: DECISION-041 (open).
+
+---
+
 ## CURRENT PROJECT STATE
 
 ### Fully Working

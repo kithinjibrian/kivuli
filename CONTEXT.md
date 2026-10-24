@@ -2085,13 +2085,21 @@ Branch: main
 
 ---
 
-## SESSION 145 — 2026-10-24 — Goal: portability; why a web view — open
+## SESSION 145 — 2026-10-24 — Goal: portability; why a web view — closed
 
 Branch: main
+
+### WHAT WAS DONE
+- The user set the goal: portability. Recorded as MEMORY.md decision 20. Opened DECISION-041 (which renderer), leaning towards a web view, and argued the case to the user. No code.
+
+### STILL OPEN AT CLOSE
+- DECISION-041: the user's call. If it's the web view: a spike PRP (hello.la and tasks.la in a web view on Linux). Either way a lugha PRP for targets (Windows, macOS; arm64 Android, iOS).
 
 ---
 
 ## NEXT SESSION START POINT
+
+0. Since session 145 the goal is portability (MEMORY.md decision 20); the renderer is DECISION-041, open. Ask the user before more GTK-only work.
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
 2. Read CLAUDE.md, MEMORY.md, DECISIONS.md, then this file's last session; go by `git log` for what's merged.

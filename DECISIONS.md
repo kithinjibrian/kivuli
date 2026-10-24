@@ -12,6 +12,17 @@ Rules:
 
 ## OPEN — Requires human input before implementation
 
+### DECISION-041 — The renderer for a portable kivuli
+
+**Status:** open (the user's call; nothing is built on it yet)
+**Raised:** 2026-10-24 — Session 145 (the goal is portability, MEMORY.md decision 20)
+
+**Question:** what draws kivuli's views on Linux, Windows, macOS, Android and iOS? Options: (a) a system web view (WebView2, WKWebView, Android WebView, WebKitGTK) fed the diff's patches as data, with a small JS layer applying them; (b) native widgets per platform (GTK, Win32/WinUI, AppKit, Android Views, UIKit); (c) kivuli drawing everything itself (Skia or similar); (d) GTK kept on the desktop, a second renderer on mobile.
+
+**Leaning (session 145):** (a). Styles already compile to CSS; one renderer covers five platforms; text, input methods and accessibility come from the browser; the per-platform glue is a handful of functions. Costs: a JS layer, an async bridge (input echo, rule 8), a web view's attack surface and memory, render/ and lugha-gtk retired. Proposed first step: a spike PRP rendering hello.la and tasks.la in a web view on Linux.
+
+**Blocks:** any renderer work. Lugha's target support (a lugha PRP) is needed whatever the answer.
+
 ### DECISION-029 — lughac: the examples' tests can't run together
 
 **Status:** open (a lughac bug to report; run one at a time meanwhile)
