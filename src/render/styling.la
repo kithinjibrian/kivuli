@@ -47,6 +47,7 @@ import gtk {
     gtk_widget_get_hexpand,
     gtk_widget_get_valign,
     gtk_widget_get_vexpand,
+    lgtk_clamp_set_align,
     lgtk_clamp_set_limits,
     gtk_widget_get_visible,
     gtk_widget_set_visible,
@@ -95,12 +96,19 @@ fun apply_style<Msg>(node: Live<Msg>, style: Style, axis: i32) {
             let (min_w, max_w, min_h, max_h) = clamp_limits(style.sheet.sizing);
             lgtk_clamp_set_limits(clamp, min_w as i32, max_w as i32, min_h as i32, max_h as i32);
             // The parent holds the clamp: how the node takes room and sits
-            // moves onto it, and the node fills the clamp.
+            // moves onto it, and the node fills the clamp. Where the node has
+            // a maximum, the clamp fills instead and places the node itself:
+            // as much room as there is, up to the maximum (PRP-066).
             let w = widget(inner);
+            let (h, v) = (gtk_widget_get_halign(w), gtk_widget_get_valign(w));
+            let fill: i32 = 0;
+            let (clamp_h, inner_h) = if max_w >= 0 { (fill, h) } else { (h, fill) };
+            let (clamp_v, inner_v) = if max_h >= 0 { (fill, v) } else { (v, fill) };
             gtk_widget_set_hexpand(clamp, gtk_widget_get_hexpand(w));
             gtk_widget_set_vexpand(clamp, gtk_widget_get_vexpand(w));
-            gtk_widget_set_halign(clamp, gtk_widget_get_halign(w));
-            gtk_widget_set_valign(clamp, gtk_widget_get_valign(w));
+            gtk_widget_set_halign(clamp, clamp_h);
+            gtk_widget_set_valign(clamp, clamp_v);
+            lgtk_clamp_set_align(clamp, inner_h, inner_v);
             gtk_widget_set_hexpand(w, 0);
             gtk_widget_set_vexpand(w, 0);
             gtk_widget_set_halign(w, 0);

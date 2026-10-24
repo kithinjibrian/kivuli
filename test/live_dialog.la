@@ -5,6 +5,7 @@
 // and Escape: examples/components.la.)
 import std.env;
 import gtk {
+    GrapheneRect,
     GtkApplication,
     GtkWidget,
     connect_app,
@@ -14,6 +15,8 @@ import gtk {
     g_object_unref,
     gtk_application_new,
     gtk_application_window_new,
+    gtk_widget_allocate,
+    gtk_widget_compute_bounds,
     gtk_widget_get_can_focus,
     gtk_widget_get_can_target,
     gtk_widget_get_focusable,
@@ -164,11 +167,21 @@ fun a_sheet_sits_on_its_edge_over_an_inert_page_and_its_backdrop_closes_it() {
             ));
             let (page, layers) = parts(live_of(app));
             let card = widget(layers[1]);
-            // GtkAlign: 0 fill, 2 end.
+            // GtkAlign: 0 fill. The card's clamp fills the window and puts the
+            // 384-wide card at its end (PRP-066).
             note(
                 seen,
                 "layers {layers.len} target {gtk_widget_get_can_target(page)} across {gtk_widget_get_halign(card)} down {gtk_widget_get_valign(card)}",
             );
+            match layers[1] {
+                Clamp(inner, clamp) => {
+                    gtk_widget_allocate(clamp, 1000, 600, -1, None);
+                    let mut b = GrapheneRect { x: 0.0, y: 0.0, width: 0.0, height: 0.0 };
+                    let ok = gtk_widget_compute_bounds(widget(inner), clamp, out b);
+                    note(seen, "placed {ok} at {b.x as i32}, {b.width as i32} x {b.height as i32}");
+                }
+                _ => note(seen, "no clamp"),
+            }
             emit_widget(widget(layers[0]), "clicked");
             note(
                 seen,
@@ -180,5 +193,10 @@ fun a_sheet_sits_on_its_edge_over_an_inert_page_and_its_backdrop_closes_it() {
     );
     g_application_run(application, 0, None);
     g_object_unref(application);
-    assert_eq(seen.get(), ["layers 2 target 0 across 2 down 0", "close", "layers 0 target 1"]);
+    assert_eq(seen.get(), [
+        "layers 2 target 0 across 0 down 0",
+        "placed 1 at 616, 384 x 600",
+        "close",
+        "layers 0 target 1",
+    ]);
 }

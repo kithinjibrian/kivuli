@@ -8,6 +8,11 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.62.0] — 2026-10-24
+
+### Changed
+- A node with a maximum size and an alignment other than fill (`.align`, `.place`) is as big as there's room for, up to its maximum, and sits where its alignment says (PRP-066; Rapidkoi's DECISION-061): `Sizing.max_width(680)` with `.align(Align.Center)` is a centred column, as CSS's `max-width` with `margin: auto`. It used to take its natural width, so wrapping text shrank to a narrow strip. Needs lugha-gtk 0.1.54.
+
 ## [0.61.0] — 2026-10-24
 
 ### Added

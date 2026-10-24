@@ -7,6 +7,7 @@
 // groups' short utilities (`Font.bold()`, `Shadow.md()`).
 import kivuli {
     View,
+    Align,
     Background,
     Sizing,
     Edges,
@@ -153,6 +154,11 @@ fun view(m: ()): View<()> = scroll(
             Spacing.padding(8),
             Sizing { max_width: Width.Px(560), ..Sizing.theme() },
         ]),
+        text("max_width 560, centred: as wide as there's room for, at most 560 pixels, in the middle. Narrow the window and it narrows with it.").wrap().style([
+            all(hairline()),
+            Spacing.padding(8),
+            Sizing.max_width(560),
+        ]).align(Align.Center),
         text("min_width 200, max_width 400: between the two").style([
             all(hairline()),
             Spacing.padding(8),

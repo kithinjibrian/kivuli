@@ -1,6 +1,6 @@
 # PRP-066 — A maximum size, placed by `.align`
 
-Status: approved (2026-10-24: start, centre and end; lugha-gtk 0.1.54, pushed and tagged)
+Status: approved and built (2026-10-24: start, centre and end; lugha-gtk 0.1.54, pushed and tagged)
 Request: Rapidkoi's DECISION-061, section 14 of `../rapidkoi/docs/specs/kivuli-requests.md`
 
 ## FEATURE: a node with a maximum size and an alignment is as big as there's room for, at most its maximum, and sits where its alignment says (CSS's `max-width` with `margin: 0 auto`).
