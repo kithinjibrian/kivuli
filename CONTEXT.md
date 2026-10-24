@@ -2061,9 +2061,15 @@ Branch: main
 
 ---
 
-## SESSION 143 — 2026-10-24 — Question: kivuli on Windows, Android, iOS — open
+## SESSION 143 — 2026-10-24 — Question: kivuli on Windows, Android, iOS — closed
 
 Branch: main
+
+### WHAT WAS DONE
+- Answered only, no code. Lugha itself is the first blocker, not GTK: its runtime uses epoll (net.c), mmap'd green-thread stacks with a hand-written x86-64 context switch (tasks.c), and pthread_getattr_np (stack.c), all Linux-only, and lughac links through cc with no target selection. GTK 4 runs on Windows and macOS, but it has no supported port for Android or iOS. Advised: keep GTK for the desktop; for mobile, add a second renderer behind the pure core (view/diff/patches), not a switch away from GTK.
+
+### STILL OPEN AT CLOSE
+- The user decides whether to pursue it (it would need a lugha PRP for targets first, then a kivuli PRP).
 
 ---
 
