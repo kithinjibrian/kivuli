@@ -70,6 +70,11 @@ fun step<Msg>(
         update_in(kid, path, depth + 1, f, with_menu),
     ),
     Scroll(scrolled, kid) => Live.Scroll(scrolled, update_in(kid, path, depth + 1, f, with_menu)),
+    Clip(clipped, kid, current) => Live.Clip(
+        clipped,
+        update_in(kid, path, depth + 1, f, with_menu),
+        current,
+    ),
     Wrap(flow, kids) => {
         let i = path[depth];
         let mut next = kids;
@@ -151,6 +156,7 @@ fun at_outer<Msg>(node: Live<Msg>, path: i64[]): Live<Msg> {
         here = match bare(here) {
             Box(_, _, kids) => kids[i],
             Scroll(_, kid) => kid,
+            Clip(_, kid, _) => kid,
             ButtonWith(_, _, _, _, kid) => kid,
             Wrap(_, kids) => kids[i],
             Overlay(_, base, layers) => if i == 0 { base } else { layers },

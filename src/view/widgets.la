@@ -148,6 +148,18 @@ public fun scroll<Msg>(child: View<Msg>): View<Msg> = View.Scroll(child, false);
 public fun scroll_fit<Msg>(child: View<Msg>): View<Msg> = View.Scroll(child, true);
 
 /**
+ * Shows `child` cut off where it doesn't fit: the clip asks for no room of its
+ * own, so the child never pushes its parent (or the window) bigger. The child
+ * gets at least the room it needs, at the top start; what sticks out at the
+ * end side and the bottom is cut off. `.on_overflow(f)` says how far.
+ * `.expand()` it to fill its parent.
+ *
+ * Example:
+ *     clip(page(m)).expand().on_overflow(Msg.Overflowed)
+ */
+public fun clip<Msg>(child: View<Msg>): View<Msg> = View.Clip(child, None);
+
+/**
  * Stacks `children` top to bottom, like `column`, but matches them across
  * views by their keys rather than their positions: reordering, inserting or
  * deleting rows moves, adds or removes just those widgets. Keys must be

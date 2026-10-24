@@ -1,0 +1,141 @@
+// A clip on real GTK widgets (PRP-062): it asks for no minimum, holds its
+// child's widget, and after an allocation smaller than the child sends how
+// far it sticks out, once, from GTK's loop; the message is the current one,
+// and none is sent without one. The window isn't shown, so the test lays the
+// clip out itself. Needs a display, so it is skipped without one.
+import std.env;
+import gtk {
+    GtkApplication,
+    GtkWidget,
+    connect_app,
+    g_application_quit,
+    g_application_run,
+    g_object_unref,
+    g_timeout_add_full,
+    gtk_application_new,
+    gtk_application_window_new,
+    gtk_widget_allocate,
+    gtk_widget_measure,
+    lgtk_clip_get_child,
+};
+import kivuli.render.live { dispatch, mount, live_of };
+import kivuli.core.effects { sandbox_app };
+import kivuli.core.live_tree { Live, widget };
+import kivuli { View, Overflowing, Sizing, Width, clip, column, text };
+
+fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
+
+enum Msg {
+    Over(i64, i64),
+    Quiet,
+    Loud,
+}
+
+struct Model {
+    heard: string[],
+    listening: bool,
+}
+
+fun update(m: Model, msg: Msg): Model = match msg {
+    Quiet => Model { listening: false, ..m },
+    Loud => Model { listening: true, ..m },
+    _ => {
+        let mut heard = m.heard;
+        heard.push("{msg}");
+        Model { heard: heard, ..m }
+    }
+};
+
+fun view(m: Model): View<Msg> {
+    let big: View<Msg> = text("x").style([
+        Sizing { min_width: Width.Px(200), min_height: Width.Px(100), ..Sizing.theme() },
+    ]);
+    let c = clip(column([big]));
+    column([
+        if m.listening {
+            c.on_overflow(fun(o: Overflowing) = Msg.Over(o.across, o.down))
+        } else {
+            c
+        },
+    ])
+}
+
+/** Lays `w` out at `width` × `height`, as its parent would. */
+fun lay_out(w: GtkWidget, width: i32, height: i32) {
+    let mut minimum: i32 = 0;
+    let mut natural: i32 = 0;
+    let mut a: i32 = 0;
+    let mut b: i32 = 0;
+    gtk_widget_measure(w, 0, -1, out minimum, out natural, out a, out b);
+    gtk_widget_measure(w, 1, width, out minimum, out natural, out a, out b);
+    gtk_widget_allocate(w, width, height, -1, None);
+}
+
+@test
+fun a_clip_sends_how_far_its_child_sticks_out() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen: Ref<string[]> = Ref.new([]);
+    let application = gtk_application_new("org.kivuli.test.clip", 0);
+    connect_app(
+        application,
+        "activate",
+        fun(a: GtkApplication) {
+            let window = gtk_application_window_new(a);
+            let app = mount(
+                a,
+                window,
+                sandbox_app("org.kivuli.test", Model { heard: [], listening: true }, update, view),
+            );
+            let clipped = fun(): GtkWidget = match live_of(app) {
+                Box(_, _, ks) => widget(ks[0]),
+                _ => panic("expected a column"),
+            };
+            let mut minimum: i32 = 0;
+            let mut natural: i32 = 0;
+            let mut x: i32 = 0;
+            let mut y: i32 = 0;
+            gtk_widget_measure(clipped(), 0, -1, out minimum, out natural, out x, out y);
+            seen.set([
+                "asks min {minimum} natural at least 200 {natural >= 200} child {lgtk_clip_get_child(clipped()).is_some()}",
+            ]);
+            lay_out(clipped(), 120, 60);
+            // After GTK's loop: the message, sent once.
+            g_timeout_add_full(0, 50, fun(): i32 {
+                let Some(s) = app.state.get() else {
+                    panic("a mounted app has a state");
+                };
+                seen.update(fun(xs) {
+                    let mut ys = xs;
+                    ys.push("heard {s.model.heard}");
+                    ys
+                });
+                // Without a message, a new overflow sends nothing.
+                dispatch(app, Msg.Quiet);
+                lay_out(clipped(), 150, 100);
+                g_timeout_add_full(0, 50, fun(): i32 {
+                    let Some(t) = app.state.get() else {
+                        panic("a mounted app has a state");
+                    };
+                    seen.update(fun(xs) {
+                        let mut ys = xs;
+                        ys.push("quiet: heard {t.model.heard.len}");
+                        ys
+                    });
+                    g_application_quit(a);
+                    0
+                });
+                0
+            });
+        },
+        0,
+    );
+    g_application_run(application, 0, None);
+    g_object_unref(application);
+    assert_eq(seen.get(), [
+        "asks min 0 natural at least 200 true child true",
+        "heard [\"Over(80, 40)\"]",
+        "quiet: heard 1",
+    ]);
+}

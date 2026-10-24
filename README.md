@@ -130,6 +130,7 @@ lughac run examples/split.la      # one component, two copies, through map
 | `overlay(base, layers)` | `layers` drawn on top of `base`, in order (a later one above). `[]` shows only the base, so opening and closing a panel is just the list changing; the base is never rebuilt. The overlay takes the base's size. |
 | `scroll(child)` | Scrolls its child when it's bigger than the room it's given; it takes the spare room. |
 | `scroll_fit(child)` | As big as its child until its parent can't give that much, then it scrolls; it takes no spare room, so what follows it comes right after (a list then a + button). |
+| `clip(child)` | Cuts its child off where it doesn't fit, and never pushes its parent (or the window) bigger: the child gets at least the room it needs, at the top start, and what sticks out at the end side and the bottom is cut off. `.on_overflow(f)` sends `f(Overflowing { across, down })`, in pixels, whenever that changes (0 when it fits). `.expand()` it to fill. Inside a `scroll` styled `Overflow.scroll_y()`, a too-wide row is cut instead of widening the list. |
 | `spacer()`, `separator()` | Room that grows along its column or row; a line across it. |
 | `lazy(key, build)` | Calls `build` only when `key` changes at that place; otherwise reuses the subtree and skips diffing it. The key must cover everything the subtree shows. |
 

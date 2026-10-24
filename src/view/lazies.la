@@ -79,6 +79,13 @@ fun resolve<Msg>(v: View<Msg>, old: Option<View<Msg>>): View<Msg> = match v {
         }),
         fit,
     ),
+    Clip(x, on_overflow) => View.Clip(
+        resolve(x, match counterpart(old) {
+            Some(Clip(y, _)) => Some(y),
+            _ => None,
+        }),
+        on_overflow,
+    ),
     Framed(body, start, title, end) => match counterpart(old) {
         Some(Framed(b, s, t, e)) => View.Framed(
             resolve(body, Some(b)),

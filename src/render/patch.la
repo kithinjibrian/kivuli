@@ -29,6 +29,7 @@ import gtk {
     gtk_popover_set_child,
     gtk_range_set_range,
     gtk_scrolled_window_set_child,
+    lgtk_clip_set_child,
     gtk_text_buffer_set_text,
     gtk_progress_bar_set_fraction,
     gtk_switch_set_active,
@@ -258,6 +259,13 @@ fun apply<Msg>(
         fit_scroll(widget(at(live, path)), fit);
         live
     }
+    SetOnOverflow(path, f) => {
+        match at(live, path) {
+            Clip(_, _, current) => current.set(f),
+            _ => panic("kivuli: a SetOnOverflow patch points at something that isn't a clip"),
+        }
+        live
+    }
     SetPopover(path, open, side, arrow, close) => {
         show_popover(at(live, path), open, side, arrow, close);
         live
@@ -436,6 +444,11 @@ fun apply<Msg>(
                 let fresh = create_in(v, 1, send);
                 gtk_scrolled_window_set_child(scrolled, Some(widget(fresh)));
                 Live.Scroll(scrolled, fresh)
+            }
+            Clip(clipped, _, current) => {
+                let fresh = create_in(v, 1, send);
+                lgtk_clip_set_child(clipped, Some(widget(fresh)));
+                Live.Clip(clipped, fresh, current)
             }
             // A header's body is the window's child; its title the bar's title widget.
             Framed(bar, body, title, start, end) => if i == 0 {

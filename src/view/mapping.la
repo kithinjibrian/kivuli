@@ -12,6 +12,7 @@
 import view.views { View };
 import view.pictures { Image };
 import view.menus { MenuEntry };
+import view.clips { Overflowing };
 import view.looks { Align, Style, plain };
 import styles.theming { Color, Paint };
 import styles.boxes { Background, Border, Spacing };
@@ -62,6 +63,10 @@ fun mapped<Msg, B>(v: View<Msg>, f: fun(Msg): B): View<B> = match v {
     Spacer => View.Spacer,
     Separator => View.Separator,
     Scroll(x, fit) => View.Scroll(x.map(f), fit),
+    Clip(x, on_overflow) => View.Clip(x.map(f), match on_overflow {
+        Some(g) => Some(fun(o: Overflowing): B = f(g(o))),
+        None => None,
+    }),
     Keyed(pairs) => View.Keyed(pairs.map(fun(pair) = (pair.0, pair.1.map(f)))),
     Wrap(xs) => View.Wrap(xs.map(fun(x) = x.map(f))),
     KeyedWrap(pairs) => View.KeyedWrap(pairs.map(fun(pair) = (pair.0, pair.1.map(f)))),
@@ -128,6 +133,14 @@ fun with_submit<Msg>(v: View<Msg>, msg: Msg): View<Msg> = match v {
     Input(_, None) => v,
     Styled(inside, s) => View.Styled(with_submit(inside, msg), s),
     Menu(inside, entries) => View.Menu(with_submit(inside, msg), entries),
+    _ => v,
+};
+
+/** `.on_overflow`: a clip's message set, inside its style; other nodes unchanged. */
+fun with_overflow<Msg>(v: View<Msg>, f: fun(Overflowing): Msg): View<Msg> = match v {
+    Clip(child, _) => View.Clip(child, Some(f)),
+    Styled(inside, s) => View.Styled(with_overflow(inside, f), s),
+    Menu(inside, entries) => View.Menu(with_overflow(inside, f), entries),
     _ => v,
 };
 

@@ -102,6 +102,7 @@ fun shown<M>(node: Live<M>): string = match node {
     Clamp(inner, _) => shown(inner) + " (clamped)",
     Slider(_, _, _, _) => "<slider>",
     Scroll(_, kid) => "scroll(" + shown(kid) + ")",
+    Clip(_, kid, _) => "clip(" + shown(kid) + ")",
     Box(_, _, kids) => {
         let mut out = "";
         for k of kids {

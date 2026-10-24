@@ -59,8 +59,12 @@ import gtk {
     gtk_widget_set_vexpand,
     lgtk_clamp_new,
     lgtk_clamp_set_child,
+    lgtk_clip_new,
+    lgtk_clip_overflow,
+    lgtk_clip_set_child,
 };
 import core.live_tree { Choices, Live, widget };
+import view.clips { Overflowing };
 import view.views { View };
 
 import render.buttons { create_button, create_button_with };
@@ -213,6 +217,30 @@ fun create_in<Msg>(v: View<Msg>, axis: i32, send: fun(Msg)): Live<Msg> = match v
         let kid = create_in(child, 1, send);
         gtk_scrolled_window_set_child(scrolled, Some(widget(kid)));
         Live.Scroll(scrolled, kid)
+    }
+    Clip(child, on_overflow) => {
+        let clipped = lgtk_clip_new();
+        let kid = create_in(child, 1, send);
+        lgtk_clip_set_child(clipped, Some(widget(kid)));
+        let current = Ref.new(on_overflow);
+        // lugha-gtk's clip says so from an idle, never during layout.
+        connect_widget(
+            clipped,
+            "overflow-changed",
+            fun(w: GtkWidget) {
+                match current.get() {
+                    Some(f) => send(
+                        f(Overflowing {
+                            across: lgtk_clip_overflow(w, 1) as i64,
+                            down: lgtk_clip_overflow(w, 0) as i64,
+                        }),
+                    ),
+                    None => {}
+                }
+            },
+            0,
+        );
+        Live.Clip(clipped, kid, current)
     }
     // On screen a keyed column is a column: the keys matter only to the diff.
     // Transparent: the widgets are those of what it built.

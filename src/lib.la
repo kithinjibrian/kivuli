@@ -10,6 +10,7 @@
 
 public import view.views { View };
 public import view.mapping { Bar, Dialog };
+public import view.clips { Overflowing };
 public import view.looks { Align, Fit, Scheme };
 public import styles.theming { Color, Colorish, Paint, Token, hex, rgb };
 public import styles.palettes { Palette };
@@ -65,6 +66,7 @@ public import view.widgets {
     separator,
     scroll,
     scroll_fit,
+    clip,
     keyed_column,
     wrap,
     keyed_wrap,

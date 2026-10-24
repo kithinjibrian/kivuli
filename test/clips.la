@@ -1,0 +1,67 @@
+// A clip (PRP-062): `clip`'s node, `.on_overflow` setting its message (through
+// a style, ignored elsewhere), `map`, and the diff. No GTK.
+import kivuli.core.diff { Patch, diff as patches };
+import kivuli { View, Overflowing, clip, column, text };
+
+/** Views hold functions, which have no `==`: compared as printed. */
+fun assert_same<T>(actual: T, expected: T) {
+    assert_eq("{actual}", "{expected}");
+}
+
+enum Msg {
+    Over(i64, i64),
+}
+
+enum Outer {
+    Inner(Msg),
+}
+
+fun over(o: Overflowing): Msg = Msg.Over(o.across, o.down);
+
+/** What a clip's message makes of 3 across and 4 down; `none` without one. */
+fun sends<M>(v: View<M>): string = match v {
+    Clip(_, Some(f)) => "{f(Overflowing { across: 3, down: 4 })}",
+    Clip(_, None) => "none",
+    Styled(inside, _) => sends(inside),
+    _ => "not a clip",
+};
+
+@test
+fun a_clip_holds_its_child_and_sends_nothing_until_asked() {
+    let v: View<Msg> = clip(text("a"));
+    assert_eq(sends(v), "none");
+    match v {
+        Clip(child, _) => assert_same(child, text("a")),
+        _ => panic("expected a clip"),
+    }
+}
+
+@test
+fun on_overflow_sets_the_message_through_a_style_and_is_ignored_elsewhere() {
+    let c: View<Msg> = clip(text("a"));
+    assert_eq(sends(c.on_overflow(over)), "Over(3, 4)");
+    assert_eq(sends(c.expand().on_overflow(over)), "Over(3, 4)");
+    let plain: View<Msg> = text("a");
+    assert_same(plain.on_overflow(over), text("a"));
+}
+
+@test
+fun map_carries_the_message() {
+    let c: View<Msg> = clip(text("a"));
+    let v = c.on_overflow(over).map(Outer.Inner);
+    assert_eq(sends(v), "Inner(Over(3, 4))");
+}
+
+@test
+fun the_diff_goes_inside_and_re_points_the_message() {
+    let a: View<Msg> = clip(column([text("a")])).on_overflow(over);
+    let b: View<Msg> = clip(column([text("b")])).on_overflow(over);
+    let ps = patches(a, b);
+    let kinds = ps.map(fun(p: Patch<Msg>): string = match p {
+        SetOnOverflow(path, _) => "message at {path}",
+        SetText(path, t) => "text {t} at {path}",
+        Replace(path, _) => "replace at {path}",
+        _ => "other",
+    });
+    assert_eq(kinds, ["message at []", "text b at [0, 0]"]);
+}

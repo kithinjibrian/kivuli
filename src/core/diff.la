@@ -12,6 +12,7 @@ import view.views { View };
 import view.looks { Style, plain };
 import view.pictures { Image, identity };
 import view.menus { MenuEntry };
+import view.clips { Overflowing };
 import styles.box_rules { needs_clamp };
 import styles.motion { Edge };
 
@@ -60,6 +61,8 @@ enum Patch<Msg> {
     SetPopover(i64[], bool, Edge, bool, Msg),
     /** The scroll at the path fits its content (`scroll_fit`) or takes the spare room (`scroll`). */
     SetFit(i64[], bool),
+    /** The clip at the path sends this when its child's overflow changes (`None`: nothing). */
+    SetOnOverflow(i64[], Option<fun(Overflowing): Msg>),
     /**
      * The widget at the path has this context menu from now on (`[]`: none).
      * Every update: its messages can't be compared.
@@ -199,6 +202,11 @@ fun diff_inside<Msg>(
     // A scroll has one child, at index 0 of its path; fitting is set in place.
     (Scroll(a, fit_a), Scroll(b, fit_b)) => joined(
         if fit_a == fit_b { [] } else { [Patch.SetFit(path, fit_b)] },
+        diff_at(child(path, 0), a, b),
+    ),
+    // A clip's message can't be compared: re-pointed every time, as an input's.
+    (Clip(a, _), Clip(b, f)) => joined(
+        [Patch.SetOnOverflow(path, f)],
         diff_at(child(path, 0), a, b),
     ),
     (Keyed(xs), Keyed(ys)) => diff_keyed(path, xs, ys),

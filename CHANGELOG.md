@@ -8,6 +8,14 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.58.0] — 2026-10-24
+
+### Added
+- `clip(child)` and `.on_overflow(f)` (PRP-062; Rapidkoi's DECISION-057): content cut off where it doesn't fit, never pushing its parent or the window bigger, and `Overflowing { across, down }` saying by how much. Needs lugha-gtk 0.1.50.
+
+### Changed
+- `View` has a new variant, `Clip`; `Bar` is defined in `view/mapping.la` (still re-exported by the entry).
+
 ## [0.57.0] — 2026-10-24
 
 ### Added

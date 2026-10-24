@@ -17,6 +17,7 @@ import gtk {
     GtkWidget,
 };
 import view.menus { MenuEntry };
+import view.clips { Overflowing };
 
 /** The widgets on screen, shaped exactly like the `View` they show. */
 enum Live<Msg> {
@@ -76,6 +77,8 @@ enum Live<Msg> {
     Separator(GtkWidget),
     /** A scrolled window and the one child it shows. */
     Scroll(GtkWidget, Live<Msg>),
+    /** A clip (lugha-gtk's), its one child, and the message its `overflow-changed` handler reads. */
+    Clip(GtkWidget, Live<Msg>, Ref<Option<fun(Overflowing): Msg>>),
     /**
      * A wrap or keyed wrap: a `GtkFlowBox` and its children, each inside a
      * `GtkFlowBoxChild` the box made (the children's widgets are what's here).
@@ -182,6 +185,7 @@ fun widget<Msg>(node: Live<Msg>): GtkWidget = match node {
     Spacer(w) => w,
     Separator(w) => w,
     Scroll(w, _) => w,
+    Clip(w, _, _) => w,
     Wrap(w, _) => w,
     Overlay(w, _, _) => w,
     Popover(w, _, _, _, _, _) => w,

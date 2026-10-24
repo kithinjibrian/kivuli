@@ -1,0 +1,17 @@
+/**
+ * What a clip reports (PRP-062): how far its child sticks out. Plain data,
+ * in its own module so `views` can name it without an import cycle.
+ *
+ * Used by: views, mapping, diff, build, lib
+ */
+
+/**
+ * How far a clip's child sticks out, in pixels: `across` at the end side (the
+ * right, or the left in right-to-left text) and `down` at the bottom; 0 when
+ * it fits. The child sits at the top start, so it never sticks out at the
+ * top or the start.
+ */
+public struct Overflowing {
+    public across: i64,
+    public down: i64,
+}

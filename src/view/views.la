@@ -11,6 +11,7 @@ import styles.palettes { Palette };
 import styles { Styling, applied };
 import view.pictures { Image };
 import view.menus { MenuEntry };
+import view.clips { Overflowing };
 import styles.motion { Edge };
 // The one import cycle kivuli allows (DECISION-018): mapping maps views.
 import view.mapping {
@@ -21,6 +22,7 @@ import view.mapping {
     mapped,
     with_dialog,
     with_menu,
+    with_overflow,
     with_submit,
 };
 
@@ -71,6 +73,8 @@ public enum View<Msg> {
     Separator,
     /** One child, scrolled when it's bigger than the room it's given; whether it fits its content (`scroll_fit`). */
     Scroll(View<Msg>, bool),
+    /** One child, cut off where it doesn't fit, never pushing its parent bigger; the message saying how far it sticks out (`.on_overflow`). */
+    Clip(View<Msg>, Option<fun(Overflowing): Msg>),
     /** Children stacked top to bottom, each with a key naming it across views. */
     Keyed((string, View<Msg>)[]),
     /** Children side by side, moving to a new line when a line is full. */
@@ -420,6 +424,15 @@ impl View<Msg> {
     );
 
     public fun on_submit(self, msg: Msg): View<Msg> = with_submit(self, msg);
+
+    /**
+     * Sends `f(how_far)` when a `clip`'s child starts or stops sticking out,
+     * or sticks out by a different amount; ignored on other nodes.
+     *
+     * Example:
+     *     clip(page(m)).on_overflow(Msg.Overflowed)
+     */
+    public fun on_overflow(self, f: fun(Overflowing): Msg): View<Msg> = with_overflow(self, f);
 
     /**
      * Gives the node a context menu, opened by a right-click, a long press or
