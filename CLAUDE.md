@@ -9,7 +9,7 @@ Where things are recorded: **DECISIONS.md** (every decision and its why: core de
 ## HOW WE WORK
 
 - **Discuss before building.** Research rather than guess, and cite what you checked.
-- **A feature needs an approved PRP** in `PRPs/prp-{NNN}-{feature_name}.md` (next unused number, from `PRPs/TEMPLATE.md`). Without one: no code; run a discovery (`PRPs/DISCOVERY.md`), one question at a time, each with a recommended answer, then write the PRP and wait for approval. A chore skips the PRP when the user says so.
+- **A feature needs an approved PRP** in `PRPs/prp-{NNN}-{feature_name}.md` (next unused number, from `PRPs/TEMPLATE.md`). Without one: no code; run a discovery (`PRPs/DISCOVERY.md`): research everything you can, write the PRP, and ask only the questions that truly need the user, each with a recommendation; build after approval. A chore skips the PRP when the user says so.
 - **One PRP at a time.** If the scope grows mid-way: stop, say what you found, and get approval before going on.
 - **A branch per PRP or chore**, from `main`. Merge into `main` only when the user asks, after the full suite passes.
 - **Never make an architectural choice silently.** Check DECISIONS.md first: `open` blocks the work (ask the user); `resolved` is followed, not re-litigated; a new question is added as `open`, and you stop.
