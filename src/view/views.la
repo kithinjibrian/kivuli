@@ -8,12 +8,13 @@
 
 import view.looks { Style, Window, Align, Fit, Scheme, plain };
 import styles.palettes { Palette };
-import styles { Sheet, Styling, applied };
+import styles { Styling, applied };
 import view.pictures { Image };
 import view.menus { MenuEntry };
 import styles.motion { Edge };
 // The one import cycle kivuli allows (DECISION-018): mapping maps views.
 import view.mapping {
+    Bar,
     Dialog,
     button_image,
     disabled_node,
@@ -470,31 +471,4 @@ impl View<Msg> {
      *     row([counter.view(m.left).map(Msg.Left), counter.view(m.right).map(Msg.Right)])
      */
     public fun map<B>(self, f: fun(Msg): B): View<B> = mapped(self, f);
-}
-
-/**
- * A header bar, before it goes in `.header(…)`: the views at its start, its
- * title view and the views at its end, and its own style. Made by
- * `header_bar`; styled like a node.
- */
-public struct Bar<Msg> {
-    start: View<Msg>[],
-    title: View<Msg>,
-    end: View<Msg>[],
-    sheet: Sheet,
-}
-
-impl Bar<Msg> {
-    /**
-     * How the bar looks, as `.style` on a node: its window controls stay
-     * GTK's. An exact or maximum size, a gap and a background image are the
-     * window's, and stop the app with a message.
-     *
-     * Example:
-     *     header_bar([back], title, []).style([Background { color: Paint.Color(hex("#242424")), ..Background.theme() }])
-     */
-    public fun style(self, items: Styling[]): Bar<Msg> = Bar {
-        sheet: applied(self.sheet, items),
-        ..self,
-    };
 }

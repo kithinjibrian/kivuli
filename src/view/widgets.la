@@ -7,7 +7,8 @@
  * Used by: build, lib; `snap` by build and testing, styling, testing
  */
 
-import view.views { Bar, View };
+import view.views { View };
+import view.mapping { Bar };
 import styles { Sheet };
 import view.pictures { Image };
 import styles.motion { Edge };

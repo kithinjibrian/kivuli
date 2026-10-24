@@ -1,6 +1,7 @@
 /**
  * The bodies of `View`'s methods that rewrite nodes rather than their style:
- * `map`, `.disabled`, `.image`/`.icon`, `.on_submit`, `.menu`. Moved out of `views.la`
+ * `map`, `.disabled`, `.image`/`.icon`, `.on_submit`, `.menu`; and the header
+ * bar before it goes in `.header(…)`, `Bar`. Moved out of `views.la`
  * (DECISION-018, file size), where every method must stay with `View`;
  * `views` and `mapping` import each other, the one import cycle kivuli allows.
  *
@@ -17,7 +18,7 @@ import styles.boxes { Background, Border, Spacing };
 import styles.drawing { Shadow };
 import styles.motion { Motion };
 import styles.values { Radius };
-import styles { Sheet, When, State, applied };
+import styles { Sheet, Styling, When, State, applied };
 
 /** `v` sending `f(msg)` wherever it would send `msg`; what's shown is unchanged. */
 fun mapped<Msg, B>(v: View<Msg>, f: fun(Msg): B): View<B> = match v {
@@ -181,4 +182,31 @@ fun backdrop<Msg>(close: Msg): View<Msg> {
         focusable: false,
         ..plain(),
     })
+}
+
+/**
+ * A header bar, before it goes in `.header(…)`: the views at its start, its
+ * title view and the views at its end, and its own style. Made by
+ * `header_bar`; styled like a node.
+ */
+public struct Bar<Msg> {
+    start: View<Msg>[],
+    title: View<Msg>,
+    end: View<Msg>[],
+    sheet: Sheet,
+}
+
+impl Bar<Msg> {
+    /**
+     * How the bar looks, as `.style` on a node: its window controls stay
+     * GTK's. An exact or maximum size, a gap and a background image are the
+     * window's, and stop the app with a message.
+     *
+     * Example:
+     *     header_bar([back], title, []).style([Background { color: Paint.Color(hex("#242424")), ..Background.theme() }])
+     */
+    public fun style(self, items: Styling[]): Bar<Msg> = Bar {
+        sheet: applied(self.sheet, items),
+        ..self,
+    };
 }
