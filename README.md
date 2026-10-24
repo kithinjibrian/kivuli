@@ -107,7 +107,7 @@ lughac run examples/split.la      # one component, two copies, through map
 | | |
 | --- | --- |
 | `sandbox(id, init, update, view)` | An app without effects: `update(model, msg)` returns the next model. |
-| `application(App { id, init, update, view, subscriptions })` | An app with effects: `init` and `update` also return a `Cmd`, and `subscriptions(model)` says what to keep listening to. |
+| `application(App { id, init, update, view, subscriptions, on_open })` | An app with effects: `init` and `update` also return a `Cmd`, and `subscriptions(model)` says what to keep listening to. `on_open: Some(Msg.Open)` makes it open things: the items on its command line, and a later launch's (which then exits), arrive as `Open(items)` after `init`, each a local file's absolute path or an address as GIO writes it (`rapidkoi://host` gains a trailing `/`); `None` opens nothing, and GTK sees no command line. A second launch brings the running window to the front. |
 
 **Widgets**
 

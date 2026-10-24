@@ -8,6 +8,16 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.61.0] — 2026-10-24
+
+### Added
+- `App.on_open` (PRP-065; Rapidkoi's DECISION-014): what an app is asked to open, from its command line or a second launch, arrives as a message in the running app; the second launch exits. Needs lugha-gtk 0.1.53.
+
+### Changed
+- `App` has a new field, `on_open`: every `App { … }` needs it (`on_open: None` for today's behaviour).
+- A second launch brings the running window to the front, instead of mounting the app again in a new window.
+- Starting an app moved from `render/live.la` to `render/launch.la`.
+
 ## [0.60.0] — 2026-10-24
 
 ### Added

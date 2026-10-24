@@ -1,6 +1,6 @@
 # PRP-065 — Opening from outside
 
-Status: approved (2026-10-24: a field on `App`, breaking; open only, no `NON_UNIQUE`; `live.la` split; lugha-gtk 0.1.53)
+Status: approved and built (2026-10-24: a field on `App`, breaking; open only, no `NON_UNIQUE`; `live.la` split; lugha-gtk 0.1.53)
 Request: Rapidkoi's DECISION-014, section 6 of `../rapidkoi/docs/specs/kivuli-requests.md`
 
 ## FEATURE: `App.on_open`: what an app is asked to open, from its command line or a second launch, arrives as a message.

@@ -98,6 +98,7 @@ fun the_window_answers_while_a_task_sleeps() {
         },
         view: fun(n: i64): View<Step> = column([button("Click", Step.Clicked)]),
         subscriptions: fun(n: i64): Sub<Step> = Sub.none(),
+        on_open: None,
     };
     run("org.kivuli.test.task_sleep", program, fun(app: Running<i64, Step>) {
         // A click 50 ms in: GTK handles it while the task is still asleep.
@@ -156,6 +157,7 @@ fun a_download_and_its_server_both_run_in_the_background() {
         },
         view: fun(m: ()): View<Net> = column([]),
         subscriptions: fun(m: ()): Sub<Net> = Sub.none(),
+        on_open: None,
     };
     run("org.kivuli.test.task_net", program, fun(app: Running<(), Net>) {});
     // The server finishes as soon as it has written; the download after it has read.
@@ -204,6 +206,7 @@ fun computation_shares_the_window_and_finishes() {
         view: fun(n: i64): View<Busy> = column([]),
         // The window's own work: a timer every 10 ms.
         subscriptions: fun(n: i64): Sub<Busy> = Sub.every(10, Busy.Tick),
+        on_open: None,
     };
     run("org.kivuli.test.task_cpu", program, fun(app: Running<i64, Busy>) {});
     assert(finished.get() > 0);
@@ -254,6 +257,7 @@ fun receive_delivers_in_order_and_only_while_subscribed() {
         } else {
             Sub.none()
         },
+        on_open: None,
     };
     run("org.kivuli.test.receive", program, fun(app: Running<bool, Rx>) {});
     assert_eq(received.get(), ["Got(1)", "Got(2)", "Sent(true)", "End"]);

@@ -64,6 +64,7 @@ fun a_change_sends_once_per_listener_and_nothing_once_dropped() {
                 update: update,
                 view: fun(h: Heard): View<Seen> = text("{h.log.len}"),
                 subscriptions: subscriptions,
+                on_open: None,
             });
             // A window never shown starts inactive: telling it so again is no change.
             on_active(app, false);

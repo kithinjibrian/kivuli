@@ -106,6 +106,7 @@ fun scroll_to_leaves_the_focus_alone() {
                 },
                 view: rows,
                 subscriptions: fun(n: i64): Sub<Go> = Sub.none(),
+                on_open: None,
             });
             let field = match live_of(app) {
                 Box(_, _, ks) => widget(ks[0]),

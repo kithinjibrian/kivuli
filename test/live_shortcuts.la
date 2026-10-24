@@ -175,6 +175,7 @@ fun cmd_focus_moves_focus_to_a_named_node() {
                     text_area("", Keys.Typed).name("notes"),
                 ]),
                 subscriptions: fun(c: Count): Sub<Keys> = Sub.none(),
+                on_open: None,
             });
             let Box(_, _, kids) = live_of(app) else {
                 panic("expected a column");

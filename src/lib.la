@@ -122,6 +122,7 @@ public fun sandbox<Model, Msg>(
  *         update: update,
  *         view: view,
  *         subscriptions: subscriptions,
+ *         on_open: None,
  *     });
  */
 public fun application<Model, Msg>(app: App<Model, Msg>): i32 = launch.run(app);

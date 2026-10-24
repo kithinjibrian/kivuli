@@ -46,6 +46,7 @@ fun an_updates_copy_command_sets_the_clipboard() {
                 },
                 view: fun(m: i64): View<Msg> = text("shared {m}"),
                 subscriptions: fun(m: i64): Sub<Msg> = Sub.none(),
+                on_open: None,
             });
             let clipboard = gdk_display_get_clipboard(gtk_widget_get_display(window));
             let read = fun(): string = match lgtk_clipboard_local_text(clipboard) {

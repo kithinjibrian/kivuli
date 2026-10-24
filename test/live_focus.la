@@ -71,6 +71,7 @@ fun a_click_no_widget_takes_clears_focus() {
                     text("beside it"),
                 ]),
                 subscriptions: fun(m: i64): Sub<Go> = Sub.none(),
+                on_open: None,
             });
             let field = match live_of(app) {
                 Box(_, _, kids) => widget(kids[0]),

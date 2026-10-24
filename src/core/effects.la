@@ -217,6 +217,13 @@ public struct App<Model, Msg> {
     public update: fun(Model, Msg): (Model, Cmd<Msg>),
     public view: fun(Model): View<Msg>,
     public subscriptions: fun(Model): Sub<Msg>,
+    /**
+     * What being asked to open becomes: the items on the command line, or a
+     * second launch's (which then exits), each a local file's absolute path or
+     * an address, after `init`. `None`: the app opens nothing, and GTK sees no
+     * command line.
+     */
+    public on_open: Option<fun(string[]): Msg>,
 }
 
 /** The `App` a `sandbox` runs: no commands, no subscriptions. */
@@ -231,6 +238,7 @@ fun sandbox_app<Model, Msg>(
     update: fun(m: Model, msg: Msg): (Model, Cmd<Msg>) = (update(m, msg), Cmd.none()),
     view: view,
     subscriptions: fun(m: Model): Sub<Msg> = Sub.none(),
+    on_open: None,
 };
 
 /** The commands in `c` to carry out, in order: batches flattened, `none`s dropped. */

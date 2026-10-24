@@ -87,6 +87,8 @@ enum Msg {
     ToggleInfo,
     Active(bool),
     CopyAddress,
+    /** Asked from outside to open these: each in a new tab. */
+    Asked(string[]),
 }
 
 fun start(): Browser = Browser {
@@ -138,6 +140,13 @@ fun update(b: Browser, msg: Msg): (Browser, Cmd<Msg>) = match msg {
     NewTab => {
         let mut tabs = b.tabs;
         tabs.push(["home"]);
+        (opened(Browser { tabs: tabs, ..b }, tabs.len - 1), Cmd.none())
+    }
+    Asked(items) => {
+        let mut tabs = b.tabs;
+        for item of items {
+            tabs.push([item]);
+        }
         (opened(Browser { tabs: tabs, ..b }, tabs.len - 1), Cmd.none())
     }
     Duplicate(i) => {
@@ -288,6 +297,8 @@ fun main(): i32 = application(App {
     update: update,
     view: view,
     subscriptions: fun(b: Browser): Sub<Msg> = Sub.window_active(Msg.Active),
+    // `./examples/browser news` while one runs: a new tab in that one.
+    on_open: Some(Msg.Asked),
 });
 
 // Tests: what a user does, worked out from the view and fed back through

@@ -82,6 +82,7 @@ fun commands_and_subscriptions_run_on_the_main_loop() {
                 },
                 view: view,
                 subscriptions: subscriptions,
+                on_open: None,
             });
         },
         0,

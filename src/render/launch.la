@@ -1,6 +1,7 @@
 /**
  * Starting an app: the GTK application, its window made and the app mounted
- * when GTK says to (`activate`). Moved out of `live` (file size); `live`
+ * when GTK says to (`activate`, or `open` for an app that opens things,
+ * PRP-065). Moved out of `live` (file size); `live`
  * runs the app once it's mounted. Calls GTK (CLAUDE.md rule 4).
  *
  * Depends on: live, effects, gtk.raw
@@ -15,28 +16,85 @@ import gtk {
     gtk_application_new,
     gtk_application_window_new,
     gtk_window_present,
+    g_strfreev,
+    lgtk_application_on_open,
+    lgtk_application_opened,
+    lgtk_application_opened_count,
+    lgtk_argv_new,
+    lgtk_argv_set,
 };
 import core.effects { App };
-import render.live { mount };
+import render.live { Running, dispatch, mount };
+
+// G_APPLICATION_HANDLES_OPEN (gioenums.h).
+const HANDLES_OPEN: i32 = 4;
 
 /**
  * Starts the GTK application `program.id` and runs it until its window closes
  * or a command quits it.
  * @returns GTK's exit status, for `main` to return.
  */
-fun run<Model, Msg>(program: App<Model, Msg>): i32 {
-    let application = gtk_application_new(program.id, 0);
+fun run<Model, Msg>(program: App<Model, Msg>): i32 = run_with(program, args());
+
+/**
+ * As `run`, with `argv` as the command line: GTK sees it only when the app
+ * opens things (`on_open`).
+ */
+fun run_with<Model, Msg>(program: App<Model, Msg>, argv: string[]): i32 {
+    let opening = program.on_open.is_some();
+    let application = gtk_application_new(program.id, if opening { HANDLES_OPEN } else { 0 });
+    let running: Ref<Option<Running<Model, Msg>>> = Ref.new(None);
+    // The window is made on whichever comes first, `activate` or `open`; a
+    // later one (a second launch) brings the same window to the front.
+    let shown = fun(a: GtkApplication): Running<Model, Msg> {
+        match running.get() {
+            Some(app) => {
+                gtk_window_present(app.window);
+                app
+            }
+            None => {
+                let window = gtk_application_window_new(a);
+                let app = mount(a, window, program);
+                running.set(Some(app));
+                gtk_window_present(window);
+                app
+            }
+        }
+    };
     connect_app(
         application,
         "activate",
         fun(a: GtkApplication) {
-            let window = gtk_application_window_new(a);
-            mount(a, window, program);
-            gtk_window_present(window);
+            let _ = shown(a);
         },
         0,
     );
-    let status = g_application_run(application, 0, None);
+    match program.on_open {
+        Some(f) => lgtk_application_on_open(application, fun(a: GtkApplication) {
+            let app = shown(a);
+            let mut items: string[] = [];
+            let mut i: i32 = 0;
+            while i < lgtk_application_opened_count(a) {
+                items.push(lgtk_application_opened(a, i));
+                i = i + 1;
+            }
+            dispatch(app, f(items));
+        }),
+        None => {}
+    }
+    let status = if opening {
+        let c_argv = lgtk_argv_new(argv.len as i32);
+        let mut i = 0;
+        while i < argv.len {
+            lgtk_argv_set(c_argv, i as i32, argv[i]);
+            i = i + 1;
+        }
+        let code = g_application_run(application, argv.len as i32, Some(c_argv));
+        g_strfreev(c_argv);
+        code
+    } else {
+        g_application_run(application, 0, None)
+    };
     g_object_unref(application);
     status
 }
