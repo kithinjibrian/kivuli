@@ -8,6 +8,11 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.54.1] — 2026-10-24
+
+### Fixed
+- One click focuses a text area (DECISION-042). Clicking away (PRP-024) cleared the focus a text view had just taken, because GTK's text view doesn't claim a single press; a click inside the focused widget now keeps it. Needs lugha-gtk 0.1.47.
+
 ## [0.54.0] — 2026-10-22
 
 ### Added

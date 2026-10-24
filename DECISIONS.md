@@ -187,17 +187,6 @@ Decisions 1–12 were agreed in the design discussion in the lugha repository (a
 
 ## OPEN — Requires human input before implementation
 
-### DECISION-042 — Bug: one click doesn't focus a text area (click-away clears it)
-
-**Status:** open (a kivuli bug; the fix needs one lugha-gtk binding)
-**Raised:** 2026-10-24 (the user, checking PRP-059 by eye: three rapid clicks are needed for the cursor; the same on `main`, so not PRP-059's)
-
-**Cause:** PRP-024's click-away (`src/render/windows.la`) is a primary-button gesture on the window, in the bubble phase: it clears the focus on any click no widget under the pointer claimed. GtkTextView's click handler (GTK 4.22, `gtk_text_view_click_gesture_pressed`) grabs the focus on a single press but doesn't claim the sequence (it claims only for a context menu, a middle-click paste, or a drag inside a selection), so the press bubbles to the window, which clears the focus the text view just took. A one-line field's `GtkText` claims its press, so inputs aren't affected.
-
-**Proposed fix:** in click-away's `pressed`, clear the focus only when the click landed outside the focused widget: `gtk_widget_pick(window, x, y, GTK_PICK_DEFAULT)`, then keep the focus when the picked widget is the focus (`gtk_root_get_focus`) or inside it (`gtk_widget_is_ancestor`). Both of those are in lugha-gtk; `gtk_widget_pick` (`gtk/gtkwidget.h`) isn't, so it's added in lugha-gtk's own repository first (read-only from kivuli). Then a kivuli bug fix with a failing test in `test/live_focus.la`.
-
-**Blocks:** the fix only.
-
 ### DECISION-041 — The renderer for a portable kivuli
 
 **Status:** open (the user's call; nothing is built on it yet)
@@ -410,6 +399,20 @@ fun main() {
 ---
 
 ## RESOLVED
+
+### DECISION-042 — Bug: one click doesn't focus a text area (click-away clears it)
+
+**Status:** resolved
+**Resolved:** 2026-10-24 (the user: fix it, editing lugha-gtk from here; kivuli 0.54.1)
+**Raised:** 2026-10-24 (the user, checking PRP-059 by eye: three rapid clicks are needed for the cursor; the same on `main`, so not PRP-059's)
+
+**Cause:** PRP-024's click-away (`src/render/windows.la`) is a primary-button gesture on the window, in the bubble phase: it clears the focus on any click no widget under the pointer claimed. GtkTextView's click handler (GTK 4.22, `gtk_text_view_click_gesture_pressed`) grabs the focus on a single press but doesn't claim the sequence (it claims only for a context menu, a middle-click paste, or a drag inside a selection), so the press bubbles to the window, which clears the focus the text view just took. A one-line field's `GtkText` claims its press, so inputs aren't affected.
+
+**Proposed fix:** in click-away's `pressed`, clear the focus only when the click landed outside the focused widget: `gtk_widget_pick(window, x, y, GTK_PICK_DEFAULT)`, then keep the focus when the picked widget is the focus (`gtk_root_get_focus`) or inside it (`gtk_widget_is_ancestor`). Both of those are in lugha-gtk; `gtk_widget_pick` (`gtk/gtkwidget.h`) isn't, so it's added in lugha-gtk's own repository first (read-only from kivuli). Then a kivuli bug fix with a failing test in `test/live_focus.la`.
+
+**Outcome:** as proposed. lugha-gtk 0.1.47 has `gtk_widget_pick` (pushed, tagged). Click-away keeps the focus when the click's picked widget is the focus or inside it (`keeps_focus` in `src/render/windows.la`, tested in `test/live_focus.la`); a hidden test window is never mapped, so the click itself is checked by eye.
+
+**A core decision:** no (a bug fix).
 
 ### DECISION-030 — GtkSvg crashes on `<image>` with external resources off
 

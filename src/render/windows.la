@@ -13,7 +13,10 @@ import gtk {
     connect_click,
     gtk_gesture_click_new,
     gtk_gesture_single_set_button,
+    gtk_root_get_focus,
     gtk_widget_add_controller,
+    gtk_widget_is_ancestor,
+    gtk_widget_pick,
     gtk_window_maximize,
     gtk_window_set_default_size,
     gtk_window_set_focus,
@@ -46,8 +49,10 @@ fun show_window(window: GtkWidget, old: Option<Window>, new: Option<Window>) {
  * Clicking away clears keyboard focus, as a web page blurs a field (PRP-024):
  * a primary-button gesture on the window, in the bubble phase (GTK's
  * default), so it sees only clicks no widget under the pointer took (buttons,
- * fields, text areas and the like take their own). GTK otherwise keeps a
- * field focused whatever is clicked beside it.
+ * fields and the like take their own). GTK otherwise keeps a field focused
+ * whatever is clicked beside it. A click inside the focused widget keeps the
+ * focus (DECISION-042): a text view takes the focus on a single press without
+ * claiming it, so that press reaches the window too.
  */
 fun click_away(window: GtkWidget): GtkEventController {
     let gesture = gtk_gesture_click_new();
@@ -56,13 +61,22 @@ fun click_away(window: GtkWidget): GtkEventController {
         gesture,
         "pressed",
         fun(g: GtkEventController, n: i32, x: f64, y: f64) {
-            gtk_window_set_focus(window, None);
+            // The gesture is the window's, so (x, y) is in the window's coordinates.
+            if !keeps_focus(gtk_widget_pick(window, x, y, 0), gtk_root_get_focus(window)) {
+                gtk_window_set_focus(window, None);
+            }
         },
         0,
     );
     gtk_widget_add_controller(window, gesture);
     gesture
 }
+
+/** Whether a click on `picked` keeps the focus on `focus`: it landed on the focused widget or inside it. */
+fun keeps_focus(picked: Option<GtkWidget>, focus: Option<GtkWidget>): bool = match (picked, focus) {
+    (Some(p), Some(f)) => p == f || gtk_widget_is_ancestor(p, f) != 0,
+    _ => false,
+};
 
 /** On the root, `.maximized()`: the window opens maximized. Read once, when it opens. */
 fun show_maximized<Msg>(window: GtkWidget, tree: View<Msg>) {

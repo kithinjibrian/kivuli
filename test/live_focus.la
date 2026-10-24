@@ -13,6 +13,9 @@ import gtk {
     g_object_unref,
     gtk_application_new,
     gtk_application_window_new,
+    gtk_box_append,
+    gtk_box_new,
+    gtk_label_new,
     gtk_root_get_focus,
     gtk_widget_grab_focus,
     gtk_widget_is_ancestor,
@@ -20,6 +23,7 @@ import gtk {
 };
 import kivuli.render.live { dispatch, mount, live_of };
 import kivuli.core.live_tree { widget };
+import kivuli.render.windows { keeps_focus };
 import kivuli { App, Cmd, Sub, View, column, input, text };
 
 fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
@@ -89,5 +93,43 @@ fun a_click_no_widget_takes_clears_focus() {
         "focused true",
         "after a click away: none true",
         "Cmd.focus still works true",
+    ]);
+}
+
+// DECISION-042: a text view takes the focus on a single press without
+// claiming it, so the click reaches the window too. A click on the focused
+// widget, or inside it, keeps the focus; one elsewhere, or on nothing, clears it.
+@test
+fun a_click_inside_the_focused_widget_keeps_the_focus() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen: Ref<string[]> = Ref.new([]);
+    let application = gtk_application_new("org.kivuli.test.keep", 0);
+    connect_app(
+        application,
+        "activate",
+        fun(a: GtkApplication) {
+            let field = gtk_box_new(1, 0);
+            let inside = gtk_label_new("inside");
+            gtk_box_append(field, inside);
+            let beside = gtk_label_new("beside");
+            note(seen, "on it {keeps_focus(Some(field), Some(field))}");
+            note(seen, "inside it {keeps_focus(Some(inside), Some(field))}");
+            note(seen, "beside it {keeps_focus(Some(beside), Some(field))}");
+            note(seen, "on nothing {keeps_focus(None, Some(field))}");
+            note(seen, "nothing focused {keeps_focus(Some(field), None)}");
+            g_application_quit(a);
+        },
+        0,
+    );
+    g_application_run(application, 0, None);
+    g_object_unref(application);
+    assert_eq(seen.get(), [
+        "on it true",
+        "inside it true",
+        "beside it false",
+        "on nothing false",
+        "nothing focused false",
     ]);
 }
