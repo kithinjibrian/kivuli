@@ -27,6 +27,7 @@ import gtk {
     gtk_label_set_lines,
     gtk_label_set_max_width_chars,
     gtk_label_set_selectable,
+    gtk_label_set_text,
     gtk_label_set_wrap,
     gtk_label_set_wrap_mode,
     gtk_range_set_increments,
@@ -70,6 +71,7 @@ import styles.box_rules { clamp_limits };
 import view.keys { parse };
 import view.widgets { snap };
 import render.controls { sync_choices };
+import render.text_fields { show_hint, text_of };
 
 /**
  * Gives `node`'s widget every field of `style`, defaults included, so a
@@ -179,7 +181,7 @@ fun apply_style<Msg>(node: Live<Msg>, style: Style, axis: i32) {
     let z = style.sheet.sizing;
     let sets_height = z.height != Width.Theme || z.min_height != Width.Theme;
     let floor = match node {
-        TextArea(_, _, _) => if sets_height { -1 } else { 80 },
+        TextArea(_, _, _, _, _) => if sets_height { -1 } else { 80 },
         // A picture's `.size(n)` is its box (`style_picture` below).
         Image(_) => if style.size > 0 { style.size } else { -1 },
         _ => -1,
@@ -219,6 +221,11 @@ fun apply_style<Msg>(node: Live<Msg>, style: Style, axis: i32) {
             entry,
             if style.placeholder == "" { None } else { Some(style.placeholder) },
         ),
+        // The label holds the hint: the buffer's `changed` handler reads it there.
+        TextArea(_, _, buffer, _, hint) => {
+            gtk_label_set_text(hint, style.placeholder);
+            show_hint(hint, text_of(buffer) == "");
+        }
         Button(button, _, controller, shortcut, label, image) => {
             style_shortcut(controller, shortcut, style.shortcut);
             // The image itself is the node's (build, SetButtonImage); its size is a style.

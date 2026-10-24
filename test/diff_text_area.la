@@ -1,0 +1,36 @@
+// Diffing a text area's placeholder (PRP-059): a new, added or removed hint is
+// a restyle of the same widget, never a rebuild. (test/diff.la is at the limit.)
+import kivuli.core.diff { Patch, diff as patches };
+import kivuli { View, text_area };
+
+fun area(hint: string): View<string> = text_area("", fun(s: string) = s).placeholder(hint);
+
+fun restyles(ps: Patch<string>[]): i64 = ps.filter(fun(p: Patch<string>) = match p {
+    SetStyle(_, _) => true,
+    _ => false,
+}).len;
+
+fun rebuilds(ps: Patch<string>[]): bool = ps.any(fun(p: Patch<string>) = match p {
+    Replace(_, _) => true,
+    _ => false,
+});
+
+@test
+fun a_changed_hint_is_one_restyle() {
+    let ps = patches(area("Write something"), area("Reply"));
+    assert_eq(restyles(ps), 1);
+    assert(!rebuilds(ps));
+}
+
+@test
+fun adding_or_removing_a_hint_is_a_restyle() {
+    let plain: View<string> = text_area("", fun(s: string) = s);
+    assert_eq(restyles(patches(plain, area("Write something"))), 1);
+    assert_eq(restyles(patches(area("Write something"), plain)), 1);
+    assert(!rebuilds(patches(plain, area("Write something"))));
+}
+
+@test
+fun an_unchanged_hint_is_no_restyle() {
+    assert_eq(restyles(patches(area("Write something"), area("Write something"))), 0);
+}

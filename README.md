@@ -152,7 +152,7 @@ lughac run examples/split.la      # one component, two copies, through map
 | `.place(across, down)` | An overlay's layer: where it sits on the base, each way an `Align` (`Fill` covers that whole way). Without it a layer covers the base. |
 | `.image(Image.…)`, `.icon(name)` | Buttons: an image (a theme icon, a file or bytes) before the label; with the label `""`, an image-only button (give it a `.tooltip`, which tests find it by). `.icon(name)` is `.image(Image.Icon(name))`; `.icon("")` takes the image away. |
 | `.fit(Fit.Contain \| Cover \| ScaleDown \| Fill)` | Pictures: the whole picture (default), filled and cropped, never enlarged, or stretched. |
-| `.placeholder(hint)`, `.on_submit(msg)` | Text fields: a hint while empty; the message Enter sends. |
+| `.placeholder(hint)`, `.on_submit(msg)` | Text fields and text areas: a hint, dimmed, while empty; the message Enter sends (one-line fields). |
 | `.name(id)` | A name tests find a text field, text area, drop-down or slider by (not shown). |
 | `.window(title, width, height)` | On the root of `view`: the window's title (it may follow the model) and size. |
 | `.maximized()` | On the root: the window opens maximized; `.window`'s size is its size when unmaximized. |
@@ -322,7 +322,7 @@ fun adding_a_task() {
 }
 ```
 
-`click` and `is_disabled` (by a button's label or tooltip; a `button_with` by its tooltip, `.name` or any text inside it), `press` (by shortcut), `tooltip`, `type_into` and `submit` (finding a text field by its placeholder or `.name`, a text area by its `.name`), `toggle`, `choose(view, name, label)` and `slide(view, name, value)` (a drop-down or slider by its `.name`; `slide` clamps and rounds to the step as the slider would) and `texts` each return a `Lookup` error when what's asked for isn't there (`NotFound`), isn't unique (`Ambiguous`) or sends nothing (`Silent`: a disabled button or field, or Enter without `.on_submit`). `is_field_disabled(view, hint)` tells whether a text field or text area is disabled. `pick(view, owner, item)` is the message of a context menu's item, the menu found by its node: a button's label or tooltip, or a `.name` (`Silent` for a disabled item). `examples/todo.la` ends with its own tests: `lughac test examples/todo.la`.
+`click` and `is_disabled` (by a button's label or tooltip; a `button_with` by its tooltip, `.name` or any text inside it), `press` (by shortcut), `tooltip`, `type_into` and `submit` (finding a text field or text area by its placeholder or `.name`), `toggle`, `choose(view, name, label)` and `slide(view, name, value)` (a drop-down or slider by its `.name`; `slide` clamps and rounds to the step as the slider would) and `texts` each return a `Lookup` error when what's asked for isn't there (`NotFound`), isn't unique (`Ambiguous`) or sends nothing (`Silent`: a disabled button or field, or Enter without `.on_submit`). `is_field_disabled(view, hint)` tells whether a text field or text area is disabled. `pick(view, owner, item)` is the message of a context menu's item, the menu found by its node: a button's label or tooltip, or a `.name` (`Silent` for a disabled item). `examples/todo.la` ends with its own tests: `lughac test examples/todo.la`.
 
 ## Tests
 

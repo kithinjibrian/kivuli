@@ -18,13 +18,13 @@ import gtk {
     gtk_editable_get_text,
     gtk_editable_set_text,
     gtk_range_set_value,
-    gtk_scrolled_window_get_child,
+    gtk_overlay_get_child,
     gtk_text_buffer_set_text,
     gtk_widget_get_sensitive,
 };
 import kivuli.render.live { mount, live_of };
 import kivuli.core.effects { sandbox_app };
-import kivuli.render.build { text_of };
+import kivuli.render.text_fields { text_of };
 import kivuli.core.live_tree { Live, widget };
 import kivuli { View, button, checkbox, column, input, slider, text_area };
 
@@ -116,17 +116,19 @@ fun view_form(f: Form): View<Edit> = column([
  */
 fun fields(kids: Live<Edit>[]): string {
     let entry = widget(kids[0]);
-    let TextArea(scrolled, buffer, _) = kids[1] else {
+    let TextArea(overlay, editor, buffer, _, _) = kids[1] else {
         panic("expected a text area");
     };
-    let editor = gtk_scrolled_window_get_child(scrolled).unwrap_or(scrolled);
+    let scrolled = gtk_overlay_get_child(overlay).expect(
+        "a text area's overlay holds its scrolled window",
+    );
     "<{gtk_editable_get_text(entry)}> {gtk_widget_get_sensitive(entry)} | <{text_of(buffer)}> editor {gtk_widget_get_sensitive(editor)} scroll {gtk_widget_get_sensitive(scrolled)}"
 }
 
 /** What a user does in both fields: types, presses Enter, writes notes (outside any dispatch). */
 fun use_fields(kids: Live<Edit>[], title: string, notes: string) {
     let entry = widget(kids[0]);
-    let TextArea(_, buffer, _) = kids[1] else {
+    let TextArea(_, _, buffer, _, _) = kids[1] else {
         panic("expected a text area");
     };
     gtk_editable_set_text(entry, title);

@@ -202,7 +202,7 @@ Decisions 1–12 were agreed in the design discussion in the lugha repository (a
 
 **Session 149:** no library callable from C gives widgets, text editing, IME and accessibility over Skia; the frameworks that do (Flutter, Compose Multiplatform, Avalonia, Slint) own the widget tree in their own language. Candidate stack of pieces: SDL3 (windows, input, IME events), Skia + SkParagraph (drawing, text layout, caret and selection geometry), Yoga or Taffy (layout), AccessKit (accessibility). Text editing's behaviour stays kivuli's. Versions and platform support to be checked in the PRP.
 
-**Blocks:** any renderer work. Lugha's target support (a lugha PRP) is needed whatever the answer.
+**Blocks:** any renderer work: work towards a new renderer, not features in today's GTK renderer, which Rapidkoi uses now (the user, 2026-10-24, PRP-059). Lugha's target support (a lugha PRP) is needed whatever the answer.
 
 ### DECISION-029 — lughac: the examples' tests can't run together
 

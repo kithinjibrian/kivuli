@@ -369,8 +369,8 @@ fun buttons<Msg>(v: View<Msg>, s: string): Option<Msg>[] {
 }
 
 /**
- * The handlers of the text fields with placeholder or name `hint`, and of the
- * text areas named `hint`: `None` for a disabled one's edits (and its Enter).
+ * The handlers of the text fields and text areas with placeholder or name
+ * `hint`: `None` for a disabled one's edits (and its Enter).
  */
 fun fields<Msg>(v: View<Msg>, hint: string): (Option<fun(string): Msg>, Option<Msg>)[] {
     let mut out: (Option<fun(string): Msg>, Option<Msg>)[] = [];
@@ -383,7 +383,7 @@ fun fields<Msg>(v: View<Msg>, hint: string): (Option<fun(string): Msg>, Option<M
                 });
             },
             // A text area has no Enter message: `submit` on it is `Silent`.
-            TextArea(_, on_change) => if style.name == hint {
+            TextArea(_, on_change) => if style.placeholder == hint || style.name == hint {
                 out.push((on_change, None));
             },
             _ => {}

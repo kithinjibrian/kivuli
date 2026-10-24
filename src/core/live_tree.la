@@ -54,11 +54,12 @@ enum Live<Msg> {
     /** A GtkProgressBar. */
     Progress(GtkWidget),
     /**
-     * A text area: the scrolled window holding it, its buffer, and the
-     * function turning its text into a message (its `changed` handler reads
-     * it); none when disabled.
+     * A text area: the overlay holding its scrolled window, its editor (the
+     * text view), its buffer, the function turning its text into a message
+     * (its `changed` handler reads it; none when disabled), and its
+     * placeholder's label, shown while the text is empty.
      */
-    TextArea(GtkWidget, GtkTextBuffer, Ref<Option<fun(string): Msg>>),
+    TextArea(GtkWidget, GtkWidget, GtkTextBuffer, Ref<Option<fun(string): Msg>>, GtkWidget),
     /** A drop-down, and the state its `notify::selected` handler and patches share. */
     Dropdown(GtkWidget, Ref<Choices<Msg>>),
     /**
@@ -173,7 +174,7 @@ fun widget<Msg>(node: Live<Msg>): GtkWidget = match node {
     Checkbox(w, _, _) => w,
     Switch(w, _) => w,
     Progress(w) => w,
-    TextArea(w, _, _) => w,
+    TextArea(w, _, _, _, _) => w,
     Dropdown(w, _) => w,
     Slider(w, _, _, _) => w,
     Icon(w) => w,

@@ -414,3 +414,20 @@ fun picking_a_check_item_toggles_and_a_radio_choice_sends_its_message() {
     assert_eq(pick(v, "View", "Status bar"), Ok(Msg.Done(false)));
     assert_eq(pick(v, "View", "Bottom"), Ok(Msg.Clear));
 }
+
+fun hinted(): View<Msg> = column([
+    text_area("", Msg.Notes).placeholder("Write something"),
+    text_area("", Msg.Notes).placeholder("Locked").disabled(true),
+    input("", Msg.Draft).placeholder("Both"),
+    text_area("", Msg.Notes).placeholder("Both"),
+]);
+
+@test
+fun text_areas_are_found_by_placeholder_too() {
+    assert_eq(type_into(hinted(), "Write something", "Hi"), Ok(Msg.Notes("Hi")));
+    assert_eq(is_field_disabled(hinted(), "Write something"), Ok(false));
+    assert_eq(is_field_disabled(hinted(), "Locked"), Ok(true));
+    assert_eq(type_into(hinted(), "Locked", "x"), Err(Lookup.Silent("text field \"Locked\"")));
+    assert_eq(type_into(hinted(), "Both", "x"), Err(Lookup.Ambiguous("text field \"Both\"", 2)));
+    assert_eq(type_into(hinted(), "Nope", "x"), Err(Lookup.NotFound("text field \"Nope\"")));
+}
