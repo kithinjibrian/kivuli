@@ -2085,6 +2085,12 @@ Branch: main
 
 ---
 
+## SESSION 145 — 2026-10-24 — Goal: portability; why a web view — open
+
+Branch: main
+
+---
+
 ## NEXT SESSION START POINT
 
 1. Open a new session in this file (step 1, before anything else) and commit it.
