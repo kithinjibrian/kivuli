@@ -1,16 +1,19 @@
 /**
  * The app's window as the root of the view asks for it (split from `live`):
- * its title and size (`.window`), opening maximized (`.maximized`), and
- * clicking away to clear keyboard focus (PRP-024). GTK.
+ * its title and size (`.window`), opening maximized (`.maximized`),
+ * clicking away to clear keyboard focus (PRP-024), and hearing when it
+ * becomes active (PRP-060). GTK.
  *
  * Depends on: views, looks, gtk.raw
  * Used by: live
  */
 
 import gtk {
+    GParamSpec,
     GtkEventController,
     GtkWidget,
     connect_click,
+    connect_notify,
     gtk_gesture_click_new,
     gtk_gesture_single_set_button,
     gtk_root_get_focus,
@@ -21,6 +24,7 @@ import gtk {
     gtk_window_set_default_size,
     gtk_window_set_focus,
     gtk_window_set_title,
+    gtk_window_is_active,
 };
 import view.views { View };
 import view.looks { Window };
@@ -77,6 +81,25 @@ fun keeps_focus(picked: Option<GtkWidget>, focus: Option<GtkWidget>): bool = mat
     (Some(p), Some(f)) => p == f || gtk_widget_is_ancestor(p, f) != 0,
     _ => false,
 };
+
+/**
+ * Calls `on_change(active)` whenever GTK says the window's `is-active` may
+ * have changed (`Sub.window_active`, PRP-060). Connected once, at mount; the
+ * caller drops repeats.
+ */
+fun watch_active(window: GtkWidget, on_change: fun(bool)) {
+    connect_notify(
+        window,
+        "notify::is-active",
+        fun(w: GtkWidget, spec: Option<GParamSpec>) {
+            on_change(gtk_window_is_active(w) != 0);
+        },
+        0,
+    );
+}
+
+/** Whether the window is the active one now. */
+fun is_active(window: GtkWidget): bool = gtk_window_is_active(window) != 0;
 
 /** On the root, `.maximized()`: the window opens maximized. Read once, when it opens. */
 fun show_maximized<Msg>(window: GtkWidget, tree: View<Msg>) {

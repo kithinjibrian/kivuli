@@ -1,6 +1,6 @@
 // Effects as data: what commands and subscriptions flatten to, the app a
 // sandbox runs, and the window a view's root asks for. No GTK.
-import kivuli.core.effects { commands, receivers, sandbox_app, timers };
+import kivuli.core.effects { active_listeners, commands, receivers, sandbox_app, timers };
 import kivuli.core.diff { Patch, diff as patches };
 import kivuli.view.looks { Style, Window, plain };
 import kivuli { App, Cmd, Sub, View, column, text };
@@ -15,6 +15,7 @@ enum Msg {
     Ping,
     Tick(i64),
     Got(i64),
+    Active(bool),
 }
 
 enum Outer {
@@ -143,4 +144,21 @@ fun a_receive_turns_each_sent_value_into_a_message_in_order() {
     assert_eq(mapped(), Some(Outer.Inner(Msg.Got(3))));
     // Timers don't count as receivers, and receivers aren't timers.
     assert_eq(timers(sub).len, 1);
+}
+
+@test
+fun window_active_listeners_are_found_in_order_and_mapped() {
+    let sub: Sub<Msg> = Sub.batch([
+        Sub.window_active(Msg.Active),
+        Sub.every(10, Msg.Tick),
+        Sub.batch([Sub.window_active(fun(on: bool) = if on { Msg.Ping } else { Msg.Got(0) })]),
+    ]);
+    let listeners = active_listeners(sub);
+    assert_eq(listeners.len, 2);
+    assert_same(listeners[0](true), Msg.Active(true));
+    assert_same(listeners[1](false), Msg.Got(0));
+    let quiet: Sub<Msg> = Sub.none();
+    assert_eq(active_listeners(quiet).len, 0);
+    let mapped = active_listeners(Sub.window_active(Msg.Active).map(Outer.Inner));
+    assert_same(mapped[0](false), Outer.Inner(Msg.Active(false)));
 }

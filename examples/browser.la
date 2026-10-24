@@ -69,6 +69,8 @@ struct Browser {
     info: bool,
     /** The address being loaded, while it loads. */
     loading: Option<string>,
+    /** Whether the window is behind another (`Sub.window_active`). */
+    away: bool,
 }
 
 enum Msg {
@@ -83,6 +85,7 @@ enum Msg {
     CloseOthers(i64),
     Visit(string),
     ToggleInfo,
+    Active(bool),
 }
 
 fun start(): Browser = Browser {
@@ -92,6 +95,7 @@ fun start(): Browser = Browser {
     tiles: ["News", "Mail", "Maps", "Music", "Notes", "Photos", "Weather", "Chess"],
     info: false,
     loading: None,
+    away: false,
 };
 
 fun shown(b: Browser): string {
@@ -107,6 +111,7 @@ fun load(address: string): string {
 
 fun update(b: Browser, msg: Msg): (Browser, Cmd<Msg>) = match msg {
     Draft(s) => (Browser { draft: s, ..b }, Cmd.none()),
+    Active(on) => (Browser { away: !on, ..b }, Cmd.none()),
     // `update` only describes the work; kivuli runs it and sends Loaded.
     Go => (
         Browser { loading: Some(b.draft), ..b },
@@ -239,6 +244,9 @@ fun view(b: Browser): View<Msg> {
         tabs.push(tab(b, i));
         i = i + 1;
     }
+    if b.away {
+        tabs.push(text("In the background"));
+    }
     let mut parts = [page(b)];
     if b.info {
         parts.push(separator());
@@ -276,7 +284,7 @@ fun main(): i32 = application(App {
     init: (start(), Cmd.none()),
     update: update,
     view: view,
-    subscriptions: fun(b: Browser): Sub<Msg> = Sub.none(),
+    subscriptions: fun(b: Browser): Sub<Msg> = Sub.window_active(Msg.Active),
 });
 
 // Tests: what a user does, worked out from the view and fed back through

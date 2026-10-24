@@ -112,7 +112,8 @@ impl Cmd<Msg> {
 /**
  * What an app keeps listening to while its model is as it is: asked for again
  * after every update, and kivuli starts and stops timers to match. Build one
- * with `Sub.none()`, `Sub.every(ms, f)` or `Sub.batch(subs)`.
+ * with `Sub.none()`, `Sub.every(ms, f)`, `Sub.receive(chan, f)`,
+ * `Sub.window_active(f)` or `Sub.batch(subs)`.
  */
 public enum Sub<Msg> {
     Quiet,
@@ -121,6 +122,8 @@ public enum Sub<Msg> {
     Every(i64, fun(i64): Msg),
     /** A channel's next value as a message, if one is ready (never waits). */
     Receive(fun(): Option<Msg>),
+    /** When the window becomes active, `f(true)`; when it stops being active, `f(false)`. */
+    WindowActive(fun(bool): Msg),
 }
 
 impl Sub<Msg> {
@@ -162,6 +165,17 @@ impl Sub<Msg> {
     });
 
     /**
+     * Sends `f(true)` when the app's window becomes the active one (in front,
+     * with the desktop's keyboard focus) and `f(false)` when it stops being
+     * active, for as long as `subscriptions` keeps returning it. Changes only:
+     * nothing when it starts listening, never the same value twice in a row.
+     *
+     * Example:
+     *     Sub.window_active(Msg.WindowActive)   // WindowActive(bool)
+     */
+    public fun window_active(f: fun(bool): Msg): Sub<Msg> = Sub.WindowActive(f);
+
+    /**
      * The same subscription, sending `f(msg)` wherever it would send `msg`.
      *
      * Example:
@@ -175,6 +189,7 @@ impl Sub<Msg> {
             Some(msg) => Some(f(msg)),
             None => None,
         }),
+        WindowActive(on) => Sub.WindowActive(fun(active: bool): B = f(on(active))),
     };
 }
 
@@ -259,6 +274,21 @@ fun receivers<Msg>(s: Sub<Msg>): (fun(): Option<Msg>)[] = match s {
         out
     }
     Receive(poll) => [poll],
+    _ => [],
+};
+
+/** Each `Sub.window_active` in `s`, in order: what a change of the window's active state sends. */
+fun active_listeners<Msg>(s: Sub<Msg>): (fun(bool): Msg)[] = match s {
+    Batch(subs) => {
+        let mut out: (fun(bool): Msg)[] = [];
+        for each of subs {
+            for f of active_listeners(each) {
+                out.push(f);
+            }
+        }
+        out
+    }
+    WindowActive(f) => [f],
     _ => [],
 };
 

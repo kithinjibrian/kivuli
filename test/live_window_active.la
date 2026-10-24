@@ -1,0 +1,87 @@
+// Sub.window_active on a mounted app (PRP-060): a change of the window's
+// active state sends one message per listener, a repeat sends none, and a
+// dropped subscription sends nothing. A hidden test window never becomes
+// active, so the test calls `on_active` as GTK's `notify::is-active` would;
+// the notify itself is checked by eye (examples/browser.la). Needs a display.
+import std.env;
+import gtk {
+    GtkApplication,
+    connect_app,
+    g_application_quit,
+    g_application_run,
+    g_object_unref,
+    gtk_application_new,
+    gtk_application_window_new,
+};
+import kivuli.render.live { dispatch, mount, on_active };
+import kivuli { App, Cmd, Sub, View, text };
+
+fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
+
+enum Seen {
+    First(bool),
+    Second(bool),
+    Stop,
+}
+
+struct Heard {
+    log: string[],
+    listening: bool,
+}
+
+fun update(h: Heard, msg: Seen): (Heard, Cmd<Seen>) {
+    let mut log = h.log;
+    match msg {
+        Stop => (Heard { listening: false, ..h }, Cmd.none()),
+        _ => {
+            log.push("{msg}");
+            (Heard { log: log, ..h }, Cmd.none())
+        }
+    }
+}
+
+fun subscriptions(h: Heard): Sub<Seen> = if h.listening {
+    Sub.batch([Sub.window_active(Seen.First), Sub.window_active(Seen.Second)])
+} else {
+    Sub.none()
+};
+
+@test
+fun a_change_sends_once_per_listener_and_nothing_once_dropped() {
+    if !has_display() {
+        skip("no display");
+    }
+    let heard: Ref<string[]> = Ref.new([]);
+    let application = gtk_application_new("org.kivuli.test.active", 0);
+    connect_app(
+        application,
+        "activate",
+        fun(a: GtkApplication) {
+            let window = gtk_application_window_new(a);
+            let app = mount(a, window, App {
+                id: "org.kivuli.test",
+                init: (Heard { log: [], listening: true }, Cmd.none()),
+                update: update,
+                view: fun(h: Heard): View<Seen> = text("{h.log.len}"),
+                subscriptions: subscriptions,
+            });
+            // A window never shown starts inactive: telling it so again is no change.
+            on_active(app, false);
+            on_active(app, true);
+            on_active(app, true);
+            on_active(app, false);
+            dispatch(app, Seen.Stop);
+            on_active(app, true);
+            on_active(app, false);
+            let Some(s) = app.state.get() else {
+                panic("a mounted app has a state");
+            };
+            heard.set(s.model.log);
+            g_application_quit(a);
+        },
+        0,
+    );
+    g_application_run(application, 0, None);
+    g_object_unref(application);
+    assert_eq(heard.get(), ["First(true)", "Second(true)", "First(false)", "Second(false)"]);
+}

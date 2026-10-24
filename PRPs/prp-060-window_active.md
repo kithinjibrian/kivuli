@@ -1,6 +1,6 @@
 # PRP-060 — Knowing when the window comes to the front
 
-Status: awaiting approval
+Status: approved and built (2026-10-24)
 Request: Rapidkoi's DECISION-054, section 2 of `../rapidkoi/docs/specs/kivuli-requests.md`
 
 ## FEATURE: `Sub.window_active(f)` sends `f(true)` when the app's window becomes active and `f(false)` when it stops being active.
@@ -49,3 +49,11 @@ fun subscriptions(m: Model): Sub<Msg> = Sub.batch([
 - [ ] The full suite (in batches), the examples' tests and `fmt --check` pass; every example type-checks
 - [ ] For the user, by eye: in `examples/browser.la`, switching to another window shows the background line; coming back hides it
 - [ ] Once merged and tagged, the user is told, so Rapidkoi can resolve its DECISION-054
+
+## NOTES FROM THE BUILD
+
+- **The repeat check moved into `live.la`'s `on_active(app, now)`**, with the last value in `Running.active`, instead of a separate `active_changed` in `windows.la`: one function the test drives covers the repeat check, the listeners and a dropped subscription together. `windows.la`'s `watch_active` only connects the notify and reads `gtk_window_is_active`.
+- `src/render/live.la` is at 489 lines: the next addition there needs a split first.
+- lugha-gtk 0.1.48 (`gtk_window_is_active`) edited from here, pushed and tagged, on the user's yes. The first `lughac update` failed to fetch the new tag (E0325); the second worked.
+- Mutation check: without the repeat check, `test/live_window_active.la` fails.
+- The process chore approved with this PRP (`PRPs/DISCOVERY.md`, CLAUDE.md: research first, ask only real decisions) is its own commit on this branch.

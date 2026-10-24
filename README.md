@@ -296,6 +296,7 @@ row([counter(m.left).map(Msg.Left), counter(m.right).map(Msg.Right)])
 | `Sub.none()`, `Sub.batch(subs)` | Nothing; several subscriptions. |
 | `Sub.every(ms, f)` | Send `f(now)` every `ms` milliseconds (`now` in milliseconds since 1970) while `subscriptions` keeps returning it. |
 | `Sub.receive(chan, f)` | Send `f(value)` for every value sent on a Lugha channel, in order, while `subscriptions` keeps returning it: how a worker built with `spawn`, channels or actors reports progress. |
+| `Sub.window_active(f)` | Send `f(true)` when the window becomes the active one (comes to the front) and `f(false)` when it stops being active, while `subscriptions` keeps returning it. Changes only: nothing when it starts listening, never the same value twice. |
 
 **Background work** (`Cmd.task`, `Sub.receive`). Lugha's green threads share the program's one OS thread with GTK, and kivuli gives them turns while the window runs. What that means in practice:
 

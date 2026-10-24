@@ -8,6 +8,14 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.56.0] — 2026-10-24
+
+### Added
+- `Sub.window_active(f)` (PRP-060; Rapidkoi's DECISION-054): `f(true)` when the window comes to the front, `f(false)` when it goes behind; changes only. Needs lugha-gtk 0.1.48.
+
+### Changed
+- `Sub` has a new variant, `WindowActive(fun(bool): Msg)`.
+
 ## [0.55.0] — 2026-10-24
 
 ### Added

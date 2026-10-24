@@ -37,7 +37,7 @@ import gtk {
 import core.diff;
 import view.lazies;
 import view.views { View };
-import core.effects { App, Cmd, Timer, commands, receivers, timers };
+import core.effects { App, Cmd, Timer, active_listeners, commands, receivers, timers };
 import std.task;
 import render.build { create, focus_target };
 import render.patch { apply };
@@ -48,7 +48,14 @@ import core.live_tree { Live, titlebar, widget };
 import styles.paint { background_pictures, painted, stylesheet };
 import styles.palettes { default_tokens };
 import render.schemes { scheme_of, show_scheme };
-import render.windows { click_away, show_maximized, show_window, window_of };
+import render.windows {
+    click_away,
+    is_active,
+    show_maximized,
+    show_window,
+    watch_active,
+    window_of,
+};
 import styles.sheets { picture_css, url_of };
 
 /** What changes as the app runs: the model, the view it gave, and the widgets showing it. */
@@ -87,6 +94,9 @@ struct Running<Model, Msg> {
     styles: Styles,
     // The window's click-away gesture (tests press it).
     blur: GtkEventController,
+    // The current `Sub.window_active`s, and the active state they last heard.
+    listening: Ref<(fun(bool): Msg)[]>,
+    active: Ref<bool>,
 }
 
 /**
@@ -134,6 +144,7 @@ fun mount<Model, Msg>(
     let none_yet: Ticking<Msg>[] = [];
     let no_tasks: Chan<Msg>[] = [];
     let no_receivers: (fun(): Option<Msg>)[] = [];
+    let no_listeners: (fun(bool): Msg)[] = [];
     let app = Running {
         application: application,
         window: window,
@@ -146,7 +157,10 @@ fun mount<Model, Msg>(
         turning: Ref.new(false),
         styles: styles_for(window),
         blur: click_away(window),
+        listening: Ref.new(no_listeners),
+        active: Ref.new(is_active(window)),
     };
+    watch_active(window, fun(now: bool) = on_active(app, now));
     let (model, cmd) = program.init;
     let view = program.view;
     let tree = paint_or_stop(lazies.resolve(view(model), None));
@@ -165,6 +179,22 @@ fun mount<Model, Msg>(
     perform(app, cmd);
     resubscribe(app, model);
     app
+}
+
+/**
+ * The window's active state is `now` (GTK's `notify::is-active`): on a real
+ * change, each `Sub.window_active` listener sends its message, in order.
+ */
+fun on_active<Model, Msg>(app: Running<Model, Msg>, now: bool) {
+    // GTK may notify without a change: the same value twice sends nothing.
+    if now == app.active.get() {
+        return;
+    }
+    app.active.set(now);
+    let send = sender(app);
+    for f of app.listening.get() {
+        send(f(now));
+    }
 }
 
 /** The widgets `app` shows now. */
@@ -354,6 +384,7 @@ fun resubscribe<Model, Msg>(app: Running<Model, Msg>, model: Model) {
     }
     app.timers.set(next);
     app.receiving.set(receivers(subscriptions(model)));
+    app.listening.set(active_listeners(subscriptions(model)));
     if app.receiving.get().len > 0 {
         start_turns(app);
     }
