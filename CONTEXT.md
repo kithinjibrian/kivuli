@@ -2097,6 +2097,18 @@ Branch: main
 
 ---
 
+## SESSION 146 — 2026-10-24 — DECISION-041: the user leans to Skia — closed
+
+Branch: main
+
+### WHAT WAS DONE
+- The user leans to Skia (drawing everything) over a web view. Laid out what it takes: Skia has no C API (a C shim or SkiaSharp's), plus a windowing layer (SDL3), layout (Yoga or kivuli's own), text editing and IME, accessibility (AccessKit), styles resolved to paint instead of CSS. Noted in DECISION-041. No code.
+
+### STILL OPEN AT CLOSE
+- DECISION-041 stays open. Proposed a Skia spike that tests text input and accessibility, not only painting.
+
+---
+
 ## NEXT SESSION START POINT
 
 0. Since session 145 the goal is portability (MEMORY.md decision 20); the renderer is DECISION-041, open. Ask the user before more GTK-only work.

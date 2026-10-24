@@ -21,6 +21,8 @@ Rules:
 
 **Leaning (session 145):** (a). Styles already compile to CSS; one renderer covers five platforms; text, input methods and accessibility come from the browser; the per-platform glue is a handful of functions. Costs: a JS layer, an async bridge (input echo, rule 8), a web view's attack surface and memory, render/ and lugha-gtk retired. Proposed first step: a spike PRP rendering hello.la and tasks.la in a web view on Linux.
 
+**Session 146:** the user leans to (c), Skia. What it needs besides Skia: a C shim over Skia's C++ (or SkiaSharp's C API), SDL3 for windows, input and IME events on all five platforms, layout (Yoga's C API or kivuli's own), text editing (cursor, selection, IME composition), accessibility per platform (AccessKit's C bindings), styles resolved to paint instead of CSS, hover/focus/animation run by kivuli, and a frame loop that survives Boehm GC pauses. Reverses the design rule "kivuli draws nothing itself". Proposed spike: hello.la and a text input drawn with SDL3 + Skia on Linux, with IME and a screen reader checked.
+
 **Blocks:** any renderer work. Lugha's target support (a lugha PRP) is needed whatever the answer.
 
 ### DECISION-029 — lughac: the examples' tests can't run together
