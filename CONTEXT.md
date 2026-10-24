@@ -2073,9 +2073,15 @@ Branch: main
 
 ---
 
-## SESSION 144 — 2026-10-24 — Question: what is kivuli's goal — open
+## SESSION 144 — 2026-10-24 — Question: what is kivuli's goal — closed
 
 Branch: main
+
+### WHAT WAS DONE
+- Answered only, no code. The kickoff brief and MEMORY.md settle *how* (Elm, GTK 4, pure core) but never state a goal: who the apps are for and where they run. Noted the drift: the DESIGN rule says every visual comes from the GTK theme, while the work since session 34 builds a design system of its own (palettes, tokens, variants that override GTK's rules). Proposed a goal: write an app once in Lugha, pure and testable, and ship it with one look to Linux, Windows, macOS, Android and iOS, with GTK as one renderer among several.
+
+### STILL OPEN AT CLOSE
+- The user states the goal (who uses Rapidkoi and kivuli apps, on what devices); then it goes into MEMORY.md and decides the renderer question from session 143.
 
 ---
 
