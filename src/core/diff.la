@@ -107,8 +107,11 @@ fun diff_node<Msg>(path: i64[], old: View<Msg>, new: View<Msg>): Patch<Msg>[] {
     let (old_node, old_menu) = unmenu(old_inside);
     let (new_node, new_menu) = unmenu(new_inside);
     // A node moving into or out of a clamp (`Sizing`'s exact size or maximum)
-    // is rebuilt: a live widget is never re-parented into one.
-    if needs_clamp(old_style.sheet.sizing) != needs_clamp(new_style.sheet.sizing) {
+    // is rebuilt: a live widget is never re-parented into one. So is a node
+    // whose role changes: GTK fixes a role once a screen reader has read it.
+    if needs_clamp(old_style.sheet.sizing) != needs_clamp(
+        new_style.sheet.sizing,
+    ) || old_style.sheet.accessible.role != new_style.sheet.accessible.role {
         return [Patch.Replace(path, new)];
     }
     let inside = diff_inside(path, old_node, new_node, new);
@@ -116,7 +119,15 @@ fun diff_node<Msg>(path: i64[], old: View<Msg>, new: View<Msg>): Patch<Msg>[] {
     if inside.len > 0 && replaces(inside[0], path) {
         return inside;
     }
-    let mut out: Patch<Msg>[] = if old_style == new_style {
+    // GTK gives a text its new words as its accessible label: one with a
+    // label of its own is restyled after its text changes, to set it again.
+    let relabels = new_style.sheet.accessible.label.is_some() && match (old_node, new_node) {
+        (Text(a), Text(b)) => a != b,
+        _ => false,
+    };
+    let mut out: Patch<Msg>[] = if relabels {
+        joined(inside, [Patch.SetStyle(path, new_style)])
+    } else if old_style == new_style {
         inside
     } else {
         joined([Patch.SetStyle(path, new_style)], inside)

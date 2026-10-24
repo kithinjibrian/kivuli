@@ -1,0 +1,80 @@
+// Accessibility as a style (PRP-063): the Accessible group's values, its
+// merge, its refusals under states and parts, and the diff: a changed role
+// rebuilds the node, anything else is a restyle. No GTK.
+import kivuli.styles { Sheet };
+import kivuli.styles.checks { check };
+import kivuli.core.diff { Patch, diff as patches };
+import kivuli { View, Accessible, Inside, Part, Role, State, When, button_with, column, text };
+
+@test
+fun each_utility_sets_one_field() {
+    let s = Accessible.label("Buy milk").apply(
+        Accessible.checked(true).apply(Accessible.role(Role.Checkbox).apply(Sheet.theme())),
+    ).accessible;
+    assert_eq(
+        "{s.role} {s.checked} {s.selected} {s.label}",
+        "Checkbox Some(true) None Some(\"Buy milk\")",
+    );
+    let plain = Sheet.theme().accessible;
+    assert_eq(
+        "{plain.role} {plain.checked} {plain.selected} {plain.label}",
+        "Theme None None None",
+    );
+}
+
+@test
+fun a_later_value_wins_and_an_unset_field_keeps_the_earlier() {
+    let s = Accessible.selected(true).apply(
+        Accessible.checked(false).apply(Accessible.checked(true).apply(Sheet.theme())),
+    );
+    assert_eq("{s.accessible.checked} {s.accessible.selected}", "Some(false) Some(true)");
+}
+
+@test
+fun accessible_belongs_on_a_nodes_own_style() {
+    let why = "Accessible belongs on a node's own style";
+    assert_eq(check(When(State.Hover, [Accessible.label("x")]).apply(Sheet.theme())), Err(why));
+    assert_eq(check(Inside(Part.Check, [Accessible.checked(true)]).apply(Sheet.theme())), Err(why));
+    assert_eq(check(Accessible.role(Role.Heading).apply(Sheet.theme())), Ok(()));
+}
+
+fun kinds(ps: Patch<i64>[]): string[] = ps.map(fun(p: Patch<i64>): string = match p {
+    Replace(_, _) => "replace",
+    SetStyle(_, _) => "restyle",
+    _ => "other",
+});
+
+fun item(r: Role, label: string): View<i64> = button_with(column([text("Buy milk")]), 1).style([
+    Accessible.role(r),
+    Accessible.label(label),
+]);
+
+@test
+fun a_changed_role_rebuilds_and_a_changed_label_restyles() {
+    assert_eq(kinds(patches(item(Role.Checkbox, "a"), item(Role.Switch, "a"))), ["replace"]);
+    assert(
+        kinds(patches(item(Role.Checkbox, "a"), item(Role.Checkbox, "b"))).iter().any(
+            fun(k) = k == "restyle",
+        ),
+    );
+    assert(
+        !kinds(patches(item(Role.Checkbox, "a"), item(Role.Checkbox, "b"))).iter().any(
+            fun(k) = k == "replace",
+        ),
+    );
+}
+
+@test
+fun a_labelled_text_is_restyled_after_its_text_changes() {
+    let a: View<i64> = text("3").style([Accessible.label("Tasks left")]);
+    let b: View<i64> = text("2").style([Accessible.label("Tasks left")]);
+    let order = patches(a, b).map(fun(p: Patch<i64>): string = match p {
+        SetText(_, _) => "text",
+        SetStyle(_, _) => "restyle",
+        _ => "other",
+    });
+    assert_eq(order, ["text", "restyle"]);
+    let plain_a: View<i64> = text("3");
+    let plain_b: View<i64> = text("2");
+    assert_eq(patches(plain_a, plain_b).len, 1);
+}

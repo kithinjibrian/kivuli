@@ -10,6 +10,7 @@
 
 import styles { Sheet, State, Part };
 import styles.overflow { Scrolling };
+import styles.accessible { Role };
 import styles.values { TextAlign, Family, Size, LineHeight, Gradient, Stop, Width, Radius, Edges };
 import view.pictures { Image, is_svg };
 import styles.motion_rules { check_motion };
@@ -30,6 +31,9 @@ fun check(s: Sheet): Result<(), string> {
         if sets_overflow(sub) {
             return Err("Overflow belongs on a node's own style");
         }
+        if sets_accessible(sub) {
+            return Err("Accessible belongs on a node's own style");
+        }
     }
     for (_, sub) of s.parts {
         if sub.group {
@@ -37,6 +41,9 @@ fun check(s: Sheet): Result<(), string> {
         }
         if sets_overflow(sub) {
             return Err("Overflow belongs on a node's own style");
+        }
+        if sets_accessible(sub) {
+            return Err("Accessible belongs on a node's own style");
         }
     }
     match s.font.family {
@@ -208,6 +215,11 @@ fun check(s: Sheet): Result<(), string> {
 fun sets_overflow(
     s: Sheet,
 ): bool = s.overflow.x != Scrolling.Theme || s.overflow.y != Scrolling.Theme;
+
+// What a screen reader hears belongs to the node: no state or part switches it.
+fun sets_accessible(
+    s: Sheet,
+): bool = s.accessible.role != Role.Theme || s.accessible.checked.is_some() || s.accessible.selected.is_some() || s.accessible.label.is_some();
 
 fun check_width(w: Width): Result<(), string> = match w {
     Px(n) => if n < 0 { Err("Width.Px({n}): a width can't be negative") } else { Ok(()) },

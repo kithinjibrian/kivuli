@@ -1,0 +1,161 @@
+// What a screen reader hears, on real GTK widgets (PRP-063): roles on a
+// button_with and a text, checked and labels set and taken away on the same
+// widget, an input's and a text area's labels on their editors, a native
+// check box keeping its own state, and a changed role rebuilding the node.
+// Needs a display, so it is skipped without one.
+import std.env;
+import gtk {
+    GtkApplication,
+    GtkWidget,
+    connect_app,
+    g_application_quit,
+    g_application_run,
+    g_object_unref,
+    gtk_accessible_get_accessible_role,
+    gtk_application_new,
+    gtk_application_window_new,
+    gtk_test_accessible_has_property,
+    gtk_test_accessible_has_state,
+    lgtk_accessible_label_is,
+    lgtk_accessible_state_is,
+};
+import kivuli.render.live { dispatch, mount, live_of };
+import kivuli.core.effects { sandbox_app };
+import kivuli.core.live_tree { Live, widget };
+import kivuli { View, Accessible, Role, button_with, checkbox, column, input, text, text_area };
+
+fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
+
+enum Msg {
+    Next,
+    Typed(string),
+    Ticked(bool),
+}
+
+fun view(step: i64): View<Msg> {
+    let item = button_with(column([text("Buy milk")]), Msg.Next);
+    column([
+        match step {
+            0 => item.style([
+                Accessible.role(Role.Checkbox),
+                Accessible.checked(true),
+                Accessible.label("Buy milk"),
+            ]),
+            1 => item.style([Accessible.role(Role.Checkbox)]),
+            _ => item.style([Accessible.role(Role.Switch)]),
+        },
+        text("Notes").style([Accessible.role(Role.Heading)]),
+        input("", Msg.Typed).style([Accessible.label("Search notes")]),
+        text_area("", Msg.Typed).style([Accessible.label("Body")]),
+        checkbox("Native", true, Msg.Ticked),
+    ])
+}
+
+fun kids(app_live: Live<Msg>): Live<Msg>[] = match app_live {
+    Box(_, _, ks) => ks,
+    _ => panic("expected a column"),
+};
+
+/** A node's own widget: through its clamp or menu, if any; a text area's editor. */
+fun inner(node: Live<Msg>): GtkWidget = match node {
+    TextArea(_, editor, _, _, _) => editor,
+    _ => widget(node),
+};
+
+@test
+fun screen_readers_hear_roles_states_and_labels() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen: Ref<string[]> = Ref.new([]);
+    let note = fun(s: string) {
+        seen.update(fun(xs) {
+            let mut ys = xs;
+            ys.push(s);
+            ys
+        });
+    };
+    let application = gtk_application_new("org.kivuli.test.accessible", 0);
+    connect_app(
+        application,
+        "activate",
+        fun(a: GtkApplication) {
+            let window = gtk_application_window_new(a);
+            let app = mount(a, window, sandbox_app(
+                "org.kivuli.test",
+                0,
+                fun(step: i64, msg: Msg): i64 = match msg {
+                    Next => step + 1,
+                    _ => step,
+                },
+                view,
+            ));
+            let ks = kids(live_of(app));
+            let item = inner(ks[0]);
+            // Roles: 6 checkbox, 19 heading, 63 switch; states: 1 checked.
+            note(
+                "item role {gtk_accessible_get_accessible_role(item)} checked {lgtk_accessible_state_is(item, 1, 1)} label {lgtk_accessible_label_is(item, "Buy milk")}",
+            );
+            note(
+                "heading role {gtk_accessible_get_accessible_role(inner(ks[1]))} label {lgtk_accessible_label_is(inner(ks[1]), "Notes")}",
+            );
+            note(
+                "input label {lgtk_accessible_label_is(inner(ks[2]), "Search notes")} text area label {lgtk_accessible_label_is(inner(ks[3]), "Body")}",
+            );
+            note("native check box checked {lgtk_accessible_state_is(inner(ks[4]), 1, 1)}");
+            dispatch(app, Msg.Next);
+            let after = inner(kids(live_of(app))[0]);
+            note(
+                "unset: same widget {after == item} checked set {gtk_test_accessible_has_state(after, 1)} label set {gtk_test_accessible_has_property(after, 4)}",
+            );
+            dispatch(app, Msg.Next);
+            let switched = inner(kids(live_of(app))[0]);
+            note(
+                "new role: rebuilt {switched != item} role {gtk_accessible_get_accessible_role(switched)}",
+            );
+            g_application_quit(a);
+        },
+        0,
+    );
+    g_application_run(application, 0, None);
+    g_object_unref(application);
+    assert_eq(seen.get(), [
+        "item role 6 checked 1 label 1",
+        "heading role 19 label 1",
+        "input label 1 text area label 1",
+        "native check box checked 1",
+        "unset: same widget true checked set 0 label set 0",
+        "new role: rebuilt true role 63",
+    ]);
+}
+
+fun counter(n: i64): View<Msg> = column([text("{n}").style([Accessible.label("Tasks left")])]);
+
+@test
+fun a_texts_label_survives_its_text_changing() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen: Ref<string[]> = Ref.new([]);
+    let application = gtk_application_new("org.kivuli.test.accessible_text", 0);
+    connect_app(
+        application,
+        "activate",
+        fun(a: GtkApplication) {
+            let window = gtk_application_window_new(a);
+            let app = mount(
+                a,
+                window,
+                sandbox_app("org.kivuli.test", 3, fun(n: i64, msg: Msg): i64 = n - 1, counter),
+            );
+            dispatch(app, Msg.Next);
+            let w = inner(kids(live_of(app))[0]);
+            seen.set(["label {lgtk_accessible_label_is(w, "Tasks left")}"]);
+            g_application_quit(a);
+        },
+        0,
+    );
+    g_application_run(application, 0, None);
+    g_object_unref(application);
+    assert_eq(seen.get(), ["label 1"]);
+}

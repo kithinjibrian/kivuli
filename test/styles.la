@@ -5,6 +5,7 @@ import kivuli.styles { Sheet };
 import kivuli {
     View,
     Overflow,
+    Accessible,
     Sizing,
     Styling,
     Font,
@@ -86,6 +87,7 @@ fun the_theme_values_set_nothing() {
         mark: Mark.theme(),
         group: false,
         overflow: Overflow.theme(),
+        accessible: Accessible.theme(),
     });
     assert_eq(Side.theme(), Side { width: Width.Theme, color: Paint.Theme, style: Line.Theme });
     assert_eq(Border.theme(), Border {

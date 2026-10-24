@@ -21,6 +21,7 @@ public import styles.drawing { Shadow, Effects, Mark };
 public import styles.motion { Motion, Animate, Easing, Edge };
 public import styles.groups { Group };
 public import styles.overflow { Overflow, Scrolling };
+public import styles.accessible { Accessible, Role };
 public import styles.values {
     TextAlign,
     Family,

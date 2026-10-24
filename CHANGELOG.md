@@ -8,6 +8,14 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.59.0] — 2026-10-24
+
+### Added
+- The `Accessible` style (PRP-063; Rapidkoi's DECISION-050): `Accessible.role(Role.…)`, `checked`, `selected` and `label`, what a screen reader hears for a node. Needs lugha-gtk 0.1.51.
+
+### Changed
+- `Sheet` has a new field, `accessible` (a `Sheet { … }` with every field needs it).
+
 ## [0.58.0] — 2026-10-24
 
 ### Added

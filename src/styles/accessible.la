@@ -1,0 +1,95 @@
+/**
+ * Accessibility (PRP-063): what a screen reader hears for a node, its role,
+ * whether it's checked or selected, and its label. Not CSS: `styling` sets
+ * them on the widget's accessible object. A style group, importing styles
+ * back (DECISION-025). Pure.
+ *
+ * Depends on: styles
+ * Used by: lib, styles, checks, diff, styling
+ */
+
+import styles { Sheet };
+
+/**
+ * What a node is to a screen reader: Rapidkoi's contract 7 names (AccessKit's).
+ * Roles go on `column`, `row`, `button_with` and `text`; GTK's own widgets
+ * (a `checkbox`, a `switch`) have theirs already.
+ */
+public enum Role {
+    /** Not set: GTK's own for the widget. */
+    Theme,
+    Button,
+    Checkbox,
+    Switch,
+    Tab,
+    TabList,
+    Heading,
+    List,
+    ListItem,
+    Group,
+    Separator,
+}
+
+/** What a screen reader hears for a node, through `.style`. */
+public struct Accessible {
+    public role: Role,
+    /** Ticked or not: for a checkbox or a switch role. */
+    public checked: Option<bool>,
+    /** Chosen or not: for a tab or a list item role. */
+    public selected: Option<bool>,
+    /** What's said for the node when its text isn't enough (an input's purpose). */
+    public label: Option<string>,
+}
+
+impl Accessible {
+    /** Nothing set: GTK's own. */
+    public fun theme(): Accessible = Accessible {
+        role: Role.Theme,
+        checked: None,
+        selected: None,
+        label: None,
+    };
+
+    /**
+     * The node's role. Changing it rebuilds the node: GTK fixes a role once a
+     * screen reader has read it.
+     *
+     * Example:
+     *     button_with(row([square, text("Buy milk")]), Msg.Toggle(3)).style([Accessible.role(Role.Checkbox)])
+     */
+    public fun role(r: Role): Accessible = Accessible { role: r, ..Accessible.theme() };
+
+    /** Ticked (`true`) or not, for a checkbox or switch role. */
+    public fun checked(on: bool): Accessible = Accessible {
+        checked: Some(on),
+        ..Accessible.theme(),
+    };
+
+    /** Chosen (`true`) or not, for a tab or list item role. */
+    public fun selected(on: bool): Accessible = Accessible {
+        selected: Some(on),
+        ..Accessible.theme(),
+    };
+
+    /**
+     * What a screen reader says for the node.
+     *
+     * Example:
+     *     input(m.query, Msg.Query).style([Accessible.label("Search notes")])
+     */
+    public fun label(text: string): Accessible = Accessible {
+        label: Some(text),
+        ..Accessible.theme(),
+    };
+
+    /** `s` with each field this value sets; unset fields are skipped. */
+    public fun apply(self, s: Sheet): Sheet = Sheet {
+        accessible: Accessible {
+            role: if self.role == Role.Theme { s.accessible.role } else { self.role },
+            checked: if self.checked.is_some() { self.checked } else { s.accessible.checked },
+            selected: if self.selected.is_some() { self.selected } else { s.accessible.selected },
+            label: if self.label.is_some() { self.label } else { s.accessible.label },
+        },
+        ..s,
+    };
+}

@@ -73,6 +73,7 @@ import view.keys { parse };
 import view.widgets { snap };
 import render.controls { sync_choices };
 import render.text_fields { show_hint, text_of };
+import render.accessibility { style_accessible };
 import styles.overflow { Scrolling };
 
 /**
@@ -275,6 +276,7 @@ fun apply_style<Msg>(node: Live<Msg>, style: Style, axis: i32) {
         }
         _ => {}
     }
+    style_accessible(node, style.sheet.accessible);
 }
 
 /**

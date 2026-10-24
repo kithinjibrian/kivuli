@@ -1,0 +1,106 @@
+/**
+ * What a screen reader hears for a live widget (PRP-063): a node's
+ * `Accessible` style set on its widget's accessible object, every time the
+ * node is styled, so a dropped value is taken away. Calls GTK (CLAUDE.md
+ * rule 4).
+ *
+ * Depends on: live_tree, accessible, gtk.raw
+ * Used by: styling
+ */
+
+import gtk {
+    GtkWidget,
+    gtk_accessible_get_accessible_role,
+    gtk_accessible_reset_property,
+    gtk_accessible_reset_state,
+    gtk_label_get_text,
+    lgtk_accessible_set_checked,
+    lgtk_accessible_set_label,
+    lgtk_accessible_set_role,
+    lgtk_accessible_set_selected,
+};
+import core.live_tree { Live };
+import styles.accessible { Accessible, Role };
+
+// GTK's GtkAccessibleState and GtkAccessibleProperty values (gtkenums.h).
+const CHECKED: i32 = 1;
+const SELECTED: i32 = 7;
+const LABEL: i32 = 4;
+
+/**
+ * Gives `node`'s widget its role, states and label. Roles, states and labels
+ * go on boxes, `button_with`s and texts; labels also on text fields (the
+ * entry) and text areas (the editor). GTK's own check boxes and switches keep
+ * theirs: they set them themselves.
+ */
+fun style_accessible<Msg>(node: Live<Msg>, a: Accessible) {
+    match node {
+        Box(w, _, _) => {
+            give_role(w, a.role);
+            give_states(w, a);
+            give_label(w, a.label);
+        }
+        ButtonWith(w, _, _, _, _) => {
+            give_role(w, a.role);
+            give_states(w, a);
+            give_label(w, a.label);
+        }
+        Label(w) => {
+            give_role(w, a.role);
+            give_states(w, a);
+            // A label's own accessible label is its text: unset, it's that again.
+            lgtk_accessible_set_label(w, match a.label {
+                Some(text) => text,
+                None => gtk_label_get_text(w),
+            });
+        }
+        Input(entry, _, _) => give_label(entry, a.label),
+        TextArea(_, editor, _, _, _) => give_label(editor, a.label),
+        _ => {}
+    }
+}
+
+/**
+ * Sets the role when it isn't the widget's already. A changed role arrives on
+ * a new widget (the diff rebuilds the node): GTK refuses to change one a
+ * screen reader has read.
+ */
+fun give_role(w: GtkWidget, role: Role) {
+    let wanted = gtk_role(role);
+    if wanted >= 0 && gtk_accessible_get_accessible_role(w) != wanted {
+        lgtk_accessible_set_role(w, wanted);
+    }
+}
+
+fun give_states(w: GtkWidget, a: Accessible) {
+    match a.checked {
+        Some(on) => lgtk_accessible_set_checked(w, if on { 1 } else { 0 }),
+        None => gtk_accessible_reset_state(w, CHECKED),
+    }
+    match a.selected {
+        Some(on) => lgtk_accessible_set_selected(w, if on { 1 } else { 0 }),
+        None => gtk_accessible_reset_state(w, SELECTED),
+    }
+}
+
+fun give_label(w: GtkWidget, label: Option<string>) {
+    match label {
+        Some(text) => lgtk_accessible_set_label(w, text),
+        None => gtk_accessible_reset_property(w, LABEL),
+    }
+}
+
+/** A role as GTK's `GtkAccessibleRole` (gtkenums.h, probed on GTK 4.22); -1 when not set. */
+fun gtk_role(r: Role): i32 = match r {
+    Theme => -1,
+    Button => 3,
+    Checkbox => 6,
+    Group => 18,
+    Heading => 19,
+    List => 26,
+    ListItem => 28,
+    Separator => 58,
+    Switch => 63,
+    Tab => 64,
+    TabList => 66,
+};
