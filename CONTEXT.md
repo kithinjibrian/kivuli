@@ -2109,6 +2109,18 @@ Branch: main
 
 ---
 
+## SESSION 147 — 2026-10-24 — DECISION-041: why not a web view — closed
+
+Branch: main
+
+### WHAT WAS DONE
+- The user's reasons against a web view: speed, memory, binary size. Compared them with Skia (rough figures, not measured here) and noted them in DECISION-041. No code.
+
+### STILL OPEN AT CLOSE
+- DECISION-041 stays open; the Skia spike PRP waits for the user's go.
+
+---
+
 ## NEXT SESSION START POINT
 
 0. Since session 145 the goal is portability (MEMORY.md decision 20); the renderer is DECISION-041, open. Ask the user before more GTK-only work.

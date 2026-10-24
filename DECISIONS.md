@@ -23,6 +23,8 @@ Rules:
 
 **Session 146:** the user leans to (c), Skia. What it needs besides Skia: a C shim over Skia's C++ (or SkiaSharp's C API), SDL3 for windows, input and IME events on all five platforms, layout (Yoga's C API or kivuli's own), text editing (cursor, selection, IME composition), accessibility per platform (AccessKit's C bindings), styles resolved to paint instead of CSS, hover/focus/animation run by kivuli, and a frame loop that survives Boehm GC pauses. Reverses the design rule "kivuli draws nothing itself". Proposed spike: hello.la and a text input drawn with SDL3 + Skia on Linux, with IME and a screen reader checked.
 
+**Session 147:** the user's reasons against (a): speed, memory and binary size. Rough comparison: a web view's binary is small (the engine is the system's) but it costs one or more browser processes, often 100 MB or more, and a slower cold start; Skia adds several MB to every binary but runs in-process with lower memory and predictable frames.
+
 **Blocks:** any renderer work. Lugha's target support (a lugha PRP) is needed whatever the answer.
 
 ### DECISION-029 — lughac: the examples' tests can't run together
