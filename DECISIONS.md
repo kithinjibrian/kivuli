@@ -25,6 +25,8 @@ Rules:
 
 **Session 147:** the user's reasons against (a): speed, memory and binary size. Rough comparison: a web view's binary is small (the engine is the system's) but it costs one or more browser processes, often 100 MB or more, and a slower cold start; Skia adds several MB to every binary but runs in-process with lower memory and predictable frames.
 
+**Session 149:** no library callable from C gives widgets, text editing, IME and accessibility over Skia; the frameworks that do (Flutter, Compose Multiplatform, Avalonia, Slint) own the widget tree in their own language. Candidate stack of pieces: SDL3 (windows, input, IME events), Skia + SkParagraph (drawing, text layout, caret and selection geometry), Yoga or Taffy (layout), AccessKit (accessibility). Text editing's behaviour stays kivuli's. Versions and platform support to be checked in the PRP.
+
 **Blocks:** any renderer work. Lugha's target support (a lugha PRP) is needed whatever the answer.
 
 ### DECISION-029 — lughac: the examples' tests can't run together

@@ -2130,6 +2130,15 @@ Branch: main
 
 ---
 
+## SESSION 149 — 2026-10-24 — DECISION-041: libraries on top of Skia — closed
+
+Branch: main
+
+### WHAT WAS DONE
+- The user asked for a library over Skia doing most of the work. None callable from C does it all: the full ones are frameworks in other languages (Flutter, Compose, Avalonia, Slint). Proposed assembling C-callable pieces (SDL3, Skia + SkParagraph, Yoga or Taffy, AccessKit) and noted it in DECISION-041. From memory, not checked online. No code.
+
+---
+
 ## NEXT SESSION START POINT
 
 0. Since session 145 the goal is portability (MEMORY.md decision 20); the renderer is DECISION-041, open. Ask the user before more GTK-only work.
