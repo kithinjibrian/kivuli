@@ -1,0 +1,42 @@
+/**
+ * Starting an app: the GTK application, its window made and the app mounted
+ * when GTK says to (`activate`). Moved out of `live` (file size); `live`
+ * runs the app once it's mounted. Calls GTK (CLAUDE.md rule 4).
+ *
+ * Depends on: live, effects, gtk.raw
+ * Used by: lib
+ */
+
+import gtk {
+    GtkApplication,
+    connect_app,
+    g_application_run,
+    g_object_unref,
+    gtk_application_new,
+    gtk_application_window_new,
+    gtk_window_present,
+};
+import core.effects { App };
+import render.live { mount };
+
+/**
+ * Starts the GTK application `program.id` and runs it until its window closes
+ * or a command quits it.
+ * @returns GTK's exit status, for `main` to return.
+ */
+fun run<Model, Msg>(program: App<Model, Msg>): i32 {
+    let application = gtk_application_new(program.id, 0);
+    connect_app(
+        application,
+        "activate",
+        fun(a: GtkApplication) {
+            let window = gtk_application_window_new(a);
+            mount(a, window, program);
+            gtk_window_present(window);
+        },
+        0,
+    );
+    let status = g_application_run(application, 0, None);
+    g_object_unref(application);
+    status
+}

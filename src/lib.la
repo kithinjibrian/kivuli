@@ -85,7 +85,7 @@ public import view.widgets {
 };
 public import core.effects { Cmd, Sub, App };
 public import testing;
-import render.live;
+import render.launch;
 
 /**
  * Runs an app with no effects: shows `view(init)` in a window, and on each
@@ -105,7 +105,7 @@ public fun sandbox<Model, Msg>(
     init: Model,
     update: fun(Model, Msg): Model,
     view: fun(Model): View<Msg>,
-): i32 = live.run(effects.sandbox_app(id, init, update, view));
+): i32 = launch.run(effects.sandbox_app(id, init, update, view));
 
 /**
  * Runs an app with effects: like `sandbox`, but `init` and `update` also
@@ -124,4 +124,4 @@ public fun sandbox<Model, Msg>(
  *         subscriptions: subscriptions,
  *     });
  */
-public fun application<Model, Msg>(app: App<Model, Msg>): i32 = live.run(app);
+public fun application<Model, Msg>(app: App<Model, Msg>): i32 = launch.run(app);
