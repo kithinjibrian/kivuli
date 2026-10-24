@@ -1,0 +1,159 @@
+/**
+ * The text fields' widgets: making a one-line field and a text area (its
+ * placeholder label over its scrolled window, PRP-059), a text buffer's text,
+ * and showing or hiding a text area's hint. Moved out of `build` (file size).
+ * Calls GTK (CLAUDE.md rule 4).
+ *
+ * Depends on: live_tree, gtk.raw
+ * Used by: styling, build, patch
+ */
+
+import gtk {
+    GtkTextBuffer,
+    GtkWidget,
+    connect_buffer,
+    connect_widget,
+    g_free,
+    gtk_editable_get_text,
+    gtk_editable_set_text,
+    gtk_entry_new,
+    gtk_label_get_text,
+    gtk_label_new,
+    gtk_label_set_wrap,
+    gtk_label_set_wrap_mode,
+    gtk_label_set_xalign,
+    gtk_overlay_add_overlay,
+    gtk_overlay_new,
+    gtk_overlay_set_child,
+    gtk_scrolled_window_new,
+    gtk_scrolled_window_set_child,
+    gtk_text_buffer_set_text,
+    gtk_text_view_get_buffer,
+    gtk_text_view_new,
+    gtk_text_view_set_wrap_mode,
+    gtk_widget_add_css_class,
+    gtk_widget_set_can_target,
+    gtk_widget_set_halign,
+    gtk_widget_set_overflow,
+    gtk_widget_set_sensitive,
+    gtk_widget_set_size_request,
+    gtk_widget_set_valign,
+    gtk_widget_set_visible,
+    lgtk_cstring_text,
+    lgtk_text_get,
+};
+import core.live_tree { Live };
+
+/** A one-line field showing `value`; its edits and Enter send through `send`. */
+fun create_input<Msg>(
+    value: string,
+    messages: Option<(fun(string): Msg, Option<Msg>)>,
+    send: fun(Msg),
+): Live<Msg> {
+    let (on_change, on_submit) = match messages {
+        Some((f, enter)) => (Some(f), enter),
+        None => (None, None),
+    };
+    let entry = gtk_entry_new();
+    // Set before connecting, so the first text isn't sent as an edit.
+    gtk_editable_set_text(entry, value);
+    // Disabled (no messages, decision 6): greyed out, and the handlers
+    // below send nothing even if GTK delivers a signal.
+    gtk_widget_set_sensitive(entry, flag(on_change.is_some()));
+    let current = Ref.new(on_change);
+    connect_widget(
+        entry,
+        "changed",
+        fun(e: GtkWidget) {
+            match current.get() {
+                Some(f) => send(f(gtk_editable_get_text(e))),
+                None => {}
+            }
+        },
+        0,
+    );
+    let submit = Ref.new(on_submit);
+    connect_widget(
+        entry,
+        "activate",
+        fun(e: GtkWidget) {
+            match submit.get() {
+                Some(m) => send(m),
+                None => {}
+            }
+        },
+        0,
+    );
+    Live.Input(entry, current, submit)
+}
+
+/** A text area showing `value`; its edits send through `send`. Its hint is set by styling. */
+fun create_text_area<Msg>(
+    value: string,
+    on_change: Option<fun(string): Msg>,
+    send: fun(Msg),
+): Live<Msg> {
+    let view = gtk_text_view_new();
+    // Word wrapping, breaking a word only when it's longer than the line.
+    gtk_text_view_set_wrap_mode(view, 3);
+    let buffer = gtk_text_view_get_buffer(view);
+    // Set before connecting, so the first text isn't sent as an edit.
+    gtk_text_buffer_set_text(buffer, value, -1);
+    // Disabled: the editor is greyed out, not the scrolled window, so
+    // long text can still be scrolled.
+    gtk_widget_set_sensitive(view, flag(on_change.is_some()));
+    // The placeholder (PRP-059): plain text, dimmed by the theme, at the
+    // top start, wrapping as the text does; clicks go through to the editor.
+    let hint = gtk_label_new("");
+    gtk_widget_add_css_class(hint, "dim-label");
+    gtk_widget_set_halign(hint, 1);
+    gtk_widget_set_valign(hint, 1);
+    gtk_label_set_xalign(hint, 0.0);
+    gtk_label_set_wrap(hint, 1);
+    gtk_label_set_wrap_mode(hint, 2);
+    gtk_widget_set_can_target(hint, 0);
+    let current = Ref.new(on_change);
+    connect_buffer(
+        buffer,
+        "changed",
+        fun(b: GtkTextBuffer) {
+            let text = text_of(b);
+            show_hint(hint, text == "");
+            match current.get() {
+                Some(f) => send(f(text)),
+                None => {}
+            }
+        },
+        0,
+    );
+    // Its own scrolled window: long text scrolls instead of growing the window.
+    let scrolled = gtk_scrolled_window_new();
+    gtk_scrolled_window_set_child(scrolled, Some(view));
+    // The overlay is outside the scrolled window, which keeps the text
+    // view's own scrolling; it clips a hint too long for the area.
+    let overlay = gtk_overlay_new();
+    gtk_overlay_set_child(overlay, Some(scrolled));
+    gtk_overlay_add_overlay(overlay, hint);
+    gtk_widget_set_overflow(overlay, 1);
+    gtk_widget_set_size_request(overlay, -1, 80);
+    Live.TextArea(overlay, view, buffer, current, hint)
+}
+
+/** A text buffer's whole text; the copy C allocated is freed. */
+fun text_of(buffer: GtkTextBuffer): string {
+    let owned = lgtk_text_get(buffer);
+    let text = lgtk_cstring_text(owned);
+    g_free(owned);
+    text
+}
+
+/**
+ * Shows a text area's placeholder exactly while its text is `empty` and the
+ * label holds a hint. Called by the buffer's `changed` handler and by styling.
+ */
+fun show_hint(hint: GtkWidget, empty: bool) {
+    gtk_widget_set_visible(hint, flag(empty && gtk_label_get_text(hint) != ""));
+}
+
+// Styling's `flag`: this module sits below styling, so it can't import it.
+fun flag(b: bool): i32 = if b { 1 } else { 0 };

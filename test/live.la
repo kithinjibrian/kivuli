@@ -71,7 +71,7 @@ fun shown<M>(node: Live<M>): string = match node {
     // Shown in full by test/live_button_with.la.
     ButtonWith(_, _, _, _, content) => "[" + shown(content) + "]",
     Input(w, _, _) => "<" + gtk_editable_get_text(w) + ">",
-    TextArea(_, _, _) => "<area>",
+    TextArea(_, _, _, _, _) => "<area>",
     Checkbox(w, label, _) => {
         let tick = if gtk_check_button_get_active(w) != 0 { "x" } else { " " };
         "[{tick}] " + gtk_label_get_text(label)

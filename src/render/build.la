@@ -4,18 +4,15 @@
  * nodes; not responsible for running the app or deciding what changed
  * (`live`, `diff`).
  *
- * Depends on: live_tree, views, buttons, popovers, box_rules, styling, textures, widgets, controls, gtk.raw
+ * Depends on: live_tree, views, buttons, popovers, box_rules, styling, textures, widgets, controls, text_fields, gtk.raw
  * Used by: live, patch
  */
 
 import gtk {
     GParamSpec,
-    GtkTextBuffer,
     GtkWidget,
-    connect_buffer,
     connect_notify,
     connect_widget,
-    g_free,
     g_timeout_add_full,
     gtk_box_append,
     gtk_box_new,
@@ -23,9 +20,6 @@ import gtk {
     gtk_check_button_new,
     gtk_check_button_set_active,
     gtk_check_button_set_child,
-    gtk_editable_get_text,
-    gtk_editable_set_text,
-    gtk_entry_new,
     gtk_flow_box_insert,
     gtk_flow_box_new,
     gtk_flow_box_set_max_children_per_line,
@@ -52,27 +46,19 @@ import gtk {
     gtk_scale_new_with_range,
     gtk_scale_set_digits,
     gtk_scale_set_draw_value,
-    gtk_scrolled_window_get_child,
     gtk_scrolled_window_new,
     gtk_scrolled_window_set_child,
     gtk_scrolled_window_set_propagate_natural_height,
     gtk_scrolled_window_set_propagate_natural_width,
     gtk_separator_new,
-    gtk_text_buffer_set_text,
-    gtk_text_view_get_buffer,
-    gtk_text_view_new,
-    gtk_text_view_set_wrap_mode,
     gtk_widget_grab_focus,
     gtk_widget_get_parent,
     gtk_widget_set_focusable,
     gtk_widget_set_hexpand,
     gtk_widget_set_sensitive,
-    gtk_widget_set_size_request,
     gtk_widget_set_vexpand,
     lgtk_clamp_new,
     lgtk_clamp_set_child,
-    lgtk_cstring_text,
-    lgtk_text_get,
 };
 import core.live_tree { Choices, Live, widget };
 import view.views { View };
@@ -86,6 +72,7 @@ import styles.values { TextAlign };
 import render.textures { show_picture };
 import view.widgets { snap };
 import render.controls { create_dropdown, nearest };
+import render.text_fields { create_input, create_text_area };
 
 /** Builds the GTK widgets for `v` at the top of a window; each widget sends its messages through `send`. */
 fun create<Msg>(v: View<Msg>, send: fun(Msg)): Live<Msg> = create_in(v, 1, send);
@@ -108,71 +95,8 @@ fun create_in<Msg>(v: View<Msg>, axis: i32, send: fun(Msg)): Live<Msg> = match v
     // Spacing comes later as a modifier.
     Column(children) => create_box(1, children, send),
     Row(children) => create_box(0, children, send),
-    Input(value, messages) => {
-        let (on_change, on_submit) = match messages {
-            Some((f, enter)) => (Some(f), enter),
-            None => (None, None),
-        };
-        let entry = gtk_entry_new();
-        // Set before connecting, so the first text isn't sent as an edit.
-        gtk_editable_set_text(entry, value);
-        // Disabled (no messages, decision 6): greyed out, and the handlers
-        // below send nothing even if GTK delivers a signal.
-        gtk_widget_set_sensitive(entry, flag(on_change.is_some()));
-        let current = Ref.new(on_change);
-        connect_widget(
-            entry,
-            "changed",
-            fun(e: GtkWidget) {
-                match current.get() {
-                    Some(f) => send(f(gtk_editable_get_text(e))),
-                    None => {}
-                }
-            },
-            0,
-        );
-        let submit = Ref.new(on_submit);
-        connect_widget(
-            entry,
-            "activate",
-            fun(e: GtkWidget) {
-                match submit.get() {
-                    Some(m) => send(m),
-                    None => {}
-                }
-            },
-            0,
-        );
-        Live.Input(entry, current, submit)
-    }
-    TextArea(value, on_change) => {
-        let view = gtk_text_view_new();
-        // Word wrapping, breaking a word only when it's longer than the line.
-        gtk_text_view_set_wrap_mode(view, 3);
-        let buffer = gtk_text_view_get_buffer(view);
-        // Set before connecting, so the first text isn't sent as an edit.
-        gtk_text_buffer_set_text(buffer, value, -1);
-        // Disabled: the editor is greyed out, not the scrolled window, so
-        // long text can still be scrolled.
-        gtk_widget_set_sensitive(view, flag(on_change.is_some()));
-        let current = Ref.new(on_change);
-        connect_buffer(
-            buffer,
-            "changed",
-            fun(b: GtkTextBuffer) {
-                match current.get() {
-                    Some(f) => send(f(text_of(b))),
-                    None => {}
-                }
-            },
-            0,
-        );
-        // Its own scrolled window: long text scrolls instead of growing the window.
-        let scrolled = gtk_scrolled_window_new();
-        gtk_scrolled_window_set_child(scrolled, Some(view));
-        gtk_widget_set_size_request(scrolled, -1, 80);
-        Live.TextArea(scrolled, buffer, current)
-    }
+    Input(value, messages) => create_input(value, messages, send),
+    TextArea(value, on_change) => create_text_area(value, on_change, send),
     Checkbox(label, checked, on_toggle) => {
         // Its own label child, so the long-text modifiers can reach it.
         let check = gtk_check_button_new();
@@ -437,24 +361,11 @@ fun create_box<Msg>(orientation: i32, children: View<Msg>[], send: fun(Msg)): Li
 
 /** The widget that takes keyboard focus for `node`: a text area's editor, else the node's widget. */
 fun focus_target<Msg>(node: Live<Msg>): GtkWidget = match node {
-    TextArea(scrolled, _, _) => editor(scrolled),
+    TextArea(_, editor, _, _, _) => editor,
     Menu(inner, _) => focus_target(inner),
     Clamp(inner, _) => focus_target(inner),
     _ => widget(node),
 };
-
-/** A text area's editor (the text view), inside its scrolled window. */
-fun editor(scrolled: GtkWidget): GtkWidget = gtk_scrolled_window_get_child(scrolled).unwrap_or(
-    scrolled,
-);
-
-/** A text buffer's whole text; the copy C allocated is freed. */
-fun text_of(buffer: GtkTextBuffer): string {
-    let owned = lgtk_text_get(buffer);
-    let text = lgtk_cstring_text(owned);
-    g_free(owned);
-    text
-}
 
 /** A progress bar's value out of 100 as GTK's fraction, clamped to 0..1. */
 /**

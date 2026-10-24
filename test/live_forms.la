@@ -19,7 +19,6 @@ import gtk {
     gtk_editable_set_text,
     gtk_entry_get_placeholder_text,
     gtk_label_get_text,
-    gtk_scrolled_window_get_child,
     gtk_text_buffer_set_text,
     gtk_text_view_get_wrap_mode,
     lgtk_text_cursor,
@@ -27,7 +26,7 @@ import gtk {
 };
 import kivuli.render.live { dispatch, mount, live_of };
 import kivuli.core.effects { sandbox_app };
-import kivuli.render.build { text_of };
+import kivuli.render.text_fields { text_of };
 import kivuli.core.live_tree { Live, widget };
 import kivuli { View, button, checkbox, column, input, text, text_area };
 
@@ -311,7 +310,7 @@ fun a_text_area_sends_edits_keeps_its_cursor_and_does_not_echo() {
             let Box(_, _, kids) = live_of(app) else {
                 panic("expected a column");
             };
-            let TextArea(scrolled, buffer, _) = kids[0] else {
+            let TextArea(_, editor, buffer, _, _) = kids[0] else {
                 panic("expected a text area");
             };
             // Every `changed` the buffer fires, kivuli's own included.
@@ -324,10 +323,7 @@ fun a_text_area_sends_edits_keeps_its_cursor_and_does_not_echo() {
                 },
                 0,
             );
-            let wrap = match gtk_scrolled_window_get_child(scrolled) {
-                Some(view) => gtk_text_view_get_wrap_mode(view),
-                None => -1,
-            };
+            let wrap = gtk_text_view_get_wrap_mode(editor);
             note("wrap {wrap}");
             // What a user typing ends with: the buffer changes outside any dispatch.
             gtk_text_buffer_set_text(buffer, "hello world", -1);

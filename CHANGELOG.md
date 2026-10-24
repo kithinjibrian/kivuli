@@ -8,6 +8,14 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.55.0] — 2026-10-24
+
+### Added
+- `.placeholder(hint)` on a `text_area` (PRP-059; Rapidkoi's DECISION-055): the hint shows, dimmed (the theme's `dim-label`), at the top start while the text is empty. `kivuli.testing` finds a text area by its placeholder, as a text field.
+
+### Changed
+- A text area's outer widget is a `GtkOverlay` around its scrolled window: its style classes and default height are on the overlay.
+
 ## [0.54.0] — 2026-10-22
 
 ### Added

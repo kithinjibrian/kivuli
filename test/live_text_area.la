@@ -1,0 +1,196 @@
+// A text area's placeholder on real GTK widgets (PRP-059): the hint shows,
+// dimmed, exactly while the text is empty, follows typing and the model, and
+// never takes the pointer. Needs a display, so it is skipped without one.
+import std.env;
+import gtk {
+    GtkApplication,
+    GtkWidget,
+    connect_app,
+    g_application_quit,
+    g_application_run,
+    g_object_unref,
+    gtk_application_new,
+    gtk_application_window_new,
+    gtk_label_get_text,
+    gtk_overlay_get_child,
+    gtk_text_buffer_set_text,
+    gtk_widget_get_can_target,
+    gtk_widget_get_sensitive,
+    gtk_widget_get_visible,
+    gtk_widget_has_css_class,
+};
+import kivuli.render.live { dispatch, mount, live_of };
+import kivuli.core.effects { sandbox_app };
+import kivuli.core.live_tree { Live, widget };
+import kivuli { View, Background, Paint, hex, column, text_area };
+
+fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
+
+enum Edit {
+    Typed(string),
+    Set(string),
+    Hint(string),
+    Lock,
+}
+
+struct Note {
+    text: string,
+    hint: string,
+    locked: bool,
+}
+
+fun update(n: Note, msg: Edit): Note = match msg {
+    Typed(t) => Note { text: t, ..n },
+    Set(t) => Note { text: t, ..n },
+    Hint(h) => Note { hint: h, ..n },
+    Lock => Note { locked: true, ..n },
+};
+
+fun view(n: Note): View<Edit> = column([
+    text_area(n.text, Edit.Typed).placeholder(n.hint).disabled(n.locked).style([
+        Background { color: Paint.Color(hex("#242424")), ..Background.theme() },
+    ]),
+]);
+
+/** The hint as GTK shows it: `[text]` while visible, `-` while hidden. */
+fun shown(hint: GtkWidget): string = if gtk_widget_get_visible(hint) != 0 {
+    "[{gtk_label_get_text(hint)}]"
+} else {
+    "-"
+};
+
+/** Runs `steps` on a mounted app starting from `start`, and returns what they noted. */
+fun run(id: string, start: Note, steps: fun(fun(Edit), Live<Edit>, fun(string))): string[] {
+    let seen: Ref<string[]> = Ref.new([]);
+    let note = fun(s: string) {
+        seen.update(fun(xs) {
+            let mut ys = xs;
+            ys.push(s);
+            ys
+        });
+    };
+    let application = gtk_application_new(id, 0);
+    connect_app(
+        application,
+        "activate",
+        fun(a: GtkApplication) {
+            let window = gtk_application_window_new(a);
+            let app = mount(a, window, sandbox_app("org.kivuli.test", start, update, view));
+            let Box(_, _, kids) = live_of(app) else {
+                panic("expected a column");
+            };
+            steps(fun(msg: Edit) = dispatch(app, msg), kids[0], note);
+            g_application_quit(a);
+        },
+        0,
+    );
+    g_application_run(application, 0, None);
+    g_object_unref(application);
+    seen.get()
+}
+
+@test
+fun the_hint_shows_while_the_text_is_empty() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen = run("org.kivuli.test.hint", Note {
+        text: "",
+        hint: "Write something",
+        locked: false,
+    }, fun(send: fun(Edit), area: Live<Edit>, note: fun(string)) {
+        let TextArea(_, _, buffer, _, hint) = area else {
+            panic("expected a text area");
+        };
+        note("empty {shown(hint)} dim {gtk_widget_has_css_class(hint, "dim-label")}");
+        // What typing ends with: the buffer changes outside any dispatch.
+        gtk_text_buffer_set_text(buffer, " ", -1);
+        note("a space {shown(hint)}");
+        gtk_text_buffer_set_text(buffer, "", -1);
+        note("emptied {shown(hint)}");
+        send(Edit.Set("from the model"));
+        note("model text {shown(hint)}");
+        send(Edit.Set(""));
+        note("model cleared {shown(hint)}");
+    });
+    assert_eq(seen, [
+        "empty [Write something] dim 1",
+        "a space -",
+        "emptied [Write something]",
+        "model text -",
+        "model cleared [Write something]",
+    ]);
+}
+
+@test
+fun a_changed_hint_patches_the_same_label_and_an_empty_one_hides() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen = run("org.kivuli.test.hint_patch", Note {
+        text: "",
+        hint: "Write something",
+        locked: false,
+    }, fun(send: fun(Edit), area: Live<Edit>, note: fun(string)) {
+        let TextArea(_, _, _, _, hint) = area else {
+            panic("expected a text area");
+        };
+        send(Edit.Hint("Reply"));
+        note("changed {shown(hint)}");
+        send(Edit.Hint(""));
+        note("none {shown(hint)}");
+        send(Edit.Hint("Back"));
+        note("back {shown(hint)}");
+    });
+    assert_eq(seen, ["changed [Reply]", "none -", "back [Back]"]);
+}
+
+@test
+fun the_hint_takes_no_pointer_and_the_overlay_is_the_outer_widget() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen = run("org.kivuli.test.hint_widget", Note { text: "", hint: "", locked: false }, fun(
+        send: fun(Edit),
+        area: Live<Edit>,
+        note: fun(string),
+    ) {
+        let TextArea(overlay, _, _, _, hint) = area else {
+            panic("expected a text area");
+        };
+        let scrolled = gtk_overlay_get_child(overlay).expect(
+            "a text area's overlay holds its scrolled window",
+        );
+        note("no hint {shown(hint)}");
+        note("targets {gtk_widget_get_can_target(hint)}");
+        note("outer is the overlay {widget(area) == overlay}");
+        note(
+            "classes: overlay {gtk_widget_has_css_class(overlay, "kv-bg-242424ff")} scroll {gtk_widget_has_css_class(scrolled, "kv-bg-242424ff")}",
+        );
+    });
+    assert_eq(seen, [
+        "no hint -",
+        "targets 0",
+        "outer is the overlay true",
+        "classes: overlay 1 scroll 0",
+    ]);
+}
+
+@test
+fun a_disabled_text_area_still_shows_its_hint() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen = run("org.kivuli.test.hint_locked", Note {
+        text: "",
+        hint: "Locked",
+        locked: false,
+    }, fun(send: fun(Edit), area: Live<Edit>, note: fun(string)) {
+        let TextArea(_, editor, _, _, hint) = area else {
+            panic("expected a text area");
+        };
+        send(Edit.Lock);
+        note("editor {gtk_widget_get_sensitive(editor)} hint {shown(hint)}");
+    });
+    assert_eq(seen, ["editor 0 hint [Locked]"]);
+}

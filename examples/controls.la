@@ -120,7 +120,7 @@ fun view(m: Model): View<Msg> = column([
         spacer(),
         button("Reset", Msg.Reset).disabled(m.size == 14 && m.weight == Weight.Normal && !m.italic),
     ]),
-    text_area(m.notes, Msg.Notes).name("notes").style([at_least(0, 80)]),
+    text_area(m.notes, Msg.Notes).name("notes").placeholder("Notes").style([at_least(0, 80)]),
     row([
         icon("emblem-ok-symbolic"),
         icon("starred-symbolic").size(32),

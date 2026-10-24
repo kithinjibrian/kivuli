@@ -1,6 +1,6 @@
 # PRP-059 — A placeholder in a text area
 
-Status: approved discovery (2026-10-24); the PRP awaits approval
+Status: approved and built (2026-10-24)
 Request: Rapidkoi's DECISION-055, section 1 of `../rapidkoi/docs/specs/kivuli-requests.md`
 
 ## FEATURE: `.placeholder(hint)` on a `text_area` shows `hint`, dimmed, while its text is empty.
@@ -64,3 +64,11 @@ GTK, skipped without a display (`test/live_text_area.la`):
 - [ ] README, `docs/DESIGN.md`, CHANGELOG 0.55.0; DECISION-041's reading recorded
 - [ ] For the user, by eye: in `examples/controls.la` (its text area given a placeholder), the hint shows dimmed, lined up with where the text starts, goes on the first keystroke and comes back when emptied; clicking it places the cursor; styled text areas in `components.la` and `controls.la` look as before
 - [ ] Once merged, the user is told, so Rapidkoi can resolve its DECISION-055
+
+## NOTES FROM THE BUILD
+
+- **Split (the user's approval):** `src/render/build.la` reached 507 lines after `fmt`. The text fields' widgets moved to `src/render/text_fields.la` (`create_input`, `create_text_area`, `text_of`, `show_hint`); `build.la` is 390. Named `text_fields`, not `fields`: importing from `render.fields` binds `fields`, which clashed with test helpers of that name (E0314). Imports run live_tree ← text_fields ← styling ← build ← patch ← live.
+- **`show_hint` is in `text_fields.la`**, not `build.la` as DESIGN said: styling needs it, and styling can't import build.
+- **Not tested:** the overlay's 80 px default height: lugha-gtk has no `gtk_widget_get_size_request`, and a hidden window isn't laid out. It's the same call as before, on the overlay.
+- **Mutation check:** without the hint update in the `changed` handler, `test/live_text_area.la` fails.
+- `examples/controls.la`'s text area has `.placeholder("Notes")`, for the check by eye.
