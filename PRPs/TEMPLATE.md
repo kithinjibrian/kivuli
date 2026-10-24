@@ -1,66 +1,31 @@
 ## FEATURE: [one sentence]
 
 ## OBJECTIVE
-[2–3 sentences describing what "done" looks like from an app author's perspective, with a short `.la` example of the API in use]
+[What "done" looks like for an app author: what they write, and what appears on screen. A short `.la` example of the API in use.]
 
 ## CONTEXT
+- Files to read first, and the files this creates or changes.
+- Specs and sibling APIs relied on (`lughac spec`, `../lugha-gtk/`, GTK headers in `/usr/include/gtk-4.0`): confirm each exists.
+- Where the request comes from (a Rapidkoi DECISION number, if any).
+- Decisions it depends on (DECISIONS.md): none may be open.
 
-- Starting state: [which files currently exist and are relevant]
-- Ending state: [which files will be created or modified]
-- Related existing code: [specific file paths to read before starting, including in ../lugha-gtk]
-- Related source files: [docs/source/… notes that shaped this feature]
-- Lugha spec sections relied on: [`lughac spec` sections; confirm each feature exists]
-- GTK/GLib functions needed: [each checked against /usr/include/gtk-4.0; mark which are new externs]
-- Open decisions that must be resolved first: [DECISIONS.md entries that block this feature]
-
-## IMPLEMENTATION REQUIREMENTS
+## REQUIREMENTS
 
 ### Must Do
 - [specific requirement]
 
 ### Must NOT Do
-- [explicit exclusion, and why]
+- [exclusion, and why]
 
-## ERROR HANDLING REQUIREMENTS
+## DESIGN
+[Only what isn't obvious: new nodes, modifiers and patches, error enums and panics, new externs (each checked against its header), pinned closures, new dependencies.]
 
-- [Which failures return `Result` and with which error enum variants]
-- [Which conditions are programmer errors and panic, and the panic message]
-- [What the caller receives on each failure path]
+## TESTS
+- [ ] [pure, no display: happy path, each error, edge cases]
+- [ ] [GTK, skipped without a display: what is built, patched and read back]
 
-## SECURITY CONSIDERATIONS
-
-- [New externs: each matches its C prototype exactly]
-- [Closures handed to C: pinned with `data`/`release`, connected once per widget]
-- [New package or `[link]` dependencies, and why]
-- [External input handled by examples, and how it is validated]
-
-## TESTS TO WRITE
-
-List the specific test cases before any implementation begins. All must run with no display:
-- [ ] Happy path: [describe]
-- [ ] Error path: [each error variant]
-- [ ] Edge case: [describe]
-- [ ] Live GTK (`test/live.la`, skipped without a display): [what is built, patched, and read back]
-
-## ROLLBACK PLAN
-
-If this feature needs to be abandoned mid-implementation:
-- Branch to return to: [branch name]
-- State the codebase should be in: [describe]
-
-## ACCEPTANCE CRITERIA
+## ACCEPTANCE
 - [ ] [testable criterion]
-- [ ] `lughac test test/` passes
-- [ ] Every example passes `lughac check` and `lughac build`
-- [ ] `lughac fmt --check src examples test` is clean
-- [ ] Every `public` item has a `/** … */` doc comment
-- [ ] No file over 500 lines
+- [ ] `lughac test test/`, the examples' tests and `lughac fmt --check src examples test` pass; every example builds
 - [ ] CHANGELOG.md updated
-
-## VALIDATION
-Run these commands to verify completion:
-- `lughac fmt --check src examples test`
-- `lughac test test/`
-- `for f in examples/*.la; do lughac build "$f" || exit 1; done`
-- [feature-specific check]
-- For the user: [what to open and click to confirm it visually]
+- [ ] For the user, by eye: [what to open and try]

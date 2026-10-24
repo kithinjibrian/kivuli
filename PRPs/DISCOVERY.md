@@ -25,8 +25,7 @@ Cover in order:
 6. What it must never modify
 7. Which open entries in DECISIONS.md it depends on
 8. Security: new externs, pinned closures, new dependencies
-9. What rollback looks like if it is abandoned
-10. How success is verified: headless tests, the windowless smoke run, and what the user should check on screen
+9. How success is verified: headless tests, the windowless smoke run, and what the user should check on screen
 
 ## After the Interview
 

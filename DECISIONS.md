@@ -1,12 +1,187 @@
 # DECISIONS.md — kivuli
 
-Tracks architectural and design questions that are open, deferred, or resolved.
+Every architectural and design decision: the core ones that shape the project (numbered, formerly MEMORY.md's: "MEMORY.md decision N" in older PRPs and docs is core decision N here), then the questions that are open, deferred or resolved.
 
 Rules:
 - Every open decision blocks implementation of the code it affects.
 - The AI must not implement anything that depends on an open decision.
-- When a decision is resolved, move it to the RESOLVED section and record the outcome.
-- Once resolved, copy the outcome to MEMORY.md as an architectural decision.
+- When a decision is resolved, move it to the RESOLVED section and record the outcome. One that shapes the whole project also becomes a core decision, or amends one.
+
+---
+
+## CORE DECISIONS
+
+Decisions 1–12 were agreed in the design discussion in the lugha repository (after milestone 90) and recorded in the kickoff brief, `docs/source/stakeholder/kickoff-2026-10-16.md`. They are final.
+
+### 1. The Elm architecture, not React/Flutter/Solid
+
+**Decision:** Model → `update(model, msg)` → `view(model)` → diff → patch. The app never touches a widget.
+
+**Why:** value semantics, exhaustive `match` on `Msg`, and a pure, testable `update`/`view` fit Lugha. This was the user's stated preference.
+
+**Rules out:** framework comparisons (the user asked for no more), component-local mutable state, reactive signals.
+
+---
+
+### 2. Two entry points: `sandbox` and `application`
+
+**Decision:** `kivuli.sandbox(id, init, update, view): i32` is pure. `kivuli.application(App { id, init: (Model, Cmd<Msg>), update: fun(Model, Msg): (Model, Cmd<Msg>), view, subscriptions: fun(Model): Sub<Msg> }): i32` adds effects.
+
+**Why:** most apps need no effects, and Elm's `Browser.sandbox` / `Browser.element` split keeps them simple.
+
+**Rules out:** a single entry point with optional effect fields.
+
+---
+
+### 3. One window per app in v1, configured from `view`
+
+**Decision:** the root modifier `.window(title, width, height)` sets the window, so the title may depend on state.
+
+**Rules out (v1):** multiple windows and dialogs.
+
+---
+
+### 4. The v1 widget set
+
+**Decision:** `text`, `button(label, msg)`, `input(value, on_change)` (+ `.placeholder`, `.on_submit`), `checkbox(label, checked, on_toggle)`, `column`, `row`, `spacer`, `scroll`, `separator`, `keyed_column(children: (string, View<Msg>)[])`.
+
+**Rules out (v1):** text area, dropdown, slider, image, table (these are v2).
+
+---
+
+### 5. Modifiers are chained methods on `View`
+
+**Decision:** a modifier that doesn't apply to a node is ignored. Layout: `padding`, `spacing`, `expand`, `align(Start|Center|End)`, `width`, `height`. Text: `size`, `bold`, `dim`. Button: `style(Normal|Primary|Danger|Subtle)`, `disabled(bool)`. Root: `window`. Modifiers return changed copies (`match self { Button(b) => …, _ => self }`).
+
+**Rules out:** modifier-argument structs, errors for inapplicable modifiers.
+
+**How (session 3, DECISION-009):** modifiers don't change a node's own variant. They wrap it once in `Styled(inner, Style)`, and further modifiers update that `Style`. Inapplicable fields are stored and ignored when `live` applies them.
+
+---
+
+### 6. Disabled = no message
+
+**Decision:** a button's `on_click` is `Option<Msg>`. `.disabled(true)` sets it to `None`, which greys the widget out. Text fields follow the same rule (PRP-006, session 5): `Input(value, Option<(on_change, on_submit)>)` and `TextArea(value, Option<on_change>)`, `None` when disabled; an input's edit and Enter messages travel together, so Enter can't send while edits can't.
+
+**Rules out:** a separate `disabled` flag.
+
+---
+
+### 7. Effects as data, minimal
+
+**Decision:** `Cmd.none()`, `Cmd.batch`, `Cmd.after(ms, msg)`, `Cmd.quit()`. `Sub.none()`, `Sub.every(ms, fun(i64): Msg)`, and `Sub.batch(subs)` (added in session 3, so an app can listen to more than one timer). File, process and network I/O are not commands: `update` may call `std.fs`/`std.process` directly, and blocking is accepted for now.
+
+**Rules out (v1):** HTTP/file commands, async I/O.
+
+**How (session 3):** `src/effects.la` holds the types as data (pure); `live.la` runs them. Subscription timers are keyed by interval and their count among equal intervals (`"1000#0"`): a key asked for again keeps its GLib timer, with its function re-pointed through a `Ref`; others are removed. `sandbox` is `application` with no effects (`sandbox_app`), so there is one runtime.
+
+---
+
+### 8. Composition by mapping, no framework-owned local state
+
+**Decision:** `View<A>.map(f: fun(A): B): View<B>`, and the same on `Cmd` and `Sub`. Local state is added only if a real widget needs it.
+
+---
+
+### 9. Performance tools: `lazy` and `keyed_column`
+
+**Decision:** `lazy(key: string, build)` skips building and diffing a subtree whose key is unchanged at the same place (DECISION-002, session 3: the app supplies a key covering every input; reuse is per place, as in Elm, so mapped components can't mix). `keyed_column` handles reordering. No virtualised list in v1.
+
+---
+
+### 10. `kivuli.testing` with no GTK
+
+**Decision:** inspect a `View` tree headlessly: `testing.find_button(v, "Reset").is_disabled()`, `testing.click(v, "Add") == Some(Msg.Add)`, `testing.type_into(v, placeholder, "text")`. Apps test with `lughac test`. Module: `kivuli.testing`, re-exported from the entry (DECISION-003, session 3); fields are found by `.placeholder`.
+
+---
+
+### 11. Packaging
+
+**Decision:** its own repository (GitHub `kithinjibrian/kivuli`, created and pushed only on the user's go), package `kivuli`, entry module `src/lib.la` (`import kivuli;`; originally a `ui` module, moved to the entry when lughac milestone 99 added `lib.la`, at the user's direction in session 2), depends on `gtk` (lugha-gtk) as a git package. Rendering and diffing are private. License GPL-3.0-only.
+
+---
+
+### 12. Order of work
+
+**Decision:** two Lugha compiler features come first, in the lugha repo with their own PRPs: struct update syntax (`S { f: e, ..base }`) and variants as function values (`Msg.Named` as `fun(string): Msg`). No trailing-closure syntax. Then kivuli v1 in eight steps, then examples: counter, to-do, stopwatch.
+
+**Done:** both landed as lugha milestones 93 (struct update, PR #32) and 94 (variants as functions, PR #33). Use them freely: `Model { count: m.count + 1, ..m }`, `input(m.name, Msg.Named)`, `xs.map(Some)`. Needs a `lughac` installed from lugha at m94 or later.
+
+---
+
+### 13. The handler-`Ref` trick
+
+**Decision:** each live widget connects its GTK signal once, at creation. The handler reads the message from a `Ref<Option<Msg>>` (or `Ref<fun(string): Msg>` for `input`/`checkbox`) kept with the live widget. A patch only `set`s the `Ref`.
+
+**Why:** messages can't be compared (they may hold closures), and reconnecting per render would pin closures without bound.
+
+**Rules out:** disconnect/reconnect on every render, comparing messages.
+
+---
+
+### 14. Use `gtk.raw`; missing externs go into lugha-gtk
+
+**Decision:** kivuli manages widgets through `gtk.raw`. A GTK function it needs that `gtk.raw` lacks is added to lugha-gtk (`../lugha-gtk/src/raw.la`), checked against the header, and pushed when the user says so (DECISION-004). Until a lugha-gtk tag carries it, kivuli declares it temporarily in `src/gtk_extra.la`.
+
+**Why:** the user's direction (session 2): one set of bindings.
+
+**How it's imported:** through lugha-gtk's entry, by name: `import gtk { GtkWidget, gtk_box_new, … };` (lugha-gtk 0.1.8's `public import raw { * };`, lughac milestone 100). Before that glob existed it was `import gtk;` then `gtk.raw.…` (0.1.4). The user chose this over moving kivuli onto the high-level wrappers (`gtk { Window, Box, … }`), which would have needed a lugha-gtk wrapper for every GTK feature first.
+
+---
+
+### 15. Tests compare views by their printed form
+
+**Decision:** `View` and `Patch` aren't `Eq` once a node holds a function (from `input` on). Tests use `assert_same(a, b)` (`assert_eq("{a}", "{b}")`; functions print as `<fun>`), and check handlers by calling them (DECISION-008).
+
+**Rules out:** `assert_eq` on views or patches; handler ids or a registry just to make views comparable.
+
+---
+
+### 16. Styling has one door: typed values (DECISION-023, PRP-016; replaced DECISION-012's named looks)
+
+**Decision:** how a node looks is `.style([...])`, a list of typed values (`Font`, `Text`; more groups later) that each implement `Styling`. They merge into one `Sheet` per node: for each field the last value that sets it wins, and a `Theme` variant sets nothing. No names to register: a style is written on the node and reused through ordinary functions. kivuli turns each value into an atomic CSS class and adds its rule to the app's one stylesheet the first time it's seen. Modifiers are for layout, behaviour and text flow only. Window-wide settings (`.maximized`, `.header`) go on the root view, next to `.window`.
+
+**Rules out:** a second way to set any look (`.bold`, `.dim`, `.button_style` are gone), named-look registries, app-written CSS or selectors, a cascade beyond what GTK's CSS inherits, colours shipped by kivuli.
+
+---
+
+### 17. Images show bytes they already have (session 11, PRP-010)
+
+**Decision:** one `Image` type (`Icon(name)`, `File(path)`, `Bytes(key, bytes)`) for `image(…)` and a button's `.image(…)`. kivuli never fetches from the network: an app downloads with a non-blocking command and shows the bytes (model B, DECISION-019). Every file or bytes image is header-checked in pure Lugha (PNG, JPEG; 4096 × 4096 px; 16 MB) before GTK decodes it. The diff compares an image's kind and name, path or key, never its bytes. SVG (PRP-053) is drawn by GTK's own `GtkSvg` with outside files, animations and extensions off; an SVG holding `<image>` is refused before GTK sees it (DECISION-030: GTK 4.22.4 crashes on one); no SVG backgrounds.
+
+**Rules out:** `Image.Url`, kivuli-side HTTP, decoding unchecked bytes.
+
+### 18. View.map's body lives in mapping.la (DECISION-018)
+
+**Decision:** modifiers stay in `views.la` with `View` (an `impl` must sit with its type); `map`'s body is in `src/mapping.la`, and `views` ↔ `mapping` is the one allowed import cycle.
+
+---
+
+### 19. Background work: kivuli hands Lugha's scheduler turns (PRP-011)
+
+**Decision:** `Cmd.task(work, done)` (spawn + a channel) and `Sub.receive(chan, f)`. While either is in flight, a GLib timeout calls `task.yield_now()` (non-blocking) up to a budget each tick; results reach `update` on GTK's thread. `update` stays pure: it describes work, kivuli runs it.
+
+**Rules out:** OS threads (Lugha has one), kivuli-side networking (decision 17), cancellation in v1. Blocking calls (files, DNS, `std.crypto`, `std.process`) still hold the window until Lugha changes (DECISION-022).
+
+---
+
+### 20. The goal: portability (session 145)
+
+**Decision:** an app written once in Lugha, with pure, testable `update` and `view`, ships with one look to Linux, Windows, macOS, Android and iOS. The pure core (views, diff, styles, `kivuli.testing`) is the product; a renderer is replaceable.
+
+**Why:** the user's statement (session 145). GTK 4 was chosen at kickoff because it was at hand, not for a goal; it has no supported Android or iOS port, and kivuli's own design system (palettes, tokens, variants) already outgrew the GTK theme.
+
+**Depends on:** Lugha compiling for other targets (its runtime is Linux x86-64 only: epoll, an x86-64 context switch, pthread_getattr_np); a lugha PRP. Which renderer: DECISION-041 (open).
+
+---
+
+### 21. Context system (2026-10-24)
+
+**Decision:** CLAUDE.md (the rules and commands), DECISIONS.md (every decision, with its why), PRPs/ (a spec per feature), CHANGELOG.md, `.llmignore` and `.claude/settings.json`, and docs/ (CODE_STYLE.md, DESIGN.md, the kickoff brief). Commit messages say what changed and why; PRPs carry the plan.
+
+**Why:** set up at kickoff from `docs/setup.md` with sessions, CONTEXT.md and MEMORY.md. **Amended (2026-10-24):** the user removed sessions, CONTEXT.md, MEMORY.md, `docs/setup.md` and the empty docs folders as slowing work down, the way Rapidkoi did: git's log and the PRPs carry the history, and MEMORY.md's decisions moved here as these core decisions.
+
+**Rules out:** feature code without a PRP (unless the user says a chore needs none); architectural choices made silently; session logs and "next session" blocks.
 
 ---
 
@@ -15,7 +190,7 @@ Rules:
 ### DECISION-041 — The renderer for a portable kivuli
 
 **Status:** open (the user's call; nothing is built on it yet)
-**Raised:** 2026-10-24 — Session 145 (the goal is portability, MEMORY.md decision 20)
+**Raised:** 2026-10-24 — Session 145 (the goal is portability, core decision 20)
 
 **Question:** what draws kivuli's views on Linux, Windows, macOS, Android and iOS? Options: (a) a system web view (WebView2, WKWebView, Android WebView, WebKitGTK) fed the diff's patches as data, with a small JS layer applying them; (b) native widgets per platform (GTK, Win32/WinUI, AppKit, Android Views, UIKit); (c) kivuli drawing everything itself (Skia or similar); (d) GTK kept on the desktop, a second renderer on mobile.
 
@@ -235,7 +410,7 @@ fun main() {
 
 **Outcome:** A. External resources stay off; kivuli refuses, before GTK sees the bytes, any SVG holding an `<image` element (with or without a namespace prefix, even in a comment: conservative), so it shows nothing. Probed too: GTK's parser doesn't expand `<!ENTITY>`s (a syntax error), and a prefixed `<s:image>` is an unknown element, skipped. An SVG GTK reports a syntax error for shows nothing. Reporting the crash to GTK: only on the user's go.
 
-**Copied to MEMORY.md:** yes (decision 17)
+**A core decision:** yes (decision 17)
 
 
 ### DECISION-025 — A second allowed import cycle: styles ↔ styles/ (was style_groups)
@@ -286,7 +461,7 @@ fun main() {
 
 **Rationale:** the view stays pure and testable; loading and failure are explicit in the model; no HTTP stack in a UI library; for Rapidkoi, a guest app can't make the shell open a connection by putting a URL in its view: the shell decides.
 
-**Copied to MEMORY.md:** yes (decision 17).
+**A core decision:** yes (decision 17).
 
 ---
 
@@ -300,7 +475,7 @@ fun main() {
 
 **Outcome:** (A), the user's choice: `View.map`'s body moves to `src/mapping.la`; `views` and `mapping` import each other, the one written exception to CLAUDE.md's architecture rule 2.
 
-**Copied to MEMORY.md:** with PRP-010's merge.
+**A core decision:** with PRP-010's merge.
 
 ---
 
@@ -316,7 +491,7 @@ fun main() {
 
 **Rationale:** checked by the compiler and testable without GTK; apps can't write selectors into kivuli's or GTK's internals (PRP-005 changed button internals); colours in one place, as Rapidkoi's `themes.la` already is; the header must be in the view anyway, and a theme in the view makes runtime switching a small later step.
 
-**Copied to MEMORY.md:** with PRP-007's merge.
+**A core decision:** with PRP-007's merge.
 
 ---
 
@@ -332,7 +507,7 @@ fun main() {
 
 **Rationale:** matches decision 10's `ui.testing`, renamed with the entry. The helpers are pure, and lughac builds only what's used.
 
-**Copied to MEMORY.md:** yes
+**A core decision:** yes
 
 ### DECISION-002 — The shape of `lazy` (risk R1)
 
@@ -348,7 +523,7 @@ fun main() {
 
 **Rationale:** works with no language support, and it's the brief's preferred "simplest that works". The cost: a key that leaves out something the subtree depends on shows a stale subtree. Rejected: comparing the input with `==` (needs a type-erased comparable value Lugha may not have), and leaving `lazy` out of v1.
 
-**Copied to MEMORY.md:** yes
+**A core decision:** yes
 
 ### DECISION-010 — Modifiers wait for lughac: the expected type doesn't reach a method's receiver
 
@@ -362,7 +537,7 @@ fun main() {
 
 **Rationale:** the API stays as designed (decision 5). Limit to remember: only methods returning exactly the receiver's type (same parameters, same order) pass it down. A modifier returning anything else (say `Option<View<Msg>>`) wouldn't.
 
-**Copied to MEMORY.md:** no (a lughac fix, not a kivuli decision). The limit is noted in CLAUDE.md.
+**A core decision:** no (a lughac fix, not a kivuli decision).
 
 ### DECISION-009 — How a node carries its modifiers
 
@@ -376,7 +551,7 @@ fun main() {
 
 **Rationale:** no existing variant, diff arm or test changes, and new widgets get every modifier for free. Rejected: a record per node (type-precise, but every variant, arm and test changes, and every widget repeats the layout field).
 
-**Copied to MEMORY.md:** yes
+**A core decision:** yes
 
 ### DECISION-008 — How tests compare views once they hold functions
 
@@ -390,7 +565,7 @@ fun main() {
 
 **Rationale:** smallest change. The existing tests keep their shape, and the runtime stays as designed. Rejected: keeping `View` comparable through handler ids in a side table (a runtime redesign), and a hand-written `describe()` format (more code to keep in step with `View`).
 
-**Copied to MEMORY.md:** yes
+**A core decision:** yes
 
 ### DECISION-001 — Wait for the Lugha prerequisites, or start kivuli v1 now?
 
@@ -404,7 +579,7 @@ fun main() {
 
 **Rationale:** the brief's order (prerequisites first) held.
 
-**Copied to MEMORY.md:** yes
+**A core decision:** yes
 
 ### DECISION-004 — Where the extra GTK externs live long-term
 
@@ -418,4 +593,4 @@ fun main() {
 
 **Rationale:** one set of GTK bindings, not two.
 
-**Copied to MEMORY.md:** yes
+**A core decision:** yes

@@ -8,7 +8,10 @@
       "Edit(./lugha.lock)",
       "Read(./LICENSE)",
       "Edit(./LICENSE)",
-      "Edit(../lugha/**)"
+      "Edit(../lugha/**)",
+      "Edit(../lugha-gtk/**)",
+      "Edit(../rapidkoi/**)",
+      "Edit(../rapidkoi-rust/**)"
     ]
   },
     "attribution": {

@@ -14,14 +14,22 @@ lugha.lock
 LICENSE
 
 # Built executables (see .gitignore)
-/examples/counter
-/examples/todo
-/examples/stopwatch
-
-# Sibling repository: its own rules apply; read for reference, never write
-# (../lugha-gtk may be edited for GTK bindings on the user's word: CLAUDE.md, DECISION-004)
-../lugha/
-/examples/raw
-/examples/counters
 /examples/bench
-/examples/notes
+/examples/hello
+/examples/type
+/examples/tasks
+/examples/browser
+/examples/controls
+/examples/split
+/examples/backgrounds
+/examples/borders
+/examples/search_bar
+/examples/palette
+/examples/motion
+/examples/components
+
+# Sibling repositories: their own rules apply; read for reference, never write
+../lugha/
+../lugha-gtk/
+../rapidkoi/
+../rapidkoi-rust/
