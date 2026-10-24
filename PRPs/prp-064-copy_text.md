@@ -1,6 +1,6 @@
 # PRP-064 — Writing text to the clipboard
 
-Status: awaiting approval
+Status: approved and built (2026-10-24)
 Request: Rapidkoi's DECISION-047, section 5 of `../rapidkoi/docs/specs/kivuli-requests.md`
 
 ## FEATURE: `Cmd.copy_text(text)` puts `text` on the clipboard.

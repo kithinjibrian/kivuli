@@ -50,6 +50,7 @@ import styles.palettes { default_tokens };
 import render.schemes { scheme_of, show_scheme };
 import render.windows {
     click_away,
+    copy_text,
     is_active,
     show_maximized,
     show_window,
@@ -336,6 +337,7 @@ fun perform<Model, Msg>(app: Running<Model, Msg>, cmd: Cmd<Msg>) {
             Quit => g_application_quit(app.application),
             Focus(name) => focus_named(app, name),
             ScrollTo(name) => scroll_named(app, name),
+            Copy(text) => copy_text(app.window, text),
             Task(job) => {
                 // A green thread does the work; its one message waits on its own channel.
                 let result: Chan<Msg> = Chan.buffered(1);

@@ -2,7 +2,7 @@
  * The app's window as the root of the view asks for it (split from `live`):
  * its title and size (`.window`), opening maximized (`.maximized`),
  * clicking away to clear keyboard focus (PRP-024), and hearing when it
- * becomes active (PRP-060). GTK.
+ * becomes active (PRP-060), and its clipboard (PRP-064). GTK.
  *
  * Depends on: views, looks, gtk.raw
  * Used by: live
@@ -25,6 +25,9 @@ import gtk {
     gtk_window_set_focus,
     gtk_window_set_title,
     gtk_window_is_active,
+    gdk_clipboard_set_text,
+    gdk_display_get_clipboard,
+    gtk_widget_get_display,
 };
 import view.views { View };
 import view.looks { Window };
@@ -96,6 +99,11 @@ fun watch_active(window: GtkWidget, on_change: fun(bool)) {
         },
         0,
     );
+}
+
+/** Puts `text` on the clipboard of the window's display (`Cmd.copy_text`, PRP-064). */
+fun copy_text(window: GtkWidget, text: string) {
+    gdk_clipboard_set_text(gdk_display_get_clipboard(gtk_widget_get_display(window)), text);
 }
 
 /** Whether the window is the active one now. */

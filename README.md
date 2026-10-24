@@ -295,6 +295,7 @@ row([counter(m.left).map(Msg.Left), counter(m.right).map(Msg.Right)])
 | `Cmd.quit()` | End the app. |
 | `Cmd.focus(name)` | Move keyboard focus to the node named `name` (`.name(name)`). |
 | `Cmd.scroll_to(name)` | Scroll the nearest `scroll`/`scroll_fit` around the node named `name` as little as it can to show it (nothing if it's in view); the focus stays where it is. |
+| `Cmd.copy_text(text)` | Put `text` on the clipboard, for pasting anywhere until something else is copied. |
 | `Cmd.task(work, done)` | Run `work` (a function taking nothing) in the background, on a green thread, and send `done(result)` when it returns: exactly one message. `update` stays fast and testable: it only describes the work. |
 | `Sub.none()`, `Sub.batch(subs)` | Nothing; several subscriptions. |
 | `Sub.every(ms, f)` | Send `f(now)` every `ms` milliseconds (`now` in milliseconds since 1970) while `subscriptions` keeps returning it. |

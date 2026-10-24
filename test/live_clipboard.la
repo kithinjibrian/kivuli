@@ -1,0 +1,73 @@
+// Cmd.copy_text on a running app (PRP-064): an update's command leaves its
+// text on the display's clipboard, and a second replaces it. GTK keeps an
+// app's own text in the process, so it reads back with no other program.
+// Needs a display, so it is skipped without one.
+import std.env;
+import gtk {
+    GtkApplication,
+    connect_app,
+    g_application_quit,
+    g_application_run,
+    g_free,
+    g_object_unref,
+    gdk_display_get_clipboard,
+    gtk_application_new,
+    gtk_application_window_new,
+    gtk_widget_get_display,
+    lgtk_clipboard_local_text,
+    lgtk_cstring_text,
+};
+import kivuli.render.live { dispatch, mount };
+import kivuli { App, Cmd, Sub, View, text };
+
+fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
+
+enum Msg {
+    Share(string),
+}
+
+@test
+fun an_updates_copy_command_sets_the_clipboard() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen: Ref<string[]> = Ref.new([]);
+    let application = gtk_application_new("org.kivuli.test.clipboard", 0);
+    connect_app(
+        application,
+        "activate",
+        fun(a: GtkApplication) {
+            let window = gtk_application_window_new(a);
+            let app = mount(a, window, App {
+                id: "org.kivuli.test",
+                init: (0, Cmd.none()),
+                update: fun(m: i64, msg: Msg): (i64, Cmd<Msg>) = match msg {
+                    Share(link) => (m + 1, Cmd.copy_text(link)),
+                },
+                view: fun(m: i64): View<Msg> = text("shared {m}"),
+                subscriptions: fun(m: i64): Sub<Msg> = Sub.none(),
+            });
+            let clipboard = gdk_display_get_clipboard(gtk_widget_get_display(window));
+            let read = fun(): string = match lgtk_clipboard_local_text(clipboard) {
+                Some(owned) => {
+                    let s = lgtk_cstring_text(owned);
+                    g_free(owned);
+                    s
+                }
+                None => "(none of ours)",
+            };
+            dispatch(app, Msg.Share("https://counter.dafifi.net/@0.3.0?count=3"));
+            let first = read();
+            dispatch(app, Msg.Share("https://notes.dafifi.net"));
+            seen.set([first, read()]);
+            g_application_quit(a);
+        },
+        0,
+    );
+    g_application_run(application, 0, None);
+    g_object_unref(application);
+    assert_eq(seen.get(), [
+        "https://counter.dafifi.net/@0.3.0?count=3",
+        "https://notes.dafifi.net",
+    ]);
+}

@@ -86,6 +86,7 @@ enum Msg {
     Visit(string),
     ToggleInfo,
     Active(bool),
+    CopyAddress,
 }
 
 fun start(): Browser = Browser {
@@ -175,6 +176,7 @@ fun update(b: Browser, msg: Msg): (Browser, Cmd<Msg>) = match msg {
     // A tile opens its page in this tab, as typing its name would.
     Visit(name) => update(Browser { draft: name, ..b }, Msg.Go),
     ToggleInfo => (Browser { info: !b.info, ..b }, Cmd.none()),
+    CopyAddress => (b, Cmd.copy_text(shown(b))),
 };
 
 /** `b` showing tab `i`, the address bar following it. */
@@ -264,6 +266,7 @@ fun view(b: Browser): View<Msg> {
             input(b.draft, Msg.Draft).placeholder("Address").on_submit(Msg.Go).expand(),
             [
                 button("", Msg.NewTab).icon("tab-new-symbolic").tooltip("New tab"),
+                button("", Msg.CopyAddress).icon("edit-copy-symbolic").tooltip("Copy address"),
                 button("", Msg.ToggleInfo).icon("dialog-information-symbolic").tooltip("Info"),
             ],
         ).style([

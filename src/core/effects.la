@@ -12,8 +12,8 @@ import view.views { View };
 /**
  * Something for kivuli to do after an update: wait and send a message, run
  * work in the background, quit, or several of those. Build one with
- * `Cmd.none()`, `Cmd.after(ms, msg)`, `Cmd.task(work, done)`, `Cmd.quit()` or
- * `Cmd.batch(cmds)`.
+ * `Cmd.none()`, `Cmd.after(ms, msg)`, `Cmd.task(work, done)`, `Cmd.focus(name)`,
+ * `Cmd.scroll_to(name)`, `Cmd.copy_text(text)`, `Cmd.quit()` or `Cmd.batch(cmds)`.
  */
 public enum Cmd<Msg> {
     Nothing,
@@ -25,6 +25,8 @@ public enum Cmd<Msg> {
     Focus(string),
     /** Scroll the node with this `.name` into view, the focus left where it is. */
     ScrollTo(string),
+    /** Put this text on the clipboard. */
+    Copy(string),
     /** Run this on a green thread; send what it returns (its work then `done`). */
     Task(fun(): Msg),
 }
@@ -91,6 +93,15 @@ impl Cmd<Msg> {
     public fun scroll_to(name: string): Cmd<Msg> = Cmd.ScrollTo(name);
 
     /**
+     * Puts `text` on the clipboard once the update is shown, for pasting
+     * anywhere, until something else is copied.
+     *
+     * Example:
+     *     Share => (m, Cmd.copy_text(link_of(m)))
+     */
+    public fun copy_text(text: string): Cmd<Msg> = Cmd.Copy(text);
+
+    /**
      * The same command, sending `f(msg)` wherever it would send `msg`: for a
      * component's commands inside a bigger app.
      *
@@ -105,6 +116,7 @@ impl Cmd<Msg> {
         Quit => Cmd.Quit,
         Focus(name) => Cmd.Focus(name),
         ScrollTo(name) => Cmd.ScrollTo(name),
+        Copy(text) => Cmd.Copy(text),
         Task(job) => Cmd.Task(fun(): B = f(job())),
     };
 }

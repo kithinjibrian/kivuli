@@ -8,6 +8,14 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.60.0] — 2026-10-24
+
+### Added
+- `Cmd.copy_text(text)` (PRP-064; Rapidkoi's DECISION-047): puts text on the clipboard. Needs lugha-gtk 0.1.52.
+
+### Changed
+- `Cmd` has a new variant, `Copy(string)`.
+
 ## [0.59.0] — 2026-10-24
 
 ### Added

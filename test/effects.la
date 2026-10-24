@@ -162,3 +162,13 @@ fun window_active_listeners_are_found_in_order_and_mapped() {
     let mapped = active_listeners(Sub.window_active(Msg.Active).map(Outer.Inner));
     assert_same(mapped[0](false), Outer.Inner(Msg.Active(false)));
 }
+
+@test
+fun copy_commands_flatten_and_map() {
+    let cmd: Cmd<Msg> = Cmd.batch([Cmd.copy_text("https://counter.dafifi.net"), Cmd.none()]);
+    let expected: Cmd<Msg>[] = [Cmd.Copy("https://counter.dafifi.net")];
+    assert_same(commands(cmd), expected);
+    let mapped: Cmd<Outer> = cmd.map(Outer.Inner);
+    let mapped_expected: Cmd<Outer>[] = [Cmd.Copy("https://counter.dafifi.net")];
+    assert_same(commands(mapped), mapped_expected);
+}
