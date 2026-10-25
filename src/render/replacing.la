@@ -27,6 +27,7 @@ import gtk {
     gtk_widget_unref,
     gtk_window_set_child,
     lgtk_clip_set_child,
+    lgtk_fit_set_more,
 };
 import render.build { add_to_wrap, create_in, pack_one };
 import render.styling { LAYER };
@@ -120,6 +121,12 @@ fun replace_child<Msg>(
         let fresh = create_in(v, 1, send);
         lgtk_clip_set_child(clipped, Some(widget(fresh)));
         Live.Clip(clipped, fresh, current)
+    }
+    // A fit row's row is never replaced (the diff patches its children); its `more` is.
+    Fit(fit, row, _, current) => {
+        let fresh = create_in(v, 0, send);
+        lgtk_fit_set_more(fit, Some(widget(fresh)));
+        Live.Fit(fit, row, fresh, current)
     }
     // A header's body is the window's child; its title the bar's title widget.
     Framed(bar, body, title, start, end) => if i == 0 {

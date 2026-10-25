@@ -60,6 +60,10 @@ import gtk {
     lgtk_clamp_new,
     lgtk_clamp_set_child,
     lgtk_clip_new,
+    lgtk_fit_hidden,
+    lgtk_fit_new,
+    lgtk_fit_set_more,
+    lgtk_fit_set_row,
     lgtk_clip_overflow,
     lgtk_clip_set_child,
 };
@@ -241,6 +245,28 @@ fun create_in<Msg>(v: View<Msg>, axis: i32, send: fun(Msg)): Live<Msg> = match v
             0,
         );
         Live.Clip(clipped, kid, current)
+    }
+    Fit(children, more, on_hidden) => {
+        let fit = lgtk_fit_new();
+        // A plain row, built and patched as any: the fit shows what fits of it.
+        let row = create_in(View.Row(children), 0, send);
+        let extra = create_in(more, 0, send);
+        lgtk_fit_set_row(fit, Some(widget(row)));
+        lgtk_fit_set_more(fit, Some(widget(extra)));
+        let current = Ref.new(on_hidden);
+        // lugha-gtk's fit says so from an idle, never during layout.
+        connect_widget(
+            fit,
+            "hidden-changed",
+            fun(w: GtkWidget) {
+                match current.get() {
+                    Some(f) => send(f(lgtk_fit_hidden(w) as i64)),
+                    None => {}
+                }
+            },
+            0,
+        );
+        Live.Fit(fit, row, extra, current)
     }
     // On screen a keyed column is a column: the keys matter only to the diff.
     // Transparent: the widgets are those of what it built.

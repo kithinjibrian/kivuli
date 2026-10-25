@@ -160,6 +160,22 @@ public fun scroll_fit<Msg>(child: View<Msg>): View<Msg> = View.Scroll(child, tru
 public fun clip<Msg>(child: View<Msg>): View<Msg> = View.Clip(child, None);
 
 /**
+ * Shows `children` side by side, as many as fit from the start, and `more`
+ * after them when some don't: the rest are hidden, from the end. It asks for
+ * no more room than `more` needs, so the window can shrink past it.
+ * `.on_hidden(f)` says how many are hidden, so `more` (a ⋯ menu, say) can
+ * list them; it shows only while some are. `Spacing.gap` spaces them.
+ *
+ * Example:
+ *     fit_row(m.tabs.map(tab), more_menu(m)).on_hidden(Msg.TabsHidden)
+ */
+public fun fit_row<Msg>(children: View<Msg>[], more: View<Msg>): View<Msg> = View.Fit(
+    children,
+    more,
+    None,
+);
+
+/**
  * Stacks `children` top to bottom, like `column`, but matches them across
  * views by their keys rather than their positions: reordering, inserting or
  * deleting rows moves, adds or removes just those widgets. Keys must be

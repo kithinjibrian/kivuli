@@ -262,6 +262,13 @@ fun apply<Msg>(
         }
         live
     }
+    SetOnHidden(path, f) => {
+        match at(live, path) {
+            Fit(_, _, _, current) => current.set(f),
+            _ => panic("kivuli: a SetOnHidden patch points at something that isn't a fit row"),
+        }
+        live
+    }
     SetPopover(path, open, side, arrow, close) => {
         show_popover(at(live, path), open, side, arrow, close);
         live

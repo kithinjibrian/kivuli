@@ -1,0 +1,105 @@
+// A fit row (PRP-067): `fit_row`'s node, `.on_hidden` setting its message
+// (through a style, ignored elsewhere), `map`, the diff, and the testing
+// helpers finding what's inside. No GTK.
+import kivuli.core.diff { Patch, diff as patches };
+import kivuli.testing { click };
+import kivuli { View, button, fit_row, text };
+
+/** Views hold functions, which have no `==`: compared as printed. */
+fun assert_same<T>(actual: T, expected: T) {
+    assert_eq("{actual}", "{expected}");
+}
+
+enum Msg {
+    Hidden(i64),
+    Tab(i64),
+    More,
+}
+
+enum Outer {
+    Inner(Msg),
+}
+
+/** What a fit row's message makes of 2 hidden; `none` without one. */
+fun sends<M>(v: View<M>): string = match v {
+    Fit(_, _, Some(f)) => "{f(2)}",
+    Fit(_, _, None) => "none",
+    Styled(inside, _) => sends(inside),
+    _ => "not a fit row",
+};
+
+fun tabs(n: i64): View<Msg>[] {
+    let mut out: View<Msg>[] = [];
+    let mut i = 0;
+    while i < n {
+        out.push(button("tab {i}", Msg.Tab(i)));
+        i = i + 1;
+    }
+    out
+}
+
+@test
+fun a_fit_row_holds_its_children_and_more_and_sends_nothing_until_asked() {
+    let v: View<Msg> = fit_row(tabs(2), button("⋯", Msg.More));
+    assert_eq(sends(v), "none");
+    match v {
+        Fit(xs, more, _) => {
+            assert_eq(xs.len, 2);
+            assert_same(more, button("⋯", Msg.More));
+        }
+        _ => panic("expected a fit row"),
+    }
+}
+
+@test
+fun on_hidden_sets_the_message_through_a_style_and_is_ignored_elsewhere() {
+    let f: View<Msg> = fit_row(tabs(1), text("⋯"));
+    assert_eq(sends(f.on_hidden(Msg.Hidden)), "Hidden(2)");
+    assert_eq(sends(f.expand().on_hidden(Msg.Hidden)), "Hidden(2)");
+    let plain: View<Msg> = text("a");
+    assert_same(plain.on_hidden(Msg.Hidden), text("a"));
+}
+
+@test
+fun map_carries_the_children_more_and_the_message() {
+    let f: View<Msg> = fit_row(tabs(1), button("⋯", Msg.More));
+    let v = f.on_hidden(Msg.Hidden).map(Outer.Inner);
+    assert_eq(sends(v), "Inner(Hidden(2))");
+    assert_eq(click(v, "⋯"), Ok(Outer.Inner(Msg.More)));
+    assert_eq(click(v, "tab 0"), Ok(Outer.Inner(Msg.Tab(0))));
+}
+
+@test
+fun the_diff_patches_the_children_as_a_row_and_more_at_one() {
+    let a: View<Msg> = fit_row(tabs(2), text("⋯")).on_hidden(Msg.Hidden);
+    let b: View<Msg> = fit_row(tabs(3), text("⋯ 1")).on_hidden(Msg.Hidden);
+    let kinds = patches(a, b).map(fun(p: Patch<Msg>): string = match p {
+        SetOnHidden(path, _) => "message at {path}",
+        SetMsg(path, _) => "a tab's message at {path}",
+        Append(path, _) => "append at {path}",
+        SetText(path, t) => "text {t} at {path}",
+        Replace(path, _) => "replace at {path}",
+        _ => "other",
+    });
+    assert_eq(kinds, [
+        "message at []",
+        "a tab's message at [0, 0]",
+        "a tab's message at [0, 1]",
+        "append at [0]",
+        "text ⋯ 1 at [1]",
+    ]);
+    // A different kind of `more` is rebuilt in its place; the row is untouched.
+    let c: View<Msg> = fit_row(tabs(2), button("⋯", Msg.More));
+    let replaced = patches(a, c).map(fun(p: Patch<Msg>): string = match p {
+        Replace(path, _) => "replace at {path}",
+        SetOnHidden(path, _) => "message at {path}",
+        SetMsg(path, _) => "a tab's message at {path}",
+        _ => "other",
+    });
+    assert_eq(replaced, [
+        "message at []",
+        "a tab's message at [0, 0]",
+        "a tab's message at [0, 1]",
+        "replace at [1]",
+    ]);
+}

@@ -22,6 +22,7 @@ import view.mapping {
     mapped,
     with_dialog,
     with_menu,
+    with_hidden,
     with_overflow,
     with_submit,
 };
@@ -75,6 +76,8 @@ public enum View<Msg> {
     Scroll(View<Msg>, bool),
     /** One child, cut off where it doesn't fit, never pushing its parent bigger; the message saying how far it sticks out (`.on_overflow`). */
     Clip(View<Msg>, Option<fun(Overflowing): Msg>),
+    /** Children side by side, as many as fit from the start; then what shows when some don't (`fit_row`); the message saying how many are hidden (`.on_hidden`). */
+    Fit(View<Msg>[], View<Msg>, Option<fun(i64): Msg>),
     /** Children stacked top to bottom, each with a key naming it across views. */
     Keyed((string, View<Msg>)[]),
     /** Children side by side, moving to a new line when a line is full. */
@@ -433,6 +436,15 @@ impl View<Msg> {
      *     clip(page(m)).on_overflow(Msg.Overflowed)
      */
     public fun on_overflow(self, f: fun(Overflowing): Msg): View<Msg> = with_overflow(self, f);
+
+    /**
+     * Sends `f(n)` when the number of a `fit_row`'s children that don't fit
+     * changes (`n`: the last `n`); ignored on other nodes.
+     *
+     * Example:
+     *     fit_row(tabs, more_menu(m)).on_hidden(Msg.TabsHidden)
+     */
+    public fun on_hidden(self, f: fun(i64): Msg): View<Msg> = with_hidden(self, f);
 
     /**
      * Gives the node a context menu, opened by a right-click, a long press or

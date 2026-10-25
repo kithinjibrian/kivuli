@@ -68,6 +68,7 @@ public import view.widgets {
     scroll,
     scroll_fit,
     clip,
+    fit_row,
     keyed_column,
     wrap,
     keyed_wrap,

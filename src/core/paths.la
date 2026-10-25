@@ -75,6 +75,12 @@ fun step<Msg>(
         update_in(kid, path, depth + 1, f, with_menu),
         current,
     ),
+    // The row at 0, `more` at 1.
+    Fit(fit, row, more, current) => if path[depth] == 0 {
+        Live.Fit(fit, update_in(row, path, depth + 1, f, with_menu), more, current)
+    } else {
+        Live.Fit(fit, row, update_in(more, path, depth + 1, f, with_menu), current)
+    },
     Wrap(flow, kids) => {
         let i = path[depth];
         let mut next = kids;
@@ -157,6 +163,7 @@ fun at_outer<Msg>(node: Live<Msg>, path: i64[]): Live<Msg> {
             Box(_, _, kids) => kids[i],
             Scroll(_, kid) => kid,
             Clip(_, kid, _) => kid,
+            Fit(_, row, more, _) => if i == 0 { row } else { more },
             ButtonWith(_, _, _, _, kid) => kid,
             Wrap(_, kids) => kids[i],
             Overlay(_, base, layers) => if i == 0 { base } else { layers },

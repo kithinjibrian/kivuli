@@ -1,5 +1,6 @@
-// A browser-like frame: a header bar (back, an address field filling the
-// bar, new tab, info), a tab rail whose tabs have right-click menus, home
+// A browser-like frame: a header bar (back, a strip of tabs showing as many
+// as fit, the rest under ⋯ (`fit_row`), an address field filling the bar,
+// new tab, info), tabs with right-click menus, home
 // tiles in a wrapping grid that re-flows as the window resizes, an Info panel
 // of whole-row buttons, and pages that "load" in the background (`Cmd.task`)
 // with a note over the page until they arrive (`overlay`). Its tests are at
@@ -23,6 +24,8 @@ import kivuli {
     application,
     button,
     button_with,
+    fit_row,
+    MenuEntry,
     column,
     icon,
     input,
@@ -71,6 +74,8 @@ struct Browser {
     loading: Option<string>,
     /** Whether the window is behind another (`Sub.window_active`). */
     away: bool,
+    /** How many tabs, from the end, don't fit in the strip (`fit_row`'s `.on_hidden`): ⋯ lists them. */
+    hidden: i64,
 }
 
 enum Msg {
@@ -89,6 +94,7 @@ enum Msg {
     CopyAddress,
     /** Asked from outside to open these: each in a new tab. */
     Asked(string[]),
+    TabsHidden(i64),
 }
 
 fun start(): Browser = Browser {
@@ -99,6 +105,7 @@ fun start(): Browser = Browser {
     info: false,
     loading: None,
     away: false,
+    hidden: 0,
 };
 
 fun shown(b: Browser): string {
@@ -182,6 +189,7 @@ fun update(b: Browser, msg: Msg): (Browser, Cmd<Msg>) = match msg {
         (opened(Browser { tabs: tabs, ..b }, current), Cmd.none())
     },
     CloseOthers(i) => (opened(Browser { tabs: [b.tabs[i]], ..b }, 0), Cmd.none()),
+    TabsHidden(n) => (Browser { hidden: n, ..b }, Cmd.none()),
     // A tile opens its page in this tab, as typing its name would.
     Visit(name) => update(Browser { draft: name, ..b }, Msg.Go),
     ToggleInfo => (Browser { info: !b.info, ..b }, Cmd.none()),
@@ -211,6 +219,20 @@ fun tab(b: Browser, i: i64): View<Msg> {
     ])
 }
 
+/** ⋯ after the strip's tabs while some don't fit: a menu of those, the last `b.hidden`. */
+fun more_tabs(b: Browser): View<Msg> {
+    let mut entries: MenuEntry<Msg>[] = [];
+    let mut i = b.tabs.len - b.hidden;
+    while i < b.tabs.len {
+        let history = b.tabs[i];
+        entries.push(item(history[history.len - 1], Msg.Open(i)));
+        i = i + 1;
+    }
+    button("", Msg.Open(b.current)).icon("view-more-symbolic").tooltip("More tabs").dropdown_menu(
+        entries,
+    )
+}
+
 /** One row of the info panel: a label, a summary and an arrow, all one button. */
 fun panel_row(label: string, summary: string, msg: Msg): View<Msg> = button_with(
     row([text(label).expand(), text(summary).style([dim()]), icon("go-next-symbolic")]).style([
@@ -233,6 +255,7 @@ fun info_panel(b: Browser): View<Msg> {
 fun page(b: Browser): View<Msg> {
     let body = column([
         text("You're at {shown(b)}").style([Font { size: Size.Pt(20), ..bold() }]),
+        text(if b.away { "In the background" } else { "" }).style([dim()]),
         // Equal tiles, at most six across; fewer on a narrow window.
         keyed_wrap(b.tiles.map(fun(t) = (t, button(t, Msg.Visit(t)).style([at_least(120, 72)])))).equal().max_per_line(6).style([gap(12)]),
     ]).style([gap(12), pad(24)]).expand();
@@ -255,22 +278,19 @@ fun view(b: Browser): View<Msg> {
         tabs.push(tab(b, i));
         i = i + 1;
     }
-    if b.away {
-        tabs.push(text("In the background"));
-    }
     let mut parts = [page(b)];
     if b.info {
         parts.push(separator());
         parts.push(info_panel(b));
     }
-    parts.push(separator());
-    parts.push(column(tabs).style([gap(4), pad(8)]).style([at_least(160, 0)]));
     row(parts).window("{shown(b)} — Browser", 1000, 640).header(
         header_bar(
             [
                 button("", Msg.Back).icon("go-previous-symbolic").tooltip("Back").disabled(
                     b.tabs[b.current].len < 2,
                 ),
+                // As many tabs as fit; narrow the window and they move under ⋯.
+                fit_row(tabs, more_tabs(b)).style([gap(4)]).on_hidden(Msg.TabsHidden),
             ],
             input(b.draft, Msg.Draft).placeholder("Address").on_submit(Msg.Go).expand(),
             [
@@ -357,4 +377,13 @@ fun the_info_panels_rows_are_whole_buttons() {
     let b = did(visit(start(), "news"), Msg.ToggleInfo);
     // A row is found by any text in it, its summary too.
     assert_eq(shown(did(b, click(view(b), "to home").unwrap_or(Msg.Go))), "home");
+}
+
+@test
+fun tabs_that_dont_fit_are_under_more() {
+    let b = visit(did(visit(start(), "news"), Msg.NewTab), "mail");
+    // The strip says the last tab doesn't fit: ⋯ lists it and opens it.
+    let squeezed = did(did(b, Msg.Open(0)), Msg.TabsHidden(1));
+    let picked = did(squeezed, pick(view(squeezed), "More tabs", "mail").unwrap_or(Msg.Go));
+    assert_eq((picked.current, shown(picked)), (1, "mail"));
 }

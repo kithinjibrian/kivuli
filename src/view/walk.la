@@ -46,6 +46,11 @@ fun walk<Msg>(v: View<Msg>, style: Style, check: bool): (View<Msg>, Style)[] = m
     Popover(trigger, _, content, _, _, _) => with_children(v, style, [trigger, content], check),
     Scroll(x, _) => with_children(v, style, [x], check),
     Clip(x, _) => with_children(v, style, [x], check),
+    Fit(xs, more, _) => {
+        let mut all = xs;
+        all.push(more);
+        with_children(v, style, all, check)
+    }
     // Every walk checks a button's content, so an app's pure tests stop on it too.
     ButtonWith(content, _) => {
         if check {
@@ -125,6 +130,11 @@ fun find_name<Msg>(v: View<Msg>, name: string, path: i64[]): Option<i64[]> = mat
     },
     Scroll(x, _) => find_name(x, name, with_index(path, 0)),
     Clip(x, _) => find_name(x, name, with_index(path, 0)),
+    // As the diff counts a fit row: its children in a row at 0, `more` at 1.
+    Fit(xs, more, _) => match find_in(xs, name, with_index(path, 0)) {
+        Some(found) => Some(found),
+        None => find_name(more, name, with_index(path, 1)),
+    },
     ButtonWith(content, _) => find_name(content, name, with_index(path, 0)),
     // As the diff counts a header's parts: body 0, title 1, start 2, end 3.
     Framed(body, start, title, end) => match find_name(body, name, with_index(path, 0)) {

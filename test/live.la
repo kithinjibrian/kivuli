@@ -103,6 +103,8 @@ fun shown<M>(node: Live<M>): string = match node {
     Slider(_, _, _, _) => "<slider>",
     Scroll(_, kid) => "scroll(" + shown(kid) + ")",
     Clip(_, kid, _) => "clip(" + shown(kid) + ")",
+    // Shown in full by test/live_fit.la.
+    Fit(_, row, more, _) => "fit(" + shown(row) + "; " + shown(more) + ")",
     Box(_, _, kids) => {
         let mut out = "";
         for k of kids {

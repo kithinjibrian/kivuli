@@ -209,6 +209,8 @@ fun apply_style<Msg>(node: Live<Msg>, style: Style, axis: i32) {
     match node {
         // The gap is GTK's spacing, not CSS: a flow box reads no CSS gap.
         Box(box, _, _) => gtk_box_set_spacing(box, gap_of(style) as i32),
+        // A fit row's gap is its row's; the rest of its style is on the fit.
+        Fit(_, row, _, _) => gtk_box_set_spacing(widget(row), gap_of(style) as i32),
         // Which ways it scrolls (PRP-061): set every time, so a dropped Overflow is undone.
         Scroll(scrolled, _) => gtk_scrolled_window_set_policy(
             scrolled,

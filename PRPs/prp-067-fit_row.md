@@ -1,6 +1,6 @@
 # PRP-067 — A row that shows what fits
 
-Status: approved (2026-10-25: fit_row, not window_size; lugha-gtk 0.1.56, pushed and tagged)
+Status: approved and built (2026-10-25: fit_row, not window_size; lugha-gtk 0.1.56, pushed and tagged; patch.la split)
 Request: Rapidkoi's DECISION-043, section 9 of `../rapidkoi/docs/specs/kivuli-requests.md`
 
 ## FEATURE: `fit_row(children, more)` shows as many children as fit, from the start, and `more` after them when some don't; `.on_hidden(f)` sends how many are hidden.

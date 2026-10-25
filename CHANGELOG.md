@@ -8,6 +8,15 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.63.0] — 2026-10-25
+
+### Added
+- `fit_row(children, more)` and `.on_hidden(f)` (PRP-067; Rapidkoi's DECISION-043): children side by side, as many as fit from the start, with `more` after them while some don't. The row asks for no more room than `more` needs, so a window can shrink past it, and `.on_hidden` sends how many are hidden so `more` can list them. Needs lugha-gtk 0.1.56.
+
+### Changed
+- `examples/browser`: its tabs moved from a rail beside the page into the header bar, as a `fit_row` with a ⋯ menu of the tabs that don't fit.
+- Replacing a container's child moved from `render/patch.la` to `render/replacing.la`.
+
 ## [0.62.2] — 2026-10-25
 
 ### Fixed

@@ -79,6 +79,17 @@ fun resolve<Msg>(v: View<Msg>, old: Option<View<Msg>>): View<Msg> = match v {
         }),
         fit,
     ),
+    Fit(xs, more, on_hidden) => View.Fit(
+        resolve_children(xs, match counterpart(old) {
+            Some(Fit(ys, _, _)) => ys,
+            _ => [],
+        }),
+        resolve(more, match counterpart(old) {
+            Some(Fit(_, m, _)) => Some(m),
+            _ => None,
+        }),
+        on_hidden,
+    ),
     Clip(x, on_overflow) => View.Clip(
         resolve(x, match counterpart(old) {
             Some(Clip(y, _)) => Some(y),

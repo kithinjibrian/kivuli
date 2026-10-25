@@ -64,6 +64,8 @@ enum Patch<Msg> {
     SetFit(i64[], bool),
     /** The clip at the path sends this when its child's overflow changes (`None`: nothing). */
     SetOnOverflow(i64[], Option<fun(Overflowing): Msg>),
+    /** The fit row at the path sends this when how many of its children are hidden changes (`None`: nothing). */
+    SetOnHidden(i64[], Option<fun(i64): Msg>),
     /**
      * The widget at the path has this context menu from now on (`[]`: none).
      * Every update: its messages can't be compared.
@@ -220,6 +222,12 @@ fun diff_inside<Msg>(
     (Clip(a, _), Clip(b, f)) => joined(
         [Patch.SetOnOverflow(path, f)],
         diff_at(child(path, 0), a, b),
+    ),
+    // A fit row's children are a row at index 0, `more` index 1; its message
+    // is re-pointed every time, as a clip's.
+    (Fit(xs, more_a, _), Fit(ys, more_b, f)) => joined(
+        joined([Patch.SetOnHidden(path, f)], diff_children(child(path, 0), xs, ys)),
+        diff_at(child(path, 1), more_a, more_b),
     ),
     (Keyed(xs), Keyed(ys)) => diff_keyed(path, xs, ys),
     (Wrap(xs), Wrap(ys)) => diff_children(path, xs, ys),

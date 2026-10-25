@@ -1,0 +1,143 @@
+// A fit row on real GTK widgets (PRP-067): lugha-gtk's fit holding a row of
+// the children (the gap its spacing) and `more`; after an allocation too
+// narrow for them, it sends how many are hidden, once, from GTK's loop; a
+// child added by the model lands in the same row. The window isn't shown,
+// so the test lays the fit out itself. Needs a display, so it is skipped
+// without one.
+import std.env;
+import gtk {
+    GtkApplication,
+    GtkWidget,
+    connect_app,
+    g_application_quit,
+    g_application_run,
+    g_object_unref,
+    g_timeout_add_full,
+    gtk_application_new,
+    gtk_application_window_new,
+    gtk_box_get_spacing,
+    gtk_widget_allocate,
+    gtk_widget_measure,
+    lgtk_fit_get_more,
+    lgtk_fit_get_row,
+};
+import kivuli.render.live { dispatch, mount, live_of };
+import kivuli.core.effects { sandbox_app };
+import kivuli.core.live_tree { Live, widget };
+import kivuli { View, Spacing, button, column, fit_row, text };
+
+fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
+
+enum Msg {
+    Hidden(i64),
+    Tab(i64),
+    Add,
+}
+
+struct Model {
+    tabs: i64,
+    hidden: i64,
+    heard: string[],
+}
+
+fun update(m: Model, msg: Msg): Model = match msg {
+    Add => Model { tabs: m.tabs + 1, ..m },
+    Hidden(n) => {
+        let mut heard = m.heard;
+        heard.push("{msg}");
+        Model { hidden: n, heard: heard, ..m }
+    }
+    Tab(_) => m,
+};
+
+fun view(m: Model): View<Msg> {
+    let mut tabs: View<Msg>[] = [];
+    let mut i = 0;
+    while i < m.tabs {
+        tabs.push(button("tab {i}", Msg.Tab(i)));
+        i = i + 1;
+    }
+    column([fit_row(tabs, text("⋯ {m.hidden}")).style([Spacing.gap(4)]).on_hidden(Msg.Hidden)])
+}
+
+/** Lays `w` out at `width` × `height`, as its parent would. */
+fun lay_out(w: GtkWidget, width: i32, height: i32) {
+    let mut minimum: i32 = 0;
+    let mut natural: i32 = 0;
+    let mut a: i32 = 0;
+    let mut b: i32 = 0;
+    gtk_widget_measure(w, 0, -1, out minimum, out natural, out a, out b);
+    gtk_widget_measure(w, 1, width, out minimum, out natural, out a, out b);
+    gtk_widget_allocate(w, width, height, -1, None);
+}
+
+@test
+fun a_fit_row_sends_how_many_children_are_hidden() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen: Ref<string[]> = Ref.new([]);
+    let note = fun(s: string) {
+        seen.update(fun(xs) {
+            let mut ys = xs;
+            ys.push(s);
+            ys
+        });
+    };
+    let application = gtk_application_new("org.kivuli.test.fit", 0);
+    connect_app(
+        application,
+        "activate",
+        fun(a: GtkApplication) {
+            let window = gtk_application_window_new(a);
+            let app = mount(
+                a,
+                window,
+                sandbox_app(
+                    "org.kivuli.test",
+                    Model { tabs: 3, hidden: 0, heard: [] },
+                    update,
+                    view,
+                ),
+            );
+            let parts = fun(): (GtkWidget, Live<Msg>, Live<Msg>) = match live_of(app) {
+                Box(_, _, ks) => match ks[0] {
+                    Fit(fit, row, more, _) => (fit, row, more),
+                    _ => panic("expected a fit row"),
+                },
+                _ => panic("expected a column"),
+            };
+            let (fit, row, more) = parts();
+            let kids = fun(r: Live<Msg>): i64 = match r {
+                Box(_, _, ks) => ks.len,
+                _ => -1,
+            };
+            note(
+                "built: row {lgtk_fit_get_row(fit) == Some(widget(row))} of {kids(row)}, more {lgtk_fit_get_more(fit) == Some(widget(more))}, gap {gtk_box_get_spacing(widget(row))}",
+            );
+            // Too narrow for any tab: all three hidden.
+            lay_out(fit, 1, 30);
+            g_timeout_add_full(0, 50, fun(): i32 {
+                let Some(s) = app.state.get() else {
+                    panic("a mounted app has a state");
+                };
+                note("heard {s.model.heard}");
+                dispatch(app, Msg.Add);
+                let (fit_now, row_now, more_now) = parts();
+                note(
+                    "added: same fit {fit_now == fit}, same row {widget(row_now) == widget(row)} of {kids(row_now)}, same more {widget(more_now) == widget(more)}",
+                );
+                g_application_quit(a);
+                0
+            });
+        },
+        0,
+    );
+    g_application_run(application, 0, None);
+    g_object_unref(application);
+    assert_eq(seen.get(), [
+        "built: row true of 3, more true, gap 4",
+        "heard [\"Hidden(3)\"]",
+        "added: same fit true, same row true of 4, same more true",
+    ]);
+}
