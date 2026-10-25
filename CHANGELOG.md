@@ -8,6 +8,14 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.63.1] — 2026-10-25
+
+### Fixed
+- After a pick in a drop-down inside a popover, a click outside could stop closing the popover on Wayland (DECISION-045; Rapidkoi's DECISION-040). GTK drops the whole seat's grab when the drop-down's list hides. A kivuli popover now takes its grab again when a drop-down's list, a context menu or another popover inside it closes. Needs lugha-gtk 0.1.58.
+
+### Changed
+- `examples/components`: the gallery's popover has a drop-down.
+
 ## [0.63.0] — 2026-10-25
 
 ### Added

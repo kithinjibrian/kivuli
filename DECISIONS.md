@@ -187,21 +187,6 @@ Decisions 1–12 were agreed in the design discussion in the lugha repository (a
 
 ## OPEN — Requires human input before implementation
 
-### DECISION-045 — A drop-down inside a popover leaves the popover undismissable (a GTK bug)
-
-**Status:** open (the user's call: GTK gaps are recorded, not worked around, unless the user says so)
-**Raised:** 2026-10-25 (Rapidkoi's DECISION-040, section 10 of its kivuli requests: after a pick in a `ui.dropdown` inside a `popover`, neither a click elsewhere in the window nor Escape closes the popover)
-
-**Cause (GTK 4.22.4's `gtk/gtkpopover.c`, unchanged on GTK's `main`):** when the drop-down's list closes after a pick, `gtk_popover_popdown` calls `cascade_popdown`. It walks up from the list to the first enclosing popover (kivuli's) and sets the focus target to *that popover's parent*, kivuli's box in the main window, before it checks `cascade-popdown`. kivuli's popover doesn't cascade, so the loop stops, but `gtk_widget_grab_focus` still moves the keyboard focus out of the popover while it stays open. Escape closes a popover only through its own key handler, which no longer gets keys. A click outside should come from the compositor's `xdg_popup` dismissal (Wayland here). Why that stops too isn't confirmed from source; most likely it's the same lost focus or grab.
-
-**Options:**
-- **(a) Work around it in kivuli.** While a kivuli popover is open, watch the window's focus. When it lands on the popover's own parent (GTK's cascade target), give it back to the widget inside the popover that last had it. This covers drop-downs, context menus and popovers nested in a popover. It's untested on screen: whether click-outside also recovers needs the user's eye. If it doesn't, the fix is upstream only.
-- **(b) Record it as deferred and report it to GTK.** `cascade_popdown` should move the focus only past popovers it closes. Rapidkoi keeps its workaround (⚙ again, or a click outside the window).
-
-**Recommendation:** (a), plus a GTK issue the user files (an outward action). The workaround is small, lives in `render/panels.la` (the popover node), and can be removed once GTK is fixed.
-
----
-
 ### DECISION-041 — The renderer for a portable kivuli
 
 **Status:** open (the user's call; nothing is built on it yet)
@@ -414,6 +399,25 @@ fun main() {
 ---
 
 ## RESOLVED
+
+### DECISION-045 — Bug: a drop-down inside a popover leaves the popover undismissable
+
+**Status:** resolved
+**Resolved:** 2026-10-25 (the user: "do 10", then "work around it" and "try the re-grab workaround"; kivuli 0.63.1, lugha-gtk 0.1.57–0.1.58)
+**Raised:** 2026-10-25 (Rapidkoi's DECISION-040, section 10 of its kivuli requests: after a pick in a `ui.dropdown` inside a `popover`, neither a click elsewhere in the window nor Escape closes the popover)
+
+**What was found:** a probe of Rapidkoi's repro, run by the user on GTK 4.22.4 under Wayland, logged messages, whether the popover was shown, and where the focus was.
+- After a pick, the focus stays on the drop-down, inside the popover. GTK's `cascade_popdown` aims it outside (at the popover's parent), but a box can't take it, and GTK's next frame puts it back on the drop-down. So it's not the cause, and Escape worked in every run.
+- A click outside failed in one round of two, an intermittent fault. On Wayland a click outside closes an autohide popover only through the compositor's `xdg_popup` grab. When any autohide popup hides, GTK's `gdk_wayland_surface_hide` (`gdk/wayland/gdksurface-wayland.c`) calls `gdk_seat_ungrab` on the whole seat. So hiding the drop-down's list can drop the outer popover's grab. A GTK bug, worth reporting upstream (the user's to file).
+
+**Workaround (the user's choice):** every kivuli popover carries a `kvpop.regrab` action (`render/panels.la`). When a popover inside it closes, the action is activated from that popover's parent, and GTK finds the nearest kivuli popover up the tree:
+- a drop-down's list (`render/controls.la`, through lugha-gtk 0.1.58's `lgtk_drop_down_popover`);
+- a context menu (`render/popovers.la`);
+- a nested kivuli popover.
+
+The kivuli popover then closes and shows itself again from an idle, quietly (no close message), and so takes a fresh grab. A popover in no popover finds no action, and nothing happens. Tried first in the probe: two picks, each re-presented, each closed by the first click outside, with no flicker the user could see. Tested in `test/live_popover_regrab.la`; that the grab comes back is the user's to see. Remove it once GTK keeps a parent popup's grab.
+
+**A core decision:** no (a bug fix).
 
 ### DECISION-044 — Bug: a popover's `destroy` handler unparents a popover GTK already freed (a crash)
 

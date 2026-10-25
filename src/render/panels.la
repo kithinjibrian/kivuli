@@ -10,8 +10,17 @@
  */
 
 import gtk {
+    GSimpleAction,
+    GVariant,
     GtkWidget,
+    connect_action,
     connect_widget,
+    g_action_map_add_action,
+    g_simple_action_group_new,
+    g_simple_action_group_unref,
+    g_simple_action_new,
+    g_simple_action_unref,
+    g_timeout_add_full,
     gtk_box_append,
     gtk_box_new,
     gtk_popover_new,
@@ -20,8 +29,10 @@ import gtk {
     gtk_popover_set_child,
     gtk_popover_set_has_arrow,
     gtk_popover_set_position,
+    gtk_widget_activate_action_variant,
     gtk_widget_get_parent,
     gtk_widget_get_visible,
+    gtk_widget_insert_action_group,
     gtk_widget_ref,
     gtk_widget_set_parent,
     gtk_widget_unparent,
@@ -61,16 +72,46 @@ fun make_popover<Msg>(
         fun(p: GtkWidget) {
             if !quiet.get() {
                 send(current.get());
+                regrab_around(box);
             }
         },
         0,
     );
+    let alive = Ref.new(true);
+    // DECISION-045: a popover inside this one closing (a drop-down's list, a
+    // menu, a popover) can drop this one's grab on Wayland (GTK ungrabs the
+    // whole seat), so a click outside stops closing it. They ask for
+    // `kvpop.regrab`, found up through their ancestors: this popover is
+    // closed and shown again, quietly, once GTK has finished hiding theirs.
+    let group = g_simple_action_group_new();
+    let regrab = g_simple_action_new("regrab", None);
+    connect_action(
+        regrab,
+        "activate",
+        fun(action: GSimpleAction, arg: Option<GVariant>) {
+            g_timeout_add_full(0, 0, fun(): i32 {
+                if alive.get() && gtk_widget_get_visible(pop) != 0 {
+                    quiet.set(true);
+                    gtk_popover_popdown(pop);
+                    gtk_popover_popup(pop);
+                    quiet.set(false);
+                }
+                0
+            });
+        },
+        0,
+    );
+    g_action_map_add_action(group, regrab);
+    g_simple_action_unref(regrab);
+    gtk_widget_insert_action_group(pop, "kvpop", Some(group));
+    g_simple_action_group_unref(group);
     // A widget must not be freed with a popover still parented to it; the
     // box may have unparented it already (DECISION-044).
     connect_widget(
         box,
         "destroy",
         fun(gone: GtkWidget) {
+            alive.set(false);
             if gtk_widget_get_parent(pop) == Some(box) {
                 gtk_widget_unparent(pop);
             }
@@ -81,6 +122,14 @@ fun make_popover<Msg>(
     let node = Live.Popover(box, trigger, pop, content, current, quiet);
     show_popover(node, open, side, arrow, close);
     node
+}
+
+/**
+ * Asks the kivuli popover around `w`, if any, to take its grab again: a popover
+ * inside it just closed (DECISION-045). Nothing answers outside a popover.
+ */
+fun regrab_around(w: GtkWidget) {
+    gtk_widget_activate_action_variant(w, "kvpop.regrab", None);
 }
 
 /** `node`'s popover as the view says: open or closed, its side, its arrow, its close message. */

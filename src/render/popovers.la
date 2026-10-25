@@ -5,7 +5,7 @@
  * (Shift+F10) open it. Not responsible for what the entries are (`menus`) or
  * when they change (`diff`).
  *
- * Depends on: menus, live_tree, styling (`flag`), gtk.raw
+ * Depends on: menus, live_tree, styling (`flag`), panels (`regrab_around`), gtk.raw
  * Used by: build, patch
  */
 
@@ -76,6 +76,7 @@ import view.menus { MenuEntry, check_items, items, layout, message_of, plain_ite
 import view.keys { parse };
 import core.live_tree { Popup };
 import render.styling { flag };
+import render.panels { regrab_around };
 
 /**
  * Gives `w` a context menu showing `entries`: the popover, the action group,
@@ -96,6 +97,15 @@ fun attach<Msg>(w: GtkWidget, entries: MenuEntry<Msg>[], send: fun(Msg)): Popup<
     gtk_widget_ref(popover);
     // A context menu opens where it was asked for, without an arrow.
     gtk_popover_set_has_arrow(popover, 0);
+    // Its closing can drop the grab of a popover it's in (DECISION-045).
+    connect_widget(
+        popover,
+        "closed",
+        fun(p: GtkWidget) {
+            regrab_around(w);
+        },
+        0,
+    );
     // A widget must not be freed with a popover still parented to it (GTK warns,
     // and the popover leaks): it goes when the widget does, unless the widget
     // unparented it already (DECISION-044).

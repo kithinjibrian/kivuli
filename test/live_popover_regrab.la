@@ -1,0 +1,167 @@
+// A popover inside a popover (DECISION-045): when a drop-down's list or a
+// nested popover closes, GTK on Wayland can drop the outer popover's grab
+// (it ungrabs the whole seat), so a click outside stops closing it. kivuli
+// re-presents the outer popover, quietly: it's closed and shown again with no
+// close message. A popover in no popover closing just sends its message.
+// Whether the grab comes back is the user's to see on screen. Needs a
+// display, so it is skipped without one.
+import std.env;
+import gtk {
+    GtkApplication,
+    GtkWidget,
+    connect_app,
+    connect_widget,
+    emit_widget,
+    g_application_quit,
+    g_application_run,
+    g_object_unref,
+    g_timeout_add_full,
+    gtk_application_new,
+    gtk_application_window_new,
+    gtk_popover_popdown,
+    gtk_popover_popup,
+    gtk_widget_get_visible,
+    lgtk_drop_down_popover,
+};
+import kivuli.render.live { mount, live_of };
+import kivuli.core.effects { sandbox_app };
+import kivuli.core.live_tree { Live, widget };
+import kivuli { View, button, column, dropdown, popover, text };
+
+fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
+
+enum Msg {
+    Outer,
+    OuterClosed,
+    Inner,
+    InnerClosed,
+    Pick(string),
+}
+
+struct Model {
+    outer: bool,
+    inner: bool,
+    picked: string,
+}
+
+fun update(m: Model, msg: Msg): Model = match msg {
+    Outer => Model { outer: true, ..m },
+    OuterClosed => Model { outer: false, ..m },
+    Inner => Model { inner: true, ..m },
+    InnerClosed => Model { inner: false, ..m },
+    Pick(s) => Model { picked: s, ..m },
+};
+
+fun view(m: Model): View<Msg> = column([
+    popover(
+        button("Settings", Msg.Outer),
+        m.outer,
+        column([
+            dropdown(
+                [("Allowed", Msg.Pick("Allowed")), ("Blocked", Msg.Pick("Blocked"))],
+                m.picked,
+            ),
+            popover(button("More", Msg.Inner), m.inner, text("inside"), Msg.InnerClosed),
+        ]),
+        Msg.OuterClosed,
+    ),
+]);
+
+/** The outer trigger, the outer GtkPopover, the drop-down, the inner trigger and the inner GtkPopover. */
+fun parts(root: Live<Msg>): (GtkWidget, GtkWidget, GtkWidget, GtkWidget, GtkWidget) {
+    let Box(_, _, kids) = root else {
+        panic("expected a column");
+    };
+    let Popover(_, trigger, outer, content, _, _) = kids[0] else {
+        panic("expected the outer popover");
+    };
+    let Box(_, _, inside) = content else {
+        panic("expected the outer content's column");
+    };
+    let Popover(_, more, inner, _, _, _) = inside[1] else {
+        panic("expected the inner popover");
+    };
+    (widget(trigger), outer, widget(inside[0]), widget(more), inner)
+}
+
+@test
+fun a_popover_is_re_presented_when_one_inside_it_closes() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen: Ref<string[]> = Ref.new([]);
+    let note = fun(s: string) {
+        seen.update(fun(xs) {
+            let mut ys = xs;
+            ys.push(s);
+            ys
+        });
+    };
+    let application = gtk_application_new("org.kivuli.test.popover_regrab", 0);
+    connect_app(
+        application,
+        "activate",
+        fun(a: GtkApplication) {
+            let window = gtk_application_window_new(a);
+            let app = mount(a, window, sandbox_app(
+                "org.kivuli.test",
+                Model { outer: false, inner: false, picked: "Allowed" },
+                fun(m: Model, msg: Msg): Model {
+                    note("{msg}");
+                    update(m, msg)
+                },
+                view,
+            ));
+            let (trigger, outer, drop, more, inner) = parts(live_of(app));
+            // Each time the outer one is closed, by anyone.
+            connect_widget(
+                outer,
+                "closed",
+                fun(w: GtkWidget) {
+                    note("outer closed");
+                },
+                0,
+            );
+            emit_widget(trigger, "clicked");
+            let Some(list) = lgtk_drop_down_popover(drop) else {
+                panic("a drop-down has a list");
+            };
+            // The list opened and closed, as a pick does.
+            gtk_popover_popup(list);
+            gtk_popover_popdown(list);
+            g_timeout_add_full(0, 50, fun(): i32 {
+                note("after the list: outer shown {gtk_widget_get_visible(outer)}");
+                // The nested popover closed by GTK (a click away, Escape).
+                emit_widget(more, "clicked");
+                gtk_popover_popdown(inner);
+                g_timeout_add_full(0, 50, fun(): i32 {
+                    note("after the inner one: outer shown {gtk_widget_get_visible(outer)}");
+                    // The outer one, in no popover, closed by GTK: its message, nothing else.
+                    gtk_popover_popdown(outer);
+                    g_timeout_add_full(0, 50, fun(): i32 {
+                        note("after the outer one: shown {gtk_widget_get_visible(outer)}");
+                        g_application_quit(a);
+                        0
+                    });
+                    0
+                });
+                0
+            });
+        },
+        0,
+    );
+    g_application_run(application, 0, None);
+    g_object_unref(application);
+    assert_eq(seen.get(), [
+        "Outer",
+        "outer closed",
+        "after the list: outer shown 1",
+        "Inner",
+        "InnerClosed",
+        "outer closed",
+        "after the inner one: outer shown 1",
+        "OuterClosed",
+        "outer closed",
+        "after the outer one: shown 0",
+    ]);
+}

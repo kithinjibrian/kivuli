@@ -231,6 +231,15 @@ public fun sections(m: Model): View<Msg>[] = [
                 column([
                     dialog_header("Dimensions", "Set the dimensions for the layer."),
                     field_horizontal([field_label("Width"), ui.input(m.width, Msg.Width)]),
+                    // A drop-down inside a popover: after a pick, a click outside still closes it (DECISION-045).
+                    field_horizontal([
+                        field_label("Unit"),
+                        ui.dropdown(
+                            ["Pixels", "Percent", "Em"].map(fun(u: string) = (u, Msg.Picked("Unit {u}"))),
+                            "",
+                            "Pick a unit",
+                        ),
+                    ]),
                     dialog_footer([ui.button("Save", Msg.Picked("Width {m.width}")).style([Button.sm()])]),
                 ]).style([Spacing.gap(16)]),
                 // A click outside or Escape.

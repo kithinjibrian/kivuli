@@ -4,11 +4,13 @@
  * choices, and rounding a slider's value. Moved out of `build` (file size).
  * Calls GTK (CLAUDE.md rule 4).
  *
- * Depends on: live_tree, gtk.raw
+ * Depends on: live_tree, panels (`regrab_around`), gtk.raw
  * Used by: build, patch
  */
 
 import gtk {
+    connect_widget,
+    lgtk_drop_down_popover,
     GParamSpec,
     GtkWidget,
     connect_notify,
@@ -27,6 +29,7 @@ import gtk {
     lgtk_groups_unref,
 };
 import core.live_tree { Choices, Live };
+import render.panels { regrab_around };
 
 /**
  * A drop-down offering `choices` in `groups` (none: plain), `selected` shown
@@ -73,6 +76,17 @@ fun create_dropdown<Msg>(
         },
         0,
     );
+    // Its list closing can drop the grab of a popover it's in (DECISION-045).
+    if let Some(list) = lgtk_drop_down_popover(drop) {
+        connect_widget(
+            list,
+            "closed",
+            fun(p: GtkWidget) {
+                regrab_around(drop);
+            },
+            0,
+        );
+    }
     Live.Dropdown(drop, state)
 }
 
