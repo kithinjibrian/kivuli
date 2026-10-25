@@ -400,6 +400,18 @@ fun main() {
 
 ## RESOLVED
 
+### DECISION-043 — Bug: an overlay layer with a maximum size takes the clicks of everything under it
+
+**Status:** resolved
+**Resolved:** 2026-10-25 (the user: "do 14"; kivuli 0.62.1, lugha-gtk 0.1.55)
+**Raised:** 2026-10-25 (Rapidkoi's DECISION-062, section 14 of its kivuli requests: its update button, under a 7 px dot placed at the top end, can't be clicked since 0.62)
+
+**Cause:** PRP-066 (0.62) makes a node's clamp fill any axis where the node has a maximum, so the clamp can be bigger than the node. GTK's default `contains` answers for a widget's whole box. A clamp has no look of its own, but GTK picked it for every click in its area, so in an overlay a layer's clamp hid the whole base from the pointer.
+
+**Fix:** lugha-gtk 0.1.55: the clamp's `contains` answers only for its child's bounds, so picking falls through to whatever is under it. Rapidkoi's other suggestion, `can_target` off on the clamp, would take the pointer from the child too: GTK skips a whole subtree that can't be targeted. Tested in lugha-gtk's `test/clamp.la` and kivuli's `test/live_overlay.la` through `lgtk_widget_own_contains`, because a hidden test window is never mapped and `gtk_widget_contains` needs a mapped widget. The click itself is checked by eye.
+
+**A core decision:** no (a bug fix).
+
 ### DECISION-042 — Bug: one click doesn't focus a text area (click-away clears it)
 
 **Status:** resolved

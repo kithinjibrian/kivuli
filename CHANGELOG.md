@@ -8,6 +8,11 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.62.1] — 2026-10-25
+
+### Fixed
+- A layer of an overlay with a maximum size took every click over the base since 0.62, so a button under a small badge couldn't be pressed (DECISION-043; Rapidkoi's DECISION-062). A clamp now takes the pointer only where its node is. Needs lugha-gtk 0.1.55.
+
 ## [0.62.0] — 2026-10-24
 
 ### Changed

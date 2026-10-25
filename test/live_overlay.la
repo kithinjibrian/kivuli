@@ -1,11 +1,13 @@
 // Overlays on real GTK widgets: a GtkOverlay whose child is the base and
 // whose layers follow it in order, each placed by `.place`; opening and
 // closing a panel never touches the base; a removed layer is freed; replacing
-// a middle layer keeps the one above it, alive and in place. Needs a display,
+// a middle layer keeps the one above it, alive and in place; a layer with a
+// maximum takes the pointer only where it is (DECISION-043). Needs a display,
 // so it is skipped without one. (How it looks on screen: examples/frame.la.)
 import std.env;
 import gtk {
     GtkApplication,
+    gtk_widget_allocate,
     GtkWidget,
     connect_app,
     emit_widget,
@@ -19,12 +21,13 @@ import gtk {
     gtk_widget_get_halign,
     gtk_widget_get_next_sibling,
     gtk_widget_get_valign,
+    lgtk_widget_own_contains,
     on_finalized,
 };
 import kivuli.render.live { mount, live_of };
 import kivuli.core.effects { sandbox_app };
 import kivuli.core.live_tree { Live, widget };
-import kivuli { Align, View, button, column, overlay, text };
+import kivuli { Align, View, Sizing, Width, button, column, overlay, text };
 
 fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
 
@@ -190,4 +193,41 @@ fun layers_open_and_close_over_an_untouched_base() {
         "same base: true",
     ]);
     assert_eq(freed.get(), ["toast"]);
+}
+
+enum Pressed {
+    Update,
+}
+
+@test
+fun a_layer_with_a_maximum_leaves_the_base_clickable() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen: Ref<string[]> = Ref.new([]);
+    // Rapidkoi's update button with its 7 px dot at the top end (DECISION-043).
+    let dot = Sizing { width: Width.Px(7), height: Width.Px(7), ..Sizing.theme() };
+    with_app("org.kivuli.test.overlay_dot", 0, fun(n: i64, msg: Pressed): i64 = n + 1, fun(
+        n: i64,
+    ): View<Pressed> = column([
+        overlay(button("Update", Pressed.Update), [
+            text("").style([dot]).place(Align.End, Align.Start),
+        ]),
+    ]), fun(kids: fun(): Live<Pressed>[]) {
+        match kids()[0] {
+            Overlay(_, _, Layers(_, layers)) => match layers[0] {
+                Clamp(_, clamp) => {
+                    // The clamp fills the overlay and puts the dot at its top end.
+                    gtk_widget_allocate(clamp, 200, 40, -1, None);
+                    note(
+                        seen,
+                        "the dot's {lgtk_widget_own_contains(clamp, 196.0, 3.0)}, the button's {lgtk_widget_own_contains(clamp, 20.0, 30.0)}",
+                    );
+                }
+                _ => note(seen, "no clamp"),
+            },
+            _ => note(seen, "no overlay"),
+        }
+    });
+    assert_eq(seen.get(), ["the dot's 1, the button's 0"]);
 }
