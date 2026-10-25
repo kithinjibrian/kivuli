@@ -2,7 +2,9 @@
 // by the model on the same widgets, GTK closing it sending the close
 // message once (kivuli's own close sending nothing), a field inside keeping
 // its text, the side and arrow, and the popover unparented when its node
-// goes. Needs a display, so it is skipped without one.
+// goes; a popover (or a context menu's) whose box goes is freed once, never
+// unparented after GTK freed it (DECISION-044). Needs a display, so it is
+// skipped without one.
 import std.env;
 import gtk {
     GtkApplication,
@@ -23,11 +25,12 @@ import gtk {
     gtk_widget_get_visible,
     gtk_widget_ref,
     gtk_widget_unref,
+    on_finalized,
 };
 import kivuli.render.live { mount, live_of };
 import kivuli.core.effects { sandbox_app };
 import kivuli.core.live_tree { Live, widget };
-import kivuli { View, button, column, input, popover, text };
+import kivuli { View, button, column, input, item, popover, text };
 
 fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
 
@@ -159,4 +162,76 @@ fun a_popover_follows_the_model_and_gtk_closing_it_sends_close() {
         "Drop",
         "dropped parent false",
     ]);
+}
+
+enum Gone {
+    Opened,
+    Closed,
+    Dropped,
+}
+
+/** A popover and a column with a context menu, both boxes, until dropped. */
+fun view_boxes(dropped: bool): View<Gone> = column([
+    if dropped {
+        text("none")
+    } else {
+        column([
+            popover(button("Open", Gone.Opened), false, text("inside"), Gone.Closed),
+            column([text("row")]).menu([item("Close", Gone.Closed)]),
+        ])
+    },
+    button("Drop", Gone.Dropped),
+]);
+
+@test
+fun a_popover_whose_box_goes_is_freed_once() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen: Ref<string[]> = Ref.new([]);
+    let application = gtk_application_new("org.kivuli.test.popover_freed", 0);
+    connect_app(
+        application,
+        "activate",
+        fun(a: GtkApplication) {
+            let window = gtk_application_window_new(a);
+            let app = mount(
+                a,
+                window,
+                sandbox_app(
+                    "org.kivuli.test",
+                    false,
+                    fun(dropped: bool, msg: Gone): bool = dropped || msg == Gone.Dropped,
+                    view_boxes,
+                ),
+            );
+            let Box(_, _, kids) = live_of(app) else {
+                panic("expected a column");
+            };
+            let Box(_, _, inside) = kids[0] else {
+                panic("expected the inner column");
+            };
+            let Popover(_, _, pop, _, _, _) = inside[0] else {
+                panic("expected a popover");
+            };
+            let Menu(_, popup) = inside[1] else {
+                panic("expected a context menu");
+            };
+            // Nothing held here: GTK's box takes its popover apart before
+            // `destroy`, and kivuli's handler must not unparent a freed one.
+            on_finalized(pop, fun(w: GtkWidget) {
+                note(seen, "popover freed");
+            });
+            on_finalized(popup.popover, fun(w: GtkWidget) {
+                note(seen, "menu freed");
+            });
+            emit_widget(widget(kids[1]), "clicked");
+            note(seen, "dropped");
+            g_application_quit(a);
+        },
+        0,
+    );
+    g_application_run(application, 0, None);
+    g_object_unref(application);
+    assert_eq(seen.get(), ["popover freed", "menu freed", "dropped"]);
 }

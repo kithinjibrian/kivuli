@@ -400,6 +400,18 @@ fun main() {
 
 ## RESOLVED
 
+### DECISION-044 — Bug: a popover's `destroy` handler unparents a popover GTK already freed (a crash)
+
+**Status:** resolved
+**Resolved:** 2026-10-25 (the user: "do 15"; kivuli 0.62.2)
+**Raised:** 2026-10-25 (Rapidkoi's DECISION-063, section 15 of its kivuli requests: opening ⚙'s card sometimes crashes, after `Gtk-CRITICAL: gtk_widget_unparent: assertion 'GTK_IS_WIDGET (widget)' failed`)
+
+**Cause:** a popover node's popover (`render/panels.la`) and a context menu's (`render/popovers.la`) are parented to a widget whose `destroy` handler unparents them. A `GtkBox`'s dispose unparents all its children, the popover included, before GTK emits `destroy`. The parent held the popover's only reference, so it was freed, and the handler unparented a freed pointer.
+
+**Fix:** kivuli holds its own reference on each popover from parenting until the `destroy` handler. The handler unparents the popover only while it's still the widget's child, then drops that reference. lugha-gtk is unchanged. Tested in `test/live_popover.la` (a popover node and a column with a context menu, dropped with nothing else holding them, each freed once). The critical is only printed by default, so the test catches the bug under `G_DEBUG=fatal-criticals`, where it fails without the fix.
+
+**A core decision:** no (a bug fix).
+
 ### DECISION-043 — Bug: an overlay layer with a maximum size takes the clicks of everything under it
 
 **Status:** resolved

@@ -20,9 +20,12 @@ import gtk {
     gtk_popover_set_child,
     gtk_popover_set_has_arrow,
     gtk_popover_set_position,
+    gtk_widget_get_parent,
     gtk_widget_get_visible,
+    gtk_widget_ref,
     gtk_widget_set_parent,
     gtk_widget_unparent,
+    gtk_widget_unref,
 };
 import core.live_tree { Live, widget };
 import render.styling { flag };
@@ -45,6 +48,9 @@ fun make_popover<Msg>(
     gtk_box_append(box, widget(trigger));
     let pop = gtk_popover_new();
     gtk_widget_set_parent(pop, box);
+    // Ours too, until the box's `destroy` (below): GTK's box takes its
+    // children apart before `destroy`, which could free the popover first.
+    gtk_widget_ref(pop);
     gtk_popover_set_child(pop, Some(widget(content)));
     let current = Ref.new(close);
     let quiet = Ref.new(false);
@@ -59,12 +65,16 @@ fun make_popover<Msg>(
         },
         0,
     );
-    // A widget must not be freed with a popover still parented to it.
+    // A widget must not be freed with a popover still parented to it; the
+    // box may have unparented it already (DECISION-044).
     connect_widget(
         box,
         "destroy",
         fun(gone: GtkWidget) {
-            gtk_widget_unparent(pop);
+            if gtk_widget_get_parent(pop) == Some(box) {
+                gtk_widget_unparent(pop);
+            }
+            gtk_widget_unref(pop);
         },
         0,
     );

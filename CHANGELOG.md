@@ -8,6 +8,11 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.62.2] — 2026-10-25
+
+### Fixed
+- Dropping a popover or a column with a context menu could unparent a popover GTK had already freed: a `Gtk-CRITICAL`, sometimes a crash (DECISION-044; Rapidkoi's DECISION-063). kivuli now holds each popover until its widget's `destroy`, and unparents it only if it's still attached.
+
 ## [0.62.1] — 2026-10-25
 
 ### Fixed

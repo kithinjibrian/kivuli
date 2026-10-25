@@ -66,8 +66,11 @@ import gtk {
     gtk_widget_get_height,
     gtk_widget_get_width,
     gtk_widget_insert_action_group,
+    gtk_widget_get_parent,
+    gtk_widget_ref,
     gtk_widget_set_parent,
     gtk_widget_unparent,
+    gtk_widget_unref,
 };
 import view.menus { MenuEntry, check_items, items, layout, message_of, plain_items, radio_groups };
 import view.keys { parse };
@@ -88,15 +91,22 @@ fun attach<Msg>(w: GtkWidget, entries: MenuEntry<Msg>[], send: fun(Msg)): Popup<
     // Nested: a submenu opens beside its item, not in its menu's place.
     let popover = gtk_popover_menu_new_from_model_full(Some(empty), 1);
     gtk_widget_set_parent(popover, w);
+    // Ours too, until `w`'s `destroy` (below): a box takes its children
+    // apart before `destroy`, which could free the popover first.
+    gtk_widget_ref(popover);
     // A context menu opens where it was asked for, without an arrow.
     gtk_popover_set_has_arrow(popover, 0);
     // A widget must not be freed with a popover still parented to it (GTK warns,
-    // and the popover leaks): it goes when the widget does.
+    // and the popover leaks): it goes when the widget does, unless the widget
+    // unparented it already (DECISION-044).
     connect_widget(
         w,
         "destroy",
         fun(gone: GtkWidget) {
-            gtk_widget_unparent(popover);
+            if gtk_widget_get_parent(popover) == Some(w) {
+                gtk_widget_unparent(popover);
+            }
+            gtk_widget_unref(popover);
         },
         0,
     );
