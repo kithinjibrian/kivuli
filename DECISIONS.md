@@ -187,6 +187,21 @@ Decisions 1–12 were agreed in the design discussion in the lugha repository (a
 
 ## OPEN — Requires human input before implementation
 
+### DECISION-045 — A drop-down inside a popover leaves the popover undismissable (a GTK bug)
+
+**Status:** open (the user's call: GTK gaps are recorded, not worked around, unless the user says so)
+**Raised:** 2026-10-25 (Rapidkoi's DECISION-040, section 10 of its kivuli requests: after a pick in a `ui.dropdown` inside a `popover`, neither a click elsewhere in the window nor Escape closes the popover)
+
+**Cause (GTK 4.22.4's `gtk/gtkpopover.c`, unchanged on GTK's `main`):** when the drop-down's list closes after a pick, `gtk_popover_popdown` calls `cascade_popdown`. It walks up from the list to the first enclosing popover (kivuli's) and sets the focus target to *that popover's parent*, kivuli's box in the main window, before it checks `cascade-popdown`. kivuli's popover doesn't cascade, so the loop stops, but `gtk_widget_grab_focus` still moves the keyboard focus out of the popover while it stays open. Escape closes a popover only through its own key handler, which no longer gets keys. A click outside should come from the compositor's `xdg_popup` dismissal (Wayland here). Why that stops too isn't confirmed from source; most likely it's the same lost focus or grab.
+
+**Options:**
+- **(a) Work around it in kivuli.** While a kivuli popover is open, watch the window's focus. When it lands on the popover's own parent (GTK's cascade target), give it back to the widget inside the popover that last had it. This covers drop-downs, context menus and popovers nested in a popover. It's untested on screen: whether click-outside also recovers needs the user's eye. If it doesn't, the fix is upstream only.
+- **(b) Record it as deferred and report it to GTK.** `cascade_popdown` should move the focus only past popovers it closes. Rapidkoi keeps its workaround (⚙ again, or a click outside the window).
+
+**Recommendation:** (a), plus a GTK issue the user files (an outward action). The workaround is small, lives in `render/panels.la` (the popover node), and can be removed once GTK is fixed.
+
+---
+
 ### DECISION-041 — The renderer for a portable kivuli
 
 **Status:** open (the user's call; nothing is built on it yet)
