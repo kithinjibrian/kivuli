@@ -1,0 +1,162 @@
+/**
+ * Replacing one child of a container (a `Replace` patch below the root): the
+ * new child's widgets built and put exactly where the old one was, each
+ * container in its own way, and the `Live` node that now mirrors them. Split
+ * from `patch` (494 lines, 2026-10-25, approved). Not responsible for the
+ * root (`patch`) or for making widgets (`build`).
+ *
+ * Depends on: build, styling, live_tree, paths, gtk.raw
+ * Used by: patch
+ */
+
+import gtk {
+    GtkWidget,
+    gtk_box_append,
+    gtk_box_insert_child_after,
+    gtk_box_remove,
+    gtk_button_set_child,
+    gtk_flow_box_remove,
+    gtk_header_bar_remove,
+    gtk_header_bar_set_title_widget,
+    gtk_overlay_add_overlay,
+    gtk_overlay_remove_overlay,
+    gtk_overlay_set_child,
+    gtk_popover_set_child,
+    gtk_scrolled_window_set_child,
+    gtk_widget_ref,
+    gtk_widget_unref,
+    gtk_window_set_child,
+    lgtk_clip_set_child,
+};
+import render.build { add_to_wrap, create_in, pack_one };
+import render.styling { LAYER };
+import core.live_tree { Live, widget };
+import core.paths { sibling_before };
+import view.views { View };
+
+/** `node` with its child `i` replaced by `v`'s widgets; `window` holds a header's body. */
+fun replace_child<Msg>(
+    node: Live<Msg>,
+    i: i64,
+    v: View<Msg>,
+    window: GtkWidget,
+    send: fun(Msg),
+): Live<Msg> = match node {
+    Box(box, orientation, kids) => {
+        let fresh = create_in(v, orientation, send);
+        // Insert after the previous sibling (or first), then drop the
+        // old widget, so the new one takes exactly its place.
+        gtk_box_insert_child_after(box, widget(fresh), sibling_before(kids, i));
+        gtk_box_remove(box, widget(kids[i]));
+        let mut next = kids;
+        next[i] = fresh;
+        Live.Box(box, orientation, next)
+    }
+    // A popover's trigger is its box's one child; its content the popover's.
+    Popover(box, trigger, pop, content, close, quiet) => if i == 0 {
+        let fresh = create_in(v, 1, send);
+        gtk_box_remove(box, widget(trigger));
+        gtk_box_append(box, widget(fresh));
+        Live.Popover(box, fresh, pop, content, close, quiet)
+    } else {
+        let fresh = create_in(v, 1, send);
+        gtk_popover_set_child(pop, Some(widget(fresh)));
+        Live.Popover(box, trigger, pop, fresh, close, quiet)
+    },
+    // An overlay's base is its child; replacing it drops the old one.
+    Overlay(over, _, layers) => {
+        let fresh = create_in(v, 1, send);
+        gtk_overlay_set_child(over, Some(widget(fresh)));
+        Live.Overlay(over, fresh, layers)
+    }
+    Layers(over, kids) => {
+        // An overlay only adds on top: take this layer and those above it
+        // off (the ones above held alive), then add the new one and them back.
+        let mut held: GtkWidget[] = [];
+        let mut j = i;
+        while j < kids.len {
+            let w = widget(kids[j]);
+            if j > i {
+                held.push(gtk_widget_ref(w));
+            }
+            gtk_overlay_remove_overlay(over, w);
+            j = j + 1;
+        }
+        let fresh = create_in(v, LAYER, send);
+        let mut next = kids;
+        next[i] = fresh;
+        j = i;
+        while j < next.len {
+            gtk_overlay_add_overlay(over, widget(next[j]));
+            j = j + 1;
+        }
+        for w of held {
+            gtk_widget_unref(w);
+        }
+        Live.Layers(over, next)
+    }
+    Wrap(flow, kids) => {
+        let fresh = create_in(v, 0, send);
+        gtk_flow_box_remove(flow, widget(kids[i]));
+        add_to_wrap(flow, widget(fresh), i);
+        let mut next = kids;
+        next[i] = fresh;
+        Live.Wrap(flow, next)
+    }
+    // Setting a new child drops the old content; the button stays.
+    ButtonWith(button, current, controller, shortcut, _) => {
+        let fresh = create_in(v, 1, send);
+        gtk_button_set_child(button, Some(widget(fresh)));
+        Live.ButtonWith(button, current, controller, shortcut, fresh)
+    }
+    Scroll(scrolled, _) => {
+        // Setting a new child drops the old one (and the viewport GTK
+        // may have wrapped it in).
+        let fresh = create_in(v, 1, send);
+        gtk_scrolled_window_set_child(scrolled, Some(widget(fresh)));
+        Live.Scroll(scrolled, fresh)
+    }
+    Clip(clipped, _, current) => {
+        let fresh = create_in(v, 1, send);
+        lgtk_clip_set_child(clipped, Some(widget(fresh)));
+        Live.Clip(clipped, fresh, current)
+    }
+    // A header's body is the window's child; its title the bar's title widget.
+    Framed(bar, body, title, start, end) => if i == 0 {
+        let fresh = create_in(v, 1, send);
+        gtk_window_set_child(window, widget(fresh));
+        Live.Framed(bar, fresh, title, start, end)
+    } else {
+        let fresh = create_in(v, 0, send);
+        gtk_header_bar_set_title_widget(bar, Some(widget(fresh)));
+        Live.Framed(bar, body, fresh, start, end)
+    },
+    Pack(bar, at_end, kids) => {
+        // A bar can't insert at a place: unpack from here on (the views
+        // after this one held alive: unpacking drops the bar's reference,
+        // which freed a text view), then pack the new one and the rest again.
+        let mut held: GtkWidget[] = [];
+        let mut j = i;
+        while j < kids.len {
+            let w = widget(kids[j]);
+            if j > i {
+                held.push(gtk_widget_ref(w));
+            }
+            gtk_header_bar_remove(bar, w);
+            j = j + 1;
+        }
+        let fresh = create_in(v, 0, send);
+        let mut next = kids;
+        next[i] = fresh;
+        j = i;
+        while j < next.len {
+            pack_one(bar, at_end, widget(next[j]));
+            j = j + 1;
+        }
+        for w of held {
+            gtk_widget_unref(w);
+        }
+        Live.Pack(bar, at_end, next)
+    }
+    _ => panic("kivuli: a Replace patch points into something with no children"),
+};
