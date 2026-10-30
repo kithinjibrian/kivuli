@@ -400,6 +400,18 @@ fun main() {
 
 ## RESOLVED
 
+### DECISION-046 — How dispatch skips an unchanged lazy's subtree
+
+**Status:** resolved
+**Resolved:** 2026-10-31 (the user approved PRP-068)
+**Raised:** 2026-10-31 (Rapidkoi's DECISION-067: a popover over a big lazy app screen is slow)
+
+**Question:** a lazy reused with its key unchanged is skipped by `resolve` and `diff`, but `painted`, `stylesheet`, `background_pictures` and `duplicate` still walk all of it on every message (measured: ~89 ms at 500 nodes, ~343 ms at 2,000). How do they skip it while still catching every class's rule, a shortcut clash across the lazy's edge, and `painted`'s refusals on a rebuild?
+
+**Outcome (PRP-068):** keep a summary of what a painted lazy contains on its node: `View.Lazy` gains a fourth field, `Option<Found>` (its rules, background pictures, enabled shortcuts, and any interactive node for `button_with`'s check). `resolve` carries it over with an unchanged key; `paint` skips a lazy that has one and computes it for a fresh build; the dispatch walks read it instead of looking inside. Changes the shape of a public variant (`lazy(…)` itself is unchanged). Rejected: a "reused" marker (the shortcut check needs what's inside anyway), a cache in `Running` by path (duplicates `resolve`'s place matching), hiding the summary in a `Style`.
+
+**A core decision:** no (a refinement of DECISION-002's cache).
+
 ### DECISION-045 — Bug: a drop-down inside a popover leaves the popover undismissable
 
 **Status:** resolved

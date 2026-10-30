@@ -4,12 +4,14 @@
  * patch like any other modifier. Also where what an app got wrong about
  * styles and headers is found, before GTK. Pure.
  *
- * Depends on: views, walk, looks, sheets, pictures
+ * Depends on: views, walk, keys, findings, looks, sheets, pictures
  * Used by: live
  */
 
 import view.views { View };
-import view.walk { check_content, nodes };
+import view.walk { check_content, interactive, nodes_painted };
+import view.keys { shortcuts };
+import view.findings { Found };
 import view.looks { Style };
 import styles.sheets { picture, rules };
 import styles.checks { check };
@@ -76,9 +78,22 @@ fun paint<Msg>(v: View<Msg>): Result<View<Msg>, string> = match v {
         check_content(content)?;
         Ok(View.ButtonWith(paint(content)?, msg))
     }
-    Lazy(key, build, Some(built)) => Ok(View.Lazy(key, build, Some(paint(built)?))),
+    // Painted when it was built, and found in then (PRP-068): reused as it is.
+    Lazy(_, _, Some(_), Some(_)) => Ok(v),
+    Lazy(key, build, Some(built), None) => {
+        let p = paint(built)?;
+        Ok(View.Lazy(key, build, Some(p), Some(found_in(p))))
+    }
     Framed(_, _, _, _) => Err(".header(…) belongs on the root of the view only"),
     _ => Ok(v),
+};
+
+/** What each message's checks need from a painted subtree, read once. */
+fun found_in<Msg>(p: View<Msg>): Found = Found {
+    rules: stylesheet(p),
+    pictures: background_pictures(p),
+    shortcuts: shortcuts(p),
+    interactive: interactive(p),
 };
 
 fun paint_keyed<Msg>(pairs: (string, View<Msg>)[]): Result<(string, View<Msg>)[], string> {
@@ -161,12 +176,14 @@ fun bar_classes(bar: Sheet): Result<string[], string> {
 
 /**
  * Every CSS rule a painted view's classes need, as (class, the whole rule),
- * each once: the palette's first, then in the order nodes first use them.
+ * each once: the palette's first, then in the order nodes first use them. A
+ * painted lazy gives the rules it found.
  */
 fun stylesheet<Msg>(v: View<Msg>): (string, string)[] {
     let mut seen: Set<string> = #{};
     let mut out: (string, string)[] = [];
-    for (_, style) of nodes(v) {
+    let all = nodes_painted(v);
+    for (_, style) of all {
         // Only the root has one (`paint` refuses it below), and its dark
         // values need an `@media` block, so it comes whole.
         match style.palette {
@@ -180,7 +197,17 @@ fun stylesheet<Msg>(v: View<Msg>): (string, string)[] {
             None => {}
         }
     }
-    for (_, style) of nodes(v) {
+    for (node, style) of all {
+        match node {
+            Lazy(_, _, _, Some(found)) => {
+                for rule of found.rules {
+                    if seen.insert(rule.0) {
+                        out.push(rule);
+                    }
+                }
+            }
+            _ => {}
+        }
         // A root with a header bar carries the bar's rules too.
         for sheet of [style.sheet, style.bar] {
             for (key, body) of rules(sheet) {
@@ -196,12 +223,23 @@ fun stylesheet<Msg>(v: View<Msg>): (string, string)[] {
 /**
  * Every background picture a painted view uses, each once: its class, the
  * image, and the gradient and fill its rule needs (`sheets.picture`). Their
- * rules need the pictures' bytes, so `live` builds them.
+ * rules need the pictures' bytes, so `live` builds them. A painted lazy gives
+ * the pictures it found.
  */
 fun background_pictures<Msg>(v: View<Msg>): (string, Image, string, string)[] {
     let mut seen: Set<string> = #{};
     let mut out: (string, Image, string, string)[] = [];
-    for (_, style) of nodes(v) {
+    for (node, style) of nodes_painted(v) {
+        match node {
+            Lazy(_, _, _, Some(found)) => {
+                for p of found.pictures {
+                    if seen.insert(p.0) {
+                        out.push(p);
+                    }
+                }
+            }
+            _ => {}
+        }
         match picture(style.sheet) {
             Some(p) => if seen.insert(p.0) {
                 out.push(p);

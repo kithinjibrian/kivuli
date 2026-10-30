@@ -1,6 +1,7 @@
 /**
  * Lazy nodes, built or reused before each diff: a lazy whose key is the same
- * at its place keeps what it built, without calling its build function.
+ * at its place keeps what it built, without calling its build function, and
+ * what `paint` found in it, so it isn't painted or walked again (PRP-068).
  * Moved out of `diff` (file size). Pure.
  *
  * Depends on: views
@@ -11,22 +12,23 @@ import view.views { View };
 
 /**
  * The view with every lazy node built or reused. A lazy reuses what the lazy
- * at the same place in `old` (the last view, resolved) built, when its key is
- * the same, without calling its build function; otherwise it builds. Places
+ * at the same place in `old` (the last view, resolved) built, and what was
+ * found in it, when its key is the same, without calling its build function;
+ * otherwise it builds, with nothing found until it's painted. Places
  * are matched as the diff matches them: by position, and by row key in a
  * keyed column. Per place, as in Elm: two copies of one component (`map`) with
  * equal keys each keep their own subtree.
  */
 fun resolve<Msg>(v: View<Msg>, old: Option<View<Msg>>): View<Msg> = match v {
-    Lazy(key, build, _) => match old {
-        Some(Lazy(k, _, Some(built))) => if k == key {
-            View.Lazy(key, build, Some(built))
+    Lazy(key, build, _, _) => match old {
+        Some(Lazy(k, _, Some(built), found)) => if k == key {
+            View.Lazy(key, build, Some(built), found)
         } else {
             // A new key at this place: build, matching what's inside against
             // the old build, so lazies further in can still be reused.
-            View.Lazy(key, build, Some(resolve(build(), Some(built))))
+            View.Lazy(key, build, Some(resolve(build(), Some(built))), None)
         },
-        _ => View.Lazy(key, build, Some(resolve(build(), counterpart(old)))),
+        _ => View.Lazy(key, build, Some(resolve(build(), counterpart(old))), None),
     },
     Styled(x, style) => View.Styled(resolve(x, counterpart(old)), style),
     ButtonWith(content, msg) => View.ButtonWith(
@@ -119,7 +121,7 @@ fun counterpart<Msg>(old: Option<View<Msg>>): Option<View<Msg>> = match old {
     Some(Styled(x, _)) => counterpart(Some(x)),
     // A node gaining or losing a menu is diffed against itself.
     Some(Menu(x, _)) => counterpart(Some(x)),
-    Some(Lazy(_, _, Some(built))) => counterpart(Some(built)),
+    Some(Lazy(_, _, Some(built), _)) => counterpart(Some(built)),
     _ => old,
 };
 

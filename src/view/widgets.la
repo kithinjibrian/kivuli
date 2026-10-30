@@ -263,7 +263,12 @@ public fun popover_at<Msg>(
  * Example:
  *     lazy("{t.id}:{t.done}:{t.title}", fun() = todo_row(t))
  */
-public fun lazy<Msg>(key: string, build: fun(): View<Msg>): View<Msg> = View.Lazy(key, build, None);
+public fun lazy<Msg>(key: string, build: fun(): View<Msg>): View<Msg> = View.Lazy(
+    key,
+    build,
+    None,
+    None,
+);
 
 /**
  * Builds a multi-line text field showing `value`, scrolling inside itself and

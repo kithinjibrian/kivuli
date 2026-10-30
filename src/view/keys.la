@@ -4,11 +4,11 @@
  * Pure: kivuli parses the keys itself, so a typo shows up in plain tests too.
  *
  * Depends on: views, walk
- * Used by: live, styling, testing
+ * Used by: live, paint, styling, testing
  */
 
 import view.views { View };
-import view.walk { nodes };
+import view.walk { nodes_painted };
 
 /**
  * GTK's form of `keys`, or what's wrong with it. `keys` is modifiers
@@ -102,32 +102,42 @@ fun lower(s: string): string {
  * if any. Keys that don't parse are left to `parse`'s callers.
  */
 fun duplicate<Msg>(v: View<Msg>): Option<string> {
-    let mut seen: Set<string> = #{};
-    for (node, style) of nodes(v) {
-        match node {
-            Button(_, Some(_), _) | ButtonWith(_, Some(_)) => if style.shortcut != "" {
-                match parse(style.shortcut) {
-                    Ok(gtk) => if !seen.insert(gtk) {
-                        return Some(first_written(v, gtk));
-                    },
-                    Err(_) => {}
-                }
-            },
-            _ => {}
+    let mut first: Map<string, string> = #{};
+    for (gtk, written) of shortcuts(v) {
+        match first.get(gtk) {
+            Some(earlier) => {
+                return Some(earlier);
+            }
+            None => {
+                first[gtk] = written;
+            }
         }
     }
     None
 }
 
-/** How the first enabled button with GTK keys `gtk` wrote them. */
-fun first_written<Msg>(v: View<Msg>, gtk: string): string {
-    for (node, style) of nodes(v) {
+/**
+ * Every enabled button's shortcut in `v`, in order, as (GTK's keys, as
+ * written); a painted lazy gives those it found. Keys that don't parse are
+ * left out.
+ */
+fun shortcuts<Msg>(v: View<Msg>): (string, string)[] {
+    let mut out: (string, string)[] = [];
+    for (node, style) of nodes_painted(v) {
         match node {
-            Button(_, Some(_), _) | ButtonWith(_, Some(_)) => if parse(style.shortcut) == Ok(gtk) {
-                return style.shortcut;
+            Button(_, Some(_), _) | ButtonWith(_, Some(_)) => if style.shortcut != "" {
+                match parse(style.shortcut) {
+                    Ok(gtk) => out.push((gtk, style.shortcut)),
+                    Err(_) => {}
+                }
             },
+            Lazy(_, _, _, Some(found)) => {
+                for pair of found.shortcuts {
+                    out.push(pair);
+                }
+            }
             _ => {}
         }
     }
-    gtk
+    out
 }

@@ -133,7 +133,7 @@ lughac run examples/split.la      # one component, two copies, through map
 | `clip(child)` | Cuts its child off where it doesn't fit, and never pushes its parent (or the window) bigger: the child gets at least the room it needs, at the top start, and what sticks out at the end side and the bottom is cut off. `.on_overflow(f)` sends `f(Overflowing { across, down })`, in pixels, whenever that changes (0 when it fits). `.expand()` it to fill. Inside a `scroll` styled `Overflow.scroll_y()`, a too-wide row is cut instead of widening the list. |
 | `fit_row(children, more)` | Children side by side, as many as fit from the start, at their natural widths; the rest are hidden from the end, and `more` shows after the last one shown (a ⋯ menu, say), only while some are hidden. It asks for no more room than `more` needs, so the window can shrink past it. `.on_hidden(f)` sends `f(n)` when the number hidden changes, so `more` can list the last `n`. `Spacing.gap` spaces the children. |
 | `spacer()`, `separator()` | Room that grows along its column or row; a line across it. |
-| `lazy(key, build)` | Calls `build` only when `key` changes at that place; otherwise reuses the subtree and skips diffing it. The key must cover everything the subtree shows. |
+| `lazy(key, build)` | Calls `build` only when `key` changes at that place; otherwise reuses the subtree, and neither diffs, repaints nor walks it again. The key must cover everything the subtree shows. |
 
 **Modifiers**, chained on any view (a modifier that doesn't fit a node is ignored):
 

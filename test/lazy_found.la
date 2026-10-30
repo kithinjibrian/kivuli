@@ -1,0 +1,313 @@
+// Lazy parts across messages (PRP-068): a painted lazy keeps what it found
+// in its subtree (its rules, pictures, shortcuts and anything interactive),
+// a lazy whose key holds is reused with it, and each step of a dispatch reads
+// it instead of walking the subtree again. No GTK.
+import std.time;
+import kivuli.core.diff { diff as patches };
+import kivuli.view.lazies { resolve };
+import kivuli.view.findings { Found };
+import kivuli.view.keys { duplicate };
+import kivuli.view.walk { check_content };
+import kivuli.styles.paint { painted, stylesheet, background_pictures };
+import kivuli {
+    View,
+    Background,
+    Font,
+    Image,
+    Text,
+    Weight,
+    button,
+    button_with,
+    column,
+    header_bar,
+    lazy,
+    popover,
+    row,
+    text,
+};
+
+enum Msg {
+    Add,
+    Save,
+    Pick(i64),
+}
+
+// Views can hold functions, which have no `==`: compare what they print
+// instead (DECISION-008).
+fun assert_same<T>(actual: T, expected: T) {
+    assert_eq("{actual}", "{expected}");
+}
+
+// One dispatch's resolve and paint, as `live` runs them.
+fun step(v: View<Msg>, old: Option<View<Msg>>): View<Msg> = match painted(resolve(v, old)) {
+    Ok(p) => p,
+    Err(problem) => panic(problem),
+};
+
+// What painting `v`, resolved against `old`, refuses.
+fun refused(v: View<Msg>, old: Option<View<Msg>>): Result<i64, string> = painted(
+    resolve(v, old),
+).map(fun(p) = 0);
+
+// The lazy at index `i` of a column: what it built, and what it found.
+fun lazy_at(v: View<Msg>, i: i64): (Option<View<Msg>>, Option<Found>) {
+    let Column(kids) = v else {
+        panic("expected a column");
+    };
+    let Lazy(_, _, built, found) = kids[i] else {
+        panic("expected a lazy");
+    };
+    (built, found)
+}
+
+// `f`, counting its calls in `builds`.
+fun counted(builds: Ref<i64>, f: fun(): View<Msg>): fun(): View<Msg> = fun(): View<Msg> {
+    builds.update(fun(n) = n + 1);
+    f()
+};
+
+fun bold(s: string): View<Msg> = text(s).style([Font { weight: Weight.Bold, ..Font.theme() }]);
+
+fun spaced(s: string, n: i64): View<Msg> = text(s).style([
+    Text { letter_spacing: n, ..Text.theme() },
+]);
+
+fun classes(v: View<Msg>): string[] = stylesheet(v).map(fun(rule) = rule.0);
+
+// A small popover beside a lazy part: only `open` changes between messages.
+fun beside(open: bool, part: View<Msg>): View<Msg> = column([
+    popover(button("⚙", Msg.Add), open, text("card"), Msg.Add),
+    part,
+]);
+
+@test
+fun a_painted_lazy_has_found_what_it_holds() {
+    let first = step(
+        column([
+            text("x"),
+            lazy(
+                "k",
+                fun(): View<Msg> = column([bold("a"), button("Save", Msg.Save).shortcut("Ctrl+S")]),
+            ),
+        ]),
+        None,
+    );
+    let (_, found) = lazy_at(first, 1);
+    let Some(f) = found else {
+        panic("a painted lazy has found what it holds");
+    };
+    assert_eq(f.rules.map(fun(rule) = rule.0), ["kv-fw-700"]);
+    assert_eq(f.shortcuts, [("<Control>s", "Ctrl+S")]);
+    assert_eq(f.interactive, Some("a button (\"Save\")"));
+}
+
+@test
+fun an_unchanged_lazy_is_reused_with_what_it_found() {
+    let builds = Ref.new(0);
+    let part = fun(): View<Msg> = lazy(
+        "k",
+        counted(builds, fun(): View<Msg> = column([bold("a")])),
+    );
+    let first = step(beside(false, part()), None);
+    let second = step(beside(true, part()), Some(first));
+    let third = step(beside(false, part()), Some(second));
+    assert_eq(builds.get(), 1);
+    assert_same(lazy_at(third, 1), lazy_at(first, 1));
+}
+
+@test
+fun a_found_lazy_is_neither_painted_nor_walked_again() {
+    // What it found says something its subtree doesn't: each step must
+    // believe the summary, so it never looked inside.
+    let mark = Found {
+        rules: [("kv-mark", ".kv-mark {{}}")],
+        pictures: [],
+        shortcuts: [("<Control>s", "Ctrl+S")],
+        interactive: Some("a slider"),
+    };
+    let inside: View<Msg> = column([bold("a"), button("Save", Msg.Save).shortcut("Ctrl+N")]);
+    let part: View<Msg> = View.Lazy(
+        "k",
+        fun(): View<Msg> = text("unused"),
+        Some(inside),
+        Some(mark),
+    );
+    let Ok(p) = painted(column([part, button("Store", Msg.Add).shortcut("ctrl+s")])) else {
+        panic("nothing to refuse");
+    };
+    let (built, _) = lazy_at(p, 0);
+    assert_same(built, Some(inside));
+    assert_eq(stylesheet(p), [("kv-mark", ".kv-mark {{}}")]);
+    assert_eq(duplicate(p), Some("Ctrl+S"));
+    assert_eq(check_content(part), Err("a button_with's content can't hold a slider"));
+}
+
+@test
+fun a_new_key_builds_and_finds_again() {
+    let first = step(column([lazy("a", fun(): View<Msg> = bold("a"))]), None);
+    let second = step(column([lazy("b", fun(): View<Msg> = spaced("b", 3))]), Some(first));
+    let wanted = classes(step(spaced("b", 3), None));
+    let (_, found) = lazy_at(second, 0);
+    let Some(f) = found else {
+        panic("a rebuilt lazy has found what it holds");
+    };
+    assert_eq(f.rules.map(fun(rule) = rule.0), wanted);
+    assert_eq(classes(second), wanted);
+}
+
+@test
+fun a_lazy_rebuilt_around_a_reused_one_keeps_its_rules() {
+    let builds = Ref.new(0);
+    let outer = fun(k: string): View<Msg> = column([
+        lazy(
+            k,
+            fun(): View<Msg> = column([
+                spaced("o", 2),
+                lazy("in", counted(builds, fun(): View<Msg> = bold("deep"))),
+            ]),
+        ),
+    ]);
+    let first = step(outer("1"), None);
+    let second = step(outer("2"), Some(first));
+    assert_eq(builds.get(), 1);
+    let all = classes(second);
+    assert_eq(all, classes(first));
+    assert(all.iter().any(fun(c) = c == "kv-fw-700"));
+    assert_eq(all.len, 2);
+}
+
+@test
+fun a_picture_inside_an_unchanged_lazy_is_found() {
+    let pictured = fun(): View<Msg> = column([]).style([
+        Background { image: Some(Image.Icon("starred-symbolic")), ..Background.theme() },
+    ]);
+    let first = step(beside(false, lazy("p", pictured)), None);
+    let second = step(beside(true, lazy("p", pictured)), Some(first));
+    assert_eq(background_pictures(second).len, 1);
+    assert_same(background_pictures(second), background_pictures(step(pictured(), None)));
+}
+
+@test
+fun a_shortcut_inside_an_unchanged_lazy_clashes_with_one_outside() {
+    let screen = fun(extra: bool): View<Msg> = column([
+        lazy("k", fun(): View<Msg> = button("Save", Msg.Save).shortcut("Ctrl+S")),
+        if extra { button("Store", Msg.Add).shortcut("ctrl+s") } else { text("none") },
+    ]);
+    let first = step(screen(false), None);
+    assert_eq(duplicate(first), None);
+    let second = step(screen(true), Some(first));
+    // Named as the first of the two wrote it: the one in the lazy.
+    assert_eq(duplicate(second), Some("Ctrl+S"));
+}
+
+@test
+fun shortcuts_inside_one_lazy_clash_and_a_disabled_one_doesnt() {
+    let both = step(
+        column([
+            lazy(
+                "k",
+                fun(): View<Msg> = column([
+                    button("Save", Msg.Save).shortcut("Ctrl+S"),
+                    button("Store", Msg.Add).shortcut("ctrl+s"),
+                ]),
+            ),
+        ]),
+        None,
+    );
+    assert_eq(duplicate(both), Some("Ctrl+S"));
+    let off = step(
+        column([
+            lazy(
+                "k",
+                fun(): View<Msg> = button("Save", Msg.Save).shortcut("Ctrl+S").disabled(true),
+            ),
+            button("Store", Msg.Add).shortcut("Ctrl+S"),
+        ]),
+        None,
+    );
+    assert_eq(duplicate(off), None);
+}
+
+@test
+fun a_lazys_refusals_are_caught_when_built_and_rebuilt() {
+    let fine = step(column([lazy("a", fun(): View<Msg> = text("fine"))]), None);
+    let cases: (fun(): View<Msg>, string)[] = [
+        (
+            fun(): View<Msg> = text("a").size(20),
+            ".size(n) on text is gone: use .style([Font {{ size: Size.Pt(n), ..Font.theme() }}])",
+        ),
+        (
+            fun(): View<Msg> = text("a").header(header_bar([], text("T"), [])),
+            ".header(…) belongs on the root of the view only",
+        ),
+        (
+            fun(): View<Msg> = button_with(row([text("a"), button("Delete", Msg.Add)]), Msg.Save),
+            "a button_with's content can't hold a button (\"Delete\")",
+        ),
+    ];
+    for (bad, problem) of cases {
+        assert_eq(refused(column([lazy("b", bad)]), None), Err(problem));
+        assert_eq(refused(column([lazy("b", bad)]), Some(fine)), Err(problem));
+    }
+}
+
+@test
+fun a_button_with_around_a_painted_lazy_reads_what_it_found() {
+    let p = step(
+        column([lazy("k", fun(): View<Msg> = row([text("a"), button("Delete", Msg.Add)]))]),
+        None,
+    );
+    let Column(kids) = p else {
+        panic("expected a column");
+    };
+    assert_eq(
+        check_content(kids[0]),
+        Err("a button_with's content can't hold a button (\"Delete\")"),
+    );
+}
+
+// About `n` nodes: rows of a styled text and a styled button.
+fun screen(n: i64): View<Msg> {
+    let mut rows: View<Msg>[] = [];
+    let mut i = 0;
+    while i * 3 < n {
+        rows.push(
+            row([
+                text("item {i}").style([
+                    Font {
+                        weight: if i % 2 == 0 { Weight.Bold } else { Weight.Normal },
+                        ..Font.theme(),
+                    },
+                ]),
+                button("pick", Msg.Pick(i)).style([Text { letter_spacing: i % 7, ..Text.theme() }]),
+            ]),
+        );
+        i = i + 1;
+    }
+    column(rows)
+}
+
+@test
+fun a_message_beside_a_big_unchanged_lazy_costs_little() {
+    // Every pure step of a dispatch, as `live` runs them, over a 2,000-node
+    // lazy that a popover's messages leave unchanged: about 340 ms each
+    // before PRP-068.
+    let mut prev = step(beside(false, lazy("screen", fun(): View<Msg> = screen(2000))), None);
+    let rounds = 10;
+    let started = time.monotonic_ms();
+    let mut k = 0;
+    while k < rounds {
+        let tree = step(
+            beside(k % 2 == 0, lazy("screen", fun(): View<Msg> = screen(2000))),
+            Some(prev),
+        );
+        stylesheet(tree);
+        background_pictures(tree);
+        duplicate(tree);
+        patches(prev, tree);
+        prev = tree;
+        k = k + 1;
+    }
+    let each = (time.monotonic_ms() - started) / rounds;
+    assert_eq(if each < 5 { "fast" } else { "{each} ms a message" }, "fast");
+}

@@ -1,5 +1,6 @@
 // Lazy rows on real GTK widgets: editing one row builds and updates only that
-// row. Needs a display, so it is skipped without one.
+// row, and a popover opening and closing beside a big lazy part leaves its
+// widgets as they are (PRP-068). Needs a display, so it is skipped without one.
 import std.env;
 import gtk {
     GtkApplication,
@@ -14,7 +15,7 @@ import gtk {
 import kivuli.render.live { dispatch, live_of, mount };
 import kivuli.core.live_tree { Live, widget };
 import kivuli.core.effects { sandbox_app };
-import kivuli { View, keyed_column, lazy, text };
+import kivuli { View, button, column, keyed_column, lazy, popover, text };
 
 fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
 
@@ -54,7 +55,7 @@ fun view_with(builds: Ref<i64>): fun(List): View<Msg> = fun(l: List): View<Msg> 
     keyed_column(rows)
 };
 
-fun labels(root: Live<Msg>): string[] {
+fun labels<M>(root: Live<M>): string[] {
     let Box(_, _, kids) = root else {
         panic("expected a box");
     };
@@ -117,4 +118,68 @@ fun editing_one_lazy_row_builds_and_updates_only_that_row() {
         "4 [\"a\", \"B!\", \"c\"]",
         "4 [\"a\", \"B!\", \"c\"]",
     ]);
+}
+
+enum Card {
+    Open(bool),
+}
+
+@test
+fun a_popover_beside_a_big_lazy_part_leaves_its_widgets_be() {
+    if !has_display() {
+        skip("no display");
+    }
+    let builds = Ref.new(0);
+    let seen: Ref<string[]> = Ref.new([]);
+    let view = fun(open: bool): View<Card> = column([popover(
+        button("⚙", Card.Open(true)),
+        open,
+        text("card"),
+        Card.Open(false),
+    ), lazy("screen", fun(): View<Card> {
+        builds.update(fun(n) = n + 1);
+        let mut rows: View<Card>[] = [];
+        let mut i = 0;
+        while i < 300 {
+            rows.push(text("row {i}"));
+            i = i + 1;
+        }
+        column(rows)
+    })]);
+    let application = gtk_application_new("org.kivuli.test.lazy_popover", 0);
+    connect_app(
+        application,
+        "activate",
+        fun(a: GtkApplication) {
+            let window = gtk_application_window_new(a);
+            let app = mount(a, window, sandbox_app(
+                "org.kivuli.test",
+                false,
+                fun(_: bool, msg: Card): bool = match msg {
+                    Open(o) => o,
+                },
+                view,
+            ));
+            let part = fun(): Live<Card> {
+                let Box(_, _, kids) = live_of(app) else {
+                    panic("expected a box");
+                };
+                kids[1]
+            };
+            let before = widget(part());
+            dispatch(app, Card.Open(true));
+            dispatch(app, Card.Open(false));
+            dispatch(app, Card.Open(true));
+            seen.set([
+                "builds {builds.get()}",
+                "same widget {widget(part()) == before}",
+                "first row {labels(part())[0]}",
+            ]);
+            g_application_quit(a);
+        },
+        0,
+    );
+    g_application_run(application, 0, None);
+    g_object_unref(application);
+    assert_eq(seen.get(), ["builds 1", "same widget true", "first row row 0"]);
 }

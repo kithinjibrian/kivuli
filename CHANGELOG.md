@@ -8,6 +8,12 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.64.0] — 2026-10-31
+
+### Changed
+- A lazy part whose key holds now costs a message nothing for its size (PRP-068; Rapidkoi's DECISION-067). Before, it was reused and left undiffed, but every message still repainted it and walked all of it four more times: for its CSS rules, its background pictures and its shortcuts. That was ~90 ms a message at 500 nodes and ~340 ms at 2,000, more in a running app. A painted lazy now keeps what it found in its subtree, and each message reads that. Over a 2,000-node unchanged lazy, a message now costs under 1 ms of kivuli's work. Shortcut clashes across a lazy's edge, every class's rule, and `paint`'s refusals on a build or rebuild are still caught.
+- `View.Lazy` has a fourth field, what its painted subtree holds. `lazy(key, build)` is unchanged; only code matching `Lazy(…)` by hand needs the extra `_`.
+
 ## [0.63.1] — 2026-10-25
 
 ### Fixed

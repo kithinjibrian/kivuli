@@ -10,6 +10,7 @@ import view.looks { Style, Window, Align, Fit, Scheme, plain };
 import styles.palettes { Palette };
 import styles { Styling, applied };
 import view.pictures { Image };
+import view.findings { Found };
 import view.menus { MenuEntry };
 import view.clips { Overflowing };
 import styles.motion { Edge };
@@ -99,16 +100,16 @@ public enum View<Msg> {
     Styled(View<Msg>, Style),
     /**
      * A subtree built only when its key changes: the key, the function that
-     * builds it, and the subtree once kivuli has built or reused it.
+     * builds it, the subtree once built or reused, and what it holds once painted.
      */
-    Lazy(string, fun(): View<Msg>, Option<View<Msg>>),
+    Lazy(string, fun(): View<Msg>, Option<View<Msg>>, Option<Found>),
 }
 
 /** `v` with its style changed by `f`: one `Styled` wrapper, however many modifiers. */
 fun restyle<Msg>(v: View<Msg>, f: fun(Style): Style): View<Msg> = match v {
     Styled(inner, s) => View.Styled(inner, f(s)),
     // A lazy subtree's style is whatever `build` gives it (DECISION-002).
-    Lazy(_, _, _) => v,
+    Lazy(_, _, _, _) => v,
     _ => View.Styled(v, f(plain())),
 };
 

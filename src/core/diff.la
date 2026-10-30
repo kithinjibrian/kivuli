@@ -95,11 +95,15 @@ fun diff<Msg>(old: View<Msg>, new: View<Msg>): Patch<Msg>[] = diff_at([], old, n
 
 fun diff_at<Msg>(path: i64[], old: View<Msg>, new: View<Msg>): Patch<Msg>[] = match (old, new) {
     // Lazies are transparent: same key, nothing to do; otherwise compare what they built.
-    (Lazy(a, _, Some(x)), Lazy(b, _, Some(y))) => if a == b { [] } else { diff_at(path, x, y) },
-    (Lazy(_, _, Some(x)), _) => diff_at(path, x, new),
-    (_, Lazy(_, _, Some(y))) => diff_at(path, old, y),
-    (Lazy(_, _, None), _) => panic("kivuli: a lazy node reached the diff unresolved"),
-    (_, Lazy(_, _, None)) => panic("kivuli: a lazy node reached the diff unresolved"),
+    (Lazy(a, _, Some(x), _), Lazy(b, _, Some(y), _)) => if a == b {
+        []
+    } else {
+        diff_at(path, x, y)
+    },
+    (Lazy(_, _, Some(x), _), _) => diff_at(path, x, new),
+    (_, Lazy(_, _, Some(y), _)) => diff_at(path, old, y),
+    (Lazy(_, _, None, _), _) => panic("kivuli: a lazy node reached the diff unresolved"),
+    (_, Lazy(_, _, None, _)) => panic("kivuli: a lazy node reached the diff unresolved"),
     _ => diff_node(path, old, new),
 };
 

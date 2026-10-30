@@ -1,0 +1,26 @@
+/**
+ * What a painted lazy subtree holds that each message's checks need, kept on
+ * its lazy node so a lazy reused with its key unchanged is never walked again
+ * (PRP-068). Its own module: `views` holds it, and it holds no view. Pure.
+ *
+ * Depends on: pictures
+ * Used by: views, lazies, paint, walk, keys
+ */
+
+import view.pictures { Image };
+
+/**
+ * What a lazy's painted subtree holds, found once when it's painted: what
+ * the stylesheet, the shortcut check and a `button_with`'s check read in
+ * place of walking it.
+ */
+public struct Found {
+    /** Its CSS rules, as `paint.stylesheet` gives them: (class, the whole rule), each once. */
+    rules: (string, string)[],
+    /** Its background pictures, as `paint.background_pictures` gives them. */
+    pictures: (string, Image, string, string)[],
+    /** Its enabled buttons' shortcuts, in order: (GTK's keys, as the app wrote them). */
+    shortcuts: (string, string)[],
+    /** The first interactive thing in it (`"a button (\"Save\")"`), if any. */
+    interactive: Option<string>,
+}

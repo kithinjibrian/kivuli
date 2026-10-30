@@ -91,11 +91,13 @@ fun mapped<Msg, B>(v: View<Msg>, f: fun(Msg): B): View<B> = match v {
         title.map(f),
         end.map(fun(x) = x.map(f)),
     ),
-    // The key stays: what's built is the same, only its messages change.
-    Lazy(key, build, built) => View.Lazy(
+    // The key stays: what's built is the same, only its messages change, and
+    // what it found holds no messages.
+    Lazy(key, build, built, found) => View.Lazy(
         key,
         fun(): View<B> = build().map(f),
         built.map(fun(b) = b.map(f)),
+        found,
     ),
 };
 
@@ -164,7 +166,7 @@ fun with_menu<Msg>(v: View<Msg>, entries: MenuEntry<Msg>[]): View<Msg> = match v
     Styled(inside, s) => View.Styled(with_menu(inside, entries), s),
     Menu(inside, _) => with_menu(inside, entries),
     // As for styles (DECISION-002): a lazy subtree is what `build` gives it.
-    Lazy(_, _, _) => v,
+    Lazy(_, _, _, _) => v,
     _ => if entries.len == 0 { v } else { View.Menu(v, entries) },
 };
 
