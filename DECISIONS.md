@@ -187,6 +187,24 @@ Decisions 1–12 were agreed in the design discussion in the lugha repository (a
 
 ## OPEN — Requires human input before implementation
 
+### DECISION-047 — `Sub.window_active` fires when the window's own popover opens
+
+**Status:** open (needs lugha-gtk first; the user's call on how)
+**Raised:** 2026-10-31 (Rapidkoi's DECISION-067, § 17 of its kivuli requests: one popover sends `false`, `true`, `false`, `true`)
+
+**What was found (GTK 4.22.4's source):**
+- `GtkWindow:is-active`, which `Sub.window_active` watches (`render/windows.la`, `notify::is-active`), follows keyboard focus on the window's own surface. `gtk_window_handle_focus` (`gtk/gtkwindow.c:4990`) sets it from `GDK_FOCUS_CHANGE`.
+- On Wayland that comes from `wl_keyboard` enter and leave (`gdk/wayland/gdkseat-wayland.c:1422`). An autohide popover is its own `xdg_popup` surface and takes the keyboard while it's open. So the window really does lose and regain focus, though it never leaves the front.
+- What the compositor says about the front is `xdg_toplevel`'s *activated* state, which GDK turns into `GDK_TOPLEVEL_STATE_FOCUSED` (`gdk/wayland/gdktoplevel-wayland.c:739`). A popover doesn't change it. GTK itself uses this for the window's backdrop look (`gtkwindow.c:4825`, `ensure_state_flag_backdrop`), which is why the window doesn't dim when a popover opens.
+- The two can be told apart cleanly: watch the toplevel's `GDK_TOPLEVEL_STATE_FOCUSED` (`notify::state` on its `GdkToplevel`, `gdk_toplevel_get_state`), not `is-active`.
+
+**Blocked on lugha-gtk:** it binds none of what kivuli would need. Missing: `gtk_native_get_surface`, `gdk_toplevel_get_state`, a notify on a `GdkSurface`, and the window's state flags. Not worked around here.
+
+**Proposal:**
+- **lugha-gtk:** a small C helper pair. `lgtk_window_on_front(window, f)` calls `f(1|0)` whenever the window's toplevel `FOCUSED` state changes, connecting on `realize`, since the surface exists only from then. `lgtk_window_is_front(window)` reads it.
+- **kivuli (PRP-070):** `Sub.window_active` switches to them.
+- **What changes for apps:** `window_active` then means "the window is the one in front", not "it has the keyboard". Its doc changes to match, and its own popovers and menus send nothing. Minor version.
+
 ### DECISION-041 — The renderer for a portable kivuli
 
 **Status:** open (the user's call; nothing is built on it yet)
