@@ -36,10 +36,11 @@ import std.task;
 import render.build { create, focus_target };
 import render.patch { apply };
 import core.paths { at };
-import view.keys { duplicate };
+import view.keys { clash };
 import view.walk { path_of_name };
 import core.live_tree { Live, titlebar, widget };
-import styles.paint { background_pictures, painted, stylesheet };
+import styles.paint { painted };
+import styles.gathering { Gathering, gathered };
 import styles.palettes { default_tokens };
 import render.schemes { scheme_of, show_scheme };
 import render.windows {
@@ -101,7 +102,10 @@ struct Running<Model, Msg> {
  */
 struct Styles {
     provider: GtkCssProvider,
+    /** The rules' keys and pictures' classes in it. */
     classes: Ref<Set<string>>,
+    /** The nodes' classes whose rules are in it: a node with only these adds nothing (PRP-069). */
+    seen: Ref<Set<string>>,
     css: Ref<string[]>,
 }
 
@@ -137,8 +141,7 @@ fun mount<Model, Msg>(
     let (model, cmd) = program.init;
     let view = program.view;
     let tree = paint_or_stop(lazies.resolve(view(model), None));
-    check_shortcuts(tree);
-    add_rules(app.styles, tree);
+    add_rules(app.styles, checked(app.styles, tree));
     let live = create(tree, sender(app));
     gtk_window_set_child(window, widget(live));
     match titlebar(live) {
@@ -199,9 +202,8 @@ fun dispatch<Model, Msg>(app: Running<Model, Msg>, msg: Msg) {
     let (model, cmd) = update(s.model, msg);
     // Lazy nodes whose keys are unchanged at their place reuse what they built.
     let tree = paint_or_stop(lazies.resolve(view(model), Some(s.tree)));
-    check_shortcuts(tree);
     // Before the patches: a new value's class has its rule when it lands.
-    add_rules(app.styles, tree);
+    add_rules(app.styles, checked(app.styles, tree));
     let mut live = s.live;
     app.patching.set(true);
     for change of diff.diff(s.tree, tree) {
@@ -226,42 +228,51 @@ fun styles_for(window: GtkWidget): Styles {
     let provider = lgtk_css_provider_new_for_scheme();
     // The display keeps the provider for the app's life.
     gtk_style_context_add_provider_for_display(gtk_widget_get_display(window), provider, 600);
-    Styles { provider: provider, classes: Ref.new(#{}), css: Ref.new([default_tokens().1]) }
-}
-
-/** Adds the rules `tree` needs that the stylesheet doesn't have yet, reloading it only then. */
-fun add_rules<Msg>(styles: Styles, tree: View<Msg>) {
-    let mut known = styles.classes.get();
-    let mut css = styles.css.get();
-    let mut added = false;
-    for (class, rule) of stylesheet(tree) {
-        if known.insert(class) {
-            css.push(rule);
-            added = true;
-        }
-    }
-    // A picture's rule needs its bytes: read (a file) and checked once, the
-    // first time its class is seen.
-    for (class, img, gradient, fill) of background_pictures(tree) {
-        if known.insert(class) {
-            let url = url_of(img, fun(path: string): Option<u8[]> = read_bytes(path).ok());
-            css.push(".{class} {{ {picture_css(url, gradient, fill)} }}");
-            added = true;
-        }
-    }
-    if added {
-        styles.classes.set(known);
-        styles.css.set(css);
-        gtk_css_provider_load_from_string(styles.provider, css.join("\n"));
+    Styles {
+        provider: provider,
+        classes: Ref.new(#{}),
+        seen: Ref.new(#{}),
+        css: Ref.new([default_tokens().1]),
     }
 }
 
-/** Two enabled buttons with one shortcut would leave GTK to pick one: stop instead. */
-fun check_shortcuts<Msg>(tree: View<Msg>) {
-    match duplicate(tree) {
+/**
+ * What the painted `tree` needs that `styles` lacks, and its shortcuts, in
+ * one pass; two enabled buttons with one shortcut stop the app (GTK would
+ * pick one).
+ */
+fun checked<Msg>(styles: Styles, tree: View<Msg>): Gathering {
+    let g = gathered(tree, styles.classes.get(), styles.seen.get());
+    match clash(g.shortcuts) {
         Some(combo) => panic("kivuli: two enabled buttons have the shortcut \"{combo}\""),
         None => {}
     }
+    g
+}
+
+/** Adds the rules and pictures `g` found new to the stylesheet, reloading it only then. */
+fun add_rules(styles: Styles, g: Gathering) {
+    if g.rules.len == 0 && g.pictures.len == 0 {
+        // Nothing new; `seen` may have grown, by classes whose rules are in.
+        if g.seen.len != styles.seen.get().len {
+            styles.seen.set(g.seen);
+        }
+        return;
+    }
+    let mut css = styles.css.get();
+    for (_, rule) of g.rules {
+        css.push(rule);
+    }
+    // A picture's rule needs its bytes: read (a file) and checked once, the
+    // first time its class is seen.
+    for (class, img, gradient, fill) of g.pictures {
+        let url = url_of(img, fun(path: string): Option<u8[]> = read_bytes(path).ok());
+        css.push(".{class} {{ {picture_css(url, gradient, fill)} }}");
+    }
+    styles.classes.set(g.known);
+    styles.seen.set(g.seen);
+    styles.css.set(css);
+    gtk_css_provider_load_from_string(styles.provider, css.join("\n"));
 }
 
 /** Gives keyboard focus to the node named `name` in the view shown now; nothing if there's none. */

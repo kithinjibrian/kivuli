@@ -4,11 +4,12 @@
  * what `paint` found in it, so it isn't painted or walked again (PRP-068).
  * Moved out of `diff` (file size). Pure.
  *
- * Depends on: views
+ * Depends on: views, findings
  * Used by: live
  */
 
 import view.views { View };
+import view.findings { Found };
 
 /**
  * The view with every lazy node built or reused. A lazy reuses what the lazy
@@ -22,7 +23,8 @@ import view.views { View };
 fun resolve<Msg>(v: View<Msg>, old: Option<View<Msg>>): View<Msg> = match v {
     Lazy(key, build, _, _) => match old {
         Some(Lazy(k, _, Some(built), found)) => if k == key {
-            View.Lazy(key, build, Some(built), found)
+            // Its rules and pictures joined the stylesheet when it was painted.
+            View.Lazy(key, build, Some(built), found.map(fun(f) = Found { fresh: false, ..f }))
         } else {
             // A new key at this place: build, matching what's inside against
             // the old build, so lazies further in can still be reused.

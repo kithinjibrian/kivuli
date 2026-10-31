@@ -4,7 +4,7 @@
  * (PRP-068). Its own module: `views` holds it, and it holds no view. Pure.
  *
  * Depends on: pictures
- * Used by: views, lazies, paint, walk, keys
+ * Used by: views, lazies, paint, walk, gathering
  */
 
 import view.pictures { Image };
@@ -23,4 +23,9 @@ public struct Found {
     shortcuts: (string, string)[],
     /** The first interactive thing in it (`"a button (\"Save\")"`), if any. */
     interactive: Option<string>,
+    /**
+     * Just painted, so its rules and pictures may be new to the stylesheet;
+     * false once reused, when they're there already (PRP-069).
+     */
+    fresh: bool,
 }

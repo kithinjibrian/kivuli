@@ -1,0 +1,218 @@
+// What each message needs from the painted view, in one pass (PRP-069): the
+// rules and pictures the stylesheet doesn't have yet and every enabled
+// shortcut, with a lazy reused unchanged adding only its shortcuts and a node
+// whose classes are all known adding nothing. No GTK.
+import std.time;
+import kivuli.core.diff { diff as patches };
+import kivuli.view.lazies { resolve };
+import kivuli.view.findings { Found };
+import kivuli.view.keys { clash };
+import kivuli.styles.gathering { Gathering, gathered };
+import kivuli.styles.paint { painted, stylesheet };
+import kivuli {
+    View,
+    Background,
+    Font,
+    Image,
+    Palette,
+    Text,
+    Weight,
+    button,
+    column,
+    header_bar,
+    lazy,
+    popover,
+    row,
+    text,
+};
+
+enum Msg {
+    Add,
+    Save,
+    Pick(i64),
+}
+
+// One dispatch's resolve and paint, as `live` runs them.
+fun step(v: View<Msg>, old: Option<View<Msg>>): View<Msg> = match painted(resolve(v, old)) {
+    Ok(p) => p,
+    Err(problem) => panic(problem),
+};
+
+// What a first message gathers: the stylesheet has nothing yet.
+fun first(v: View<Msg>): Gathering = gathered(v, #{}, #{});
+
+// What the next message gathers, after `before`'s rules joined the stylesheet.
+fun next(v: View<Msg>, before: Gathering): Gathering = gathered(v, before.known, before.seen);
+
+fun bold(s: string): View<Msg> = text(s).style([Font { weight: Weight.Bold, ..Font.theme() }]);
+
+fun keys_of(g: Gathering): string[] = g.rules.map(fun(rule) = rule.0);
+
+// A summary as `paint` would leave it, holding a rule no stylesheet has.
+fun marked(fresh: bool): View<Msg> = View.Lazy(
+    "k",
+    fun(): View<Msg> = text("unused"),
+    Some(text("inside")),
+    Some(Found {
+        rules: [("kv-mark", ".kv-mark {{}}")],
+        pictures: [("kv-pic", Image.Icon("a"), "", "")],
+        shortcuts: [("<Control>s", "Ctrl+S")],
+        interactive: None,
+        fresh: fresh,
+    }),
+);
+
+@test
+fun a_reused_lazy_adds_only_its_shortcuts() {
+    let g = first(column([marked(false)]));
+    assert_eq(g.rules, []);
+    assert_eq(g.pictures.len, 0);
+    assert_eq(g.shortcuts, [("<Control>s", "Ctrl+S")]);
+}
+
+@test
+fun a_fresh_lazy_adds_its_rules_and_pictures_once() {
+    let g = first(column([marked(true)]));
+    assert_eq(keys_of(g), ["kv-mark"]);
+    assert_eq(g.pictures.len, 1);
+    let again = next(column([marked(true)]), g);
+    assert_eq(again.rules, []);
+    assert_eq(again.pictures.len, 0);
+}
+
+@test
+fun a_lazy_reused_by_resolve_adds_no_rules_on_the_next_message() {
+    let part = fun(): View<Msg> = lazy("k", fun(): View<Msg> = column([bold("a")]));
+    let one = step(column([part()]), None);
+    let g = first(one);
+    assert_eq(keys_of(g), ["kv-fw-700"]);
+    let two = step(column([part()]), Some(one));
+    assert_eq(next(two, g).rules, []);
+}
+
+@test
+fun a_node_whose_classes_are_known_adds_nothing() {
+    let p = step(column([bold("a")]), None);
+    // The class is known, its rule isn't: trusting the classes, nothing is built.
+    let g = gathered(p, #{}, #{"kv-fw-700"});
+    assert_eq(g.rules, []);
+}
+
+@test
+fun a_new_class_comes_with_its_rule_text() {
+    let p = step(column([text("x"), bold("a")]), None);
+    let g = first(p);
+    assert_eq(g.rules, [("kv-fw-700", ".kv-fw-700 {{ font-weight: 700; }}")]);
+    assert_eq(next(step(column([bold("b"), bold("c")]), Some(p)), g).rules, []);
+}
+
+@test
+fun the_palettes_and_header_bars_rules_come_on_first_sight() {
+    let v: View<Msg> = text("a").header(
+        header_bar([], text("T"), []).style([Font { weight: Weight.Bold, ..Font.theme() }]),
+    ).palette(Palette.slate());
+    let p = step(v, None);
+    let g = first(p);
+    assert_eq(g.rules, stylesheet(p));
+    assert(g.rules.len >= 3);
+    assert_eq(next(p, g).rules, []);
+}
+
+@test
+fun a_picture_comes_on_first_sight() {
+    let pictured: View<Msg> = column([]).style([
+        Background { image: Some(Image.Icon("starred-symbolic")), ..Background.theme() },
+    ]);
+    let p = step(column([pictured]), None);
+    let g = first(p);
+    assert_eq(g.pictures.len, 1);
+    assert_eq(next(p, g).pictures.len, 0);
+}
+
+@test
+fun a_shortcut_inside_an_unchanged_lazy_clashes_with_one_outside() {
+    let screen = fun(extra: bool): View<Msg> = column([
+        lazy("k", fun(): View<Msg> = button("Save", Msg.Save).shortcut("Ctrl+S")),
+        if extra { button("Store", Msg.Add).shortcut("ctrl+s") } else { text("none") },
+    ]);
+    let one = step(screen(false), None);
+    let g = first(one);
+    assert_eq(clash(g.shortcuts), None);
+    let two = step(screen(true), Some(one));
+    assert_eq(clash(next(two, g).shortcuts), Some("Ctrl+S"));
+}
+
+// About `n` nodes, rows of a styled text and a styled button.
+fun screen(n: i64): View<Msg> {
+    let mut rows: View<Msg>[] = [];
+    let mut i = 0;
+    while i * 3 < n {
+        rows.push(
+            row([
+                text("item {i}").style([
+                    Font {
+                        weight: if i % 2 == 0 { Weight.Bold } else { Weight.Normal },
+                        ..Font.theme(),
+                    },
+                ]),
+                button("pick", Msg.Pick(i)).style([Text { letter_spacing: i % 7, ..Text.theme() }]),
+            ]),
+        );
+        i = i + 1;
+    }
+    column(rows)
+}
+
+// A frame of `n` styled nodes, a popover and a lazy part of `big` nodes whose key holds.
+fun window(open: bool, n: i64, big: i64): View<Msg> {
+    let mut frame: View<Msg>[] = [];
+    let mut i = 0;
+    while i < n {
+        frame.push(text("f{i}").style([Text { letter_spacing: i % 5, ..Text.theme() }]));
+        i = i + 1;
+    }
+    column([
+        column(frame),
+        popover(button("⚙", Msg.Add), open, text("card"), Msg.Add),
+        lazy("screen", fun(): View<Msg> = screen(big)),
+    ])
+}
+
+// Milliseconds for `rounds` messages, as `live` runs them (view, resolve,
+// paint, gather, diff), and how many of them gathering took.
+fun messages(big: i64, rounds: i64): (i64, i64) {
+    let mut prev = step(window(false, 150, big), None);
+    let mut g = first(prev);
+    let mut spent = 0;
+    let started = time.monotonic_ms();
+    let mut k = 0;
+    while k < rounds {
+        let tree = step(window(k % 2 == 0, 150, big), Some(prev));
+        let a = time.monotonic_ms();
+        g = next(tree, g);
+        spent = spent + (time.monotonic_ms() - a);
+        patches(prev, tree);
+        prev = tree;
+        k = k + 1;
+    }
+    (time.monotonic_ms() - started, spent)
+}
+
+@test
+fun a_big_unchanged_lazy_part_adds_nothing_to_a_message() {
+    // Before PRP-069 the checks alone took about 14 ms a message here, and
+    // more with the lazy part than without it.
+    let rounds = 20;
+    let (without, _) = messages(0, rounds);
+    let (with, spent) = messages(3000, rounds);
+    // Within a millisecond a message, for the clock's noise.
+    assert_eq(
+        if with <= without + rounds {
+            "same"
+        } else {
+            "{without / rounds} ms, {with / rounds} ms with it"
+        },
+        "same",
+    );
+    assert_eq(if spent < rounds { "fast" } else { "{spent / rounds} ms gathering" }, "fast");
+}

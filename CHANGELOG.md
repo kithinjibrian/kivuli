@@ -8,6 +8,11 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.64.1] — 2026-10-31
+
+### Fixed
+- A message no longer costs more because the window holds a big unchanged lazy part (PRP-069; Rapidkoi's DECISION-067). Each message walked everything outside unchanged lazies three times (for shortcuts, CSS rules and background pictures), building arrays that copied every node's style. Their garbage set off collections that marked the whole heap, and a big lazy part made that heap big. Those checks are now one pass of plain recursion. CSS text is built only for classes the stylesheet hasn't seen, and a lazy reused unchanged adds only its shortcuts. With a 150-node frame beside a 3,000-node unchanged lazy, the checks went from 14.4 ms to 0.1 ms a message (the whole message from ~26 ms to ~11 ms), and it now costs the same with or without the lazy part.
+
 ## [0.64.0] — 2026-10-31
 
 ### Changed

@@ -1,12 +1,12 @@
 /**
  * Walking a view: every node in order, with the style it carries and lazy
- * nodes built and looked through, or, over a painted view, a painted lazy
- * taken as what it found (PRP-068). Pure. Used to find things in a view: the
- * testing helpers, the stylesheet, the shortcut duplicate check, and
- * `Cmd.focus` (finding a named node's path).
+ * nodes built and looked through. Pure. Used to find things in a view: the
+ * testing helpers, `Cmd.focus` (finding a named node's path), and a
+ * `button_with`'s content check. Not each message's checks: walks that build
+ * arrays of nodes and styles cost too much per message (`gathering`, PRP-069).
  *
  * Depends on: views, looks
- * Used by: keys, live, paint, testing
+ * Used by: live, paint, testing
  */
 
 import view.views { View };
@@ -16,62 +16,38 @@ import view.looks { Style, plain };
  * Every node of `v` in order, without its `Styled` wrapper but with the style
  * it carries; lazy nodes are built and looked through.
  */
-fun nodes<Msg>(v: View<Msg>): (View<Msg>, Style)[] = walk(v, plain(), true, false);
+fun nodes<Msg>(v: View<Msg>): (View<Msg>, Style)[] = walk(v, plain(), true);
 
-/**
- * As `nodes`, but a lazy that `paint` found things in is one node, not looked
- * into: its `Found` says what it holds. What each message's checks walk, so
- * an unchanged lazy costs them nothing for its size. Buttons' content isn't
- * checked: `paint` checked it.
- */
-fun nodes_painted<Msg>(v: View<Msg>): (View<Msg>, Style)[] = walk(v, plain(), false, true);
-
-fun walk<Msg>(
-    v: View<Msg>,
-    style: Style,
-    check: bool,
-    painted: bool,
-): (View<Msg>, Style)[] = match v {
-    Styled(inside, s) => walk(inside, s, check, painted),
-    Lazy(_, build, built, found) => if painted && found.is_some() {
-        [(v, plain())]
-    } else {
-        // Modifiers on a lazy node are ignored; what it builds carries its own.
-        walk(
-            match built {
-                Some(b) => b,
-                None => build(),
-            },
-            plain(),
-            check,
-            painted,
-        )
-    },
-    Column(xs) => with_children(v, style, xs, check, painted),
-    Row(xs) => with_children(v, style, xs, check, painted),
-    Keyed(pairs) => with_children(v, style, pairs.map(fun(pair) = pair.1), check, painted),
-    Wrap(xs) => with_children(v, style, xs, check, painted),
-    KeyedWrap(pairs) => with_children(v, style, pairs.map(fun(pair) = pair.1), check, painted),
+fun walk<Msg>(v: View<Msg>, style: Style, check: bool): (View<Msg>, Style)[] = match v {
+    Styled(inside, s) => walk(inside, s, check),
+    // Modifiers on a lazy node are ignored; what it builds carries its own.
+    Lazy(_, build, built, _) => walk(
+        match built {
+            Some(b) => b,
+            None => build(),
+        },
+        plain(),
+        check,
+    ),
+    Column(xs) => with_children(v, style, xs, check),
+    Row(xs) => with_children(v, style, xs, check),
+    Keyed(pairs) => with_children(v, style, pairs.map(fun(pair) = pair.1), check),
+    Wrap(xs) => with_children(v, style, xs, check),
+    KeyedWrap(pairs) => with_children(v, style, pairs.map(fun(pair) = pair.1), check),
     Overlay(base, layers) => {
         let mut xs = [base];
         for x of layers {
             xs.push(x);
         }
-        with_children(v, style, xs, check, painted)
+        with_children(v, style, xs, check)
     }
-    Popover(trigger, _, content, _, _, _) => with_children(
-        v,
-        style,
-        [trigger, content],
-        check,
-        painted,
-    ),
-    Scroll(x, _) => with_children(v, style, [x], check, painted),
-    Clip(x, _) => with_children(v, style, [x], check, painted),
+    Popover(trigger, _, content, _, _, _) => with_children(v, style, [trigger, content], check),
+    Scroll(x, _) => with_children(v, style, [x], check),
+    Clip(x, _) => with_children(v, style, [x], check),
     Fit(xs, more, _) => {
         let mut all = xs;
         all.push(more);
-        with_children(v, style, all, check, painted)
+        with_children(v, style, all, check)
     }
     // Every walk checks a button's content, so an app's pure tests stop on it too.
     ButtonWith(content, _) => {
@@ -81,13 +57,13 @@ fun walk<Msg>(
                 Err(problem) => panic("kivuli: {problem}"),
             }
         }
-        with_children(v, style, [content], check, painted)
+        with_children(v, style, [content], check)
     }
     // The menu, then its node with the same style: a button with a menu is
     // still found by its label or tooltip.
     Menu(inside, _) => {
         let mut out = [(v, style)];
-        for pair of walk(inside, style, check, painted) {
+        for pair of walk(inside, style, check) {
             out.push(pair);
         }
         out
@@ -100,7 +76,7 @@ fun walk<Msg>(
         for x of end {
             xs.push(x);
         }
-        with_children(v, style, xs, check, painted)
+        with_children(v, style, xs, check)
     }
     _ => [(v, style)],
 };
@@ -110,11 +86,10 @@ fun with_children<Msg>(
     style: Style,
     xs: View<Msg>[],
     check: bool,
-    painted: bool,
 ): (View<Msg>, Style)[] {
     let mut out: (View<Msg>, Style)[] = [(v, style)];
     for x of xs {
-        for pair of walk(x, plain(), check, painted) {
+        for pair of walk(x, plain(), check) {
             out.push(pair);
         }
     }
@@ -204,23 +179,43 @@ fun check_content<Msg>(content: View<Msg>): Result<(), string> = match interacti
 };
 
 /**
- * The first interactive thing in `v` (`"a button (\"Save\")"`), if any; a
- * painted lazy answers from what it found.
+ * The first interactive thing in `v`, in the walk's order (`"a button
+ * (\"Save\")"`), if any; a painted lazy answers from what it found. Plain
+ * recursion: it runs on every `button_with`, every message.
  */
-fun interactive<Msg>(v: View<Msg>): Option<string> {
-    for (node, _) of nodes_painted(v) {
-        let found = match node {
-            Button(label, _, _) => Some("a button (\"{label}\")"),
-            ButtonWith(_, _) => Some("a button_with"),
-            Input(_, _) => Some("a text field"),
-            TextArea(_, _) => Some("a text area"),
-            Checkbox(label, _, _) => Some("a check box (\"{label}\")"),
-            Switch(_, _) => Some("a switch"),
-            Dropdown(_, _, _) => Some("a drop-down"),
-            Slider(_, _, _, _) => Some("a slider"),
-            Lazy(_, _, _, Some(f)) => f.interactive,
-            _ => None,
-        };
+fun interactive<Msg>(v: View<Msg>): Option<string> = match v {
+    Button(label, _, _) => Some("a button (\"{label}\")"),
+    ButtonWith(_, _) => Some("a button_with"),
+    Input(_, _) => Some("a text field"),
+    TextArea(_, _) => Some("a text area"),
+    Checkbox(label, _, _) => Some("a check box (\"{label}\")"),
+    Switch(_, _) => Some("a switch"),
+    Dropdown(_, _, _) => Some("a drop-down"),
+    Slider(_, _, _, _) => Some("a slider"),
+    Styled(x, _) => interactive(x),
+    Menu(x, _) => interactive(x),
+    Scroll(x, _) => interactive(x),
+    Clip(x, _) => interactive(x),
+    Lazy(_, _, _, Some(f)) => f.interactive,
+    Lazy(_, build, built, None) => interactive(match built {
+        Some(b) => b,
+        None => build(),
+    }),
+    Column(xs) => first_interactive(xs),
+    Row(xs) => first_interactive(xs),
+    Wrap(xs) => first_interactive(xs),
+    Keyed(pairs) => first_interactive(pairs.map(fun(pair) = pair.1)),
+    KeyedWrap(pairs) => first_interactive(pairs.map(fun(pair) = pair.1)),
+    Overlay(base, layers) => first_interactive([base] + layers),
+    Popover(trigger, _, content, _, _, _) => first_interactive([trigger, content]),
+    Fit(xs, more, _) => first_interactive(xs + [more]),
+    Framed(body, start, title, end) => first_interactive([body, title] + start + end),
+    _ => None,
+};
+
+fun first_interactive<Msg>(xs: View<Msg>[]): Option<string> {
+    for x of xs {
+        let found = interactive(x);
         if found.is_some() {
             return found;
         }

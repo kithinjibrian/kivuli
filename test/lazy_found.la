@@ -6,7 +6,7 @@ import std.time;
 import kivuli.core.diff { diff as patches };
 import kivuli.view.lazies { resolve };
 import kivuli.view.findings { Found };
-import kivuli.view.keys { duplicate };
+import kivuli.styles.gathering { duplicate };
 import kivuli.view.walk { check_content };
 import kivuli.styles.paint { painted, stylesheet, background_pictures };
 import kivuli {
@@ -112,7 +112,13 @@ fun an_unchanged_lazy_is_reused_with_what_it_found() {
     let second = step(beside(true, part()), Some(first));
     let third = step(beside(false, part()), Some(second));
     assert_eq(builds.get(), 1);
-    assert_same(lazy_at(third, 1), lazy_at(first, 1));
+    assert_same(lazy_at(third, 1), lazy_at(second, 1));
+    // Fresh when painted; once reused, its rules are in the stylesheet already (PRP-069).
+    let (built, once) = lazy_at(first, 1);
+    let (again, reused) = lazy_at(second, 1);
+    assert_same(again, built);
+    assert_eq(once.map(fun(f) = f.fresh), Some(true));
+    assert_eq(reused.map(fun(f) = f.fresh), Some(false));
 }
 
 @test
@@ -124,6 +130,7 @@ fun a_found_lazy_is_neither_painted_nor_walked_again() {
         pictures: [],
         shortcuts: [("<Control>s", "Ctrl+S")],
         interactive: Some("a slider"),
+        fresh: false,
     };
     let inside: View<Msg> = column([bold("a"), button("Save", Msg.Save).shortcut("Ctrl+N")]);
     let part: View<Msg> = View.Lazy(

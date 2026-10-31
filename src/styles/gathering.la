@@ -1,0 +1,233 @@
+/**
+ * What each message needs from the painted view, found in one pass of plain
+ * recursion (PRP-069): the CSS rules and background pictures the stylesheet
+ * doesn't have yet, and every enabled button's shortcut, for the clash check.
+ * It builds no arrays of nodes and copies no styles: walks that did cost about
+ * 20 µs a node, and their garbage marked the app's whole heap. A node whose
+ * classes are all known adds nothing, and a lazy reused with its key
+ * unchanged adds only its shortcuts. Not what's on screen, nor the diff. Pure.
+ *
+ * Depends on: views, looks, findings, pictures, keys, sheets, motion_rules, palettes
+ * Used by: paint, live
+ */
+
+import view.views { View };
+import view.looks { Style };
+import view.findings { Found };
+import view.pictures { Image };
+import view.keys { clash, parse };
+import styles.sheets { picture, rules };
+import styles.motion_rules { rule_text };
+import styles.palettes { palette_bar_rule, palette_rule };
+
+/** What one pass over a painted view found, and what the stylesheet then has. */
+struct Gathering {
+    /** The rules' keys and pictures' classes the stylesheet has, these included. */
+    known: Set<string>,
+    /** The nodes' classes whose rules the stylesheet has, these included. */
+    seen: Set<string>,
+    /** Skip a node whose classes are all `seen`: only for a painted view. */
+    trust: bool,
+    /** Count the rules and pictures of a lazy that isn't fresh too. */
+    every_lazy: bool,
+    /** The rules found that `known` didn't have: (key, the whole rule), in order. */
+    rules: (string, string)[],
+    /** The background pictures found that `known` didn't have (`sheets.picture`). */
+    pictures: (string, Image, string, string)[],
+    /** Every enabled button's shortcut, in order: (GTK's keys, as written). */
+    shortcuts: (string, string)[],
+}
+
+/**
+ * What a message needs from the painted view `v`, when the stylesheet has the
+ * rule keys and picture classes `known` and the node classes `seen`: the
+ * rules and pictures it lacks, and every enabled shortcut. A lazy reused with
+ * its key unchanged adds only its shortcuts.
+ */
+fun gathered<Msg>(v: View<Msg>, known: Set<string>, seen: Set<string>): Gathering = run(
+    v,
+    known,
+    seen,
+    true,
+    false,
+);
+
+/** Everything the painted view `v` needs, reused lazies' rules included: what `paint` keeps in a lazy's `Found`. */
+fun gathered_all<Msg>(v: View<Msg>): Gathering = run(v, #{}, #{}, true, true);
+
+/**
+ * Every rule a view's styles need, each once, the palette's first, whether
+ * `paint` filled in its classes or not: for tests, and `paint.stylesheet`.
+ */
+fun everything<Msg>(v: View<Msg>): Gathering = run(v, #{}, #{}, false, true);
+
+/**
+ * A shortcut two enabled buttons in `v` share, as the first of them wrote it,
+ * if any. Keys that don't parse are left to `parse`'s callers.
+ */
+fun duplicate<Msg>(v: View<Msg>): Option<string> = clash(run(v, #{}, #{}, true, false).shortcuts);
+
+fun run<Msg>(
+    v: View<Msg>,
+    known: Set<string>,
+    seen: Set<string>,
+    trust: bool,
+    every_lazy: bool,
+): Gathering {
+    let mut g = Gathering {
+        known: known,
+        seen: seen,
+        trust: trust,
+        every_lazy: every_lazy,
+        rules: [],
+        pictures: [],
+        shortcuts: [],
+    };
+    g.visit(v);
+    g
+}
+
+impl Gathering {
+    fun visit<Msg>(mut self, v: View<Msg>) {
+        match v {
+            Styled(inside, s) => {
+                self.node(inside, s);
+                self.inside(inside);
+            }
+            // What paint found in it stands for it: it isn't looked into.
+            Lazy(_, _, _, Some(f)) => self.found(f),
+            Lazy(_, build, built, None) => self.visit(match built {
+                Some(b) => b,
+                None => build(),
+            }),
+            _ => self.inside(v),
+        }
+    }
+
+    /** A styled node: its shortcut, then its rules if any of its classes is new. */
+    fun node<Msg>(mut self, inside: View<Msg>, s: Style) {
+        // A menu is inside its node's style: the button is under it.
+        let kind = match inside {
+            Menu(x, _) => x,
+            _ => inside,
+        };
+        match kind {
+            Button(_, Some(_), _) | ButtonWith(_, Some(_)) => if s.shortcut != "" {
+                match parse(s.shortcut) {
+                    Ok(gtk) => self.shortcuts.push((gtk, s.shortcut)),
+                    Err(_) => {}
+                }
+            },
+            _ => {}
+        }
+        // A class's rule never changes (`sheets`): once seen, its rules are in.
+        if self.trust && self.all_seen(s) {
+            return;
+        }
+        // Only the root has one, and its dark values need an `@media` block, so it comes whole.
+        match s.palette {
+            Some(p) => {
+                self.add(palette_rule(p));
+                self.add(palette_bar_rule(p));
+            }
+            None => {}
+        }
+        // A root with a header bar carries the bar's rules too.
+        for sheet of [s.sheet, s.bar] {
+            for (key, body) of rules(sheet) {
+                if !self.known.has(key) {
+                    self.add((key, rule_text(key, body)));
+                }
+            }
+        }
+        match picture(s.sheet) {
+            Some(p) => if self.known.insert(p.0) {
+                self.pictures.push(p);
+            },
+            None => {}
+        }
+        for c of s.classes {
+            self.seen.insert(c);
+        }
+        for c of s.bar_classes {
+            self.seen.insert(c);
+        }
+    }
+
+    fun all_seen(self, s: Style): bool {
+        for c of s.classes {
+            if !self.seen.has(c) {
+                return false;
+            }
+        }
+        for c of s.bar_classes {
+            if !self.seen.has(c) {
+                return false;
+            }
+        }
+        true
+    }
+
+    fun add(mut self, rule: (string, string)) {
+        if self.known.insert(rule.0) {
+            self.rules.push(rule);
+        }
+    }
+
+    /** A painted lazy: its shortcuts always; its rules and pictures only when they may be new. */
+    fun found(mut self, f: Found) {
+        for pair of f.shortcuts {
+            self.shortcuts.push(pair);
+        }
+        if !f.fresh && !self.every_lazy {
+            return;
+        }
+        for rule of f.rules {
+            self.add(rule);
+        }
+        for p of f.pictures {
+            if self.known.insert(p.0) {
+                self.pictures.push(p);
+            }
+        }
+    }
+
+    /** The children of `v`, as `walk` gives them. */
+    fun inside<Msg>(mut self, v: View<Msg>) {
+        match v {
+            Column(xs) | Row(xs) | Wrap(xs) => self.all(xs),
+            Keyed(pairs) | KeyedWrap(pairs) => {
+                for (_, x) of pairs {
+                    self.visit(x);
+                }
+            }
+            Overlay(base, layers) => {
+                self.visit(base);
+                self.all(layers);
+            }
+            Popover(trigger, _, content, _, _, _) => {
+                self.visit(trigger);
+                self.visit(content);
+            }
+            Scroll(x, _) | Clip(x, _) | ButtonWith(x, _) => self.visit(x),
+            Fit(xs, more, _) => {
+                self.all(xs);
+                self.visit(more);
+            }
+            Menu(x, _) => self.inside(x),
+            Framed(body, start, title, end) => {
+                self.visit(body);
+                self.visit(title);
+                self.all(start);
+                self.all(end);
+            }
+            _ => {}
+        }
+    }
+
+    fun all<Msg>(mut self, xs: View<Msg>[]) {
+        for x of xs {
+            self.visit(x);
+        }
+    }
+}

@@ -4,13 +4,13 @@
  * patch like any other modifier. Also where what an app got wrong about
  * styles and headers is found, before GTK. Pure.
  *
- * Depends on: views, walk, keys, findings, looks, sheets, pictures
+ * Depends on: views, walk, gathering, findings, looks, sheets, pictures
  * Used by: live
  */
 
 import view.views { View };
-import view.walk { check_content, interactive, nodes_painted };
-import view.keys { shortcuts };
+import view.walk { check_content, interactive };
+import styles.gathering { everything, gathered_all };
 import view.findings { Found };
 import view.looks { Style };
 import styles.sheets { picture, rules };
@@ -19,8 +19,7 @@ import styles.box_rules { needs_clamp };
 import styles.values { Width };
 import styles { Sheet };
 import view.pictures { Image };
-import styles.motion_rules { rule_text };
-import styles.palettes { palette_bar_rule, palette_class, palette_rule };
+import styles.palettes { palette_class };
 
 /**
  * `v` with every node's `classes` filled in from its style; or what's wrong:
@@ -88,13 +87,17 @@ fun paint<Msg>(v: View<Msg>): Result<View<Msg>, string> = match v {
     _ => Ok(v),
 };
 
-/** What each message's checks need from a painted subtree, read once. */
-fun found_in<Msg>(p: View<Msg>): Found = Found {
-    rules: stylesheet(p),
-    pictures: background_pictures(p),
-    shortcuts: shortcuts(p),
-    interactive: interactive(p),
-};
+/** What each message's checks need from a painted subtree, read once, in one pass. */
+fun found_in<Msg>(p: View<Msg>): Found {
+    let all = gathered_all(p);
+    Found {
+        rules: all.rules,
+        pictures: all.pictures,
+        shortcuts: all.shortcuts,
+        interactive: interactive(p),
+        fresh: true,
+    }
+}
 
 fun paint_keyed<Msg>(pairs: (string, View<Msg>)[]): Result<(string, View<Msg>)[], string> {
     let mut out: (string, View<Msg>)[] = [];
@@ -177,75 +180,16 @@ fun bar_classes(bar: Sheet): Result<string[], string> {
 /**
  * Every CSS rule a painted view's classes need, as (class, the whole rule),
  * each once: the palette's first, then in the order nodes first use them. A
- * painted lazy gives the rules it found.
+ * painted lazy gives the rules it found. For tests: each message gathers
+ * only what's new (`gathering`).
  */
-fun stylesheet<Msg>(v: View<Msg>): (string, string)[] {
-    let mut seen: Set<string> = #{};
-    let mut out: (string, string)[] = [];
-    let all = nodes_painted(v);
-    for (_, style) of all {
-        // Only the root has one (`paint` refuses it below), and its dark
-        // values need an `@media` block, so it comes whole.
-        match style.palette {
-            Some(p) => {
-                for rule of [palette_rule(p), palette_bar_rule(p)] {
-                    if seen.insert(rule.0) {
-                        out.push(rule);
-                    }
-                }
-            }
-            None => {}
-        }
-    }
-    for (node, style) of all {
-        match node {
-            Lazy(_, _, _, Some(found)) => {
-                for rule of found.rules {
-                    if seen.insert(rule.0) {
-                        out.push(rule);
-                    }
-                }
-            }
-            _ => {}
-        }
-        // A root with a header bar carries the bar's rules too.
-        for sheet of [style.sheet, style.bar] {
-            for (key, body) of rules(sheet) {
-                if seen.insert(key) {
-                    out.push((key, rule_text(key, body)));
-                }
-            }
-        }
-    }
-    out
-}
+fun stylesheet<Msg>(v: View<Msg>): (string, string)[] = everything(v).rules;
 
 /**
  * Every background picture a painted view uses, each once: its class, the
- * image, and the gradient and fill its rule needs (`sheets.picture`). Their
- * rules need the pictures' bytes, so `live` builds them. A painted lazy gives
- * the pictures it found.
+ * image, and the gradient and fill its rule needs (`sheets.picture`). A
+ * painted lazy gives the pictures it found. For tests, as `stylesheet`.
  */
-fun background_pictures<Msg>(v: View<Msg>): (string, Image, string, string)[] {
-    let mut seen: Set<string> = #{};
-    let mut out: (string, Image, string, string)[] = [];
-    for (node, style) of nodes_painted(v) {
-        match node {
-            Lazy(_, _, _, Some(found)) => {
-                for p of found.pictures {
-                    if seen.insert(p.0) {
-                        out.push(p);
-                    }
-                }
-            }
-            _ => {}
-        }
-        match picture(style.sheet) {
-            Some(p) => if seen.insert(p.0) {
-                out.push(p);
-            },
-            None => {}
-        }
-    }
-    out
-}
+fun background_pictures<Msg>(v: View<Msg>): (string, Image, string, string)[] = everything(
+    v,
+).pictures;
