@@ -1,8 +1,10 @@
 // Sub.window_active on a mounted app (PRP-060): a change of the window's
 // active state sends one message per listener, a repeat sends none, and a
-// dropped subscription sends nothing. A hidden test window never becomes
-// active, so the test calls `on_active` as GTK's `notify::is-active` would;
-// the notify itself is checked by eye (examples/browser.la). Needs a display.
+// dropped subscription sends nothing; the window's own popover opening and
+// closing sends nothing, as it isn't the window leaving the front (PRP-070).
+// The first test calls `on_active` as lugha-gtk's `lgtk_window_on_front`
+// would; switching windows is checked by eye (examples/browser.la). Needs a
+// display.
 import std.env;
 import gtk {
     GtkApplication,
@@ -12,9 +14,11 @@ import gtk {
     g_object_unref,
     gtk_application_new,
     gtk_application_window_new,
+    g_timeout_add_full,
+    gtk_window_present,
 };
 import kivuli.render.live { dispatch, mount, on_active };
-import kivuli { App, Cmd, Sub, View, text };
+import kivuli { App, Cmd, Sub, View, button, column, popover, text };
 
 fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
 
@@ -85,4 +89,85 @@ fun a_change_sends_once_per_listener_and_nothing_once_dropped() {
     g_application_run(application, 0, None);
     g_object_unref(application);
     assert_eq(heard.get(), ["First(true)", "Second(true)", "First(false)", "Second(false)"]);
+}
+
+enum Card {
+    Open(bool),
+    Front(bool),
+}
+
+struct Shown {
+    open: bool,
+    log: string[],
+}
+
+fun card_update(m: Shown, msg: Card): (Shown, Cmd<Card>) = match msg {
+    Open(o) => (Shown { open: o, ..m }, Cmd.none()),
+    Front(_) => {
+        let mut log = m.log;
+        log.push("{msg}");
+        (Shown { log: log, ..m }, Cmd.none())
+    }
+};
+
+fun card_view(m: Shown): View<Card> = column([
+    popover(button("⚙", Card.Open(true)), m.open, text("card"), Card.Open(false)),
+]);
+
+@test
+fun the_windows_own_popover_sends_nothing() {
+    if !has_display() {
+        skip("no display");
+    }
+    // What arrived after the window settled. Before PRP-070, GTK's
+    // is-active went false and back as the popover took the keyboard.
+    let after: Ref<string[]> = Ref.new([]);
+    let application = gtk_application_new("org.kivuli.test.front", 0);
+    connect_app(
+        application,
+        "activate",
+        fun(a: GtkApplication) {
+            let window = gtk_application_window_new(a);
+            let app = mount(a, window, App {
+                id: "org.kivuli.test",
+                init: (Shown { open: false, log: [] }, Cmd.none()),
+                update: card_update,
+                view: card_view,
+                subscriptions: fun(m: Shown): Sub<Card> = Sub.window_active(Card.Front),
+                on_open: None,
+            });
+            gtk_window_present(window);
+            let log_now = fun(): string[] {
+                let Some(s) = app.state.get() else {
+                    panic("a mounted app has a state");
+                };
+                s.model.log
+            };
+            g_timeout_add_full(0, 500, fun(): i32 {
+                let settled = log_now().len;
+                dispatch(app, Card.Open(true));
+                g_timeout_add_full(0, 300, fun(): i32 {
+                    dispatch(app, Card.Open(false));
+                    g_timeout_add_full(0, 300, fun(): i32 {
+                        let log = log_now();
+                        let mut later: string[] = [];
+                        let mut i = settled;
+                        while i < log.len {
+                            later.push(log[i]);
+                            i = i + 1;
+                        }
+                        after.set(later);
+                        g_application_quit(a);
+                        0
+                    });
+                    0
+                });
+                0
+            });
+        },
+        0,
+    );
+    g_application_run(application, 0, None);
+    g_object_unref(application);
+    assert_eq(after.get(), []);
 }

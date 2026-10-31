@@ -2,18 +2,17 @@
  * The app's window as the root of the view asks for it (split from `live`):
  * its title and size (`.window`), opening maximized (`.maximized`),
  * clicking away to clear keyboard focus (PRP-024), and hearing when it
- * becomes active (PRP-060), and its clipboard (PRP-064). GTK.
+ * comes to the front or leaves it (PRP-060, PRP-070), and its clipboard
+ * (PRP-064). GTK.
  *
  * Depends on: views, looks, gtk.raw
  * Used by: live
  */
 
 import gtk {
-    GParamSpec,
     GtkEventController,
     GtkWidget,
     connect_click,
-    connect_notify,
     gtk_gesture_click_new,
     gtk_gesture_single_set_button,
     gtk_root_get_focus,
@@ -24,7 +23,8 @@ import gtk {
     gtk_window_set_default_size,
     gtk_window_set_focus,
     gtk_window_set_title,
-    gtk_window_is_active,
+    lgtk_window_is_front,
+    lgtk_window_on_front,
     gdk_clipboard_set_text,
     gdk_display_get_clipboard,
     gtk_widget_get_display,
@@ -86,19 +86,17 @@ fun keeps_focus(picked: Option<GtkWidget>, focus: Option<GtkWidget>): bool = mat
 };
 
 /**
- * Calls `on_change(active)` whenever GTK says the window's `is-active` may
- * have changed (`Sub.window_active`, PRP-060). Connected once, at mount; the
- * caller drops repeats.
+ * Calls `on_change(front)` when the window comes to the front or leaves it
+ * (`Sub.window_active`, PRP-060). Connected once, at mount; the caller drops
+ * repeats.
  */
 fun watch_active(window: GtkWidget, on_change: fun(bool)) {
-    connect_notify(
-        window,
-        "notify::is-active",
-        fun(w: GtkWidget, spec: Option<GParamSpec>) {
-            on_change(gtk_window_is_active(w) != 0);
-        },
-        0,
-    );
+    // Not `notify::is-active`: that follows keyboard focus on the window's own
+    // surface, which its popovers take while open, so it flickers while the
+    // window stays in front (DECISION-047, PRP-070).
+    lgtk_window_on_front(window, fun(w: GtkWidget, front: i32) {
+        on_change(front != 0);
+    });
 }
 
 /** Puts `text` on the clipboard of the window's display (`Cmd.copy_text`, PRP-064). */
@@ -106,8 +104,8 @@ fun copy_text(window: GtkWidget, text: string) {
     gdk_clipboard_set_text(gdk_display_get_clipboard(gtk_widget_get_display(window)), text);
 }
 
-/** Whether the window is the active one now. */
-fun is_active(window: GtkWidget): bool = gtk_window_is_active(window) != 0;
+/** Whether the window is the one in front now (shown, and the desktop's front window). */
+fun is_active(window: GtkWidget): bool = lgtk_window_is_front(window) != 0;
 
 /** On the root, `.maximized()`: the window opens maximized. Read once, when it opens. */
 fun show_maximized<Msg>(window: GtkWidget, tree: View<Msg>) {

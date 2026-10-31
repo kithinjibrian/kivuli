@@ -158,7 +158,7 @@ fun mount<Model, Msg>(
 }
 
 /**
- * The window's active state is `now` (GTK's `notify::is-active`): on a real
+ * The window's front state is `now` (lugha-gtk's `lgtk_window_on_front`): on a real
  * change, each `Sub.window_active` listener sends its message, in order.
  */
 fun on_active<Model, Msg>(app: Running<Model, Msg>, now: bool) {

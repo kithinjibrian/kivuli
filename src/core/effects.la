@@ -177,9 +177,10 @@ impl Sub<Msg> {
     });
 
     /**
-     * Sends `f(true)` when the app's window becomes the active one (in front,
-     * with the desktop's keyboard focus) and `f(false)` when it stops being
-     * active, for as long as `subscriptions` keeps returning it. Changes only:
+     * Sends `f(true)` when the app's window comes to the front and `f(false)`
+     * when another window takes the front or the window is hidden, for as long
+     * as `subscriptions` keeps returning it. The window's own popovers, menus
+     * and drop-downs don't count: opening one sends nothing. Changes only:
      * nothing when it starts listening, never the same value twice in a row.
      *
      * Example:

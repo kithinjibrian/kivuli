@@ -8,6 +8,11 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.65.0] — 2026-10-31
+
+### Changed
+- `Sub.window_active` now reports the window coming to the front and leaving it, not its keyboard focus (PRP-070; DECISION-047; Rapidkoi's DECISION-067). It used to follow GTK's `is-active`, which follows keyboard focus on the window's own surface. An open popover takes that focus, so opening and closing one of the window's own popovers, menus or drop-downs sent `false`, `true`, `false`, `true`. It now follows the toplevel's front state (Wayland's *activated*, the window manager's focus on X11), which a popover leaves alone. Switching to another window and back still sends `false`, then `true`, and hiding the window sends `false`. Needs lugha-gtk 0.1.59.
+
 ## [0.64.1] — 2026-10-31
 
 ### Fixed
