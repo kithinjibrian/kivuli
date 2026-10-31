@@ -8,6 +8,16 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.66.0] — 2026-10-31
+
+### Added
+- The system's file chooser, as commands (PRP-071; DECISION-013; Rapidkoi's DECISION-089): `Cmd.open_file(title, filters, chosen)`, `Cmd.save_file(title, suggested, filters, chosen)` and `Cmd.choose_folder(title, chosen)`. The desktop's own chooser (the portal's where there is one) opens modal to the window once the update is shown, and sends `chosen(Some(path))`, the absolute local path, or `chosen(None)` for a cancel, a failure or a file with no local path, exactly once. Filters are `FileFilter { name, patterns }`. kivuli reports only the path: the program reads, writes and checks it. One at a time: a chooser asked for while one is open is answered `None` at once. New public types `Chooser`, `Choosing` and `FileFilter`; `Cmd` gains the `Choose` variant.
+- `kivuli.testing.chooser(cmd)` and `answer_chooser(cmd, chosen)`: the chooser a command would show, and the message an answer sends, with no dialog.
+- `examples/controls.la` has Open…, Save as… and Choose folder… buttons, and is now an `application`.
+
+### Changed
+- Needs lugha-gtk 0.1.60 (its file dialog bindings).
+
 ## [0.65.0] — 2026-10-31
 
 ### Changed

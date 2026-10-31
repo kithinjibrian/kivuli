@@ -1,0 +1,75 @@
+// The file chooser's GTK dialog (PRP-071): what a `Chooser` sets on it reads
+// back, for each mode, without showing it. Showing it, choosing and
+// cancelling are checked by eye (examples/controls.la). Skipped without a
+// display.
+import std.env;
+import gtk {
+    gtk_file_dialog_get_initial_name,
+    gtk_file_dialog_get_modal,
+    gtk_file_dialog_get_title,
+    gtk_file_dialog_unref,
+    gtk_file_filter_get_name,
+    lgtk_file_dialog_filter,
+    lgtk_file_dialog_filter_count,
+};
+import kivuli.render.choosing { file_dialog };
+import kivuli { Chooser, Choosing, FileFilter };
+
+fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
+
+@test
+fun an_open_dialog_has_its_title_and_filters_in_order() {
+    if !has_display() {
+        skip("no display");
+    }
+    let dialog = file_dialog(Chooser {
+        mode: Choosing.Open,
+        title: "Open a picture",
+        filters: [
+            FileFilter { name: "Pictures", patterns: ["*.png", "*.jpg"] },
+            FileFilter { name: "Text", patterns: ["*.txt"] },
+        ],
+        suggested: None,
+    });
+    assert_eq(gtk_file_dialog_get_title(dialog), Some("Open a picture"));
+    assert_eq(gtk_file_dialog_get_modal(dialog), 1);
+    assert_eq(gtk_file_dialog_get_initial_name(dialog), None);
+    assert_eq(lgtk_file_dialog_filter_count(dialog), 2);
+    assert_eq(gtk_file_filter_get_name(lgtk_file_dialog_filter(dialog, 0)), Some("Pictures"));
+    assert_eq(gtk_file_filter_get_name(lgtk_file_dialog_filter(dialog, 1)), Some("Text"));
+    gtk_file_dialog_unref(dialog);
+}
+
+@test
+fun a_save_dialog_starts_with_the_suggested_name() {
+    if !has_display() {
+        skip("no display");
+    }
+    let dialog = file_dialog(Chooser {
+        mode: Choosing.Save,
+        title: "Save the note",
+        filters: [],
+        suggested: Some("note.txt"),
+    });
+    assert_eq(gtk_file_dialog_get_title(dialog), Some("Save the note"));
+    assert_eq(gtk_file_dialog_get_initial_name(dialog), Some("note.txt"));
+    assert_eq(lgtk_file_dialog_filter_count(dialog), 0);
+    gtk_file_dialog_unref(dialog);
+}
+
+@test
+fun a_folder_dialog_has_no_filters_and_no_name() {
+    if !has_display() {
+        skip("no display");
+    }
+    let dialog = file_dialog(Chooser {
+        mode: Choosing.Folder,
+        title: "Import a folder",
+        filters: [],
+        suggested: None,
+    });
+    assert_eq(gtk_file_dialog_get_title(dialog), Some("Import a folder"));
+    assert_eq(gtk_file_dialog_get_initial_name(dialog), None);
+    assert_eq(lgtk_file_dialog_filter_count(dialog), 0);
+    gtk_file_dialog_unref(dialog);
+}

@@ -74,7 +74,7 @@ The app never touches a widget. A disabled button has no message to send; a text
 sudo apt install libgtk-4-dev pkgconf
 ```
 
-lugha-gtk (0.1.13 or later) is fetched by `lughac` itself, as a git package.
+lugha-gtk (0.1.60 or later) is fetched by `lughac` itself, as a git package.
 
 ## Using it
 
@@ -96,7 +96,7 @@ lughac run examples/backgrounds.la   # colours, tints, gradients, pictures in ea
 lughac run examples/borders.la    # each line style, one side at a time, corners, outlines
 lughac run examples/tasks.la      # a to-do list: keyed rows, a row menu
 lughac run examples/browser.la    # a header bar, tab menus, tiles, whole-row buttons, background loads
-lughac run examples/controls.la   # drop-down, sliders, check box, text area, icons, pictures
+lughac run examples/controls.la   # drop-down, sliders, check box, text area, icons, pictures, file choosers
 lughac run examples/split.la      # one component, two copies, through map
 ```
 
@@ -297,6 +297,9 @@ row([counter(m.left).map(Msg.Left), counter(m.right).map(Msg.Right)])
 | `Cmd.focus(name)` | Move keyboard focus to the node named `name` (`.name(name)`). |
 | `Cmd.scroll_to(name)` | Scroll the nearest `scroll`/`scroll_fit` around the node named `name` as little as it can to show it (nothing if it's in view); the focus stays where it is. |
 | `Cmd.copy_text(text)` | Put `text` on the clipboard, for pasting anywhere until something else is copied. |
+| `Cmd.open_file(title, filters, chosen)` | Show the system's file chooser (the desktop portal's where there is one), modal to the window, and send `chosen(Some(path))`, the file's absolute local path, or `chosen(None)` when the person cancels, it fails or the file has no local path: exactly once. `filters` are `FileFilter { name, patterns }` (globs such as `"*.png"`), the first shown first; `[]` shows every file. They only guide the person: the file may be of any type. kivuli only reports the path: reading the file, and checking the path, is the program's job. One chooser at a time: asked for while one is open, it's answered `None` at once. |
+| `Cmd.save_file(title, suggested, filters, chosen)` | The same, for a name to save under: it starts with `suggested` (`""` for none) and asks before replacing a file. Nothing is written. |
+| `Cmd.choose_folder(title, chosen)` | The same, for a folder: `chosen` gets its absolute path. |
 | `Cmd.task(work, done)` | Run `work` (a function taking nothing) in the background, on a green thread, and send `done(result)` when it returns: exactly one message. `update` stays fast and testable: it only describes the work. |
 | `Sub.none()`, `Sub.batch(subs)` | Nothing; several subscriptions. |
 | `Sub.every(ms, f)` | Send `f(now)` every `ms` milliseconds (`now` in milliseconds since 1970) while `subscriptions` keeps returning it. |
@@ -318,7 +321,7 @@ A task runs on a copy of what it captured, must not call kivuli or GTK, and can'
 `update` and `view` are pure, so app tests need no window. `kivuli.testing` works out what a user's action would send from a view alone:
 
 ```
-import kivuli.testing { Lookup, click, is_disabled, is_field_disabled, type_into, submit, toggle, choose, slide, texts };
+import kivuli.testing { Lookup, click, is_disabled, is_field_disabled, type_into, submit, toggle, choose, slide, texts, chooser, answer_chooser };
 
 @test
 fun adding_a_task() {
@@ -328,7 +331,7 @@ fun adding_a_task() {
 }
 ```
 
-`click` and `is_disabled` (by a button's label or tooltip; a `button_with` by its tooltip, `.name` or any text inside it), `press` (by shortcut), `tooltip`, `type_into` and `submit` (finding a text field or text area by its placeholder or `.name`), `toggle`, `choose(view, name, label)` and `slide(view, name, value)` (a drop-down or slider by its `.name`; `slide` clamps and rounds to the step as the slider would) and `texts` each return a `Lookup` error when what's asked for isn't there (`NotFound`), isn't unique (`Ambiguous`) or sends nothing (`Silent`: a disabled button or field, or Enter without `.on_submit`). `is_field_disabled(view, hint)` tells whether a text field or text area is disabled. `pick(view, owner, item)` is the message of a context menu's item, the menu found by its node: a button's label or tooltip, or a `.name` (`Silent` for a disabled item). `examples/todo.la` ends with its own tests: `lughac test examples/todo.la`.
+`click` and `is_disabled` (by a button's label or tooltip; a `button_with` by its tooltip, `.name` or any text inside it), `press` (by shortcut), `tooltip`, `type_into` and `submit` (finding a text field or text area by its placeholder or `.name`), `toggle`, `choose(view, name, label)` and `slide(view, name, value)` (a drop-down or slider by its `.name`; `slide` clamps and rounds to the step as the slider would) and `texts` each return a `Lookup` error when what's asked for isn't there (`NotFound`), isn't unique (`Ambiguous`) or sends nothing (`Silent`: a disabled button or field, or Enter without `.on_submit`). `is_field_disabled(view, hint)` tells whether a text field or text area is disabled. `pick(view, owner, item)` is the message of a context menu's item, the menu found by its node: a button's label or tooltip, or a `.name` (`Silent` for a disabled item). A file chooser is tested through the command `update` returns, with no dialog: `chooser(cmd)` is the `Chooser` it would show (`mode`, `title`, `filters`, `suggested`), found inside batches, and `answer_chooser(cmd, Some(path))` or `answer_chooser(cmd, None)` is the message it would send; both give `Err(NotFound)` for no chooser and `Err(Ambiguous)` for two. `examples/todo.la` ends with its own tests: `lughac test examples/todo.la`.
 
 ## Tests
 

@@ -4,7 +4,7 @@
  * test builds a view, "clicks" or "types" through these, and checks the
  * message that comes back. Re-exported by the entry: `kivuli.testing.click`.
  *
- * Depends on: views, menus, looks, walk, keys, widgets
+ * Depends on: views, menus, looks, walk, keys, widgets, effects
  * Used by: lib (re-exported), apps' tests
  */
 
@@ -14,6 +14,7 @@ import view.looks { Style };
 import view.walk { nodes };
 import view.keys;
 import view.widgets { snap };
+import core.effects { Cmd, Chooser, commands };
 
 /** Why a helper couldn't do what was asked, naming what it looked for. */
 public enum Lookup {
@@ -323,6 +324,46 @@ public fun texts<Msg>(v: View<Msg>): string[] {
 }
 
 /** The one match in `found`, or why there isn't one. */
+/**
+ * The file chooser `cmd` would show (`Cmd.open_file`, `save_file` or
+ * `choose_folder`), found inside batches: its mode, title, filters and
+ * suggested name, the words the person sees.
+ * @returns `Ok(chooser)`; `Err(NotFound)` when `cmd` shows none, `Err(Ambiguous)` for two or more
+ *
+ * Example:
+ *     assert_eq(kivuli.testing.chooser(update(m, Msg.Open).1).map(fun(c) = c.title), Ok("Open a picture"));
+ */
+public fun chooser<Msg>(cmd: Cmd<Msg>): Result<Chooser, Lookup> {
+    let (found, _) = only(choosers(cmd), "file chooser")?;
+    Ok(found)
+}
+
+/**
+ * The message the file chooser in `cmd` sends when the person chooses
+ * `chosen`: `Some(path)` for a file or folder, `None` for a cancel. No
+ * dialog is shown.
+ * @returns `Ok(msg)`; `Err(NotFound)` when `cmd` shows no chooser, `Err(Ambiguous)` for two or more
+ *
+ * Example:
+ *     assert_eq(kivuli.testing.answer_chooser(cmd, Some("/tmp/x.png")), Ok(Msg.Opened(Some("/tmp/x.png"))));
+ */
+public fun answer_chooser<Msg>(cmd: Cmd<Msg>, chosen: Option<string>): Result<Msg, Lookup> {
+    let (_, send) = only(choosers(cmd), "file chooser")?;
+    Ok(send(chosen))
+}
+
+/** Every file chooser in `cmd`, in order, with what it sends. */
+fun choosers<Msg>(cmd: Cmd<Msg>): (Chooser, fun(Option<string>): Msg)[] {
+    let mut found: (Chooser, fun(Option<string>): Msg)[] = [];
+    for c of commands(cmd) {
+        match c {
+            Choose(chooser, send) => found.push((chooser, send)),
+            _ => {}
+        }
+    }
+    found
+}
+
 fun only<T>(found: T[], what: string): Result<T, Lookup> = if found.len == 0 {
     Err(Lookup.NotFound(what))
 } else if found.len > 1 {

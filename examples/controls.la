@@ -1,11 +1,17 @@
 // Controls: a preview whose size follows a slider and whose weight follows a
 // drop-down, a check box, a text area, theme icons, one picture from a file
-// and from bytes in memory, and an SVG drawn at two sizes. Run it from the
+// and from bytes in memory, an SVG drawn at two sizes, and the system's file
+// chooser for opening, saving and a folder (only the chosen path is shown:
+// nothing is read or written). Run it from the
 // repository's root (`lughac run examples/controls.la`): the pictures' paths
 // are relative to where the app starts. examples/assets/sample.png and
 // sample.svg were made for kivuli, GPL-3.0-only like the rest of the
 // repository.
 import kivuli {
+    App,
+    Cmd,
+    FileFilter,
+    Sub,
     Align,
     Sizing,
     Width,
@@ -27,14 +33,14 @@ import kivuli {
     icon,
     image,
     row,
-    sandbox,
+    application,
     slider,
     spacer,
     text,
     text_area,
 };
 // For the tests at the bottom; `lughac build` leaves tests out.
-import kivuli.testing { choose, slide, texts, toggle, type_into };
+import kivuli.testing { answer_chooser, choose, chooser, click, slide, texts, toggle, type_into };
 
 /** At least `w` by `h` pixels; 0 leaves that way to the theme. */
 fun at_least(w: i64, h: i64): Sizing = Sizing {
@@ -60,6 +66,8 @@ struct Model {
     notes: string,
     /** The sample picture's bytes, read once at start (empty if it's missing: nothing shows). */
     sample: u8[],
+    /** What the last file chooser gave, as shown. */
+    chosen: string,
 }
 
 enum Msg {
@@ -68,6 +76,10 @@ enum Msg {
     Italic(bool),
     Notes(string),
     Reset,
+    Open,
+    SaveAs,
+    Folder,
+    Chose(Option<string>),
 }
 
 fun start(): Model = Model {
@@ -76,14 +88,43 @@ fun start(): Model = Model {
     italic: false,
     notes: "",
     sample: read_bytes("examples/assets/sample.png").unwrap_or([]),
+    chosen: "Nothing chosen yet",
 };
 
-fun update(m: Model, msg: Msg): Model = match msg {
+fun update(m: Model, msg: Msg): (Model, Cmd<Msg>) = match msg {
+    Open => (
+        m,
+        Cmd.open_file(
+            "Open a picture",
+            [
+                FileFilter { name: "Pictures", patterns: ["*.png", "*.jpg", "*.jpeg", "*.svg"] },
+                FileFilter { name: "Every file", patterns: ["*"] },
+            ],
+            Msg.Chose,
+        ),
+    ),
+    SaveAs => (
+        m,
+        Cmd.save_file(
+            "Save the notes",
+            "notes.txt",
+            [FileFilter { name: "Text", patterns: ["*.txt"] }],
+            Msg.Chose,
+        ),
+    ),
+    Folder => (m, Cmd.choose_folder("Choose a folder", Msg.Chose)),
+    // Only shown: a real app would check the path before reading or writing it.
+    Chose(path) => (Model { chosen: path.unwrap_or("Nothing chosen"), ..m }, Cmd.none()),
+    _ => (change(m, msg), Cmd.none()),
+};
+
+fun change(m: Model, msg: Msg): Model = match msg {
     Size(n) => Model { size: n, ..m },
     Weigh(w) => Model { weight: w, ..m },
     Italic(on) => Model { italic: on, ..m },
     Notes(s) => Model { notes: s, ..m },
     Reset => Model { size: 14, weight: Weight.Normal, italic: false, ..m },
+    _ => m,
 };
 
 fun dim(): Text = Text { color: Paint.Faded(0.55), ..Text.theme() };
@@ -131,13 +172,23 @@ fun view(m: Model): View<Msg> = column([
         image(Image.File("examples/assets/sample.svg")).size(32),
         image(Image.File("examples/assets/sample.svg")).size(96),
     ]).style([gap(12)]),
-]).style([pad(16), gap(10)]).window("Controls", 440, 560);
+    row([button("Open…", Msg.Open), button("Save as…", Msg.SaveAs), button("Choose folder…", Msg.Folder)])
+        .style([gap(8)]),
+    text(m.chosen).style([dim()]).wrap(),
+]).style([pad(16), gap(10)]).window("Controls", 440, 640);
 
-fun main(): i32 = sandbox("org.kivuli.controls", start(), update, view);
+fun main(): i32 = application(App {
+    id: "org.kivuli.controls",
+    init: (start(), Cmd.none()),
+    update: update,
+    view: view,
+    subscriptions: fun(m: Model): Sub<Msg> = Sub.none(),
+    on_open: None,
+});
 
 // Tests: what a user does, worked out from the view and fed back through `update`.
 
-fun did(m: Model, msg: Msg): Model = update(m, msg);
+fun did(m: Model, msg: Msg): Model = update(m, msg).0;
 
 /** The line under the controls: the one giving the size in points. */
 fun summary(m: Model): string = texts(view(m)).filter(fun(t) = t.contains(" pt"))[0];
@@ -164,4 +215,29 @@ fun notes_keep_what_was_typed() {
         type_into(view(start()), "notes", "line one\nline two").unwrap_or(Msg.Reset),
     );
     assert_eq(m.notes, "line one\nline two");
+}
+
+@test
+fun open_asks_for_a_picture_and_shows_what_was_chosen() {
+    assert_eq(click(view(start()), "Open…"), Ok(Msg.Open));
+    let cmd = update(start(), Msg.Open).1;
+    assert_eq(chooser(cmd).map(fun(c) = c.title), Ok("Open a picture"));
+    assert_eq(chooser(cmd).map(fun(c) = c.filters.len), Ok(2));
+    let chose = answer_chooser(cmd, Some("/tmp/fox.png")).unwrap_or(Msg.Reset);
+    assert_eq(texts(view(did(start(), chose))).filter(fun(t) = t == "/tmp/fox.png").len, 1);
+}
+
+@test
+fun save_as_suggests_a_name_and_a_cancel_shows_nothing_chosen() {
+    let cmd = update(start(), Msg.SaveAs).1;
+    assert_eq(chooser(cmd).map(fun(c) = c.suggested), Ok(Some("notes.txt")));
+    let cancelled = answer_chooser(cmd, None).unwrap_or(Msg.Reset);
+    assert_eq(texts(view(did(start(), cancelled))).filter(fun(t) = t == "Nothing chosen").len, 1);
+}
+
+@test
+fun choose_folder_asks_for_a_folder() {
+    assert_eq(click(view(start()), "Choose folder…"), Ok(Msg.Folder));
+    let cmd = update(start(), Msg.Folder).1;
+    assert_eq(chooser(cmd).map(fun(c) = c.title), Ok("Choose a folder"));
 }

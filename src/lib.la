@@ -84,7 +84,7 @@ public import view.widgets {
     image,
     header_bar,
 };
-public import core.effects { Cmd, Sub, App };
+public import core.effects { Cmd, Sub, App, Chooser, Choosing, FileFilter };
 public import testing;
 import render.launch;
 

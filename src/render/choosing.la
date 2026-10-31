@@ -1,0 +1,95 @@
+/**
+ * The system's file chooser for `Cmd.open_file`, `save_file` and
+ * `choose_folder` (PRP-071): a GtkFileDialog, modal to the app's window, the
+ * portal's chooser where there is one. Opened from the main loop once the
+ * update is shown, one at a time, and answered exactly once through
+ * lugha-gtk's `lgtk_file_dialog_choose`. GTK.
+ *
+ * Depends on: effects, gtk.raw
+ * Used by: live
+ */
+
+import gtk {
+    GtkFileDialog,
+    GtkWidget,
+    g_timeout_add_full,
+    gtk_file_dialog_new,
+    gtk_file_dialog_set_initial_name,
+    gtk_file_dialog_set_modal,
+    gtk_file_dialog_set_title,
+    gtk_file_dialog_unref,
+    gtk_file_filter_add_pattern,
+    gtk_file_filter_new,
+    gtk_file_filter_set_name,
+    gtk_file_filter_unref,
+    lgtk_file_dialog_add_filter,
+    lgtk_file_dialog_choose,
+};
+import core.effects { Chooser, Choosing };
+
+/**
+ * Shows `chooser` over `window` and calls `answer` once with what was
+ * chosen; `None` at once if one is already open (`busy`).
+ */
+fun choose_file(window: GtkWidget, busy: Ref<bool>, chooser: Chooser, answer: fun(Option<string>)) {
+    // From the main loop, never inside the update that asked; and after the
+    // window is presented, since `mount` runs `init`'s command before that.
+    g_timeout_add_full(0, 0, fun(): i32 {
+        one_at_a_time(busy, fun(done: fun(Option<string>)) = show(window, chooser, done), answer);
+        // G_SOURCE_REMOVE: once only.
+        0
+    });
+}
+
+/**
+ * Opens a chooser with `open` and passes its answer on to `answer`, unless
+ * one is already open: then `answer(None)` at once and nothing opens.
+ * `busy` is set while one is open.
+ */
+fun one_at_a_time(busy: Ref<bool>, open: fun(fun(Option<string>)), answer: fun(Option<string>)) {
+    if busy.get() {
+        // A second dialog over the first would confuse the person, and a
+        // queued one may be stale by the time the first closes (PRP-071).
+        answer(None);
+        return;
+    }
+    busy.set(true);
+    open(fun(path: Option<string>) {
+        busy.set(false);
+        answer(path);
+    });
+}
+
+/** Shows the dialog for `chooser`, modal to `window`; `done` gets its one answer. */
+fun show(window: GtkWidget, chooser: Chooser, done: fun(Option<string>)) {
+    let dialog = file_dialog(chooser);
+    lgtk_file_dialog_choose(dialog, Some(window), mode_of(chooser.mode), None, done);
+    // lgtk_file_dialog_choose holds the dialog until it answers.
+    gtk_file_dialog_unref(dialog);
+}
+
+/** The dialog `chooser` asks for: title, modal, initial name and filters; not shown. */
+fun file_dialog(chooser: Chooser): GtkFileDialog {
+    let dialog = gtk_file_dialog_new();
+    gtk_file_dialog_set_title(dialog, chooser.title);
+    gtk_file_dialog_set_modal(dialog, 1);
+    gtk_file_dialog_set_initial_name(dialog, chooser.suggested);
+    for f of chooser.filters {
+        let filter = gtk_file_filter_new();
+        gtk_file_filter_set_name(filter, Some(f.name));
+        for pattern of f.patterns {
+            gtk_file_filter_add_pattern(filter, pattern);
+        }
+        lgtk_file_dialog_add_filter(dialog, filter);
+        // The dialog's list keeps its own reference.
+        gtk_file_filter_unref(filter);
+    }
+    dialog
+}
+
+/** lgtk_file_dialog_choose's mode: 0 open, 1 save, 2 folder. */
+fun mode_of(mode: Choosing): i32 = match mode {
+    Open => 0,
+    Save => 1,
+    Folder => 2,
+};

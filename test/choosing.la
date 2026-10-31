@@ -1,0 +1,177 @@
+// The file chooser commands as data (PRP-071): what each one asks the dialog
+// for, the message each answer sends, and one chooser at a time (with a
+// stand-in for the dialog). No GTK.
+import kivuli.core.effects { commands };
+import kivuli { Chooser, Choosing, Cmd, FileFilter };
+import kivuli.testing { Lookup, answer_chooser, chooser };
+import kivuli.render.choosing { one_at_a_time };
+
+enum Msg {
+    Opened(Option<string>),
+}
+
+enum Outer {
+    Inner(Msg),
+}
+
+fun pictures(): FileFilter = FileFilter { name: "Pictures", patterns: ["*.png", "*.jpg"] };
+
+/** The one chooser in `c` and what it sends for `chosen`; panics on anything else. */
+fun only_chooser<M>(c: Cmd<M>, chosen: Option<string>): (Chooser, M) = match commands(c)[0] {
+    Choose(chooser, answer) => (chooser, answer(chosen)),
+    _ => panic("expected a chooser in {c}"),
+};
+
+@test
+fun open_file_asks_to_open_with_its_title_and_filters() {
+    let cmd: Cmd<Msg> = Cmd.open_file("Open a picture", [pictures()], Msg.Opened);
+    let (chooser, msg) = only_chooser(cmd, Some("/tmp/x.png"));
+    assert_eq(chooser, Chooser {
+        mode: Choosing.Open,
+        title: "Open a picture",
+        filters: [pictures()],
+        suggested: None,
+    });
+    assert_eq("{msg}", "{Msg.Opened(Some("/tmp/x.png"))}");
+}
+
+@test
+fun save_file_starts_with_the_suggested_name() {
+    let cmd: Cmd<Msg> = Cmd.save_file("Save the note", "note.txt", [], Msg.Opened);
+    let (chooser, _) = only_chooser(cmd, None);
+    assert_eq(chooser.mode, Choosing.Save);
+    assert_eq(chooser.suggested, Some("note.txt"));
+}
+
+@test
+fun save_file_with_no_suggested_name_suggests_none() {
+    let cmd: Cmd<Msg> = Cmd.save_file("Save the note", "", [], Msg.Opened);
+    assert_eq(only_chooser(cmd, None).0.suggested, None);
+}
+
+@test
+fun choose_folder_has_no_filters_and_no_name() {
+    let cmd: Cmd<Msg> = Cmd.choose_folder("Import a folder", Msg.Opened);
+    let (chooser, msg) = only_chooser(cmd, None);
+    assert_eq(chooser, Chooser {
+        mode: Choosing.Folder,
+        title: "Import a folder",
+        filters: [],
+        suggested: None,
+    });
+    assert_eq("{msg}", "{Msg.Opened(None)}");
+}
+
+@test
+fun a_chooser_keeps_its_place_in_a_batch_and_maps_its_answer() {
+    let cmd: Cmd<Msg> = Cmd.batch([Cmd.none(), Cmd.open_file("Open", [], Msg.Opened)]);
+    let mapped: Cmd<Outer> = cmd.map(Outer.Inner);
+    let (chooser, msg) = only_chooser(mapped, Some("/home/a/b.txt"));
+    assert_eq(chooser.title, "Open");
+    assert_eq("{msg}", "{Outer.Inner(Msg.Opened(Some("/home/a/b.txt")))}");
+}
+
+@test
+fun testing_finds_the_chooser_inside_a_batch() {
+    let cmd: Cmd<Msg> = Cmd.batch([
+        Cmd.focus("note"),
+        Cmd.batch([Cmd.open_file("Open", [pictures()], Msg.Opened)]),
+    ]);
+    assert_eq(
+        chooser(cmd),
+        Ok(Chooser { mode: Choosing.Open, title: "Open", filters: [pictures()], suggested: None }),
+    );
+}
+
+@test
+fun testing_finds_no_chooser_where_there_is_none() {
+    let cmd: Cmd<Msg> = Cmd.batch([Cmd.none(), Cmd.copy_text("x")]);
+    assert_eq(chooser(cmd), Err(Lookup.NotFound("file chooser")));
+    assert_eq(answer_chooser(cmd, None), Err(Lookup.NotFound("file chooser")));
+}
+
+@test
+fun testing_won_t_pick_between_two_choosers() {
+    let cmd: Cmd<Msg> = Cmd.batch([
+        Cmd.open_file("Open", [], Msg.Opened),
+        Cmd.choose_folder("Folder", Msg.Opened),
+    ]);
+    assert_eq(chooser(cmd), Err(Lookup.Ambiguous("file chooser", 2)));
+    assert_eq(answer_chooser(cmd, None), Err(Lookup.Ambiguous("file chooser", 2)));
+}
+
+@test
+fun testing_answers_a_chooser_with_a_path_or_none() {
+    let cmd: Cmd<Msg> = Cmd.batch([Cmd.none(), Cmd.save_file("Save", "a.txt", [], Msg.Opened)]);
+    assert_eq(answer_chooser(cmd, Some("/tmp/a.txt")), Ok(Msg.Opened(Some("/tmp/a.txt"))));
+    assert_eq(answer_chooser(cmd, None), Ok(Msg.Opened(None)));
+}
+
+/**
+ * A stand-in for the dialog: `open` keeps the function that answers it in
+ * `pending`, so a test answers it when it likes.
+ */
+fun stand_in(
+    opened: Ref<i64>,
+    pending: Ref<Option<fun(Option<string>)>>,
+): fun(fun(Option<string>)) = fun(answer: fun(Option<string>)) {
+    opened.update(fun(n) = n + 1);
+    pending.set(Some(answer));
+};
+
+/** An answer that's kept, for a test to read. */
+fun keeper(got: Ref<Option<string>[]>): fun(Option<string>) = fun(path: Option<string>) {
+    got.update(fun(xs) {
+        let mut ys = xs;
+        ys.push(path);
+        ys
+    });
+};
+
+@test
+fun a_chooser_opens_when_none_is_open_and_its_answer_passes_through() {
+    let busy = Ref.new(false);
+    let opened = Ref.new(0);
+    let pending: Ref<Option<fun(Option<string>)>> = Ref.new(None);
+    let got: Ref<Option<string>[]> = Ref.new([]);
+    one_at_a_time(busy, stand_in(opened, pending), keeper(got));
+    assert_eq(opened.get(), 1);
+    assert(busy.get());
+    let Some(answer) = pending.get() else {
+        panic("the stand-in should have been opened");
+    };
+    answer(Some("/tmp/x.png"));
+    assert_eq(got.get(), [Some("/tmp/x.png")]);
+    assert(!busy.get());
+}
+
+@test
+fun a_chooser_asked_for_while_one_is_open_is_answered_none_at_once() {
+    let busy = Ref.new(false);
+    let opened = Ref.new(0);
+    let pending: Ref<Option<fun(Option<string>)>> = Ref.new(None);
+    let first: Ref<Option<string>[]> = Ref.new([]);
+    let second: Ref<Option<string>[]> = Ref.new([]);
+    one_at_a_time(busy, stand_in(opened, pending), keeper(first));
+    one_at_a_time(busy, stand_in(opened, pending), keeper(second));
+    assert_eq(opened.get(), 1);
+    let none: Option<string>[] = [None];
+    assert_eq(second.get(), none);
+    let empty: Option<string>[] = [];
+    assert_eq(first.get(), empty);
+}
+
+@test
+fun once_the_open_chooser_answers_another_can_open() {
+    let busy = Ref.new(false);
+    let opened = Ref.new(0);
+    let pending: Ref<Option<fun(Option<string>)>> = Ref.new(None);
+    let got: Ref<Option<string>[]> = Ref.new([]);
+    one_at_a_time(busy, stand_in(opened, pending), keeper(got));
+    let Some(answer) = pending.get() else {
+        panic("the stand-in should have been opened");
+    };
+    answer(None);
+    one_at_a_time(busy, stand_in(opened, pending), keeper(got));
+    assert_eq(opened.get(), 2);
+}

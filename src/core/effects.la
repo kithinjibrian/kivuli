@@ -13,7 +13,8 @@ import view.views { View };
  * Something for kivuli to do after an update: wait and send a message, run
  * work in the background, quit, or several of those. Build one with
  * `Cmd.none()`, `Cmd.after(ms, msg)`, `Cmd.task(work, done)`, `Cmd.focus(name)`,
- * `Cmd.scroll_to(name)`, `Cmd.copy_text(text)`, `Cmd.quit()` or `Cmd.batch(cmds)`.
+ * `Cmd.scroll_to(name)`, `Cmd.copy_text(text)`, `Cmd.open_file(…)`,
+ * `Cmd.save_file(…)`, `Cmd.choose_folder(…)`, `Cmd.quit()` or `Cmd.batch(cmds)`.
  */
 public enum Cmd<Msg> {
     Nothing,
@@ -29,6 +30,36 @@ public enum Cmd<Msg> {
     Copy(string),
     /** Run this on a green thread; send what it returns (its work then `done`). */
     Task(fun(): Msg),
+    /** Show the system's file chooser; send what it's given the chosen path, or `None`. */
+    Choose(Chooser, fun(Option<string>): Msg),
+}
+
+/** What a file chooser is for: a file to open, a name to save under, or a folder. */
+public enum Choosing {
+    Open,
+    Save,
+    Folder,
+}
+
+/**
+ * A named set of glob patterns a file chooser offers, such as
+ * `FileFilter { name: "Pictures", patterns: ["*.png", "*.jpg"] }`. It only
+ * guides the person: the file chosen may be of any type.
+ */
+public struct FileFilter {
+    public name: string,
+    public patterns: string[],
+}
+
+/** What a file chooser asks: what `kivuli.testing.chooser` gives a test to read. */
+public struct Chooser {
+    public mode: Choosing,
+    /** The chooser's title. */
+    public title: string,
+    /** Offered in order, the first shown first; none means every file. */
+    public filters: FileFilter[],
+    /** Save: the name the chooser starts with; `None` otherwise. */
+    public suggested: Option<string>,
 }
 
 impl Cmd<Msg> {
@@ -102,6 +133,68 @@ impl Cmd<Msg> {
     public fun copy_text(text: string): Cmd<Msg> = Cmd.Copy(text);
 
     /**
+     * Shows the system's file chooser for opening a file, modal to the window,
+     * once the update is shown, and sends `chosen` exactly once: `Some` of the
+     * file's absolute local path, or `None` when the person cancels, the
+     * chooser fails or the file has no local path. Only the path: reading the
+     * file, and checking it, is the program's job. One chooser at a time:
+     * asked for while one is open, it's answered `None` at once. `filters`
+     * guide the person, the first shown first; `[]` shows every file.
+     *
+     * Example:
+     *     Open => (m, Cmd.open_file(
+     *         "Open a picture",
+     *         [FileFilter { name: "Pictures", patterns: ["*.png", "*.jpg"] }],
+     *         Msg.Opened,
+     *     ))
+     */
+    public fun open_file(
+        title: string,
+        filters: FileFilter[],
+        chosen: fun(Option<string>): Msg,
+    ): Cmd<Msg> = Cmd.Choose(
+        Chooser { mode: Choosing.Open, title: title, filters: filters, suggested: None },
+        chosen,
+    );
+
+    /**
+     * As `open_file`, for a name to save under: the chooser starts with
+     * `suggested` (`""` for none) and asks before replacing a file. Nothing is
+     * written: the program saves to the path it's sent.
+     *
+     * Example:
+     *     SaveAs => (m, Cmd.save_file("Save the note", "note.txt", [], Msg.SaveTo))
+     */
+    public fun save_file(
+        title: string,
+        suggested: string,
+        filters: FileFilter[],
+        chosen: fun(Option<string>): Msg,
+    ): Cmd<Msg> = Cmd.Choose(
+        Chooser {
+            mode: Choosing.Save,
+            title: title,
+            filters: filters,
+            suggested: if suggested == "" { None } else { Some(suggested) },
+        },
+        chosen,
+    );
+
+    /**
+     * As `open_file`, for a folder: `chosen` gets the folder's absolute path.
+     *
+     * Example:
+     *     Import => (m, Cmd.choose_folder("Import a folder", Msg.Imported))
+     */
+    public fun choose_folder(
+        title: string,
+        chosen: fun(Option<string>): Msg,
+    ): Cmd<Msg> = Cmd.Choose(
+        Chooser { mode: Choosing.Folder, title: title, filters: [], suggested: None },
+        chosen,
+    );
+
+    /**
      * The same command, sending `f(msg)` wherever it would send `msg`: for a
      * component's commands inside a bigger app.
      *
@@ -118,6 +211,10 @@ impl Cmd<Msg> {
         ScrollTo(name) => Cmd.ScrollTo(name),
         Copy(text) => Cmd.Copy(text),
         Task(job) => Cmd.Task(fun(): B = f(job())),
+        Choose(chooser, chosen) => Cmd.Choose(
+            chooser,
+            fun(path: Option<string>): B = f(chosen(path)),
+        ),
     };
 }
 

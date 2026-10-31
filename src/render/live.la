@@ -5,7 +5,7 @@
  * responsible for deciding what to show (the app's `view`) or what changed
  * (`diff`).
  *
- * Depends on: diff, lazies, views, effects, build, patch, paths, keys, walk, live_tree, paint, sheets, palettes, schemes, windows, gtk.raw
+ * Depends on: diff, lazies, views, effects, build, patch, paths, keys, walk, live_tree, paint, sheets, palettes, schemes, windows, choosing, gtk.raw
  * Used by: lib
  */
 
@@ -43,6 +43,7 @@ import styles.paint { painted };
 import styles.gathering { Gathering, gathered };
 import styles.palettes { default_tokens };
 import render.schemes { scheme_of, show_scheme };
+import render.choosing { choose_file };
 import render.windows {
     click_away,
     copy_text,
@@ -93,6 +94,8 @@ struct Running<Model, Msg> {
     // The current `Sub.window_active`s, and the active state they last heard.
     listening: Ref<(fun(bool): Msg)[]>,
     active: Ref<bool>,
+    // Whether a file chooser is open: one at a time (PRP-071).
+    choosing: Ref<bool>,
 }
 
 /**
@@ -136,6 +139,7 @@ fun mount<Model, Msg>(
         blur: click_away(window),
         listening: Ref.new(no_listeners),
         active: Ref.new(is_active(window)),
+        choosing: Ref.new(false),
     };
     watch_active(window, fun(now: bool) = on_active(app, now));
     let (model, cmd) = program.init;
@@ -321,6 +325,15 @@ fun perform<Model, Msg>(app: Running<Model, Msg>, cmd: Cmd<Msg>) {
             Focus(name) => focus_named(app, name),
             ScrollTo(name) => scroll_named(app, name),
             Copy(text) => copy_text(app.window, text),
+            Choose(chooser, chosen) => {
+                let send = sender(app);
+                choose_file(
+                    app.window,
+                    app.choosing,
+                    chooser,
+                    fun(path: Option<string>) = send(chosen(path)),
+                );
+            }
             Task(job) => {
                 // A green thread does the work; its one message waits on its own channel.
                 let result: Chan<Msg> = Chan.buffered(1);

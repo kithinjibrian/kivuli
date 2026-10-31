@@ -328,16 +328,6 @@ fun main() {
 
 ---
 
-### DECISION-013 — A file dialog
-
-**Status:** deferred
-**Raised:** 2026-10-17 — Session 6 (rapidkoi DECISION-020, item 4)
-**Revisit when:** after PRP-007; Rapidkoi's "Open a file…" uses a path field meanwhile.
-
-**Question:** How does an app ask the user for a file? Likely a command (`GtkFileDialog` is asynchronous), which overlaps DECISION-007 (non-blocking I/O).
-
----
-
 ### DECISION-015 — Context menus on right-click
 
 **Status:** resolved
@@ -399,6 +389,24 @@ fun main() {
 ---
 
 ## RESOLVED
+
+### DECISION-013 — A file dialog
+
+**Status:** resolved
+**Resolved:** 2026-10-31 (PRP-071, kivuli 0.66.0, on lugha-gtk 0.1.60)
+**Raised:** 2026-10-17 — Session 6 (rapidkoi DECISION-020, item 4); needed now by Rapidkoi's DECISION-089 (`docs/specs/files.md`, M1), 2026-10-31
+**Proposal:** PRP-071 (`PRPs/prp-071-file-chooser.md`)
+
+**Question:** How does an app ask the person for a file to open, a name to save under, or a folder?
+
+**Outcome:** a command, answered with a message: `Cmd.open_file`, `Cmd.save_file`, `Cmd.choose_folder`, each sending `chosen(Some(path))` or `chosen(None)` exactly once (PRP-071). GTK 4.10's `GtkFileDialog` (`gtk/gtkfiledialog.h`, GTK 4.22.4 here) is asynchronous and goes through xdg-desktop-portal where there is one. It doesn't need DECISION-007 (non-blocking I/O): kivuli reports a path, the program reads the file.
+
+**Was blocked on lugha-gtk (0.1.59 bound none of it; checked `grep -ri file_dialog`, `_finish`, `GAsync` in `../lugha-gtk`); added in 0.1.60 (its PRP-001, `src/c/choosing.c`):**
+- `GtkFileDialog` and `GtkFileFilter` handles; `gtk_file_dialog_new`, `set_title`/`get_title`, `set_initial_name`/`get_initial_name`, `set_modal`; `gtk_file_filter_new`, `set_name`, `add_pattern`; an unref for the dialog.
+- Filters as a `GListModel` of `GtkFileFilter` (`gtk_file_dialog_set_filters`) need `GTK_TYPE_FILE_FILTER` and a `GListStore`, which Lugha can't name: a C helper adding one filter to a dialog, and reading a dialog's filters back (count, name) for tests.
+- `gtk_file_dialog_open` / `save` / `select_folder` take a `GAsyncReadyCallback` with no destroy-notify, and their `_finish` give a `GFile` or a `GError`: a C helper (like `src/c/opening.c`) that starts one by mode, and in its callback calls the matching `_finish`, keeps `g_file_get_path` (NULL on an error, cancel or a non-local file), calls a Lugha handler exactly once, then releases its data.
+
+---
 
 ### DECISION-047 — `Sub.window_active` fires when the window's own popover opens
 
