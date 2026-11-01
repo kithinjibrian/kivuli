@@ -32,6 +32,7 @@ public import styles.values {
     Decoration,
     Transform,
     Gradient,
+    Ellipse,
     Stop,
     Fill,
     Side,

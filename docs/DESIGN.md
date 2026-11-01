@@ -27,7 +27,7 @@ A style is a list of typed values (`Font`, `Text`, `Background`, `Border`, `Outl
 
 | `Background.color` `Color(c)` / `Faded(x)` | `kv-bg-{rrggbbaa}` / `kv-bgfade-{x·1000}` | `background-color: #…` / `alpha(currentColor, x)` |
 | a colour alone | `kv-bgi-none` | `background-image: none`: a themed widget's own image (a button's) would cover the colour |
-| `Background.gradient` (no image) | `kv-bgi-g{css in hex}` | `background-image: linear-gradient({angle}deg, …)` / `radial-gradient(circle, …)`, stops as `colour at%` |
+| `Background.gradient` (no image) | `kv-bgi-g{css in hex}` | `background-image: linear-gradient({angle}deg, …)` / `radial-gradient(circle, …)` / `radial-gradient(ellipse {across}% {down}% at {x}% {y}%, …)` (one decimal, signed), stops as `colour at%` |
 | `Background.image` (with the gradient and fill) | `kv-bgp-{identity, gradient, fill in hex}` | `background-image: url("data:image/png;base64,…") \| -gtk-icontheme("name"), gradient; background-size; background-position: center; background-repeat` |
 
 | `Border` side (after `all` is folded in) | `kv-bw-{side}-{n}`, `kv-bs-{side}-{line}`, `kv-bc-{side}-{rrggbbaa}` / `kv-bcfade-{side}-{x·1000}` | `border-{side}-width`, `-style`, `-color`; a width with the line left `Theme` is `solid` |

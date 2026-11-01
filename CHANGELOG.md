@@ -8,6 +8,11 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.67.0] — 2026-11-01
+
+### Added
+- Elliptical gradients (PRP-072; Rapidkoi's new tab): `Gradient.Ellipse(Ellipse { x, y, across, down }, stops)` and `Background.ellipse(e, stops)`, an ellipse sized and placed as fractions of the node (`f32`s: its centre from the top-left, its radii against the node's width and height), drawn as `radial-gradient(ellipse … at …)`. A colour can wash in from a corner and fade before the far edges. Radii must be positive and every number finite; a centre beyond the node is allowed. Physical, as linear gradients are. `Gradient.Radial` is unchanged. A swatch in `examples/backgrounds.la`.
+
 ## [0.66.0] — 2026-10-31
 
 ### Added

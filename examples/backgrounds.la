@@ -1,5 +1,5 @@
 // A specimen of backgrounds: colours, a tint that follows light and dark,
-// linear and radial gradients, a picture in each fill, a theme icon tiled,
+// linear, radial and elliptical gradients, a picture in each fill, a theme icon tiled,
 // and all three layers on one node, each labelled with the value it shows.
 // Run it from the repository's root (`lughac run examples/backgrounds.la`):
 // the picture's path is relative to where the app starts.
@@ -11,6 +11,7 @@ import kivuli {
     Spacing,
     Background,
     Gradient,
+    Ellipse,
     Stop,
     Fill,
     Image,
@@ -101,6 +102,15 @@ fun view(m: ()): View<()> = scroll(
                 gradient: Gradient.Radial([
                     Stop { color: Paint.Faded(0.3), at: 0.0 },
                     Stop { color: Paint.Faded(0.0), at: 1.0 },
+                ]),
+                ..Background.theme(),
+            }),
+            swatch("Ellipse from the top-left", Background {
+                color: Paint.Color(hex("#1b1b1b")),
+                gradient: Gradient.Ellipse(Ellipse { x: 0.0, y: 0.0, across: 1.1, down: 1.5 }, [
+                    Stop { color: Paint.Color(hex("#14b8a680")), at: 0.0 },
+                    Stop { color: Paint.Color(hex("#14b8a61f")), at: 0.6 },
+                    Stop { color: Paint.Color(hex("#14b8a600")), at: 0.9 },
                 ]),
                 ..Background.theme(),
             }),

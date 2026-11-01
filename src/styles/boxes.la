@@ -10,7 +10,7 @@
 import styles { Sheet };
 import styles.theming { Colorish, Paint };
 import view.pictures { Image };
-import styles.values { Gradient, Stop, Fill, Width, Line, Radius, Side, Edges };
+import styles.values { Gradient, Ellipse, Stop, Fill, Width, Line, Radius, Side, Edges };
 
 /**
  * What's behind a node's content: an image over a gradient over a colour,
@@ -59,6 +59,18 @@ impl Background {
     /** A gradient from the centre outwards. */
     public fun radial(stops: Stop[]): Background = Background {
         gradient: Gradient.Radial(stops),
+        ..Background.theme(),
+    };
+
+    /**
+     * A gradient from an ellipse's centre out to its edge, the ellipse sized
+     * and placed as fractions of the node.
+     *
+     * Example:
+     *     Background.ellipse(Ellipse { x: 0.0, y: 0.0, across: 1.1, down: 1.5 }, stops)
+     */
+    public fun ellipse(e: Ellipse, stops: Stop[]): Background = Background {
+        gradient: Gradient.Ellipse(e, stops),
         ..Background.theme(),
     };
 

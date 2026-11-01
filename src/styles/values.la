@@ -99,6 +99,32 @@ public enum Gradient {
     Linear(i64, Stop[]),
     /** A circle from the node's centre out, through its stops. */
     Radial(Stop[]),
+    /** An ellipse from its centre (a stop at 0.0) out to its edge (1.0), through its stops. */
+    Ellipse(Ellipse, Stop[]),
+}
+
+/**
+ * An elliptical gradient's shape and place, as fractions of the node.
+ *
+ * `f32`, not `f64` as a stop's place is: every styled node carries its
+ * gradient inline, and four `f64`s made each one 24 bytes larger, enough to
+ * slow a message with a large view (PRP-072). Seven digits are plenty for a shape.
+ *
+ * Physical, as a linear gradient's angle is: `x` runs from the left in every
+ * language. A centre outside 0 to 1 sits beyond the node's edge.
+ *
+ * Example:
+ *     Ellipse { x: 0.0, y: 0.0, across: 1.1, down: 1.5 }   // from the top-left corner
+ */
+public struct Ellipse {
+    /** Its centre across: 0.0 the left edge, 1.0 the right. */
+    public x: f32,
+    /** Its centre down: 0.0 the top edge, 1.0 the bottom. */
+    public y: f32,
+    /** Its radius across, against the node's width: 1.0 is the whole width. Positive. */
+    public across: f32,
+    /** Its radius down, against the node's height: 1.0 is the whole height. Positive. */
+    public down: f32,
 }
 
 /** One colour of a gradient, `at` its place along it: 0.0 the start, 1.0 the end. */

@@ -1,0 +1,76 @@
+// An elliptical gradient (PRP-072) on a real GTK widget: the node carries the
+// ellipse's class, and the app's stylesheet holds its rule as written. Needs a
+// display, so it is skipped without one. (How it looks: examples/backgrounds.la.)
+import std.env;
+import gtk {
+    GtkApplication,
+    connect_app,
+    g_application_quit,
+    g_application_run,
+    g_object_unref,
+    gtk_application_new,
+    gtk_application_window_new,
+    gtk_widget_has_css_class,
+};
+import kivuli.render.live { mount, live_of };
+import kivuli.core.effects { sandbox_app };
+import kivuli.core.live_tree { Live, widget };
+import kivuli { View, Background, Ellipse, Sizing, Stop, Paint, Width, column, hex };
+
+fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
+
+fun view_wash(m: bool): View<bool> = column([
+    column([]).style([
+        Sizing { min_height: Width.Px(40), ..Sizing.theme() },
+        Background.color(hex("#1b1b1b")),
+        Background.ellipse(Ellipse { x: 0.0, y: 0.0, across: 1.1, down: 1.5 }, [
+            Stop { color: Paint.Color(hex("#14b8a680")), at: 0.0 },
+            Stop { color: Paint.Color(hex("#14b8a600")), at: 0.9 },
+        ]),
+    ]),
+]);
+
+@test
+fun an_ellipse_lands_as_a_class_with_its_rule() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen: Ref<string[]> = Ref.new([]);
+    let application = gtk_application_new("org.kivuli.test.ellipse", 0);
+    connect_app(
+        application,
+        "activate",
+        fun(a: GtkApplication) {
+            let window = gtk_application_window_new(a);
+            let app = mount(
+                a,
+                window,
+                sandbox_app("org.kivuli.test", false, fun(m: bool, msg: bool): bool = m, view_wash),
+            );
+            let wash = match live_of(app) {
+                Box(_, _, ks) => widget(ks[0]),
+                _ => panic("expected a column"),
+            };
+            let mut found: string[] = [];
+            for r of app.styles.css.get() {
+                // A rule is ".class { … }": its class is what comes before the first space.
+                let class = r.split(" ")[0].slice(1, r.split(" ")[0].len);
+                if class.starts_with("kv-bgi-g") && gtk_widget_has_css_class(wash, class) == 1 {
+                    found.push(r);
+                }
+            }
+            seen.set(found);
+            g_application_quit(a);
+        },
+        0,
+    );
+    g_application_run(application, 0, None);
+    g_object_unref(application);
+    let rules = seen.get();
+    assert_eq(rules.len, 1);
+    assert(
+        rules[0].contains(
+            "background-image: radial-gradient(ellipse 110.0% 150.0% at 0.0% 0.0%, #14b8a680 0.0%, #14b8a600 90.0%);",
+        ),
+    );
+}

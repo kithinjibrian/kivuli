@@ -11,7 +11,18 @@
 import styles { Sheet, State, Part };
 import styles.overflow { Scrolling };
 import styles.accessible { Role };
-import styles.values { TextAlign, Family, Size, LineHeight, Gradient, Stop, Width, Radius, Edges };
+import styles.values {
+    TextAlign,
+    Family,
+    Size,
+    LineHeight,
+    Gradient,
+    Ellipse,
+    Stop,
+    Width,
+    Radius,
+    Edges,
+};
 import view.pictures { Image, is_svg };
 import styles.motion_rules { check_motion };
 import styles.theming { Paint, token_title };
@@ -87,6 +98,10 @@ fun check(s: Sheet): Result<(), string> {
     match s.background.gradient {
         Linear(_, stops) => check_stops(stops)?,
         Radial(stops) => check_stops(stops)?,
+        Ellipse(e, stops) => {
+            check_ellipse(e)?;
+            check_stops(stops)?;
+        }
         Theme => {}
     }
     let b = sides(s.border);
@@ -239,6 +254,27 @@ fun check_paint(p: Paint): Result<(), string> = match p {
     },
     _ => Ok(()),
 };
+
+/** An ellipse's numbers are finite and its radii positive; its centre may sit beyond the node. */
+fun check_ellipse(e: Ellipse): Result<(), string> {
+    for (name, n) of [
+        ("x", e.x as f64),
+        ("y", e.y as f64),
+        ("across", e.across as f64),
+        ("down", e.down as f64),
+    ] {
+        // n - n is 0 for every finite n, and NaN for NaN and both infinities.
+        if !(n - n == 0.0) {
+            return Err("Ellipse {name} {n}: a number must be finite");
+        }
+    }
+    for (name, n) of [("across", e.across as f64), ("down", e.down as f64)] {
+        if n <= 0.0 {
+            return Err("Ellipse {name} {n}: a radius must be positive");
+        }
+    }
+    Ok(())
+}
 
 fun check_stops(stops: Stop[]): Result<(), string> {
     if stops.len < 2 {

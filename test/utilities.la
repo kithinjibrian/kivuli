@@ -25,6 +25,7 @@ import kivuli {
     Transform,
     Paint,
     Gradient,
+    Ellipse,
     Stop,
     Fill,
     Image,
@@ -127,6 +128,11 @@ fun the_background_utilities_are_their_full_values() {
     });
     assert_eq(Background.radial(stops), Background {
         gradient: Gradient.Radial(stops),
+        ..Background.theme(),
+    });
+    let corner = Ellipse { x: 0.0, y: 0.0, across: 1.1, down: 1.5 };
+    assert_eq(Background.ellipse(corner, stops), Background {
+        gradient: Gradient.Ellipse(corner, stops),
         ..Background.theme(),
     });
     assert_eq(Background.image(picture), Background {
