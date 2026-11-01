@@ -324,7 +324,20 @@ fun gradient_css(g: Gradient): string = match g {
     Theme => "",
     Linear(angle, stops) => "linear-gradient({angle}deg, {stops_css(stops)})",
     Radial(stops) => "radial-gradient(circle, {stops_css(stops)})",
+    Ellipse(e, stops) => "radial-gradient(ellipse {percent(e.across as f64)} {percent(e.down as f64)} at {percent(e.x as f64)} {percent(e.y as f64)}, {stops_css(stops)})",
 };
+
+/**
+ * A fraction as a CSS percentage with one decimal: -0.25 is "-25.0%".
+ * `permille` truncates towards zero and `%` keeps the sign, so negatives get
+ * their own rounding: half away from zero, the sign written once.
+ */
+fun percent(x: f64): string {
+    let negative = x < 0.0;
+    let p = ((if negative { -x } else { x }) * 1000.0 + 0.5) as i64;
+    let sign = if negative && p > 0 { "-" } else { "" };
+    "{sign}{p / 10}.{p % 10}%"
+}
 
 fun stops_css(stops: Stop[]): string = stops.map(fun(stop) {
     let p = permille(stop.at);

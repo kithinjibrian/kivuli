@@ -1,0 +1,130 @@
+// An elliptical gradient (PRP-072): its CSS, its class, its checks, and how
+// it merges with the other gradients. No GTK.
+import kivuli.styles { Sheet };
+import kivuli.styles.sheets { picture, rules };
+import kivuli.styles.checks { check };
+import kivuli { View, Background, Ellipse, Gradient, Stop, Fill, Image, Paint, column, hex };
+
+fun bg(b: Background): Sheet = Sheet { background: b, ..Sheet.theme() };
+
+fun wash(): Stop[] = [
+    Stop { color: Paint.Color(hex("#14b8a680")), at: 0.0 },
+    Stop { color: Paint.Color(hex("#14b8a61f")), at: 0.6 },
+    Stop { color: Paint.Color(hex("#14b8a600")), at: 0.9 },
+];
+
+fun at(x: f32, y: f32, across: f32, down: f32): Background = Background.ellipse(
+    Ellipse { x: x, y: y, across: across, down: down },
+    wash(),
+);
+
+@test
+fun an_ellipse_is_a_radial_gradient_with_its_shape_and_centre() {
+    let r = rules(bg(at(0.0, 0.0, 1.1, 1.5)));
+    assert_eq(r.len, 1);
+    assert(r[0].0.starts_with("kv-bgi-g"));
+    assert_eq(
+        r[0].1,
+        "background-image: radial-gradient(ellipse 110.0% 150.0% at 0.0% 0.0%, #14b8a680 0.0%, #14b8a61f 60.0%, #14b8a600 90.0%);",
+    );
+}
+
+@test
+fun equal_ellipses_share_a_class_and_others_dont() {
+    let first = rules(bg(at(0.0, 0.0, 1.1, 1.5)))[0].0;
+    assert_eq(rules(bg(at(0.0, 0.0, 1.1, 1.5)))[0].0, first);
+    assert(rules(bg(at(1.0, 0.0, 1.1, 1.5)))[0].0 != first);
+    assert(rules(bg(at(0.0, 0.0, 0.6, 1.5)))[0].0 != first);
+}
+
+@test
+fun a_centre_outside_the_node_keeps_its_sign_and_rounds_away_from_zero() {
+    assert(
+        rules(bg(at(-0.25, 1.4, 0.0005, 0.35)))[0].1.starts_with(
+            "background-image: radial-gradient(ellipse 0.1% 35.0% at -25.0% 140.0%,",
+        ),
+    );
+    assert(
+        rules(bg(at(-0.0004, -0.0006, 1.0, 1.0)))[0].1.starts_with(
+            "background-image: radial-gradient(ellipse 100.0% 100.0% at 0.0% -0.1%,",
+        ),
+    );
+}
+
+@test
+fun an_ellipse_sits_under_a_picture_in_its_one_rule() {
+    let s = bg(Background {
+        image: Some(Image.File("examples/assets/sample.png")),
+        fill: Fill.Cover,
+        ..at(0.0, 0.0, 1.1, 1.5),
+    });
+    assert_eq(rules(s), []);
+    let Some((_, _, gradient, _)) = picture(s) else {
+        panic("expected a picture");
+    };
+    assert(gradient.starts_with("radial-gradient(ellipse 110.0% 150.0% at 0.0% 0.0%,"));
+}
+
+@test
+fun bad_ellipses_say_what_is_wrong() {
+    assert_eq(
+        check(bg(at(0.0, 0.0, 0.0, 1.0))),
+        Err("Ellipse across 0.0: a radius must be positive"),
+    );
+    assert_eq(
+        check(bg(at(0.0, 0.0, 1.0, -0.5))),
+        Err("Ellipse down -0.5: a radius must be positive"),
+    );
+    let nan: f32 = 0.0 / 0.0;
+    let inf: f32 = 1.0 / 0.0;
+    assert_eq(
+        check(bg(at(nan, 0.0, 1.0, 1.0))),
+        Err("Ellipse x {nan as f64}: a number must be finite"),
+    );
+    assert_eq(
+        check(bg(at(0.0, inf, 1.0, 1.0))),
+        Err("Ellipse y {inf as f64}: a number must be finite"),
+    );
+    assert_eq(
+        check(bg(at(0.0, 0.0, inf, 1.0))),
+        Err("Ellipse across {inf as f64}: a number must be finite"),
+    );
+    assert_eq(
+        check(
+            bg(
+                Background.ellipse(Ellipse { x: 0.0, y: 0.0, across: 1.0, down: 1.0 }, [
+                    Stop { color: Paint.Theme, at: 0.0 },
+                ]),
+            ),
+        ),
+        Err("Gradient: a gradient needs at least two stops"),
+    );
+    assert_eq(
+        check(
+            bg(
+                Background.ellipse(Ellipse { x: 0.0, y: 0.0, across: 1.0, down: 1.0 }, [
+                    Stop { color: Paint.Theme, at: 0.6 },
+                    Stop { color: Paint.Theme, at: 0.2 },
+                ]),
+            ),
+        ),
+        Err("Gradient: its stops must be in order"),
+    );
+    // A centre beyond the node is allowed, as CSS allows it.
+    assert_eq(check(bg(at(-0.2, 1.4, 1.0, 1.0))), Ok(()));
+}
+
+fun sheet_of<M>(v: View<M>): Sheet = match v {
+    Styled(_, s) => s.sheet,
+    _ => panic("expected a styled node"),
+};
+
+@test
+fun the_last_gradient_set_wins_ellipse_or_not() {
+    let linear = Background.linear(180, wash());
+    let ellipse = at(0.0, 0.0, 1.1, 1.5);
+    let over: View<i64> = column([]).style([linear, ellipse]);
+    assert_eq(sheet_of(over).background.gradient, ellipse.gradient);
+    let under: View<i64> = column([]).style([ellipse, linear]);
+    assert_eq(sheet_of(under).background.gradient, linear.gradient);
+}

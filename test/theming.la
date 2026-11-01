@@ -15,6 +15,7 @@ import kivuli {
     Paint,
     Background,
     Gradient,
+    Ellipse,
     Image,
     Border,
     Spacing,
@@ -163,6 +164,12 @@ fun painting_gives_a_backgrounds_classes_and_refuses_its_bad_values() {
         text("a").style([Background { gradient: Gradient.Radial([]), ..Background.theme() }]),
     ]);
     assert_eq(painted(bad).map(fun(v) = 0), Err("Gradient: a gradient needs at least two stops"));
+    let flat: View<i64> = column([
+        text("a").style([
+            Background.ellipse(Ellipse { x: 0.0, y: 0.0, across: 0.0, down: 1.0 }, []),
+        ]),
+    ]);
+    assert_eq(painted(flat).map(fun(v) = 0), Err("Ellipse across 0.0: a radius must be positive"));
 }
 
 @test
