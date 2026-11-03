@@ -56,11 +56,7 @@ public fun pick<Msg>(v: View<Msg>, owner: string, item: string): Result<Msg, Loo
     let mut owners: MenuEntry<Msg>[][] = [];
     for (node, style) of nodes(v) {
         match node {
-            Menu(inside, entries) => if style.name == owner || match inside {
-                Button(label, _, _) => label == owner || style.tooltip == owner,
-                ButtonWith(content, _) => finds(content, style, owner),
-                _ => false,
-            } {
+            Menu(inside, Entries(entries)) => if owns(inside, style, owner) {
                 owners.push(entries);
             },
             _ => {}
@@ -73,6 +69,40 @@ public fun pick<Msg>(v: View<Msg>, owner: string, item: string): Result<Msg, Loo
     for (label, msg) of items(entries) {
         if label == item {
             found.push(msg);
+        }
+    }
+    match only(found, what)? {
+        Some(msg) => Ok(msg),
+        None => Err(Lookup.Silent(what)),
+    }
+}
+
+/**
+ * The message a right-click (or a long press, or the Menu key) on the node
+ * found by `label` sends (`.on_context`): a button's label or tooltip, or a
+ * node's `.name`, as `pick` finds a menu's owner.
+ * @returns `Ok(msg)`; `Err(NotFound)`, `Err(Ambiguous)`, or `Err(Silent)` when
+ * it's a disabled button (GTK gives it no clicks) or its right-click opens a
+ * `.menu` (`pick` picks from that)
+ *
+ * Example:
+ *     assert_eq(kivuli.testing.context(view(m), "tile 3"), Ok(Msg.Details(3)));
+ */
+public fun context<Msg>(v: View<Msg>, label: string): Result<Msg, Lookup> {
+    let what = "right-click on \"{label}\"";
+    let mut found: Option<Msg>[] = [];
+    for (node, style) of nodes(v) {
+        match node {
+            Menu(inside, ctx) => if owns(inside, style, label) {
+                found.push(match ctx {
+                    Send(msg) => match inside {
+                        Button(_, None, _) | ButtonWith(_, None) => None,
+                        _ => Some(msg),
+                    },
+                    Entries(_) => None,
+                });
+            },
+            _ => {}
         }
     }
     match only(found, what)? {
@@ -370,6 +400,13 @@ fun only<T>(found: T[], what: string): Result<T, Lookup> = if found.len == 0 {
     Err(Lookup.Ambiguous(what, found.len))
 } else {
     Ok(found[0])
+};
+
+/** Whether the node with a right-click, `inside` with `style`, is found by `s`: its `.name`, or a button's label or tooltip. */
+fun owns<Msg>(inside: View<Msg>, style: Style, s: string): bool = style.name == s || match inside {
+    Button(label, _, _) => label == s || style.tooltip == s,
+    ButtonWith(content, _) => finds(content, style, s),
+    _ => false,
 };
 
 /** Whether a `button_with` showing `content`, with `style`, is found by `s`: its tooltip, its name, or a text inside. */

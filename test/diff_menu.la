@@ -1,8 +1,9 @@
-// Diffing context menus: a menu always gives SetMenu (messages can't be
-// compared); its node diffs as itself at the same path; gaining or losing a
-// menu is a SetMenu, not a rebuild. (test/diff.la is at the limit.)
+// Diffing context menus and `.on_context`: a menu or message always gives
+// SetMenu (messages can't be compared); its node diffs as itself at the same
+// path; gaining, losing or swapping one is a SetMenu, not a rebuild.
+// (test/diff.la is at the limit.)
 import kivuli.core.diff { Patch, diff as patches };
-import kivuli.view.menus { MenuEntry };
+import kivuli.view.menus { Context, MenuEntry };
 import kivuli { View, button, column, item, text };
 
 fun assert_same<T>(actual: T, expected: T) {
@@ -14,7 +15,7 @@ fun a_menu_always_sets_its_entries_after_its_nodes_own_patches() {
     let before: View<i64> = text("a").menu([item("Open", 1)]);
     let expected: Patch<i64>[] = [
         Patch.SetText([], "b"),
-        Patch.SetMenu([], [MenuEntry.Item("Open", Some(2))]),
+        Patch.SetMenu([], Context.Entries([MenuEntry.Item("Open", Some(2))])),
     ];
     assert_same(patches(before, text("b").menu([item("Open", 2)])), expected);
 }
@@ -22,9 +23,12 @@ fun a_menu_always_sets_its_entries_after_its_nodes_own_patches() {
 @test
 fun gaining_or_losing_a_menu_keeps_the_widget() {
     let plain: View<i64> = text("a");
-    let gained: Patch<i64>[] = [Patch.SetMenu([], [MenuEntry.Item("Open", Some(1))])];
+    let gained: Patch<i64>[] = [
+        Patch.SetMenu([], Context.Entries([MenuEntry.Item("Open", Some(1))])),
+    ];
     assert_same(patches(plain, text("a").menu([item("Open", 1)])), gained);
-    let lost: Patch<i64>[] = [Patch.SetMenu([], [])];
+    let none: MenuEntry<i64>[] = [];
+    let lost: Patch<i64>[] = [Patch.SetMenu([], Context.Entries(none))];
     assert_same(patches(text("a").menu([item("Open", 1)]), plain), lost);
 }
 
@@ -33,4 +37,29 @@ fun a_menu_node_that_changes_kind_is_rebuilt_whole() {
     let after: View<i64> = column([]).menu([item("Open", 1)]);
     let expected: Patch<i64>[] = [Patch.Replace([], after)];
     assert_same(patches(text("a").menu([item("Open", 1)]), after), expected);
+}
+
+@test
+fun on_context_always_sets_its_message_and_keeps_the_widget() {
+    let before: View<i64> = text("a").on_context(1);
+    let resent: Patch<i64>[] = [Patch.SetMenu([], Context.Send(2))];
+    assert_same(patches(before, text("a").on_context(2)), resent);
+    let plain: View<i64> = text("a");
+    let gained: Patch<i64>[] = [Patch.SetMenu([], Context.Send(1))];
+    assert_same(patches(plain, before), gained);
+    let none: MenuEntry<i64>[] = [];
+    let lost: Patch<i64>[] = [Patch.SetMenu([], Context.Entries(none))];
+    assert_same(patches(before, plain), lost);
+}
+
+@test
+fun a_menu_becoming_on_context_is_one_set_menu_not_a_rebuild() {
+    let menu: View<i64> = text("a").menu([item("Open", 1)]);
+    let message: View<i64> = text("a").on_context(2);
+    let to_message: Patch<i64>[] = [Patch.SetMenu([], Context.Send(2))];
+    assert_same(patches(menu, message), to_message);
+    let to_menu: Patch<i64>[] = [
+        Patch.SetMenu([], Context.Entries([MenuEntry.Item("Open", Some(1))])),
+    ];
+    assert_same(patches(message, menu), to_menu);
 }

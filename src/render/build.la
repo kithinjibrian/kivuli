@@ -320,9 +320,9 @@ fun create_in<Msg>(v: View<Msg>, axis: i32, send: fun(Msg)): Live<Msg> = match v
             pack(bar, true, end, send),
         )
     }
-    Menu(inside, entries) => {
+    Menu(inside, ctx) => {
         let node = create_in(inside, axis, send);
-        Live.Menu(node, attach(widget(node), entries, send))
+        Live.Menu(node, attach(widget(node), ctx, send))
     }
     Styled(inside, style) => {
         let made = create_in(inside, axis, send);

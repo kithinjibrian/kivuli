@@ -2,8 +2,8 @@
  * Context menus on real widgets: a `GtkPopoverMenu` parented to the node's
  * widget, showing a `GMenu` whose items name actions (`kv.item0`, …) in an
  * action group on the widget; a right-click, a long press and the Menu key
- * (Shift+F10) open it. Not responsible for what the entries are (`menus`) or
- * when they change (`diff`).
+ * (Shift+F10) open it, or send `.on_context`'s message instead. Not
+ * responsible for what the entries are (`menus`) or when they change (`diff`).
  *
  * Depends on: menus, live_tree, styling (`flag`), panels (`regrab_around`), gtk.raw
  * Used by: build, patch
@@ -72,18 +72,27 @@ import gtk {
     gtk_widget_unparent,
     gtk_widget_unref,
 };
-import view.menus { MenuEntry, check_items, items, layout, message_of, plain_items, radio_groups };
+import view.menus {
+    Context,
+    MenuEntry,
+    check_items,
+    items,
+    layout,
+    message_of,
+    plain_items,
+    radio_groups,
+};
 import view.keys { parse };
 import core.live_tree { Popup };
 import render.styling { flag };
 import render.panels { regrab_around };
 
 /**
- * Gives `w` a context menu showing `entries`: the popover, the action group,
- * the gestures and the shortcut, each made and connected once for the
- * widget's whole life (`refresh` changes what they show and send).
+ * Gives `w` a right-click doing `ctx`: the popover, the action group, the
+ * gestures and the shortcut, each made and connected once for the widget's
+ * whole life (`refresh` changes what they show and send).
  */
-fun attach<Msg>(w: GtkWidget, entries: MenuEntry<Msg>[], send: fun(Msg)): Popup<Msg> {
+fun attach<Msg>(w: GtkWidget, ctx: Context<Msg>, send: fun(Msg)): Popup<Msg> {
     let group = g_simple_action_group_new();
     gtk_widget_insert_action_group(w, "kv", Some(group));
     // The widget holds the group now; ours is dropped, and the group lives as long as it.
@@ -134,6 +143,18 @@ fun attach<Msg>(w: GtkWidget, entries: MenuEntry<Msg>[], send: fun(Msg)): Popup<
         gtk_popover_popup(popover);
         true
     };
+    let sends: Ref<Option<Msg>> = Ref.new(None);
+    // `.on_context`: the message instead of the menu. The gesture is claimed,
+    // so an enclosing node's menu or message doesn't answer the same press.
+    let answered = fun(g: GtkEventController): bool = match sends.get() {
+        Some(msg) => {
+            // GTK_EVENT_SEQUENCE_CLAIMED.
+            gtk_gesture_set_state(g, 1);
+            send(msg);
+            true
+        }
+        None => false,
+    };
     let click = gtk_gesture_click_new();
     // The secondary button: the primary is the node's own (a button's click).
     gtk_gesture_single_set_button(click, 3);
@@ -141,7 +162,9 @@ fun attach<Msg>(w: GtkWidget, entries: MenuEntry<Msg>[], send: fun(Msg)): Popup<
         click,
         "pressed",
         fun(g: GtkEventController, n: i32, x: f64, y: f64) {
-            open(x as i32, y as i32, 1, 1);
+            if !answered(g) {
+                open(x as i32, y as i32, 1, 1);
+            }
         },
         0,
     );
@@ -151,7 +174,9 @@ fun attach<Msg>(w: GtkWidget, entries: MenuEntry<Msg>[], send: fun(Msg)): Popup<
         hold,
         "pressed",
         fun(g: GtkEventController, x: f64, y: f64) {
-            open(x as i32, y as i32, 1, 1);
+            if !answered(g) {
+                open(x as i32, y as i32, 1, 1);
+            }
         },
         0,
     );
@@ -166,8 +191,14 @@ fun attach<Msg>(w: GtkWidget, entries: MenuEntry<Msg>[], send: fun(Msg)): Popup<
         primary,
         "pressed",
         fun(g: GtkEventController, n: i32, x: f64, y: f64) {
-            // Below the whole node, as a drop-down opens.
-            if on_click.get() && open(0, 0, gtk_widget_get_width(w), gtk_widget_get_height(w)) {
+            // Below the whole node, as a drop-down opens. Never the
+            // `.on_context` message: a left-click stays the node's own.
+            if on_click.get() && sends.get().is_none() && open(
+                0,
+                0,
+                gtk_widget_get_width(w),
+                gtk_widget_get_height(w),
+            ) {
                 // GTK_EVENT_SEQUENCE_CLAIMED.
                 gtk_gesture_set_state(g, 1);
             }
@@ -178,11 +209,17 @@ fun attach<Msg>(w: GtkWidget, entries: MenuEntry<Msg>[], send: fun(Msg)): Popup<
     // Local scope: the keys work while the node or something inside it has focus.
     let controller = gtk_shortcut_controller_new();
     gtk_shortcut_controller_set_scope(controller, 0);
-    let menu_keys = gtk_callback_action_new(
-        fun(owner: GtkWidget, args: Option<GVariant>): i32 = flag(
-            open(0, 0, gtk_widget_get_width(owner), gtk_widget_get_height(owner)),
-        ),
-    );
+    // True (handled) when it sends or opens, so an enclosing node's keys don't run too.
+    let menu_keys = gtk_callback_action_new(fun(
+        owner: GtkWidget,
+        args: Option<GVariant>,
+    ): i32 = flag(match sends.get() {
+        Some(msg) => {
+            send(msg);
+            true
+        }
+        None => open(0, 0, gtk_widget_get_width(owner), gtk_widget_get_height(owner)),
+    }));
     let trigger = gtk_shortcut_trigger_parse_string("Menu|<Shift>F10").expect(
         "GTK reads the Menu key and Shift+F10",
     );
@@ -197,6 +234,7 @@ fun attach<Msg>(w: GtkWidget, entries: MenuEntry<Msg>[], send: fun(Msg)): Popup<
         group: group,
         actions: Ref.new([]),
         entries: current,
+        sends: sends,
         model: Ref.new(empty),
         shown: Ref.new([]),
         click: click,
@@ -208,16 +246,30 @@ fun attach<Msg>(w: GtkWidget, entries: MenuEntry<Msg>[], send: fun(Msg)): Popup<
         keys: menu_keys,
     };
     g_menu_unref(empty);
-    refresh(popup, entries, send);
+    refresh(popup, ctx, send);
     popup
 }
+
+/** Does `ctx` from now on: opens a menu of its entries, or sends its message. */
+fun refresh<Msg>(p: Popup<Msg>, ctx: Context<Msg>, send: fun(Msg)) = match ctx {
+    Entries(entries) => {
+        p.sends.set(None);
+        show(p, entries, send);
+    }
+    Send(msg) => {
+        p.sends.set(Some(msg));
+        // No items: an open menu closes and its actions are disabled.
+        let none: MenuEntry<Msg>[] = [];
+        show(p, none, send);
+    }
+};
 
 /**
  * Shows `entries` from now on: the messages re-pointed always, the menu
  * model rebuilt only when labels or separators changed, and each item's
  * action enabled when it has a message. An open menu stays open.
  */
-fun refresh<Msg>(p: Popup<Msg>, entries: MenuEntry<Msg>[], send: fun(Msg)) {
+fun show<Msg>(p: Popup<Msg>, entries: MenuEntry<Msg>[], send: fun(Msg)) {
     p.entries.set(entries);
     let shape = layout(entries);
     if shape != p.shown.get() {

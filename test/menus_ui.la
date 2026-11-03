@@ -55,7 +55,7 @@ fun a_dropdown_menu_opens_on_a_click_in_the_look() {
     assert(s.sheet.parts.len >= 5);
     match v {
         Styled(inside, _) => match inside {
-            Menu(_, entries) => assert_eq(entries.len, 1),
+            Menu(_, Entries(entries)) => assert_eq(entries.len, 1),
             _ => panic("a dropdown menu is a menu node"),
         },
         _ => panic("a dropdown menu is styled"),

@@ -34,6 +34,7 @@ import kivuli {
 import kivuli.testing {
     Lookup,
     click,
+    context,
     is_disabled,
     pick,
     press,
@@ -170,7 +171,10 @@ fun todo_row(t: Todo): View<Msg> = lazy(
         checkbox(t.title, t.done, fun(on: bool) = Msg.Toggle(t.id, on)).ellipsize().tooltip(t.title).style(
             if t.done { [Text { decoration: Decoration.Strikethrough, ..dim() }] } else { [] },
         ).expand(),
-        button("✕", Msg.Delete(t.id)).tooltip("Delete {t.title}"),
+        // A right-click on ✕ toggles the task instead (`.on_context`); a click still deletes.
+        button("✕", Msg.Delete(t.id)).tooltip("Delete {t.title}").on_context(
+            Msg.Toggle(t.id, !t.done),
+        ),
     ]).style([gap(8)]).name("row {t.title}").menu([
         item(if t.done { "Mark as not done" } else { "Mark as done" }, Msg.Toggle(t.id, !t.done)),
         item("Delete", Msg.Delete(t.id)),
@@ -242,6 +246,8 @@ fun deleting_a_task_by_its_button_or_its_menu() {
     assert_eq(click(view(m), "Delete eggs"), Ok(Msg.Delete(2)));
     assert_eq(pick(view(m), "row milk", "Delete"), Ok(Msg.Delete(1)));
     assert_eq(pick(view(m), "row milk", "Mark as done"), Ok(Msg.Toggle(1, true)));
+    // A right-click on ✕ toggles; its click still deletes.
+    assert_eq(context(view(m), "Delete milk"), Ok(Msg.Toggle(1, true)));
     let gone = update(m, pick(view(m), "row milk", "Delete").unwrap_or(Msg.Draft("")));
     assert_eq(gone.todos.map(fun(t) = t.title), ["eggs"]);
 }

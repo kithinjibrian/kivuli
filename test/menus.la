@@ -1,5 +1,5 @@
 // Menu entries, without GTK: items, separators, disabled items.
-import kivuli.view.menus { MenuEntry, items, layout };
+import kivuli.view.menus { Context, MenuEntry, items, layout };
 import kivuli { item, menu_label, menu_separator, submenu, check_item, radio_group };
 
 fun assert_same<T>(actual: T, expected: T) {
@@ -85,4 +85,14 @@ fun check_items_and_radio_groups_map() {
     ];
     let mapped = entries.map(fun(e) = e.map(fun(n: i64): string = "{n}"));
     assert_eq(items(mapped).map(fun(i) = i.1), [Some("1"), Some("5")]);
+}
+
+@test
+fun a_context_maps_its_message_or_its_entries() {
+    let send: Context<i64> = Context.Send(2);
+    let sent: Context<string> = Context.Send("2");
+    assert_same(send.map(fun(n: i64): string = "{n}"), sent);
+    let entries: Context<i64> = Context.Entries([item("Open", 1)]);
+    let mapped: Context<string> = Context.Entries([item("Open", "1")]);
+    assert_same(entries.map(fun(n: i64): string = "{n}"), mapped);
 }

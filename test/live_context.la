@@ -1,0 +1,166 @@
+// `.on_context` on real GTK widgets: the right-click, the long press and the
+// Menu key each send the node's message and open no menu; a button's click
+// stays its own; a drop-down's primary click never sends it; a new message is
+// re-pointed on the same widget; swapping to a `.menu` and back opens the
+// menu, then closes it. Needs a display, so it is skipped without one.
+// (Which node answers when they nest: examples/tasks.la, by eye.)
+import std.env;
+import gtk {
+    GtkApplication,
+    GtkWidget,
+    connect_app,
+    emit_widget,
+    g_application_quit,
+    g_application_run,
+    g_object_unref,
+    gtk_application_new,
+    gtk_application_window_new,
+    gtk_shortcut_action_activate,
+    gtk_widget_get_visible,
+    lgtk_emit_pressed,
+};
+import kivuli.render.live { mount, live_of };
+import kivuli.core.effects { sandbox_app };
+import kivuli.core.live_tree { Live, Popup, widget };
+import kivuli { View, button, column, item, text };
+
+fun has_display(): bool = env.get("DISPLAY").is_some() || env.get("WAYLAND_DISPLAY").is_some();
+
+/** Runs `steps` with a function giving the app's top column's children now. */
+fun with_app<Model, Msg>(
+    id: string,
+    model: Model,
+    update: fun(Model, Msg): Model,
+    view: fun(Model): View<Msg>,
+    steps: fun(fun(): Live<Msg>[]),
+) {
+    let application = gtk_application_new(id, 0);
+    connect_app(
+        application,
+        "activate",
+        fun(a: GtkApplication) {
+            let window = gtk_application_window_new(a);
+            let app = mount(a, window, sandbox_app("org.kivuli.test", model, update, view));
+            steps(fun(): Live<Msg>[] = match live_of(app) {
+                Box(_, _, kids) => kids,
+                _ => panic("expected a column"),
+            });
+            g_application_quit(a);
+        },
+        0,
+    );
+    g_application_run(application, 0, None);
+    g_object_unref(application);
+}
+
+fun note(seen: Ref<string[]>, s: string) {
+    seen.update(fun(xs) {
+        let mut ys = xs;
+        ys.push(s);
+        ys
+    });
+}
+
+enum Act {
+    /** The button's own click. */
+    Own,
+    /** A context message: the number it carries. */
+    Context(i64),
+    /** The menu's item, once swapped to a menu. */
+    Item,
+    Bump,
+    Swap,
+}
+
+struct Tile {
+    n: i64,
+    menu: bool,
+}
+
+fun view_tile(t: Tile): View<Act> {
+    let close: View<Act> = button("✕", Act.Own);
+    column([
+        if t.menu { close.menu([item("Open", Act.Item)]) } else { close.on_context(Act.Context(t.n)) },
+        // An empty drop-down: its primary click has no menu to open, and must not send.
+        text("drop").dropdown_menu([]).on_context(Act.Context(100)),
+        button("Bump", Act.Bump),
+        button("Swap", Act.Swap),
+    ])
+}
+
+/** The node's widget and its right-click, as kivuli holds them. */
+fun parts(node: Live<Act>): (GtkWidget, Popup<Act>) = match node {
+    Menu(inner, popup) => (widget(inner), popup),
+    _ => panic("expected a node with a right-click"),
+};
+
+@test
+fun on_context_sends_from_each_gesture_and_follows_the_view() {
+    if !has_display() {
+        skip("no display");
+    }
+    let seen: Ref<string[]> = Ref.new([]);
+    let update = fun(t: Tile, msg: Act): Tile = match msg {
+        Own => {
+            note(seen, "own");
+            t
+        }
+        Context(n) => {
+            note(seen, "context {n}");
+            t
+        }
+        Item => {
+            note(seen, "item");
+            t
+        }
+        Bump => Tile { n: t.n + 1, ..t },
+        Swap => Tile { menu: !t.menu, ..t },
+    };
+    with_app("org.kivuli.test.context", Tile { n: 1, menu: false }, update, view_tile, fun(
+        kids: fun(): Live<Act>[],
+    ) {
+        let (close, popup) = parts(kids()[0]);
+        // A left-click is the button's own.
+        emit_widget(close, "clicked");
+        // A right-click, a long press and the Menu key send, opening nothing.
+        lgtk_emit_pressed(popup.click, 1, 3.0, 4.0);
+        lgtk_emit_pressed(popup.hold, -1, 3.0, 4.0);
+        gtk_shortcut_action_activate(popup.keys, 0, close, None);
+        note(seen, "open: {gtk_widget_get_visible(popup.popover)}");
+        // A new message, on the same widget.
+        emit_widget(widget(kids()[2]), "clicked");
+        let (same, bumped) = parts(kids()[0]);
+        note(seen, "same widget: {same == close}");
+        lgtk_emit_pressed(bumped.click, 1, 3.0, 4.0);
+        // The drop-down's primary click sends nothing; its right-click sends.
+        let (_, drop) = parts(kids()[1]);
+        lgtk_emit_pressed(drop.primary, 1, 4.0, 4.0);
+        lgtk_emit_pressed(drop.click, 1, 4.0, 4.0);
+        // Swapped to a menu: the right-click opens it and sends nothing.
+        emit_widget(widget(kids()[3]), "clicked");
+        let (menu_widget, menu) = parts(kids()[0]);
+        lgtk_emit_pressed(menu.click, 1, 3.0, 4.0);
+        note(
+            seen,
+            "menu: same widget {menu_widget == close}, open {gtk_widget_get_visible(menu.popover)}",
+        );
+        // And back: the open menu closes, and the right-click sends again.
+        emit_widget(widget(kids()[3]), "clicked");
+        let (_, back) = parts(kids()[0]);
+        note(seen, "back: open {gtk_widget_get_visible(back.popover)}");
+        lgtk_emit_pressed(back.click, 1, 3.0, 4.0);
+    });
+    assert_eq(seen.get(), [
+        "own",
+        "context 1",
+        "context 1",
+        "context 1",
+        "open: 0",
+        "same widget: true",
+        "context 2",
+        "context 100",
+        "menu: same widget true, open 1",
+        "back: open 0",
+        "context 2",
+    ]);
+}
