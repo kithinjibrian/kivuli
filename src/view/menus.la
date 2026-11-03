@@ -1,6 +1,7 @@
 /**
  * Menu entries: what `.menu` and `.dropdown_menu` take (items, separators,
- * group labels, submenus, hinted items), and the functions that build them.
+ * group labels, submenus, hinted items), and the functions that build them;
+ * `Context`, what a node's right-click does (a menu or `.on_context`'s message).
  * Plain data: no GTK (`popovers` shows them).
  *
  * Used by: diff, lib (re-exports it), live_tree, mapping, popovers, testing, views
@@ -22,6 +23,31 @@ public enum MenuEntry<Msg> {
     Check(string, bool, Option<fun(bool): Msg>, string),
     /** A radio group: the label shown selected, and each choice's label and message (`None`: disabled). */
     Radio(string, (string, Option<Msg>)[]),
+}
+
+/**
+ * What a node's right-click, long press and Menu key do: open a menu of these
+ * entries (`.menu`), or send a message and open nothing (`.on_context`).
+ */
+public enum Context<Msg> {
+    /** Open a menu of these entries; `[]` is no menu. */
+    Entries(MenuEntry<Msg>[]),
+    /** Send this message. */
+    Send(Msg),
+}
+
+impl Context<Msg> {
+    /** The same, sending `f(msg)` instead of `msg` (the entries' messages too). */
+    public fun map<B>(self, f: fun(Msg): B): Context<B> = match self {
+        Entries(entries) => Context.Entries(entries.map(fun(e) = e.map(f))),
+        Send(msg) => Context.Send(f(msg)),
+    };
+
+    /** Whether a right-click does nothing: a menu with no entries. */
+    public fun does_nothing(self): bool = match self {
+        Entries(entries) => entries.len == 0,
+        Send(_) => false,
+    };
 }
 
 impl MenuEntry<Msg> {

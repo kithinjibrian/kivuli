@@ -1,6 +1,6 @@
 /**
  * The bodies of `View`'s methods that rewrite nodes rather than their style:
- * `map`, `.disabled`, `.image`/`.icon`, `.on_submit`, `.menu`; and the header
+ * `map`, `.disabled`, `.image`/`.icon`, `.on_submit`, `.menu`, `.on_context`; and the header
  * bar before it goes in `.header(…)`, `Bar`. Moved out of `views.la`
  * (DECISION-018, file size), where every method must stay with `View`;
  * `views` and `mapping` import each other, the one import cycle kivuli allows.
@@ -11,7 +11,7 @@
 
 import view.views { View };
 import view.pictures { Image };
-import view.menus { MenuEntry };
+import view.menus { Context, MenuEntry, items };
 import view.clips { Overflowing };
 import view.looks { Align, Style, plain };
 import styles.theming { Color, Paint };
@@ -83,7 +83,7 @@ fun mapped<Msg, B>(v: View<Msg>, f: fun(Msg): B): View<B> = match v {
         side,
         arrow,
     ),
-    Menu(x, entries) => View.Menu(x.map(f), entries.map(fun(e) = e.map(f))),
+    Menu(x, ctx) => View.Menu(x.map(f), ctx.map(f)),
     Styled(x, style) => View.Styled(x.map(f), style),
     Framed(body, start, title, end) => View.Framed(
         body.map(f),
@@ -158,17 +158,88 @@ fun with_hidden<Msg>(v: View<Msg>, f: fun(i64): Msg): View<Msg> = match v {
     _ => v,
 };
 
-/**
- * `.menu`: the node's context menu set, inside its style so modifiers keep one
- * wrapper; `[]` takes it away.
- */
-fun with_menu<Msg>(v: View<Msg>, entries: MenuEntry<Msg>[]): View<Msg> = match v {
-    Styled(inside, s) => View.Styled(with_menu(inside, entries), s),
-    Menu(inside, _) => with_menu(inside, entries),
-    // As for styles (DECISION-002): a lazy subtree is what `build` gives it.
-    Lazy(_, _, _, _) => v,
-    _ => if entries.len == 0 { v } else { View.Menu(v, entries) },
+/** `.menu`: the node's context menu set (`set_context`); `[]` takes it away. */
+fun with_menu<Msg>(v: View<Msg>, entries: MenuEntry<Msg>[]): View<Msg> = refused(
+    set_context(v, Context.Entries(entries)),
+);
+
+/** `.on_context`: the message the node's right-click sends (`set_context`). */
+fun with_context<Msg>(v: View<Msg>, msg: Msg): View<Msg> = refused(
+    set_context(v, Context.Send(msg)),
+);
+
+// A menu beside a message is the app's mistake, so the modifier stops on it.
+fun refused<Msg>(r: Result<View<Msg>, string>): View<Msg> = match r {
+    Ok(v) => v,
+    Err(problem) => panic("kivuli: {problem}"),
 };
+
+/**
+ * The node's right-click set to `ctx`, inside its style so modifiers keep one
+ * wrapper: a new menu replaces a menu and a new message a message, and
+ * `Entries([])` takes a menu away and leaves a message.
+ * @returns `Ok(view)`; `Err` naming the node when a menu meets a message,
+ * either way round: both would answer the same right-click
+ */
+fun set_context<Msg>(v: View<Msg>, ctx: Context<Msg>): Result<View<Msg>, string> = placed(
+    v,
+    ctx,
+    "",
+);
+
+fun placed<Msg>(
+    v: View<Msg>,
+    ctx: Context<Msg>,
+    name: string,
+): Result<View<Msg>, string> = match v {
+    Styled(inside, s) => Ok(View.Styled(placed(inside, ctx, s.name)?, s)),
+    Menu(inside, old) => if opens(old) && sends(ctx) || sends(old) && opens(ctx) {
+        Err(
+            "{who(inside, name, old, ctx)} has both .menu and .on_context: they answer the same right-click; use one",
+        )
+    } else if sends(old) && !sends(ctx) {
+        // `.menu([])` beside a message: no menu to take away.
+        Ok(v)
+    } else {
+        placed(inside, ctx, name)
+    },
+    // As for styles (DECISION-002): a lazy subtree is what `build` gives it.
+    Lazy(_, _, _, _) => Ok(v),
+    _ => if opens(ctx) || sends(ctx) { Ok(View.Menu(v, ctx)) } else { Ok(v) },
+};
+
+/** Whether `ctx` opens a menu with something in it. */
+fun opens<Msg>(ctx: Context<Msg>): bool = match ctx {
+    Entries(entries) => entries.len > 0,
+    Send(_) => false,
+};
+
+fun sends<Msg>(ctx: Context<Msg>): bool = match ctx {
+    Send(_) => true,
+    Entries(_) => false,
+};
+
+/** The node, for a message: its `.name`, a button's label, or its menu's first item. */
+fun who<Msg>(inside: View<Msg>, name: string, a: Context<Msg>, b: Context<Msg>): string {
+    if name != "" {
+        return "\"{name}\"";
+    }
+    match inside {
+        Button(label, _, _) => {
+            return "button \"{label}\"";
+        }
+        _ => {}
+    }
+    for ctx of [a, b] {
+        match ctx {
+            Entries(entries) => if items(entries).len > 0 {
+                return "the node with the menu item \"{items(entries)[0].0}\"";
+            },
+            Send(_) => {}
+        }
+    }
+    "a node"
+}
 
 /** A dialog (`ui.dialog`): its card and the message closing it (the backdrop, the ✕, Escape). */
 public struct Dialog<Msg> {

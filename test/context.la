@@ -1,0 +1,107 @@
+// `.on_context` without GTK: a node's right-click sending a message, applied
+// again or beside a style; refused beside `.menu` (through `set_context`,
+// since a panic can't be caught); and `kivuli.testing.context` finding it.
+import kivuli.view.mapping { set_context };
+import kivuli.view.menus { Context, MenuEntry };
+import kivuli.view.looks { Style, plain };
+import kivuli.testing { Lookup, click, context, pick };
+import kivuli { View, button, button_with, column, item, text };
+
+fun assert_same<T>(actual: T, expected: T) {
+    assert_eq("{actual}", "{expected}");
+}
+
+@test
+fun on_context_sends_its_message_and_a_second_replaces_the_first() {
+    let expected: View<i64> = View.Menu(View.Text("a"), Context.Send(2));
+    assert_same(text("a").on_context(2), expected);
+    assert_same(text("a").on_context(1).on_context(2), expected);
+}
+
+@test
+fun on_context_goes_inside_the_one_style_wrapper() {
+    let expected: View<i64> = View.Styled(View.Menu(View.Text("a"), Context.Send(1)), Style {
+        name: "a",
+        ..plain(),
+    });
+    assert_same(text("a").name("a").on_context(1), expected);
+    assert_same(text("a").on_context(1).name("a"), expected);
+}
+
+@test
+fun map_maps_the_context_message() {
+    let expected: View<string> = View.Menu(View.Text("a"), Context.Send("7"));
+    let v: View<i64> = text("a").on_context(7);
+    assert_same(v.map(fun(n: i64): string = "{n}"), expected);
+}
+
+@test
+fun a_menu_beside_on_context_is_refused_either_way_round() {
+    let entries: MenuEntry<i64>[] = [item("Open", 1)];
+    let named: View<i64> = text("a").name("tile 3");
+    assert_eq(
+        set_context(named.menu(entries), Context.Send(2)).map(fun(v) = "{v}"),
+        Err("\"tile 3\" has both .menu and .on_context: they answer the same right-click; use one"),
+    );
+    let first: View<i64> = button("✕", 0).on_context(2);
+    assert_eq(
+        set_context(first, Context.Entries(entries)).map(fun(v) = "{v}"),
+        Err(
+            "button \"✕\" has both .menu and .on_context: they answer the same right-click; use one",
+        ),
+    );
+    // `.dropdown_menu` is `.menu` with a flag: refused too.
+    let dropdown: View<i64> = text("a").dropdown_menu(entries);
+    assert(set_context(dropdown, Context.Send(2)).is_err());
+}
+
+@test
+fun an_empty_menu_leaves_on_context_in_place() {
+    let expected: View<i64> = View.Menu(View.Text("a"), Context.Send(2));
+    let none: MenuEntry<i64>[] = [];
+    assert_same(text("a").on_context(2).menu(none), expected);
+}
+
+@test
+fun context_finds_a_node_by_label_tooltip_text_or_name() {
+    let v: View<i64> = column([
+        button("Open", 1).on_context(10),
+        button("✕", 2).tooltip("Delete").on_context(20),
+        button_with(text("Account"), 3).on_context(30),
+        text("tile").name("tile 4").on_context(40),
+    ]);
+    assert_eq(context(v, "Open"), Ok(10));
+    assert_eq(context(v, "Delete"), Ok(20));
+    assert_eq(context(v, "Account"), Ok(30));
+    assert_eq(context(v, "tile 4"), Ok(40));
+}
+
+@test
+fun context_reports_what_it_cant_find() {
+    let v: View<i64> = column([
+        button("Open", 1),
+        button("Twice", 1).on_context(2),
+        button("Twice", 1).on_context(3),
+        button("Off", 1).disabled(true).on_context(4),
+        text("row").name("row").menu([item("Delete", 5)]),
+    ]);
+    let what = fun(s: string): string = "right-click on \"{s}\"";
+    // A node without a right-click isn't found by one.
+    assert_eq(context(v, "Open"), Err(Lookup.NotFound(what("Open"))));
+    assert_eq(context(v, "Nope"), Err(Lookup.NotFound(what("Nope"))));
+    assert_eq(context(v, "Twice"), Err(Lookup.Ambiguous(what("Twice"), 2)));
+    // GTK gives a disabled button no clicks at all.
+    assert_eq(context(v, "Off"), Err(Lookup.Silent(what("Off"))));
+    // Its right-click opens a menu: `pick` picks from that.
+    assert_eq(context(v, "row"), Err(Lookup.Silent(what("row"))));
+    assert_eq(pick(v, "row", "Delete"), Ok(5));
+}
+
+@test
+fun on_context_leaves_a_buttons_click_its_own() {
+    let v: View<i64> = column([button("✕", 1).on_context(2)]);
+    assert_eq(click(v, "✕"), Ok(1));
+    assert_eq(context(v, "✕"), Ok(2));
+    // `pick` finds menus only.
+    assert_eq(pick(v, "✕", "x"), Err(Lookup.NotFound("menu on \"✕\"")));
+}

@@ -390,6 +390,19 @@ fun main() {
 
 ## RESOLVED
 
+### DECISION-048 — A right-click that sends a message
+
+**Status:** resolved
+**Resolved:** 2026-11-04 (PRP-073, kivuli 0.68.0)
+**Raised:** 2026-11-03, the user, for Rapidkoi: a right-click on an app's tile opens the app's own details card
+**Proposal:** PRP-073 (`PRPs/prp-073-on_context.md`)
+
+**Question:** How does a node's right-click send a message instead of opening kivuli's menu, and what happens beside `.menu`?
+
+**Outcome:** `.on_context(msg)`. A node has one slot for its right-click: `View.Menu(node, Context)`, where `Context` is `Entries(entries)` (`.menu`) or `Send(msg)` (`.on_context`). It reuses `.menu`'s gestures, shortcut and `SetMenu` patch, with no new `View` or `Live` variant. Both on one node is refused: the modifier panics, naming the node, through `set_context`'s `Result` (a panic can't be tested). `.menu([])` leaves a message in place. When it sends, the gesture claims its sequence, so the innermost node answers; `.menu`'s nesting is unchanged. Left out: the pointer's position. The Menu key has none, and GTK's coordinates are relative to the widget. A later `Context.SendAt` beside `Send` would add it without breaking callers. `views.la` passes 500 lines (about 510): the user's call, with no split.
+
+---
+
 ### DECISION-013 — A file dialog
 
 **Status:** resolved

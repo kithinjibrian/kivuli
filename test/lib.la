@@ -1,7 +1,7 @@
 // Building views: what an app's `view` returns is exactly the tree it wrote.
 import kivuli.view.looks { Style, plain };
 import kivuli.styles { Sheet };
-import kivuli.view.menus { MenuEntry };
+import kivuli.view.menus { Context, MenuEntry };
 import kivuli {
     View,
     text,
@@ -413,17 +413,23 @@ fun a_menu_wraps_its_node_inside_the_style() {
         item("Reset", Msg.Reset).disabled(true),
     ];
     let expected: View<Msg> = View.Styled(
-        View.Menu(View.Text("a"), [
-            MenuEntry.Item("Open", Some(Msg.Add)),
-            MenuEntry.Separator,
-            MenuEntry.Item("Reset", None),
-        ]),
+        View.Menu(
+            View.Text("a"),
+            Context.Entries([
+                MenuEntry.Item("Open", Some(Msg.Add)),
+                MenuEntry.Separator,
+                MenuEntry.Item("Reset", None),
+            ]),
+        ),
         Style { tooltip: "t", ..plain() },
     );
     assert_same(text("a").tooltip("t").menu(entries), expected);
     assert_same(text("a").menu(entries).tooltip("t"), expected);
     // A second .menu replaces the first.
-    let replaced: View<Msg> = View.Menu(View.Text("a"), [MenuEntry.Item("Open", Some(Msg.Add))]);
+    let replaced: View<Msg> = View.Menu(
+        View.Text("a"),
+        Context.Entries([MenuEntry.Item("Open", Some(Msg.Add))]),
+    );
     assert_same(text("a").menu([item("x", Msg.Reset)]).menu([item("Open", Msg.Add)]), replaced);
 }
 

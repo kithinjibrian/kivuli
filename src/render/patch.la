@@ -236,19 +236,17 @@ fun apply<Msg>(
         }
         live
     }
-    // A node's first menu is attached to its widget; later ones refresh it,
-    // `[]` included (its gestures then open nothing).
-    SetMenu(path, entries) => update_menu_at(live, path, fun(
-        node: Live<Msg>,
-    ): Live<Msg> = match node {
+    // A node's first menu or message is attached to its widget; later ones
+    // refresh it, `[]` included (its gestures then do nothing).
+    SetMenu(path, ctx) => update_menu_at(live, path, fun(node: Live<Msg>): Live<Msg> = match node {
         Menu(_, popup) => {
-            refresh(popup, entries, send);
+            refresh(popup, ctx, send);
             node
         }
-        _ => if entries.len == 0 {
+        _ => if ctx.does_nothing() {
             node
         } else {
-            Live.Menu(node, attach(widget(node), entries, send))
+            Live.Menu(node, attach(widget(node), ctx, send))
         },
     }),
     SetFit(path, fit) => {

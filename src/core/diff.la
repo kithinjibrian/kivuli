@@ -11,7 +11,7 @@
 import view.views { View };
 import view.looks { Style, plain };
 import view.pictures { Image, identity };
-import view.menus { MenuEntry };
+import view.menus { Context, MenuEntry };
 import view.clips { Overflowing };
 import styles.box_rules { needs_clamp };
 import styles.motion { Edge };
@@ -67,10 +67,11 @@ enum Patch<Msg> {
     /** The fit row at the path sends this when how many of its children are hidden changes (`None`: nothing). */
     SetOnHidden(i64[], Option<fun(i64): Msg>),
     /**
-     * The widget at the path has this context menu from now on (`[]`: none).
-     * Every update: its messages can't be compared.
+     * The widget at the path answers a right-click this way from now on: a
+     * menu (`Entries([])`: none) or a message. Every update: its messages
+     * can't be compared.
      */
-    SetMenu(i64[], MenuEntry<Msg>[]),
+    SetMenu(i64[], Context<Msg>),
     /** The widget at the path is a different kind now: build this view in its place. */
     Replace(i64[], View<Msg>),
     /** The column or row at the path gains this view as its last child. */
@@ -138,16 +139,16 @@ fun diff_node<Msg>(path: i64[], old: View<Msg>, new: View<Msg>): Patch<Msg>[] {
     } else {
         joined([Patch.SetStyle(path, new_style)], inside)
     };
-    // A menu gained or lost is set on the same widget, not rebuilt with it.
+    // A menu or message gained or lost is set on the same widget, not rebuilt with it.
     if old_menu.is_some() || new_menu.is_some() {
         let none: MenuEntry<Msg>[] = [];
-        out.push(Patch.SetMenu(path, new_menu.unwrap_or(none)));
+        out.push(Patch.SetMenu(path, new_menu.unwrap_or(Context.Entries(none))));
     }
     out
 }
 
-/** A node without its `Menu` wrapper, and the menu's entries, if it has one. */
-fun unmenu<Msg>(v: View<Msg>): (View<Msg>, Option<MenuEntry<Msg>[]>) = match v {
+/** A node without its `Menu` wrapper, and what its right-click does, if it has one. */
+fun unmenu<Msg>(v: View<Msg>): (View<Msg>, Option<Context<Msg>>) = match v {
     Menu(inside, entries) => (inside, Some(entries)),
     _ => (v, None),
 };

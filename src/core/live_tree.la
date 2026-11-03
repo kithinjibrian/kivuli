@@ -95,7 +95,7 @@ enum Live<Msg> {
      */
     Popover(GtkWidget, Live<Msg>, GtkWidget, Live<Msg>, Ref<Msg>, Ref<bool>),
     /**
-     * A node with a context menu, and the menu's parts. Paths look through it
+     * A node with a right-click (a menu or `.on_context`), and the menu's parts. Paths look through it
      * (`paths`): only `SetMenu` and the patches replacing or removing the node see it.
      */
     Menu(Live<Msg>, Popup<Msg>),
@@ -140,7 +140,7 @@ struct Choices<Msg> {
     placeholder: string,
 }
 
-/** A node's context menu on screen (`popovers`). */
+/** A node's right-click on screen (`popovers`): its menu, or the message it sends. */
 struct Popup<Msg> {
     /** The `GtkPopoverMenu`, parented to the node's widget. */
     popover: GtkWidget,
@@ -150,6 +150,8 @@ struct Popup<Msg> {
     actions: Ref<GSimpleAction[]>,
     /** The entries now: the actions read their messages here. */
     entries: Ref<MenuEntry<Msg>[]>,
+    /** The message the gestures and keys send instead of opening the menu (`.on_context`), if any. */
+    sends: Ref<Option<Msg>>,
     /** The menu model the popover shows, rebuilt only when `shown` changes. */
     model: Ref<GMenu>,
     /** What the model shows (`menus.layout`). */

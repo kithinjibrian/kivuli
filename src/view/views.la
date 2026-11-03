@@ -11,7 +11,7 @@ import styles.palettes { Palette };
 import styles { Styling, applied };
 import view.pictures { Image };
 import view.findings { Found };
-import view.menus { MenuEntry };
+import view.menus { Context, MenuEntry };
 import view.clips { Overflowing };
 import styles.motion { Edge };
 // The one import cycle kivuli allows (DECISION-018): mapping maps views.
@@ -21,6 +21,7 @@ import view.mapping {
     button_image,
     disabled_node,
     mapped,
+    with_context,
     with_dialog,
     with_menu,
     with_hidden,
@@ -89,8 +90,8 @@ public enum View<Msg> {
     Overlay(View<Msg>, View<Msg>[]),
     /** A popover beside its trigger: the trigger, open, the content, the close message, the side, GTK's arrow. */
     Popover(View<Msg>, bool, View<Msg>, Msg, Edge, bool),
-    /** A node with a context menu (`.menu`): the node, and the menu's entries. */
-    Menu(View<Msg>, MenuEntry<Msg>[]),
+    /** A node with a right-click (`.menu`, `.on_context`): the node, and the menu it opens or the message it sends. */
+    Menu(View<Msg>, Context<Msg>),
     /**
      * The root of a view with a header bar (`.header`): the body, the views at
      * the bar's start, its title view, and the views at its end.
@@ -458,13 +459,16 @@ impl View<Msg> {
     public fun menu(self, entries: MenuEntry<Msg>[]): View<Msg> = with_menu(self, entries);
 
     /**
-     * Gives the node a menu that a click opens below it, as `.menu`'s does on
-     * a right-click (which still works): a button's own message isn't sent
-     * then. Applied again, the new entries replace the old.
+     * Sends `msg` on a right-click, a long press or the Menu key (Shift+F10),
+     * as `.menu` opens its menu, opening nothing; a button's left-click is
+     * unchanged. Applied again, the new message replaces the old. Not beside
+     * `.menu` or `.dropdown_menu`: kivuli stops, naming the node.
      *
      * Example:
-     *     button("Open", Msg.Nothing).dropdown_menu([menu_label("My Account"), item("Profile", Msg.Profile)])
+     *     tile(app).on_context(Msg.Details(app.id))
      */
+    public fun on_context(self, msg: Msg): View<Msg> = with_context(self, msg);
+
     /** While `on`, nothing in the node takes clicks or keyboard focus: a page behind a dialog. */
     public fun inert(self, on: bool): View<Msg> = restyle(
         self,
@@ -483,6 +487,14 @@ impl View<Msg> {
      */
     public fun dialog(self, d: Option<Dialog<Msg>>): View<Msg> = with_dialog(self, d);
 
+    /**
+     * Gives the node a menu that a click opens below it, as `.menu`'s does on
+     * a right-click (which still works): a button's own message isn't sent
+     * then. Applied again, the new entries replace the old.
+     *
+     * Example:
+     *     button("Open", Msg.Nothing).dropdown_menu([menu_label("My Account"), item("Profile", Msg.Profile)])
+     */
     public fun dropdown_menu(self, entries: MenuEntry<Msg>[]): View<Msg> = restyle(
         with_menu(self, entries),
         fun(s: Style) = Style { menu_on_click: true, ..s },

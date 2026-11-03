@@ -8,6 +8,14 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.68.0] — 2026-11-04
+
+### Added
+- `.on_context(msg)` (PRP-073; Rapidkoi's app tiles): on any node, a right-click, a long press, or the Menu key / Shift+F10 while it has focus sends `msg` and opens no menu, so the app can draw its own card. It uses the same gestures as `.menu`. A button's left-click is unchanged. When nodes nest, the innermost answers: its gesture claims the press. A node can't have both `.menu` (or `.dropdown_menu`) and `.on_context`: kivuli stops, naming the node. No pointer position for now. `kivuli.testing.context(view, label)` gives the message, finding the node as `pick` does. In `examples/tasks.la`, a right-click on ✕ toggles the task.
+
+### Changed
+- `View.Menu` holds a `Context` (`Entries(entries)` or `Send(msg)`) instead of the entries, and so does `Patch.SetMenu`: a view with a menu prints as `Menu(…, Entries([…]))`.
+
 ## [0.67.0] — 2026-11-01
 
 ### Added
