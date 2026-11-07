@@ -8,6 +8,11 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.68.2] — 2026-11-07
+
+### Fixed
+- Built on lugha-gtk 0.1.62: a clipped node's content is no longer measured below its own minimum, so GTK stops warning "Trying to measure GtkBox … for width of 0, but it needs at least 518" (Rapidkoi saw it with an app open).
+
 ## [0.68.1] — 2026-11-07
 
 ### Fixed
