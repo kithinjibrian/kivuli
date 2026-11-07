@@ -8,6 +8,14 @@ Never deleted. Older entries are never modified.
 
 ## [Unreleased]
 
+## [0.68.1] — 2026-11-07
+
+### Fixed
+- Built on lugha-gtk 0.1.61: a node whose maximum size is below what its content needs (a padded button capped at 28 px high) is no longer measured below the content's minimum, so GTK stops warning "Trying to measure … but it needs at least …" (Rapidkoi saw it at start and when tabs open).
+
+### Changed
+- `render/popovers.la` split: a context menu's check items and radio groups are kept in `render/menu_actions.la`. No change for apps.
+
 ## [0.68.0] — 2026-11-04
 
 ### Added
